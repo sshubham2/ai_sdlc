@@ -34,6 +34,44 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.18.0 — 2026-05-06
+
+Adds **CSP-1** — cross-spec parity audit for Heavy mode. Walks `architecture/threat-model.md`, `architecture/requirements.md`, and `architecture/nfrs.md` and validates that every H2 item (`TM-NN` / `REQ-NN` / `NFR-NN`) has structured fields AND its `Implementation:` (TM/REQ) or `Verification:` (NFR) cross-reference points to a file that actually exists. Catches the canonical Heavy-mode failure mode: a threat / requirement / NFR claims a mitigation or verification that no longer exists in code (or never did).
+
+### Added
+
+- **CSP-1 — Cross-spec parity audit (Heavy mode only)**
+  Adds `tools/cross_spec_parity_audit.py` — H2-structured parser + cross-reference validator for Heavy artifacts. Each item is `## TM-NN — <title>` / `## REQ-NN — <title>` / `## NFR-NN — <title>` followed by structured fields. Required fields: `Status`, plus `Implementation` (TM/REQ) or `Verification` (NFR) when status implies real implementation.
+
+  Status vocabulary by artifact type:
+  - **Threats**: `mitigated` | `accepted` | `open`
+  - **Requirements**: `implemented` | `pending` | `deferred`
+  - **NFRs**: `met` | `unmet` | `unverified`
+
+  Statuses requiring a non-empty path: `mitigated`, `implemented`, `met`. Statuses where empty / `n/a` is acceptable: `accepted`, `open`, `pending`, `deferred`, `unmet`, `unverified`.
+
+  Path resolution: the cell value is parsed as `<file>:<func>` (or just `<file>`); the file part is resolved relative to `--root` (default cwd). File existence is verified. Function names within files are NOT verified in v1 (see limitations).
+
+  Heavy-mode-only: the audit auto-detects `**Mode**: Heavy` in `architecture/triage.md` and returns a clean no-op for Minimal / Standard projects. CLI flag `--skip-heavy-check` overrides for archive scans / CI.
+
+  Updates `skills/sync/SKILL.md` Step 3b (between vault drift detection and the diff presentation): runs the audit; surfaces violations in the diff view; broken refs do NOT propagate into regenerated artifacts. Updates `skills/drift-check/SKILL.md` to document CSP-1 as the per-artifact-deep complement to drift-check's fast pre-commit pattern.
+
+  CLI: `python -m tools.cross_spec_parity_audit [--root <path>] [--threats <path>] [--requirements <path>] [--nfrs <path>] [--skip-heavy-check] [--json]`. Exit codes: 0 clean (or non-Heavy / artifacts absent), 1 violations, 2 usage error.
+
+  - **Rule reference**: CSP-1
+  - **Defect class**: Heavy artifacts (threat-model.md, requirements.md, nfrs.md) drift from code asymmetrically. Code refactors rename or delete files; a threat row claiming "mitigated by `src/middleware/rate_limit.py`" continues to read like a real claim even after that file moved or was inlined into a router. Without a parity check, audit reviewers (security, compliance, architecture) consume the documents at face value and the gap surfaces only in production. CSP-1 makes the cross-reference auditable: every `mitigated` / `implemented` / `met` status MUST point to a real file that exists right now, and the rule explicitly accepts `accepted` / `open` / `pending` / `unmet` / `unverified` patterns where empty Implementation is the honest state. The audit is structurally identical to other CSV-1-style validators (BC-1, RR-1, TF-1, WS-1, ETC-1, DR-1) — H2 parser + structured fields + status-driven validation rules.
+  - **Validation**: `tests/methodology/test_cross_spec_parity_audit.py` — 14 tests over 7 fixtures (`tests/methodology/fixtures/cross_spec_parity/`): Heavy-mode detection (recognizes `**Mode**: Heavy`, returns false for Standard, handles missing triage), ID normalization variants (TM-01, TM01, tm-1 -> TM-1), Heavy-mode gating (Standard returns clean no-op), `--skip-heavy-check` override, clean parsing across all 3 artifact types (TM=3, REQ=2, NFR=2 items), accepted-with-empty-impl passes, broken-ref detection (Implementation points to nonexistent file), missing-status flagging, invalid-status-for-artifact flagging, mitigated-with-empty-impl flagging, plus skill prose pins for `/sync` SKILL and `/drift-check` SKILL. Total methodology suite: 258 -> 272.
+
+  Limitations (v1, documented in code):
+  - **No function-level resolution**. `Implementation: src/middleware/auth.py:require_auth` validates the file exists but does NOT verify `require_auth` is defined in it. v2 candidate: ast-parse the file (Python only) to check function definitions.
+  - **No bidirectional parity (orphan code)**. The audit catches orphan artifacts (claim with no file) but not orphan code (real authentication middleware that no threat claims as mitigation). Reverse-direction parity needs domain-specific signals (e.g., scan src/middleware/* and ask: is there a threat covering each?). v2 candidate.
+  - **Hardcoded artifact paths**. Defaults are `architecture/threat-model.md` / `requirements.md` / `nfrs.md`. Projects with non-standard layouts must pass `--threats`, `--requirements`, `--nfrs` explicitly. A v2 could autodetect.
+  - **No NFR target validation**. The audit checks that NFR `Verification:` references exist but doesn't validate the `Target:` value (numeric ranges, units, etc.). NFR target sanity is project-specific.
+  - **No multi-file Implementation**. A single threat / requirement may legitimately span multiple files; the audit currently checks only the literal value (single path). Comma-separated paths or YAML lists are deferred.
+  - **No status transition validation**. The audit doesn't track historical changes to a Status (e.g., "was mitigated in v1, now open" — should that flag?). Out of scope.
+
+---
+
 ## v0.17.0 — 2026-05-06
 
 Adds **DR-1** — dual review for `/critique`. A new meta-Critic agent (`critique-review`) reviews the first Critic's `critique.md` for false positives (over-reach), false negatives (missed concerns), and severity miscalibrations. Per-slice second opinion that complements `/critic-calibrate`'s cross-slice pattern mining: DR-1 catches blind spots faster (one slice) where calibration only surfaces them after N slices accumulate.

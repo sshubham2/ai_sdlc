@@ -48,6 +48,8 @@ Skip files that don't exist in thin vault: `components/`, `contracts/`, `schemas
 
 Skip `slices/archive/*` entirely — those slices shipped, their claims are historical artifacts, not live assertions about current code. `slices/_index.md` is the lookup layer; it's metadata, also skipped.
 
+In **Heavy mode**, `/drift-check` is the lightweight detect-only counterpart to `/sync`'s Step 3b cross-spec parity audit (per **CSP-1**, `methodology-changelog.md` v0.18.0). `/drift-check` catches vault-vs-code drift in human-authored files; CSP-1 specifically validates that `Implementation:` / `Verification:` cross-references in `threat-model.md` / `requirements.md` / `nfrs.md` point to real files. Run `$PY -m tools.cross_spec_parity_audit --root .` after `/drift-check` for the cross-spec layer, or rely on the next `/sync` run to enforce it. The two are complementary: `/drift-check` is fast and pre-commit-friendly; CSP-1 is per-artifact-deep.
+
 If graphify is available, query the code graph to compare ADR claims against actual dependencies and structure.
 
 **Heavy mode**: if `components/`, `contracts/`, `schemas/`, etc. exist (Heavy mode keeps them), include them in the audit.

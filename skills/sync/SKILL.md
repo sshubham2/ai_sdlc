@@ -106,6 +106,30 @@ For non-derived vault content, run drift checks:
 
 For each mismatch: capture file, claim, code reality.
 
+### Step 3b: Cross-spec parity audit (CSP-1)
+
+Per **CSP-1** (`methodology-changelog.md` v0.18.0), run the cross-spec parity audit on Heavy artifacts:
+
+```bash
+$PY -m tools.cross_spec_parity_audit --root .
+```
+
+The audit walks `architecture/threat-model.md`, `architecture/requirements.md`, and `architecture/nfrs.md` and validates that every H2 item (TM-NN / REQ-NN / NFR-NN):
+
+- Has a `Status` field whose value is in the allowed vocabulary per artifact (TM: mitigated/accepted/open; REQ: implemented/pending/deferred; NFR: met/unmet/unverified)
+- For statuses that imply real implementation (mitigated / implemented / met): the `Implementation:` (TM/REQ) or `Verification:` (NFR) field references a file path that exists relative to project root
+- For statuses where empty Implementation is OK (accepted / open / pending / deferred / unmet / unverified): the field can be empty or `n/a`
+
+Refusal semantics:
+- `missing-field`: required Status missing
+- `invalid-status`: status outside the artifact's vocabulary
+- `missing-ref`: status implies real implementation but field is empty
+- `broken-ref`: status implies real implementation but the path doesn't exist on disk
+
+Heavy-mode-only. The audit returns a clean no-op in Minimal / Standard mode (and during the prerequisite check above, /sync would already have stopped if not Heavy).
+
+If the audit returns violations, surface them in Step 4's diff and ask the user to fix references OR change the status before /sync writes regenerated artifacts. Broken references in human-authored Heavy artifacts should not propagate.
+
 ### Step 4: Present diff
 
 Show the user what would change. Group by file. Show:

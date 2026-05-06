@@ -153,6 +153,7 @@ ai_sdlc/
       test_walking_skeleton_audit.py # Tests WS-1 — walking-skeleton slice variant
       test_exploratory_charter_audit.py # Tests ETC-1 — charter-based exploratory testing
       test_critique_review_audit.py # Tests DR-1 — dual review structural audit
+      test_cross_spec_parity_audit.py # Tests CSP-1 — Heavy-mode cross-spec parity
       test_mock_budget_lint.py      # Tests LINT-MOCK-1 — runs linter on fixtures
       fixtures/                     # Test fixtures (NOT collected by pytest)
         mock_budget_clean.py        # Python fixtures for LINT-MOCK-1
@@ -245,6 +246,14 @@ ai_sdlc/
           missing_section_review.md
           invalid_verdict_review.md
           missing_verdict_review.md
+        cross_spec_parity/          # CSP-1 fixtures (Heavy artifact fragments)
+          clean_threat_model.md
+          clean_requirements.md
+          clean_nfrs.md
+          broken_impl_threat.md
+          missing_status_threat.md
+          invalid_status_threat.md
+          mitigated_no_impl_threat.md
   pytest.ini                # testpaths = tests + pythonpath = .
   tools/                    # Executable methodology tools (Python)
     mock_budget_lint.py       # LINT-MOCK-1/2/3 — AST + tree-sitter linter for TDD-2 mock budget (Python, TS/JS, Go)
@@ -257,6 +266,7 @@ ai_sdlc/
     walking_skeleton_audit.py # WS-1 — walking-skeleton slice variant audit (mission-brief.md)
     exploratory_charter_audit.py # ETC-1 — charter-based exploratory testing audit
     critique_review_audit.py  # DR-1 — dual-review structural validator (critique-review.md)
+    cross_spec_parity_audit.py # CSP-1 — Heavy-mode cross-spec parity (TM/REQ/NFR refs)
 ```
 
 ## Getting started
