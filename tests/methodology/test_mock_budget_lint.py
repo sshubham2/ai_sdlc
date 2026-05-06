@@ -196,3 +196,113 @@ def test_build_slice_skill_references_lint_mock_1():
     assert "mock_budget_lint" in text, (
         "no `mock_budget_lint` module reference in /build-slice SKILL.md"
     )
+
+
+# ---------------------------------------------------------------------------
+# LINT-MOCK-2 — TypeScript / JavaScript extension
+# ---------------------------------------------------------------------------
+
+
+def test_ts_clean_file_has_no_violations():
+    """A TS test file with one boundary mock passes TDD-2.
+
+    Defect class: Same as LINT-MOCK-1 but for TS — false positives on a
+    valid pattern train users to ignore the linter.
+    Rule reference: LINT-MOCK-2.
+    """
+    violations = lint_file(FIXTURES / "mock_budget_clean.ts")
+    assert violations == [], (
+        f"clean TS file had unexpected violations: "
+        f"{[(v.kind, v.severity, v.message) for v in violations]}"
+    )
+
+
+def test_ts_too_many_mocks_flags_mock_budget():
+    """TS test functions with >1 mock should be flagged with kind=mock-budget."""
+    violations = lint_file(FIXTURES / "mock_budget_too_many.ts")
+    budget = [v for v in violations if v.kind == "mock-budget"]
+    assert len(budget) == 1, (
+        f"expected exactly 1 mock-budget violation; got {len(budget)}: "
+        f"{[v.message for v in budget]}"
+    )
+    assert budget[0].severity == "Important"
+
+
+def test_ts_internal_target_flags_internal_mock():
+    """Mocking a relative-path TS module is flagged as internal-mock."""
+    violations = lint_file(FIXTURES / "mock_budget_internal.ts")
+    internal = [v for v in violations if v.kind == "internal-mock"]
+    assert len(internal) == 1, (
+        f"expected exactly 1 internal-mock; got {len(internal)}"
+    )
+    assert internal[0].severity == "Important"
+    assert "./services/user-service" in internal[0].message
+
+
+def test_ts_seam_allowlist_escalates_to_critical():
+    """TS targets in the seam allowlist escalate to Critical severity."""
+    seam_allowlist = frozenset({"./api/receipts"})
+    violations = lint_file(FIXTURES / "mock_budget_seam.ts", seam_allowlist)
+    critical = [
+        v for v in violations
+        if v.kind == "internal-mock" and v.severity == "Critical"
+    ]
+    assert len(critical) == 1, (
+        f"expected 1 Critical TS internal-mock; got {len(critical)}"
+    )
+
+
+def test_ts_seam_without_allowlist_stays_important():
+    """Without allowlist, internal TS mock on a seam stays at Important."""
+    violations = lint_file(FIXTURES / "mock_budget_seam.ts")
+    assert violations, "expected at least one violation"
+    assert all(v.severity == "Important" for v in violations)
+
+
+def test_ts_syntax_error_emits_parse_error_finding():
+    """TS files with syntax errors emit a parse-error finding (not a crash)."""
+    violations = lint_file(FIXTURES / "syntax_error.ts")
+    assert any(v.kind == "parse-error" for v in violations), (
+        f"expected a parse-error finding; got {[v.kind for v in violations]}"
+    )
+
+
+def test_ts_boundary_defaults_includes_common_packages():
+    """Sanity: TS boundary defaults cover common HTTP/DB/cloud npm packages.
+
+    Defect class: Drift in _TS_BOUNDARY_DEFAULTS - removing a common package
+    (e.g., 'axios') would suddenly flag legitimate boundary mocks as internal.
+    Rule reference: LINT-MOCK-2.
+    """
+    from tools.mock_budget_lint import _TS_BOUNDARY_DEFAULTS
+    must_have = {
+        "axios", "node-fetch", "node:fs", "fs", "pg", "mongodb",
+        "@aws-sdk", "stripe", "node:child_process",
+    }
+    missing = must_have - _TS_BOUNDARY_DEFAULTS
+    assert not missing, f"missing required TS boundary defaults: {missing}"
+
+
+def test_unsupported_extension_emits_parse_error():
+    """The dispatcher flags unsupported extensions, not crash.
+
+    Defect class: A user accidentally passing a .md or other non-test file
+    should get a clear error, not a crash that hides the true issue.
+    Rule reference: LINT-MOCK-2.
+    """
+    violations = lint_file(REPO_ROOT / "README.md")
+    assert any(
+        v.kind == "parse-error" and "unsupported file extension" in v.message
+        for v in violations
+    )
+
+
+def test_build_slice_skill_references_lint_mock_2():
+    """skills/build-slice/SKILL.md must reference LINT-MOCK-2 (TS extension).
+
+    Defect class: A TS extension that isn't referenced in the build-slice
+    gate is invisible to executors — they won't know to lint TS files.
+    Rule reference: LINT-MOCK-2.
+    """
+    text = (REPO_ROOT / "skills" / "build-slice" / "SKILL.md").read_text(encoding="utf-8")
+    assert "LINT-MOCK-2" in text, "no LINT-MOCK-2 reference in /build-slice SKILL.md"

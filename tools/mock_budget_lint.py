@@ -65,6 +65,37 @@ _BOUNDARY_DEFAULTS: frozenset[str] = frozenset({
 })
 
 
+# TypeScript / JavaScript boundary modules where mocking is allowed per TDD-2.
+# Includes node:* prefixes (modern Node) and bare names (legacy compat).
+# Scoped npm packages match at the scope level (e.g., @aws-sdk matches
+# @aws-sdk/client-s3, @aws-sdk/client-dynamodb, etc.).
+_TS_BOUNDARY_DEFAULTS: frozenset[str] = frozenset({
+    # HTTP / networking
+    "axios", "node-fetch", "got", "ky", "undici", "fetch", "superagent",
+    "node:http", "http", "node:https", "https",
+    "node:net", "net", "node:url", "url", "node:dns", "dns",
+    # Filesystem
+    "node:fs", "fs", "node:fs/promises", "fs/promises",
+    "node:path", "path",
+    # Process / OS
+    "node:child_process", "child_process",
+    "node:os", "os",
+    "node:process", "process",
+    # Crypto / streams
+    "node:crypto", "crypto", "node:stream", "stream",
+    # Databases / ORMs
+    "pg", "mysql", "mysql2", "mongodb", "mongoose",
+    "redis", "ioredis", "sqlite3", "better-sqlite3",
+    "prisma", "@prisma/client", "knex", "typeorm",
+    # Cloud / vendor SDKs (npm scopes match all subpackages)
+    "@aws-sdk", "aws-sdk",
+    "@google-cloud", "googleapis",
+    "stripe", "@anthropic-ai/sdk", "openai", "@azure",
+    # Email / messaging
+    "nodemailer", "kafkajs",
+})
+
+
 @dataclass(frozen=True)
 class MockCall:
     """A single mock invocation found in a test function."""
@@ -101,11 +132,30 @@ def load_seam_allowlist(path: Path) -> frozenset[str]:
 
 
 def _is_boundary(target: str) -> bool:
-    """True if target's root module is an allowed external boundary."""
+    """True if target's root module is an allowed external boundary (Python)."""
     if not target:
         return False
     root = target.split(".", 1)[0]
     return root in _BOUNDARY_DEFAULTS
+
+
+def _is_ts_boundary(target: str) -> bool:
+    """True if target is an external TypeScript / JavaScript module boundary.
+
+    Relative imports (./foo, ../foo, /abs) are never boundaries. Scoped npm
+    packages match at the scope level (e.g., @aws-sdk/client-s3 matches @aws-sdk).
+    """
+    if not target:
+        return False
+    if target.startswith(("./", "../", "/")):
+        return False
+    if target in _TS_BOUNDARY_DEFAULTS:
+        return True
+    if "/" in target:
+        first = target.split("/", 1)[0]
+        if first in _TS_BOUNDARY_DEFAULTS:
+            return True
+    return False
 
 
 def _attr_to_dotted(node: ast.AST) -> str:
@@ -194,6 +244,37 @@ def lint_file(
     path: Path,
     seam_allowlist: frozenset[str] = frozenset(),
 ) -> list[LintViolation]:
+    """Lint a single test file (any supported language). Dispatches by extension.
+
+    Supported extensions:
+        .py                              -> _lint_python
+        .ts, .tsx, .js, .jsx, .mts, .cts -> _lint_typescript
+
+    Unsupported extensions return a single parse-error finding rather than
+    crashing — the runner can skip non-test files cleanly.
+    """
+    suffix = path.suffix.lower()
+    if suffix == ".py":
+        return _lint_python(path, seam_allowlist)
+    if suffix in {".ts", ".tsx", ".js", ".jsx", ".mts", ".cts"}:
+        return _lint_typescript(path, seam_allowlist)
+    return [LintViolation(
+        path=str(path),
+        line=0,
+        test_function="<file>",
+        kind="parse-error",
+        severity="Important",
+        message=(
+            f"unsupported file extension: '{suffix}' "
+            f"(supported: .py, .ts/.tsx/.js/.jsx/.mts/.cts)"
+        ),
+    )]
+
+
+def _lint_python(
+    path: Path,
+    seam_allowlist: frozenset[str] = frozenset(),
+) -> list[LintViolation]:
     """Lint a single Python test file. Returns violations (empty if clean)."""
     try:
         source = path.read_text(encoding="utf-8")
@@ -261,6 +342,237 @@ def lint_file(
                 message=(
                     f"test '{node.name}' mocks internal target "
                     f"'{mock.target}'{suffix}"
+                ),
+            ))
+
+    return violations
+
+
+def _lint_typescript(
+    path: Path,
+    seam_allowlist: frozenset[str] = frozenset(),
+) -> list[LintViolation]:
+    """Lint a single TypeScript / JavaScript test file via tree-sitter.
+
+    Detects mocks from vitest (vi.mock, vi.spyOn, vi.doMock), jest (jest.mock,
+    jest.spyOn, jest.doMock), testdouble (td.replace), and sinon (sinon.stub,
+    sinon.replace, sinon.spy, sinon.mock). Test scopes are it()/test() calls
+    (and their .only / .skip / .concurrent / .each / .todo / .fails variants);
+    mocks are attributed to the innermost containing test scope.
+
+    Limitations (v1):
+    - Module-level vi.mock / jest.mock calls (hoisted; apply to all tests in
+      the file) are not attributed to any specific test's count. Per-test
+      mocks inside the it()/test() body are counted.
+    - beforeEach / afterEach mocks are not attributed to individual tests.
+    """
+    try:
+        import tree_sitter
+        import tree_sitter_typescript as _ts_ts
+    except ImportError:
+        return [LintViolation(
+            path=str(path),
+            line=0,
+            test_function="<file>",
+            kind="parse-error",
+            severity="Important",
+            message=(
+                "tree_sitter and tree_sitter_typescript packages are required "
+                "for TypeScript/JavaScript linting; install via "
+                "`pip install tree_sitter tree_sitter_typescript`"
+            ),
+        )]
+
+    try:
+        source_bytes = path.read_bytes()
+    except OSError as exc:
+        return [LintViolation(
+            path=str(path),
+            line=0,
+            test_function="<file>",
+            kind="parse-error",
+            severity="Important",
+            message=f"could not read file: {exc}",
+        )]
+
+    suffix = path.suffix.lower()
+    lang_fn = (
+        _ts_ts.language_tsx
+        if suffix in {".tsx", ".jsx"}
+        else _ts_ts.language_typescript
+    )
+    lang = tree_sitter.Language(lang_fn())
+    parser = tree_sitter.Parser(lang)
+    tree = parser.parse(source_bytes)
+
+    if tree.root_node.has_error:
+        return [LintViolation(
+            path=str(path),
+            line=tree.root_node.start_point[0] + 1,
+            test_function="<file>",
+            kind="parse-error",
+            severity="Important",
+            message="syntax error in TypeScript/JavaScript source (tree-sitter)",
+        )]
+
+    # Test-function names and member-expression variants (vitest / jest / mocha)
+    _TEST_FUNCS = frozenset({"it", "test"})
+    _TEST_VARIANTS = frozenset({
+        "only", "skip", "skipIf", "concurrent", "todo", "fails", "each", "runIf",
+    })
+
+    # (object_name, method_name) -> mock kind
+    _MOCK_PATTERNS = {
+        ("vi", "mock"): "vi-mock",
+        ("vi", "doMock"): "vi-mock",
+        ("vi", "spyOn"): "vi-spy",
+        ("jest", "mock"): "jest-mock",
+        ("jest", "doMock"): "jest-mock",
+        ("jest", "spyOn"): "jest-spy",
+        ("td", "replace"): "td-replace",
+        ("sinon", "stub"): "sinon-stub",
+        ("sinon", "replace"): "sinon-replace",
+        ("sinon", "spy"): "sinon-spy",
+        ("sinon", "mock"): "sinon-mock",
+    }
+
+    def _txt(node) -> str:
+        return node.text.decode("utf-8", errors="replace")
+
+    def _callee_obj_method(call_node):
+        func = call_node.child_by_field_name("function")
+        if func is None:
+            return (None, None)
+        if func.type == "identifier":
+            return (None, _txt(func))
+        if func.type == "member_expression":
+            obj = func.child_by_field_name("object")
+            prop = func.child_by_field_name("property")
+            return (
+                _txt(obj) if obj else None,
+                _txt(prop) if prop else None,
+            )
+        return (None, None)
+
+    def _is_test_call(call_node) -> bool:
+        obj, method = _callee_obj_method(call_node)
+        if obj is None and method in _TEST_FUNCS:
+            return True
+        if obj in _TEST_FUNCS and method in _TEST_VARIANTS:
+            return True
+        return False
+
+    def _test_description(call_node) -> str:
+        args = call_node.child_by_field_name("arguments")
+        if args is None:
+            return "<unknown>"
+        for child in args.children:
+            if child.type in {"(", ",", ")"}:
+                continue
+            if child.type == "string":
+                return _txt(child).strip("'\"`")
+            return "<unknown>"
+        return "<unknown>"
+
+    def _mock_kind(call_node):
+        return _MOCK_PATTERNS.get(_callee_obj_method(call_node))
+
+    def _extract_mock_target(call_node):
+        args = call_node.child_by_field_name("arguments")
+        if args is None:
+            return None
+        for child in args.children:
+            if child.type in {"(", ",", ")"}:
+                continue
+            if child.type == "string":
+                return _txt(child).strip("'\"`")
+            if child.type in {"identifier", "member_expression"}:
+                return _txt(child)
+            return None
+        return None
+
+    test_scopes: list[dict] = []   # {start, end, name, line, mocks}
+    mock_calls: list[tuple[int, MockCall]] = []  # (start_byte, MockCall)
+
+    def _walk(node):
+        if node.type == "call_expression":
+            if _is_test_call(node):
+                test_scopes.append({
+                    "start": node.start_byte,
+                    "end": node.end_byte,
+                    "name": _test_description(node),
+                    "line": node.start_point[0] + 1,
+                    "mocks": [],
+                })
+            kind = _mock_kind(node)
+            if kind:
+                target = _extract_mock_target(node)
+                if target:
+                    mock_calls.append((node.start_byte, MockCall(
+                        target=target,
+                        line=node.start_point[0] + 1,
+                        kind=kind,
+                    )))
+        for child in node.children:
+            _walk(child)
+
+    _walk(tree.root_node)
+
+    # Attribute each mock to the innermost containing test scope
+    for byte_pos, mock in mock_calls:
+        innermost = None
+        for scope in test_scopes:
+            if scope["start"] <= byte_pos <= scope["end"]:
+                if (
+                    innermost is None
+                    or (scope["end"] - scope["start"])
+                    < (innermost["end"] - innermost["start"])
+                ):
+                    innermost = scope
+        if innermost is not None:
+            innermost["mocks"].append(mock)
+
+    # Apply rules per scope
+    violations: list[LintViolation] = []
+    for scope in test_scopes:
+        mocks = scope["mocks"]
+        if not mocks:
+            continue
+        test_label = f"it('{scope['name']}')"
+
+        # Rule 1 — mock budget
+        if len(mocks) > 1:
+            violations.append(LintViolation(
+                path=str(path),
+                line=scope["line"],
+                test_function=test_label,
+                kind="mock-budget",
+                severity="Important",
+                message=(
+                    f"test '{scope['name']}' has {len(mocks)} mocks; "
+                    f"TDD-2 limits tests to <=1 mock at an external boundary"
+                ),
+            ))
+
+        # Rule 2 — internal mocks
+        for mock in mocks:
+            if _is_ts_boundary(mock.target):
+                continue
+            in_seam = mock.target in seam_allowlist
+            severity = "Critical" if in_seam else "Important"
+            suffix_msg = (
+                " — target is a documented cross-chunk seam (.cross-chunk-seams)"
+                if in_seam else ""
+            )
+            violations.append(LintViolation(
+                path=str(path),
+                line=mock.line,
+                test_function=test_label,
+                kind="internal-mock",
+                severity=severity,
+                message=(
+                    f"test '{scope['name']}' mocks internal target "
+                    f"'{mock.target}'{suffix_msg}"
                 ),
             ))
 

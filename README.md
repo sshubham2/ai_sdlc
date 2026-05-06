@@ -144,11 +144,16 @@ ai_sdlc/
       test_status_cadence_enforcement.py  # Verifies CAL-1 critic-calibrate cadence
       test_mock_budget_lint.py      # Tests LINT-MOCK-1 — runs linter on fixtures
       fixtures/                     # Test fixtures (NOT collected by pytest)
-        mock_budget_clean.py
+        mock_budget_clean.py        # Python fixtures for LINT-MOCK-1
         mock_budget_too_many.py
         mock_budget_internal.py
         mock_budget_seam.py
         syntax_error.py
+        mock_budget_clean.ts        # TypeScript fixtures for LINT-MOCK-2
+        mock_budget_too_many.ts
+        mock_budget_internal.ts
+        mock_budget_seam.ts
+        syntax_error.ts
   pytest.ini                # testpaths = tests + pythonpath = .
   tools/                    # Executable methodology tools (Python)
     mock_budget_lint.py       # LINT-MOCK-1 — AST linter for TDD-2 mock budget

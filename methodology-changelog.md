@@ -34,6 +34,27 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.7.0 — 2026-05-06
+
+Adds TypeScript / JavaScript support to the mock-budget linter (LINT-MOCK-2). Same lint contract as the Python implementation — single tool, multi-language dispatch by file extension.
+
+### Added
+
+- **LINT-MOCK-2 — Mock-budget linter (TypeScript / JavaScript)**
+  Extends `tools/mock_budget_lint.py` with TypeScript and JavaScript support via the `tree_sitter` + `tree_sitter_typescript` packages (already in the shared venv per `~/.claude/CLAUDE.md`). Detection covers `vi.mock`, `vi.spyOn`, `vi.doMock` (vitest); `jest.mock`, `jest.spyOn`, `jest.doMock` (jest); `td.replace` (testdouble); and `sinon.stub`, `sinon.replace`, `sinon.spy`, `sinon.mock` (sinon). Test scopes are `it()` / `test()` calls (and their `.only` / `.skip` / `.concurrent` / `.each` / `.todo` / `.fails` variants); mocks are attributed to the innermost containing scope. The TS boundary defaults (`_TS_BOUNDARY_DEFAULTS`) cover HTTP (axios, node-fetch, got, ky, undici), Node built-ins (`node:fs`, `fs`, `node:http`, `node:https`, `node:child_process`, etc.), databases (pg, mysql2, mongodb, mongoose, redis, prisma, knex, typeorm), cloud SDKs (`@aws-sdk`, `@google-cloud`, stripe, `@anthropic-ai/sdk`, openai, `@azure`), and email/messaging (nodemailer, kafkajs). Scoped npm packages (e.g., `@aws-sdk/client-s3`) match at the scope level. Relative imports (`./...`, `../...`, `/...`) are never boundaries.
+
+  Refactor: the previous `lint_file` (Python-only) is renamed to `_lint_python`; a new `lint_file` dispatcher routes by file extension (`.py` -> `_lint_python`; `.ts` / `.tsx` / `.js` / `.jsx` / `.mts` / `.cts` -> `_lint_typescript`). Unsupported extensions return a `parse-error` finding rather than crashing — runners can pass any file path safely.
+
+  Updates `skills/build-slice/SKILL.md` to broaden the LINT-MOCK gate to "Python and TS/JS test files" and adds the LINT-MOCK-2 rule reference.
+
+  - **Rule reference**: LINT-MOCK-2
+  - **Defect class**: TS test files were unlinted — internal-mock proliferation in TS codebases (`vi.mock('./services/user-service')`, `jest.mock('./api/receipts')`) had no enforcement. AI-generated TS tests gravitate toward mocking everything internal because mocks are syntactically easier than fixtures; without lint, this drift is invisible at PR review and surfaces only when production fails on the unmocked code path. The TS extension closes that gap with the same contract as the Python linter (mock budget + boundary check + seam-allowlist escalation).
+  - **Validation**: `tests/methodology/test_mock_budget_lint.py` adds 9 new tests covering TS clean file, too-many mocks, internal-target, seam-with-allowlist, seam-without-allowlist, syntax error, boundary defaults coverage sanity, unsupported-extension graceful handling, and `/build-slice` LINT-MOCK-2 reference. Total methodology suite: 92 -> 101.
+
+  Limitations (v1, documented in code): module-level `vi.mock` / `jest.mock` calls (hoisted; apply to all tests in the file) are not attributed to any specific test's count; only mocks inside the `it()` / `test()` body count. `beforeEach` / `afterEach` mocks are similarly not attributed. These are known gaps; a v2 may track module-level mocks as an implicit per-test contribution.
+
+---
+
 ## v0.6.0 — 2026-05-06
 
 Adds the Python mock-budget linter (LINT-MOCK-1) — the first AI SDLC rule that ships executable code rather than markdown-only discipline. Implements TDD-2 enforcement (≤1 mock per test, only at external boundaries) and integrates as a `/build-slice` pre-finish gate.
