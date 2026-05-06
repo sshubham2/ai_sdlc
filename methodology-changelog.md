@@ -34,6 +34,35 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.16.0 — 2026-05-06
+
+Adds **ETC-1** — charter-based exploratory testing. Mission briefs gain an opt-in `**Exploratory-charter**: true` field; when set, the brief must include a `## Exploratory test charter` section with timeboxed mission statements that the tester runs freely and records findings against. `/validate-slice` Step 5d refuses PENDING / IN-PROGRESS rows at strict-pre-finish; COMPLETED and DEFERRED are both accepted (DEFERRED is the escape hatch with rationale). COMPLETED and DEFERRED rows MUST have non-empty Findings — the discipline IS capturing what surfaces.
+
+### Added
+
+- **ETC-1 — Charter-based exploratory testing**
+  Adds `tools/exploratory_charter_audit.py` — a parser + validator for charter-based exploratory test sessions. Detects the opt-in `**Exploratory-charter**: true | false` field. When true: validates the `## Exploratory test charter` section exists with a 5-column markdown table (# | Mission | Timebox | Status | Findings); validates the table has at least one charter row; validates each row's Mission cell is non-empty (a charter without a mission is undirected exploration); validates each row's Status is in `{PENDING, IN-PROGRESS, COMPLETED, DEFERRED}`; validates non-empty Findings when status is COMPLETED or DEFERRED. With `--strict-pre-finish`, PENDING and IN-PROGRESS rows are violations; COMPLETED and DEFERRED are both accepted as "settled."
+
+  Default-off semantics: a brief without the field (or with `Exploratory-charter: false`) is unaffected — the audit returns clean and `/validate-slice` skips the gate.
+
+  Updates `skills/slice/SKILL.md` mission brief template + `templates/mission-brief.md`: documents the `**Exploratory-charter**:` field and the `## Exploratory test charter` 5-column table format. Updates `skills/validate-slice/SKILL.md` Step 5d (between Step 5c WS-1 walking-skeleton and Step 5.5 shippability catalog): runs the audit with `--strict-pre-finish` when the field is true; refuses on any of `missing-section`, `empty-table`, `format`, `missing-cells`, `missing-mission`, `invalid-status`, `missing-findings`, `non-final-pre-finish`.
+
+  NFR-1 carry-over: slices whose `mission-brief.md` mtime predates `_ETC_1_RELEASE_DATE` (2026-05-06) are exempt automatically.
+
+  CLI: `python -m tools.exploratory_charter_audit <slice-folder> [--strict-pre-finish] [--json] [--no-carry-over]`. Exit codes: 0 clean (or default-off / carry-over exempt), 1 violations, 2 usage error.
+
+  - **Rule reference**: ETC-1
+  - **Defect class**: `/validate-slice` already executes the verification plan from the mission brief (each AC's PASS/FAIL with evidence) but is structurally focused on confirming what's spec'd. It doesn't surface what's NOT spec'd — unstated assumptions, edge cases the design didn't predict, UX issues real users would hit but the AC writer didn't think of, race conditions surfaced by concurrent use. Charter-based exploratory testing (Bach / Kaner / Hendrickson) is the discipline for filling that gap: timeboxed sessions with a stated mission ("Explore X using Y to find Z") where the tester runs freely and captures findings. Without an explicit gate at validate-time, exploratory testing decays into "we'll poke at it" — knowledge that surfaces in chat and never lands in any persistent artifact. ETC-1 makes the charters explicit (must be enumerated with mission + timebox), forces findings to be recorded (COMPLETED/DEFERRED both require non-empty Findings), and gates `/validate-slice` so charters can't be silently left undone.
+  - **Validation**: `tests/methodology/test_exploratory_charter_audit.py` — 15 tests over 8 fixtures (`tests/methodology/fixtures/exploratory_charter/`): clean brief with COMPLETED + DEFERRED rows, default-off when field absent, missing-section when true, empty-table, missing-mission, completed/deferred without findings (both flagged), invalid-status, strict-pre-finish accepts COMPLETED + DEFERRED but refuses PENDING + IN-PROGRESS, strict-pre-finish disabled allows all, missing brief silent, carry-over mtime exemption + override, plus skill prose pins for `/slice` SKILL, `/validate-slice` SKILL, and `templates/mission-brief.md`. Total methodology suite: 228 -> 243.
+
+  Limitations (v1, documented in code):
+  - **No timebox enforcement**. The Timebox cell is captured as a string ("60min") but the audit doesn't parse it or check that the actual session duration matched. v2 candidate: parse Timebox as duration, cross-reference against build-log.md timestamps for the charter session.
+  - **No Findings detail validation**. A non-empty Findings cell passes; the audit doesn't verify the prose actually describes what was explored or what surfaced. Heuristic content checks (minimum word count, presence of bug/risk vocabulary) are deferred to v2.
+  - **No follow-up tracking**. Findings that surface in a charter ideally feed `/reflect`'s "Discovered" section AND become candidates for risk-register entries; the audit doesn't enforce that linkage. Manual today.
+  - **No charter library**. Each project writes charters fresh; there's no template library of common charters (e.g., "explore upload size limits", "explore concurrent reads"). v2 candidate: a `tools/charter_library.py` with starter charters by domain.
+
+---
+
 ## v0.15.0 — 2026-05-06
 
 Adds **WS-1** — walking-skeleton slice variant. Mission briefs gain an opt-in `**Walking-skeleton**: true` field; when set, the brief must include a `## Architectural layers exercised` section listing every architectural layer the slice touches end-to-end with statuses tracked PENDING -> EXERCISED. `/validate-slice` Step 5c refuses non-EXERCISED rows at strict-pre-finish.

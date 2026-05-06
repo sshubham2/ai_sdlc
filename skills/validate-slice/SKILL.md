@@ -158,6 +158,28 @@ Default-off semantics: when the brief lacks the `**Walking-skeleton**:` field or
 
 NFR-1 carry-over: slices whose `mission-brief.md` mtime predates 2026-05-06 are exempt automatically.
 
+### Step 5d: Exploratory-charter audit (ETC-1)
+
+Per **ETC-1** (`methodology-changelog.md` v0.16.0), when this slice's `mission-brief.md` declares `**Exploratory-charter**: true`, every charter in the `## Exploratory test charter` table must be COMPLETED (with findings recorded) or DEFERRED (with rationale). Run:
+
+```bash
+$PY -m tools.exploratory_charter_audit architecture/slices/slice-NNN-<name> --strict-pre-finish
+```
+
+Charter-based exploratory testing (Bach / Kaner / Hendrickson): each charter is a timeboxed mission ("Explore X using Y to find Z"); the tester runs the session freely and captures what surfaces. Distinct from scripted testing — surfaces what's NOT in the AC, unstated assumptions, edge cases the design didn't predict.
+
+Refusal semantics:
+- `missing-section`: brief declares Exploratory-charter true but has no `## Exploratory test charter` section
+- `empty-table` / `format` / `missing-cells`: table is malformed or has zero rows
+- `missing-mission`: a row has an empty Mission cell (a charter without a mission is undirected exploration)
+- `invalid-status`: status outside `{PENDING, IN-PROGRESS, COMPLETED, DEFERRED}`
+- `missing-findings`: a COMPLETED or DEFERRED row has empty Findings (the discipline IS capturing what surfaced; bare COMPLETED is performance theater, bare DEFERRED is hand-waving)
+- `non-final-pre-finish`: a row's status is PENDING or IN-PROGRESS (only emitted with `--strict-pre-finish`); COMPLETED and DEFERRED are both accepted as "settled"
+
+Default-off semantics: when the brief lacks the `**Exploratory-charter**:` field or sets it to `false`, the audit returns clean and the gate passes silently. ETC-1 is opt-in per slice.
+
+NFR-1 carry-over: slices whose `mission-brief.md` mtime predates 2026-05-06 are exempt automatically.
+
 ### Step 5.5: Run the shippability catalog (regression check)
 
 Before deciding next action, verify no past slice was silently broken by this one:

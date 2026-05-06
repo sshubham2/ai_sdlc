@@ -20,6 +20,7 @@ Designed to be ~1 page (~60 lines max). Replaces the 500-line handoff-ai sprint 
 **Risk retired**: <which risk(s) from register this slice validates>
 **Test-first**: [true | false] — optional, per TF-1; when true, the brief MUST include a `## Test-first plan` section
 **Walking-skeleton**: [true | false] — optional, per WS-1; when true, the brief MUST include a `## Architectural layers exercised` section
+**Exploratory-charter**: [true | false] — optional, per ETC-1; when true, the brief MUST include a `## Exploratory test charter` section
 
 ## Intent
 
@@ -62,6 +63,17 @@ A walking-skeleton slice ships the thinnest end-to-end vertical that exercises e
 | 3 | Business logic | src/services/health.py | health_check() returns OK | PENDING |
 | 4 | Persistence | src/db/health_log table | row inserted on /healthz call | PENDING |
 | 5 | External | api.anthropic.com | trivial completions call returns 200 | PENDING |
+
+## Exploratory test charter
+
+(only when `**Exploratory-charter**: true`; per **ETC-1**)
+
+Charter-based exploratory testing: each charter is a timeboxed mission ("Explore X using Y to find Z"). Statuses: PENDING -> IN-PROGRESS -> COMPLETED (or DEFERRED with rationale). `/validate-slice` Step 5d refuses PENDING / IN-PROGRESS; COMPLETED + DEFERRED accepted. COMPLETED MUST have non-empty Findings; DEFERRED MUST carry rationale in Findings.
+
+| # | Mission | Timebox | Status | Findings |
+|---|---------|---------|--------|----------|
+| 1 | Explore HEIC upload edge cases using corrupted files to find error-handling gaps | 60min | PENDING | — |
+| 2 | Explore concurrent uploads using 5 simultaneous requests to find race conditions | 45min | PENDING | — |
 
 ## Verification plan
 
