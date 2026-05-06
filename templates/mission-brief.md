@@ -19,6 +19,7 @@ Designed to be ~1 page (~60 lines max). Replaces the 500-line handoff-ai sprint 
 **Estimated work**: [<1 day | 1 day | split needed]
 **Risk retired**: <which risk(s) from register this slice validates>
 **Test-first**: [true | false] — optional, per TF-1; when true, the brief MUST include a `## Test-first plan` section
+**Walking-skeleton**: [true | false] — optional, per WS-1; when true, the brief MUST include a `## Architectural layers exercised` section
 
 ## Intent
 
@@ -47,6 +48,20 @@ Each AC maps to one or more failing tests written BEFORE implementation. Statuse
 | 1 | integration | tests/api/test_X.py | test_endpoint_accepts_input | PENDING |
 | 1 | integration | tests/api/test_X.py | test_endpoint_rejects_oversize | PENDING |
 | 2 | unit | tests/services/test_Y.py | test_normalize_payload | PENDING |
+
+## Architectural layers exercised
+
+(only when `**Walking-skeleton**: true`; per **WS-1**)
+
+A walking-skeleton slice ships the thinnest end-to-end vertical that exercises every architectural layer. Real features layer onto the proven foundation. Statuses progress PENDING -> EXERCISED. `/validate-slice` Step 5c runs `tools/walking_skeleton_audit.py --strict-pre-finish` and refuses if any row is non-EXERCISED.
+
+| # | Layer | Component | Verification | Status |
+|---|-------|-----------|--------------|--------|
+| 1 | Frontend | src/web/HomePage.tsx | Page loads in real browser | PENDING |
+| 2 | API gateway | src/api/server.py | curl GET /healthz returns 200 | PENDING |
+| 3 | Business logic | src/services/health.py | health_check() returns OK | PENDING |
+| 4 | Persistence | src/db/health_log table | row inserted on /healthz call | PENDING |
+| 5 | External | api.anthropic.com | trivial completions call returns 200 | PENDING |
 
 ## Verification plan
 

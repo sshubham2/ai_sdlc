@@ -137,6 +137,27 @@ Skip flags: `--skip-secrets` (when a project runs its own scanner), `--skip-deps
 
 v1 limitations: Layer B is Python-only; TS/JS dep hallucination is deferred to v2 (needs npm package.json parsing + scoped-package handling). Layer A's pattern set is a starting point, not exhaustive — projects with vendor-specific secret formats can extend it via project-local copies.
 
+### Step 5c: Walking-skeleton layers audit (WS-1)
+
+Per **WS-1** (`methodology-changelog.md` v0.15.0), when this slice's `mission-brief.md` declares `**Walking-skeleton**: true`, every architectural layer in the `## Architectural layers exercised` table must be EXERCISED at runtime by validation. Run:
+
+```bash
+$PY -m tools.walking_skeleton_audit architecture/slices/slice-NNN-<name> --strict-pre-finish
+```
+
+The walking-skeleton discipline (Cockburn): the smallest possible end-to-end implementation that exercises every architectural layer. Real features layer onto the proven foundation. The audit forces explicit enumeration of the layers and confirms each was actually reached during validation — not just unit-tested in isolation.
+
+Refusal semantics:
+- `missing-section`: brief declares walking-skeleton true but has no `## Architectural layers exercised` section
+- `empty-table` / `format` / `missing-cells`: table is malformed, or has zero data rows (a walking-skeleton with no layers is meaningless — that's a standard slice)
+- `missing-verification`: a row's Verification cell is empty
+- `invalid-status`: status outside `{PENDING, EXERCISED}`
+- `non-exercised-pre-finish`: a layer's status is PENDING (only emitted with `--strict-pre-finish`)
+
+Default-off semantics: when the brief lacks the `**Walking-skeleton**:` field or sets it to `false`, the audit returns clean and the gate passes silently. WS-1 is opt-in per slice.
+
+NFR-1 carry-over: slices whose `mission-brief.md` mtime predates 2026-05-06 are exempt automatically.
+
 ### Step 5.5: Run the shippability catalog (regression check)
 
 Before deciding next action, verify no past slice was silently broken by this one:

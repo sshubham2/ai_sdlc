@@ -34,6 +34,37 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.15.0 — 2026-05-06
+
+Adds **WS-1** — walking-skeleton slice variant. Mission briefs gain an opt-in `**Walking-skeleton**: true` field; when set, the brief must include a `## Architectural layers exercised` section listing every architectural layer the slice touches end-to-end with statuses tracked PENDING -> EXERCISED. `/validate-slice` Step 5c refuses non-EXERCISED rows at strict-pre-finish.
+
+This rounds out the slice-variant trio alongside TF-1 (test-first): standard slice (default), test-first slice (TDD discipline), walking-skeleton slice (architecture-first).
+
+### Added
+
+- **WS-1 — Walking-skeleton slice variant**
+  Adds `tools/walking_skeleton_audit.py` — a parser + validator for the walking-skeleton variant. Detects the opt-in `**Walking-skeleton**: true | false` field. When true: validates the `## Architectural layers exercised` section exists with a 5-column markdown table (# | Layer | Component | Verification | Status); validates the table has at least one data row (a skeleton with no layers is a contradiction); validates each row's Verification cell is non-empty; validates each row's Status is in `{PENDING, EXERCISED}`. With `--strict-pre-finish`, any non-EXERCISED row is a `non-exercised-pre-finish` violation — used at `/validate-slice` Step 5c to refuse declaring slice validated while a layer hasn't been exercised at runtime.
+
+  Default-off semantics: a brief without the field (or with `Walking-skeleton: false`) is unaffected — the audit returns clean and `/validate-slice` skips the gate. WS-1 is opt-in per slice; existing briefs continue to work without modification.
+
+  Updates `skills/slice/SKILL.md` mission brief template + `templates/mission-brief.md`: documents the `**Walking-skeleton**:` field and the `## Architectural layers exercised` 5-column table format. Updates `skills/validate-slice/SKILL.md` Step 5c (between Step 5b VAL-1 layers and Step 5.5 shippability catalog): runs the audit with `--strict-pre-finish` when the field is true; refuses on any of `missing-section`, `empty-table`, `format`, `missing-cells`, `missing-verification`, `invalid-status`, `non-exercised-pre-finish`.
+
+  NFR-1 carry-over: slices whose `mission-brief.md` mtime predates `_WS_1_RELEASE_DATE` (2026-05-06) are exempt automatically.
+
+  CLI: `python -m tools.walking_skeleton_audit <slice-folder> [--strict-pre-finish] [--json] [--no-carry-over]`. Exit codes: 0 clean (or default-off / carry-over exempt), 1 violations, 2 usage error.
+
+  - **Rule reference**: WS-1
+  - **Defect class**: Greenfield slices that build vertical features without first proving the architecture works end-to-end repeatedly hit late-discovery integration failures: each layer was unit-tested but the request never actually reached the persistence layer in production, or the external API call wasn't wired correctly, or the frontend's call shape didn't match the API gateway's. The walking-skeleton discipline (Cockburn / Pragmatic Programmers) inverts the order: ship the thinnest vertical that exercises every layer first, then layer real features onto the proven foundation. Without an explicit gate at validate-time, "walking skeleton" decays into a label the team mentions but doesn't enforce — every layer remains an unverified claim until the first feature happens to flush it. WS-1 makes the layers explicit (must be enumerated), the verification explicit (must be runtime, not unit), and the status explicit (must transition PENDING -> EXERCISED before the slice is shippable).
+  - **Validation**: `tests/methodology/test_walking_skeleton_audit.py` — 14 tests over 7 fixtures (`tests/methodology/fixtures/walking_skeleton/`): clean brief with all EXERCISED layers, default-off when field absent, missing-section when walking-skeleton true, empty-table (header + separator only), missing-verification, invalid-status, strict-pre-finish refuses PENDING, strict-pre-finish disabled allows PENDING, missing brief silent, carry-over mtime exemption + override, plus skill prose pins for `/slice` SKILL, `/validate-slice` SKILL, and `templates/mission-brief.md`. Total methodology suite: 214 -> 228.
+
+  Limitations (v1, documented in code):
+  - **No automatic verification execution**. The audit trusts the declared status — it doesn't run the Verification cell's check to confirm EXERCISED actually exercises. v2 candidate: parse Verification as a runnable command (curl, pytest -k, bash) and execute it.
+  - **No layer-completeness check**. The audit doesn't verify that the layers enumerated COVER every architectural layer in the project — projects could declare "Frontend → API" and skip Persistence. A v2 could cross-reference an `architecture/layers.yaml` declaration of expected layers.
+  - **No conflict detection with other slice variants**. A brief could set both `Test-first: true` AND `Walking-skeleton: true`; both audits run independently. In practice these compose well (you can do test-first walking-skeleton), but no rule enforces that.
+  - **Status vocabulary minimal**. Only PENDING and EXERCISED — no intermediate states for partial exercise across layers. Sufficient for v1.
+
+---
+
 ## v0.14.0 — 2026-05-06
 
 Adds **VAL-1** — layered `/validate-slice` safety checks. Two defensive layers run against the slice's changed files before the shippability catalog: Layer A (credential scan, Critical, blocks `/reflect`) and Layer B (dependency hallucination check, Important, surfaces to user). Closes a class of defects that real-environment validation tends to miss: committed credentials and AI-hallucinated package imports.
