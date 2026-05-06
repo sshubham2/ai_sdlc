@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI SDLC — Hybrid Pipeline Tutorial</title>
+<style>
+:root {
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface-alt: #f4f4f0;
+  --text: #1c1c1a;
+  --text-muted: #5c5c58;
+  --text-faint: #8a8a85;
+  --border: #e3e3df;
+  --border-strong: #c8c8c1;
+  --accent: #1f5d9c;
+  --accent-soft: #e8f0f9;
+  --warn: #b85416;
+  --warn-soft: #fdf3e7;
+  --danger: #b03030;
+  --danger-soft: #fbe9e9;
+  --success: #2a7a3e;
+  --success-soft: #e8f4ec;
+  --code-bg: #f4f4f0;
+  --code-border: #e3e3df;
+  --shadow: 0 1px 3px rgba(0,0,0,0.04);
+  --mono: ui-monospace, "SF Mono", "Menlo", "Consolas", "Liberation Mono", "DejaVu Sans Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 70px; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 3px; padding: 1px 5px; }
+pre { font-family: var(--mono); font-size: 0.875em; background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 6px; padding: 12px 16px; overflow-x: auto; line-height: 1.5; }
+pre code { background: none; border: none; padding: 0; font-size: 1em; }
+
+nav.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+nav.topbar .brand { font-weight: 700; font-size: 17px; color: var(--text); white-space: nowrap; }
+nav.topbar .brand .badge { font-size: 11px; font-weight: 500; color: var(--text-muted); background: var(--surface-alt); border: 1px solid var(--border); padding: 2px 7px; border-radius: 10px; margin-left: 8px; }
+nav.topbar ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; }
+nav.topbar a { color: var(--text-muted); }
+nav.topbar a:hover { color: var(--accent); text-decoration: none; }
+
+.layout { display: grid; grid-template-columns: 1fr; max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+@media (min-width: 1000px) { .layout { grid-template-columns: 220px 1fr; gap: 40px; } }
+
+aside.toc {
+  display: none;
+  font-size: 13.5px;
+}
+@media (min-width: 1000px) {
+  aside.toc {
+    display: block;
+    position: sticky;
+    top: 70px;
+    align-self: start;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    padding-top: 28px;
+    padding-right: 12px;
+    border-right: 1px solid var(--border);
+  }
+}
+aside.toc h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); margin: 0 0 8px 0; }
+aside.toc ul { list-style: none; padding: 0; margin: 0 0 16px 0; }
+aside.toc li { margin: 4px 0; }
+aside.toc a { color: var(--text-muted); display: block; padding: 3px 0; }
+aside.toc a:hover { color: var(--accent); text-decoration: none; }
+aside.toc ul ul { margin: 4px 0 6px 12px; font-size: 12.5px; }
+
+main { padding: 28px 0 80px; max-width: 100%; min-width: 0; }
+
+.hero { padding: 24px 0 32px; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+.hero h1 { font-size: 32px; margin: 0 0 6px; letter-spacing: -0.01em; }
+.hero p.tagline { font-size: 17px; color: var(--text-muted); margin: 0 0 14px; }
+.hero p.lead { font-size: 15.5px; line-height: 1.65; max-width: 720px; }
+
+section { padding: 28px 0; border-bottom: 1px solid var(--border); }
+section:last-of-type { border-bottom: none; }
+section h2 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.01em; }
+section h3 { font-size: 18px; margin: 24px 0 8px; }
+section h4 { font-size: 15px; margin: 16px 0 6px; color: var(--text); }
+section p { margin: 8px 0 12px; }
+section ul, section ol { margin: 8px 0 12px; padding-left: 22px; }
+section li { margin: 4px 0; }
+section li > p { margin: 0 0 6px; }
+.section-tag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin-bottom: 8px; }
+
+.callout { padding: 12px 16px; border-radius: 6px; border: 1px solid; margin: 14px 0; font-size: 14.5px; }
+.callout.info { background: var(--accent-soft); border-color: #c2d6ea; }
+.callout.warn { background: var(--warn-soft); border-color: #ecd2ac; }
+.callout.success { background: var(--success-soft); border-color: #c0d9c8; }
+.callout.danger { background: var(--danger-soft); border-color: #e8c0c0; }
+.callout strong { display: block; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.callout p:last-child { margin-bottom: 0; }
+.callout p:first-child { margin-top: 0; }
+
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-weight: 600; background: var(--surface-alt); color: var(--text); border-bottom: 2px solid var(--border-strong); }
+td code { font-size: 0.9em; }
+tr:hover td { background: var(--surface-alt); }
+
+.skills-grid { display: grid; gap: 14px; margin: 14px 0 18px; }
+@media (min-width: 720px) { .skills-grid { grid-template-columns: repeat(2, 1fr); } }
+.skill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+.skill h4 { margin: 0 0 4px; font-size: 14.5px; font-family: var(--mono); color: var(--text); display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.skill h4 .mode-tag { font-family: var(--sans); font-size: 11px; font-weight: 500; color: var(--text-muted); background: var(--surface-alt); padding: 1px 6px; border-radius: 8px; border: 1px solid var(--border); }
+.skill h4 .mode-tag.heavy { background: #f4ecdc; border-color: #e0c898; color: #8a6a30; }
+.skill h4 .mode-tag.std { background: var(--accent-soft); border-color: #c2d6ea; color: #1d4a7a; }
+.skill p { margin: 0 0 6px; color: var(--text-muted); font-size: 13.5px; line-height: 1.5; }
+.skill .triggers { font-family: var(--mono); font-size: 12px; color: var(--text-faint); }
+
+.flow {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.7;
+  overflow-x: auto;
+}
+.flow .arrow { color: var(--text-faint); }
+.flow .skill-name { color: var(--accent); font-weight: 600; }
+.flow .mode-line { color: var(--text-muted); font-style: italic; font-family: var(--sans); }
+.flow .label { color: var(--text-muted); font-family: var(--sans); font-size: 12px; }
+
+.pipeline-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin: 14px 0;
+}
+.pipeline-card h4 { margin-top: 0; }
+
+.principle {
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  padding: 12px 16px;
+  margin: 12px 0;
+  border-radius: 0 6px 6px 0;
+}
+.principle h4 { margin: 0 0 6px; color: var(--text); }
+.principle h4 .num { color: var(--accent); font-weight: 700; margin-right: 8px; }
+.principle .why, .principle .how { font-size: 14px; }
+.principle .why strong, .principle .how strong { color: var(--text); }
+
+.worked-example {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: 16px 0;
+  overflow: hidden;
+}
+.worked-example > header { padding: 12px 16px; background: var(--surface-alt); border-bottom: 1px solid var(--border); }
+.worked-example > header h4 { margin: 0; font-size: 15px; }
+.worked-example > header p { margin: 2px 0 0; font-size: 13.5px; color: var(--text-muted); }
+.worked-example .ex-body { padding: 12px 16px; }
+.worked-example .step { font-size: 13px; padding: 8px 0; }
+.worked-example .step strong { color: var(--text); }
+
+.dialog {
+  background: var(--code-bg);
+  border-left: 3px solid var(--accent);
+  padding: 10px 14px;
+  margin: 10px 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  border-radius: 0 4px 4px 0;
+}
+
+.kbd { font-family: var(--mono); font-size: 0.875em; background: var(--surface-alt); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; color: var(--text); }
+
+footer { padding: 32px 24px; text-align: center; color: var(--text-faint); font-size: 13px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+.tag-grid { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
+.tag { font-size: 11.5px; padding: 2px 8px; border-radius: 10px; background: var(--surface-alt); border: 1px solid var(--border); color: var(--text-muted); }
+.tag.cheap { background: var(--success-soft); border-color: #c0d9c8; color: var(--success); }
+.tag.expensive { background: var(--warn-soft); border-color: #ecd2ac; color: var(--warn); }
+.tag.irreversible { background: var(--danger-soft); border-color: #e8c0c0; color: var(--danger); }
+
+ul.compact { list-style: none; padding-left: 0; }
+ul.compact li { padding: 5px 0; border-bottom: 1px dashed var(--border); }
+ul.compact li:last-child { border-bottom: none; }
+ul.compact li strong { color: var(--text); }
+
+.anti-pattern { background: var(--danger-soft); border: 1px solid #e8c0c0; border-radius: 6px; padding: 12px 16px; margin: 12px 0; }
+.anti-pattern h4 { margin: 0 0 6px; color: var(--danger); font-size: 14.5px; }
+.anti-pattern p { margin: 4px 0; font-size: 13.5px; }
+.anti-pattern .fix { background: var(--success-soft); border: 1px solid #c0d9c8; padding: 8px 10px; border-radius: 4px; margin-top: 8px; font-size: 13px; color: #234f31; }
+.anti-pattern .fix strong { color: var(--success); }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="brand">AI SDLC <span class="badge">Hybrid Pipeline</span></div>
+  <ul>
+    <li><a href="#what">What</a></li>
+    <li><a href="#modes">Modes</a></li>
+    <li><a href="#pipeline">Pipeline</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#vault">Vault</a></li>
+    <li><a href="#graphify">Graphify</a></li>
+    <li><a href="#patterns">Patterns</a></li>
+    <li><a href="#examples">Examples</a></li>
+    <li><a href="#principles">Principles</a></li>
+  </ul>
+</nav>
+
+<div class="layout">
+
+<aside class="toc">
+  <h4>Contents</h4>
+  <ul>
+    <li><a href="#what">What is AI SDLC</a></li>
+    <li><a href="#modes">The 3 Modes</a>
+      <ul>
+        <li><a href="#mode-minimal">Minimal</a></li>
+        <li><a href="#mode-standard">Standard</a></li>
+        <li><a href="#mode-heavy">Heavy</a></li>
+      </ul>
+    </li>
+    <li><a href="#pipeline">The Pipeline</a>
+      <ul>
+        <li><a href="#flow-greenfield">Greenfield</a></li>
+        <li><a href="#flow-brownfield">Brownfield</a></li>
+        <li><a href="#flow-bug">Bug fix</a></li>
+        <li><a href="#two-personas">Two personas</a></li>
+      </ul>
+    </li>
+    <li><a href="#skills">Skills Catalog</a>
+      <ul>
+        <li><a href="#skills-open">Open</a></li>
+        <li><a href="#skills-discovery">Discovery</a></li>
+        <li><a href="#skills-loop">Build loop</a></li>
+        <li><a href="#skills-maintenance">Maintenance</a></li>
+        <li><a href="#skills-utility">Utilities</a></li>
+      </ul>
+    </li>
+    <li><a href="#vault">Vault Structure</a></li>
+    <li><a href="#graphify">Graphify Integration</a></li>
+    <li><a href="#patterns">Patterns &amp; Anti-Patterns</a></li>
+    <li><a href="#examples">Worked Examples</a>
+      <ul>
+        <li><a href="#example-minimal">Minimal CLI</a></li>
+        <li><a href="#example-standard">Standard B2C</a></li>
+      </ul>
+    </li>
+    <li><a href="#principles">Principles</a></li>
+    <li><a href="#install">Install</a></li>
+  </ul>
+</aside>
+
+<main>
+
+<header class="hero">
+  <h1>AI SDLC — Hybrid Pipeline</h1>
+  <p class="tagline">Spec-driven SDLC for AI implementers. One page. Everything you need.</p>
+  <p class="lead">Phase-driven rigor (for knowable domains) plus slice-driven iteration (for unknowable ones). 22 drop-in skills, 4 named subagents, a thin vault, and an always-on knowledge graph. Optimizes for <em>learn fast, then build the right thing</em>.</p>
+</header>
+
+<!-- ============== WHAT ============== -->
+<section id="what">
+  <div class="section-tag">Overview</div>
+  <h2>What is AI SDLC, and why it exists</h2>
+  <p>Comprehensive upfront specification works when the domain is clear, the cost of rework is high, and compliance demands it. It falters when the spec itself is the unknown, when implementers are AI agents that benefit from <em>plan-mode groundedness</em> over 500-line sprint files, and when late discovery is more expensive than rework.</p>
+
+  <p>This pipeline keeps the strengths of phase-driven SDLC — vault, spikes, verification gates — and adds:</p>
+
+  <ul class="compact">
+    <li><strong>Risk-first slicing</strong> — build the scary thing first; slice 1 retires the most uncertainty, not whatever's easiest.</li>
+    <li><strong>Two AI personas</strong> — Builder produces, Critic adversarially reviews. Same model, different prompts. Closes the bootstrapping problem of single-AI quality gates.</li>
+    <li><strong>Three modes</strong> — Minimal / Standard / Heavy, picked by <code>/triage</code>. One pipeline shape doesn't fit every project.</li>
+    <li><strong>1-page mission brief + plan mode</strong> — discipline (gates, do-not-defer, ACs) lives in the brief; groundedness (real files, real code) lives in plan mode. Avoids the "500-line sprint file written against stale assumptions" failure.</li>
+    <li><strong>Continuous validation</strong> — per slice, on a real device / user / data, not at project end.</li>
+    <li><strong>Drift-check as pre-commit hook</strong> — vault rot is the #1 failure of spec-driven SDLC. A sub-second hook makes drift cheap to fix and expensive to ignore.</li>
+    <li><strong>Thin vault</strong> — only what code can't carry: decisions, risks, slice memory. Components / contracts / schemas / test plans / screens live in code. Cure for spec rot at the root.</li>
+    <li><strong>Project <code>CLAUDE.md</code> auto-generated</strong> — small (~20 lines), with the hard rule ("before editing code beyond trivial, check for active slice; if none, ASK"). Keeps Claude on the pipeline across sessions.</li>
+    <li><strong>Graphify always-on</strong> — multi-modal knowledge graph (code + docs + papers + videos). PreToolUse hook nudges Claude toward <code>GRAPH_REPORT.md</code> before Glob/Grep; skills query the graph for reachability/blast-radius/path instead of re-scanning files.</li>
+    <li><strong><code>milestone.md</code> per slice</strong> — rolling state file (stage, next-action, on-resume data). Survives session death and context clears; <code>/status</code> reads it as primary source.</li>
+    <li><strong>Honest Heavy mode</strong> — <code>/heavy-architect</code> produces only human-authored files (threat model, NFRs, requirements). Code-derived views (components / contracts / schemas) are regenerated on-demand by <code>/sync</code> before audits. Thin Vault preserved in all modes.</li>
+  </ul>
+
+  <h3>One sentence</h3>
+  <p><strong>Triage first, slice small, build the scary thing early, let Critic challenge the Builder, make reality validate the vault, reflect every slice.</strong></p>
+</section>
+
+<!-- ============== MODES ============== -->
+<section id="modes">
+  <div class="section-tag">Modes</div>
+  <h2>The three modes</h2>
+  <p><code>/triage</code> opens every greenfield project; <code>/adopt</code> opens every brownfield one. Both pick the mode based on audience, compliance, team, and timeline. Mode tunes which steps run, how strict the gates are, and how thick the vault is.</p>
+
+  <table>
+    <thead><tr><th>Mode</th><th>For</th><th>Pipeline shape</th><th>Vault</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Minimal</strong></td>
+        <td>Solo dev, MVP, exploration, one-off scripts</td>
+        <td>Skip critique / user-test / drift-check. Lightweight slices.</td>
+        <td>Thin (triage, concept, decisions, risks, slices)</td>
+      </tr>
+      <tr>
+        <td><strong>Standard</strong> <span class="tag" style="background:var(--accent-soft);border-color:#c2d6ea;color:#1d4a7a">default</span></td>
+        <td>B2C, small teams, product work</td>
+        <td>All skills per slice. User-test before first UX-critical slice. Drift-check pre-commit.</td>
+        <td>Thin</td>
+      </tr>
+      <tr>
+        <td><strong>Heavy</strong></td>
+        <td>Compliance, regulated, audit-grade, public APIs</td>
+        <td>Comprehensive upfront vault via <code>/heavy-architect</code>; mandatory critique + sign-off; reproducible validation; periodic <code>/sync</code> + <code>/reduce</code>.</td>
+        <td>Comprehensive (threat-model, NFRs, requirements, etc. + code-derived views via <code>/sync</code>)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout info">
+    <strong>Default: Standard.</strong>
+    <p>Upgrade to Heavy only when a specific regulation or external SLA forces it. Downgrade to Minimal only when the cost of the pipeline itself exceeds the project (one-off scripts, throwaway prototypes, personal tools).</p>
+  </div>
+
+  <h3 id="mode-minimal">Minimal mode</h3>
+  <p>For solo developers building MVPs, exploring an idea, or shipping one-off scripts. Skips <code>/critique</code>, <code>/user-test</code>, <code>/heavy-architect</code>, <code>/sync</code>. The pipeline overhead is ~30 minutes total; the spike alone often saves a night.</p>
+  <pre><code>/triage MINIMAL → /discover → /slice → /design-slice → /build-slice → /validate-slice → /reflect → loop</code></pre>
+
+  <h3 id="mode-standard">Standard mode (the default)</h3>
+  <p>For B2C products, small teams, B2B SaaS, internal tools that other people will see. Adds the Critic, real-user testing for UX-critical slices, and pre-commit drift-check.</p>
+  <pre><code>/triage STANDARD → /discover → (/risk-spike if HIGH risks) → (/user-test if B2C)
+  → /slice → /design-slice → /critique → /build-slice → /validate-slice → /reflect → loop
+  → maintenance: /drift-check (pre-commit), /reduce (when complexity grows), /critic-calibrate (every 10–20 slices)</code></pre>
+
+  <h3 id="mode-heavy">Heavy mode</h3>
+  <p>For HIPAA, PCI, SOC2, GDPR, regulated industries, public APIs with external SLAs. Adds upfront comprehensive architecture, mandatory Critic + human sign-off, reproducible validation with timestamps, periodic deep reconciliation.</p>
+  <pre><code>/triage HEAVY → /discover (full role-play) → /risk-spike all → /heavy-architect
+  → /user-test (if B2C)
+  → /slice → /design-slice → /critique (mandatory + human sign-off)
+  → /build-slice (compliance trail) → /validate-slice (signed) → /reflect → loop
+  → maintenance: /drift-check (pre-commit), /sync (every 5–10 slices), /reduce (every 5 slices, mandatory)</code></pre>
+</section>
+
+<!-- ============== PIPELINE ============== -->
+<section id="pipeline">
+  <div class="section-tag">Pipeline</div>
+  <h2>The pipeline</h2>
+  <p>Three flow shapes for three situations.</p>
+
+  <h3 id="flow-greenfield">Greenfield (no code yet)</h3>
+  <pre class="flow">
+<span class="skill-name">/triage</span>                              <span class="label">← decide mode, scope pipeline, build risk register</span>
+  <span class="arrow">↓</span>
+<span class="skill-name">/discover</span>                            <span class="label">← concept ↔ users ↔ constraints (one unified loop)</span>
+  <span class="arrow">↓</span>
+<span class="skill-name">/risk-spike</span>                          <span class="label">← validate HIGH risks with throwaway code on real env</span>
+  <span class="arrow">↓</span>
+<span class="skill-name">/user-test</span>                           <span class="label">← B2C only — mockup / prototype / slice with a real user</span>
+  <span class="arrow">↓</span>
+<span class="mode-line">[Heavy only: /heavy-architect produces upfront comprehensive vault]</span>
+  <span class="arrow">↓</span>
+<span class="label">Per slice loop:</span>
+  <span class="skill-name">/slice</span>            <span class="arrow">→</span> <span class="skill-name">/design-slice</span> <span class="arrow">→</span> <span class="skill-name">/critique</span>
+                              <span class="arrow">↓</span>
+  <span class="skill-name">/build-slice</span>      <span class="arrow">→</span> <span class="skill-name">/validate-slice</span> <span class="arrow">→</span> <span class="skill-name">/reflect</span> <span class="arrow">→</span> <span class="skill-name">/commit-slice</span>
+  <span class="arrow">↓ next slice</span>
+
+<span class="label">Continuous: /drift-check (pre-commit), /reduce (when complexity grows),
+            /critic-calibrate (every 10–20 slices)</span></pre>
+
+  <h3 id="flow-brownfield">Brownfield (existing codebase)</h3>
+  <p>Use <code>/adopt</code> instead of <code>/triage</code>. <code>/adopt</code> reads the code first (graphify scan + AST), treats README as <em>hypothesis only</em>, and optionally invokes <code>/diagnose</code> for forensic analysis. Then the same loop takes over.</p>
+  <pre class="flow">
+<span class="skill-name">/adopt</span> [MINIMAL|STANDARD|HEAVY]            <span class="label">← code is truth; docs are hypothesis</span>
+  <span class="arrow">↓</span>
+<span class="skill-name">/diagnose</span>                              <span class="label">← optional but recommended for &gt;500 LOC. Produces diagnosis.html</span>
+  <span class="arrow">↓</span> <span class="label">(repo owner annotates Confirmed: yes/no in browser, saves the HTML back)</span>
+<span class="skill-name">/slice-candidates</span>                      <span class="label">← extracts confirmed findings → ordered backlog.md</span>
+  <span class="arrow">↓</span>
+<span class="label">Same loop as greenfield, with backlog.md driving slice candidates.</span></pre>
+
+  <div class="callout info">
+    <strong>Trust hierarchy in brownfield</strong>
+    <p>1. Code observations (graphify AST + reachability). 2. User pain points + firsthand history. 3. Doc claims — treated as hypothesis, validated against code. README archaeology is dropped.</p>
+  </div>
+
+  <h3 id="flow-bug">Bug fix (any mode)</h3>
+  <pre class="flow">
+<span class="skill-name">/repro</span> "&lt;issue description&gt;"          <span class="label">← write a FAILING test that reproduces the bug. Confirm it fails.</span>
+  <span class="arrow">↓</span>                                   <span class="label">  Add to shippability.md so it can never silently regress.</span>
+<span class="skill-name">/slice</span> "fix &lt;issue&gt;"                  <span class="label">← AC = "make the failing test pass"</span>
+  <span class="arrow">↓</span>
+<span class="label">Normal slice loop. Validation runs the shippability catalog
+            — past slices' critical paths — to catch regressions.</span></pre>
+
+  <h3>Adding a feature to an existing AI SDLC project</h3>
+  <p>Don't re-run <code>/triage</code> or <code>/discover</code>; the vault already exists. Jump to <code>/slice "&lt;feature&gt;"</code>. If the feature touches a new auth model, external integration, or expensive decision: consider <code>/risk-spike</code> first.</p>
+
+  <h3 id="two-personas">The two-persona model</h3>
+  <p>Every slice in Standard or Heavy mode uses two personas, same underlying model:</p>
+  <ul>
+    <li><strong>Builder</strong> (main thread): runs <code>/slice</code>, <code>/design-slice</code>, <code>/build-slice</code>, <code>/validate-slice</code>, <code>/reflect</code>.</li>
+    <li><strong>Critic</strong> (spawned per <code>/critique</code> via Agent tool with <code>subagent_type: "critique"</code>): named subagent at <code>~/.claude/agents/critique.md</code> with adversarial system prompt. Fresh context, no Builder reasoning trail. Returns blockers / majors / minors.</li>
+  </ul>
+  <p>Cost: ~20% more tokens per slice. Cheaper than building the wrong thing. <code>/critic-calibrate</code> is the meta-skill that closes the feedback loop — it analyzes "Missed by Critic" entries across recent reflections and proposes targeted Critic prompt updates (human-reviewed; never auto-applied).</p>
+
+  <h3>Mission brief vs sprint file</h3>
+  <table>
+    <thead><tr><th>Mission brief (persistent, ~1 page)</th><th>Plan mode (session)</th></tr></thead>
+    <tbody>
+      <tr><td>Acceptance criteria</td><td>Exact files to touch</td></tr>
+      <tr><td>Must-not-defer list</td><td>Task sequence</td></tr>
+      <tr><td>Verification commands</td><td>Current-code-aware specifics</td></tr>
+      <tr><td>Vault / contract refs</td><td>Plan visible to user for approval</td></tr>
+    </tbody>
+  </table>
+  <p>Brief carries the discipline. Plan mode carries the groundedness. Avoids the "500-line sprint file written against stale assumptions" failure mode.</p>
+</section>
+
+<!-- ============== SKILLS CATALOG ============== -->
+<section id="skills">
+  <div class="section-tag">Skills</div>
+  <h2>Skills catalog</h2>
+  <p>22 drop-in Claude Code skills at <code>skills/&lt;name&gt;/SKILL.md</code>. Copy any directory into <code>~/.claude/skills/</code> and it works. Each skill has rich frontmatter so Claude triggers reliably on the right phrases.</p>
+
+  <h3 id="skills-open">Open the project</h3>
+  <div class="skills-grid">
+    <article class="skill">
+      <h4>/triage <span class="mode-tag">all</span></h4>
+      <p><strong>Greenfield opener.</strong> Picks mode (Minimal/Standard/Heavy), builds risk register with reversibility tags, generates project <code>CLAUDE.md</code> (~20 lines, hard rule + vault discipline), offers graphify install. Pre-declarable: <code>/triage MINIMAL</code>, <code>/triage STANDARD</code>, <code>/triage HEAVY</code>.</p>
+      <p class="triggers">Triggers: /triage, "start AI SDLC project", re-triage</p>
+    </article>
+    <article class="skill">
+      <h4>/adopt <span class="mode-tag">all</span></h4>
+      <p><strong>Brownfield opener.</strong> Use INSTEAD of <code>/triage</code> for existing codebases. Reads code first (graphify), treats docs as hypothesis, offers <code>/diagnose</code> for forensic analysis, generates brownfield-aware <code>CLAUDE.md</code> with code-truth-over-docs rule.</p>
+      <p class="triggers">Triggers: /adopt, "brownfield", "onboard existing codebase"</p>
+    </article>
+    <article class="skill">
+      <h4>/diagnose <span class="mode-tag">all</span></h4>
+      <p><strong>Forensic, code-only audit.</strong> 11 analysis passes (intent, architecture, dead code, duplicates, half-wired features, contradictory assumptions, layering violations, AI-bloat signatures, oversized functions, dead config, test gaps). Produces a single self-contained <code>diagnosis.html</code> the repo owner annotates in their browser.</p>
+      <p class="triggers">Triggers: /diagnose, "audit this repo", "forensic review"</p>
+    </article>
+    <article class="skill">
+      <h4>/slice-candidates <span class="mode-tag">all</span></h4>
+      <p>Reads annotated <code>diagnosis.html</code>, produces dependency-ordered <code>backlog.md</code> using graphify blast-radius and shared-evidence checks. Used by <code>/adopt</code> after the owner returns the annotated diagnosis.</p>
+      <p class="triggers">Triggers: /slice-candidates, "build the backlog"</p>
+    </article>
+  </div>
+
+  <h3 id="skills-discovery">Discovery</h3>
+  <div class="skills-grid">
+    <article class="skill">
+      <h4>/discover <span class="mode-tag">all</span></h4>
+      <p>Concept + users + constraints in one unified loop. Three areas, one topic at a time. Output: enough understanding to identify the first slice candidate. Heavy mode adds full role-play per actor.</p>
+      <p class="triggers">Triggers: /discover, "explore concept and users"</p>
+    </article>
+    <article class="skill">
+      <h4>/risk-spike <span class="mode-tag">all</span></h4>
+      <p>Validate risky third-party API assumptions with throwaway code on real environments — BEFORE any design. Step 2.5 spawns the <code>field-recon</code> subagent (fresh context, live <code>WebSearch</code>) to survey post-training-cutoff platform changes, quotas, deprecations. Returns a structured early-drop recommendation: if an <em>official</em> source contradicts the assumption, skip the empirical test and mark NO-GO. If docs <em>confirm</em> the assumption — empirical test still required (docs lie). Falls back gracefully when WebSearch is unavailable.</p>
+      <p class="triggers">Triggers: /risk-spike, "validate assumption before design"</p>
+    </article>
+    <article class="skill">
+      <h4>/user-test <span class="mode-tag std">Standard / Heavy</span></h4>
+      <p>Real-user validation gate — mockup, clickable prototype, or working slice tested with an actual person. Behavior over opinion ("show me how you'd…"). Captures Surprised / Ignored / Wanted / Stuck observations. Skip for backend, internal tools, or CLI-for-engineers.</p>
+      <p class="triggers">Triggers: /user-test, /user-test mockup, /user-test prototype</p>
+    </article>
+    <article class="skill">
+      <h4>/heavy-architect <span class="mode-tag heavy">Heavy only</span></h4>
+      <p>Upfront comprehensive vault for compliance / regulated projects. Produces only human-authored files (threat model with STRIDE per component, cost estimation at 1K/10K/100K, requirements, NFRs, diagrams, actor narratives). Code-derived views (components / contracts / schemas) are generated on-demand by <code>/sync</code>.</p>
+      <p class="triggers">Triggers: /heavy-architect, "compliance architecture"</p>
+    </article>
+  </div>
+
+  <h3 id="skills-loop">Slice loop</h3>
+  <div class="skills-grid">
+    <article class="skill">
+      <h4>/slice <span class="mode-tag">all</span></h4>
+      <p>Define the next thinnest valuable cut. Actively recommends candidates by risk-first ordering — gathers from risk register, recent deferrals, recent discoveries, unbuilt concept scope, aggregated lessons. Picks risk tier (low/medium/high) which gates whether <code>/critique</code> runs. Produces 1-page mission brief + <code>milestone.md</code>.</p>
+      <p class="triggers">Triggers: /slice, "next slice", "what should we build next"</p>
+    </article>
+    <article class="skill">
+      <h4>/design-slice <span class="mode-tag">all</span></h4>
+      <p>Just-enough spec for THIS slice — not full architecture. Lists what's new vs reused, components touched (referencing code locations, not duplicating them), contracts added, ADRs locked. Tags every ADR with reversibility. ≤4 clarifying questions. Per-slice design, not whole-system; for Heavy-mode upfront vault, use /heavy-architect.</p>
+      <p class="triggers">Triggers: /design-slice, "spec the current slice"</p>
+    </article>
+    <article class="skill">
+      <h4>/critique <span class="mode-tag">Standard / Heavy</span></h4>
+      <p>Adversarial review by separate Critic persona via Agent tool (<code>subagent_type: "critique"</code>). Attacks design along 8 dimensions, each grounded in a named expert framework — <strong>Wiegers</strong> (requirements), <strong>Fowler</strong> (refactoring smells), <strong>Newman</strong> (service contracts), <strong>OWASP</strong> + <strong>McGraw</strong> (security), <strong>Hendrickson / Bach / Bolton</strong> (edge case heuristics), and others. Citation-based grounding shifts the model from blended training-data heuristics to specific vetted methodology. Dimension 8 (web-known issues) uses live <code>WebSearch</code>. Mandatory in Standard / Heavy. May skip <code>low</code>-tier slices that don't touch auth/contracts/data/multi-device/external integrations.</p>
+      <p class="triggers">Triggers: /critique, "review the slice design"</p>
+    </article>
+    <article class="skill">
+      <h4>/build-slice <span class="mode-tag">all</span></h4>
+      <p>Plan mode + verification gates. Reads brief, enters plan mode to explore actual code (graphify-first), gets user approval, executes task-by-task with per-task verification. Mid-slice smoke at ~50%. Pre-finish gate: ACs pass, must-not-defer addressed, drift-check clean, no debug code. Updates <code>milestone.md</code> continuously for session-resume safety. Append-only <code>build-log.md</code> Events section is the flight recorder — write events <strong>before</strong> any tool call that could fail (screenshots, large file reads), so corrupted-binary errors and session deaths can't erase context.</p>
+      <p class="triggers">Triggers: /build-slice, "ship the slice"</p>
+    </article>
+    <article class="skill">
+      <h4>/validate-slice <span class="mode-tag">all</span></h4>
+      <p>Reality check on real device / user / data. Per-AC PASS / FAIL with evidence (commands, screenshots, logs). Classifies failures: implementation bug / spec gap / reality surprise. Multi-instance required for sync/sharing/multi-user features. Runs the shippability catalog at pre-finish to catch regressions across past slices.</p>
+      <p class="triggers">Triggers: /validate-slice, "reality check the slice"</p>
+    </article>
+    <article class="skill">
+      <h4>/reflect <span class="mode-tag">all</span></h4>
+      <p>Capture what reality taught you. Four categories: <strong>Validated / Corrected / Discovered / Deferred</strong>. Tracks Critic accuracy (VALIDATED / FALSE ALARM / NOT YET / Missed by Critic). Adds one critical-path test to <code>shippability.md</code>. Auto-archives the slice to <code>slices/archive/</code> and refreshes <code>_index.md</code>. Previews next-slice candidates. The cure for spec rot.</p>
+      <p class="triggers">Triggers: /reflect, "capture learnings", "slice retrospective"</p>
+    </article>
+  </div>
+
+  <h3 id="skills-maintenance">Maintenance</h3>
+  <div class="skills-grid">
+    <article class="skill">
+      <h4>/drift-check <span class="mode-tag">all</span></h4>
+      <p>Detect-only vault-vs-code audit. Designed for pre-commit hooks (<code>--fast</code>: target &lt;2s) and on-demand audits. Categorizes findings as DRIFT (blocker), UNSPECIFIED CODE, STALE CLAIM. <code>--resolve</code> walks each finding interactively. Skips <code>slices/archive/</code>.</p>
+      <p class="triggers">Triggers: /drift-check, "is the vault still accurate"</p>
+    </article>
+    <article class="skill">
+      <h4>/sync <span class="mode-tag heavy">Heavy only</span></h4>
+      <p>Bidirectional vault-code reconciliation. Regenerates code-derived files (components from AST, contracts from OpenAPI / Pydantic / type defs, schemas from data models) AND detects drift on the rest. Run periodically (every 5–10 slices) or before audits. Standard / Minimal use <code>/drift-check</code> instead.</p>
+      <p class="triggers">Triggers: /sync, "reconcile architecture"</p>
+    </article>
+    <article class="skill">
+      <h4>/reduce <span class="mode-tag">all</span></h4>
+      <p>Complexity budget enforcer. Audits vault + code for over-engineering, speculative generality, dead claims, layer-cake. Mode-specific thresholds. Proposes a simplification slice. AI has no natural bias toward "less" — this is the counterweight. Mandatory every 5 slices in Heavy mode.</p>
+      <p class="triggers">Triggers: /reduce, "complexity audit"</p>
+    </article>
+    <article class="skill">
+      <h4>/archive <span class="mode-tag">all</span></h4>
+      <p>Maintains <code>slices/_index.md</code> (the single lookup point) and <code>slices/archive/</code>. Convention: <code>slices/</code> holds active only; completed slices auto-move on <code>/reflect</code>. <code>--index-only</code> rebuilds stale indexes after manual edits.</p>
+      <p class="triggers">Triggers: /archive, "rebuild slice index"</p>
+    </article>
+    <article class="skill">
+      <h4>/critic-calibrate <span class="mode-tag">all</span></h4>
+      <p>Meta-skill. Analyzes "Missed by Critic" patterns across recent reflections, identifies blind spots, PROPOSES targeted updates to <code>~/.claude/agents/critique.md</code>. Human reviews each proposal one at a time; never auto-applies. Run every 10–20 slices to close the Critic feedback loop.</p>
+      <p class="triggers">Triggers: /critic-calibrate, "calibrate the Critic"</p>
+    </article>
+  </div>
+
+  <h3 id="skills-utility">Utilities</h3>
+  <div class="skills-grid">
+    <article class="skill">
+      <h4>/status <span class="mode-tag">all</span></h4>
+      <p>Compact macro-state summary — mode, active slice stage + next action (read from <code>milestone.md</code>), risk exposure, regression health, Critic calibration status, top aggregated lessons, recommended next skill. <code>--brief</code> ~20 lines, default ~60, <code>--full</code> ~150. Read-only, never modifies. If the active slice is in <code>build</code> stage, also reads the tail of <code>build-log.md</code> Events — durable next-action signal that survives <code>milestone.md</code> staleness.</p>
+      <p class="triggers">Triggers: /status, "where are we?", "pulse"</p>
+    </article>
+    <article class="skill">
+      <h4>/repro <span class="mode-tag">all</span></h4>
+      <p>Bug-fix discipline. Establishes a FAILING test that reproduces the issue, confirms it fails, adds to <code>shippability.md</code>. Hands off to <code>/slice</code> with the test as the slice's AC. Bug can never silently regress. Skip for typos / one-liners.</p>
+      <p class="triggers">Triggers: /repro, "failing test first"</p>
+    </article>
+    <article class="skill">
+      <h4>/commit-slice <span class="mode-tag">all</span></h4>
+      <p>Generates an audit-grade commit message from the slice's vault artifacts (mission-brief / build-log / validation / new ADRs). Conventional-commit format with slice folder reference, AC count, Critic blockers addressed, ADR IDs, shippability entry. <code>--do-commit</code> executes <code>git add</code> + <code>git commit</code> with confirmation.</p>
+      <p class="triggers">Triggers: /commit-slice, "audit commit"</p>
+    </article>
+  </div>
+
+  <h3>Named subagents</h3>
+  <p>Four skills delegate to <strong>named subagents</strong> at <code>~/.claude/agents/&lt;name&gt;.md</code>. The agent file carries the load-bearing prompt; the skill orchestrates inputs/outputs.</p>
+  <table>
+    <thead><tr><th>Agent</th><th>Invoked by</th><th>Why fresh context</th></tr></thead>
+    <tbody>
+      <tr><td><code>critique</code></td><td><code>/critique</code></td><td>Adversarial isolation — Critic must NOT see the Builder's reasoning trail. Uses citation-based expert grounding (Wiegers, Fowler, Newman, OWASP, etc.) per dimension.</td></tr>
+      <tr><td><code>critic-calibrate</code></td><td><code>/critic-calibrate</code></td><td>Objective pattern analysis across past reflections; benefits from a clean read.</td></tr>
+      <tr><td><code>field-recon</code></td><td><code>/risk-spike</code> Step 2.5</td><td>Live <code>WebSearch</code> survey for post-cutoff platform changes, quotas, deprecations. Web search noise stays out of the main thread; returns findings + structured early-drop recommendation. Asymmetric rule: drop on authoritative contradiction, never on confirmation.</td></tr>
+      <tr><td><code>diagnose-narrator</code></td><td><code>/diagnose</code> Step 6.5</td><td>Engaging executive summary for diagnosis HTML; doesn't pollute the main /diagnose conversation.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Fork-friendly skills</h3>
+  <p>Three skills can run as forks (<code>CLAUDE_CODE_FORK_SUBAGENT=1</code>) — they inherit parent context, run in the background, report when done.</p>
+  <ul class="compact">
+    <li><strong><code>/risk-spike</code></strong> — parallel risk validation: <code>/fork /risk-spike R1</code>, <code>/fork /risk-spike R2</code>, <code>/fork /risk-spike R3</code> in one turn.</li>
+    <li><strong><code>/reduce</code></strong> — long-running complexity audit on larger projects; user keeps moving.</li>
+    <li><strong><code>/sync</code></strong> — Heavy mode 1–3 min reconciliation off the main thread.</li>
+  </ul>
+  <p>Without the env var, these run in the main thread with the same outputs — just blocking.</p>
+</section>
+
+<!-- ============== VAULT ============== -->
+<section id="vault">
+  <div class="section-tag">Vault</div>
+  <h2>Vault structure (thin vault)</h2>
+  <p>The vault holds <strong>only what code can't carry</strong>: decisions, rationale, risks, slice memory. Components / contracts / schemas / test plans / screens live in code (or auto-derived views via OpenAPI, type defs, AST queries). Same fact in two places drifts; fewer places = less drift.</p>
+
+  <p>Reframe: think of the vault as the <strong>AI's project memory across sessions</strong>, not the project's documentation for new readers. AI memory needs decisions made (so it doesn't relitigate), risks (so it doesn't re-discover), slice history (so it knows what's done), reflections (so it learns). It does NOT need every component, every endpoint, every test — those are derivable from code.</p>
+
+  <h3>Standard / Minimal mode (the default)</h3>
+  <pre><code>architecture/
+  CLAUDE.md                  # auto-generated by /triage; pipeline enforcement
+  triage.md                  # mode + rationale + initial risks
+  concept.md                 # what + who + constraints (one file; no separate actors/)
+  risk-register.md           # risks + spike status + reversibility tags
+  decisions/                 # ADRs — the WHY of expensive decisions
+    ADR-001-*.md             #   each tagged: reversibility: cheap | expensive | irreversible
+  spikes/                    # from /risk-spike
+    spike-*.md
+  slices/                    # THE CORE
+    _index.md                # the lookup: active list + recent-10 + aggregated lessons + pointer to archive catalog
+    slice-NNN-&lt;name&gt;/        # ACTIVE slices only (no reflection.md yet)
+      milestone.md           # rolling state file (updated by every skill); /status reads this first
+      mission-brief.md       # per-slice intent + ACs + risk-tier + critic-required + gates
+      design.md              # just-enough — references code locations, doesn't duplicate them
+      critique.md            # Critic's review + Builder's responses (may be "skipped" for low-risk slices)
+      build-log.md           # ## Events (append-only flight recorder) + ## Summary (filled at slice end)
+      validation.md          # reality-check per AC + shippability catalog results
+      (reflection.md appears → /reflect auto-archives the slice)
+    archive/                 # ALL completed slices (auto-moved by /reflect)
+      _index.md              # full chronological catalog
+      slice-001-&lt;name&gt;/      # frozen history (milestone.md frozen as "complete")
+      slice-002-&lt;name&gt;/
+      ...
+  user-tests/                # from /user-test (B2C only)
+    &lt;test-name&gt;.md
+  shippability.md            # regression catalog — one critical-path test per slice
+  drift-log.md               # drift events over time
+  lessons-learned.md         # accumulated insights, chronological
+  critic-calibration-log.md  # audit trail of /critic-calibrate runs
+  changelog.md               # pipeline-bypass log, if any
+
+graphify-out/                # query cache — multi-modal knowledge graph
+  graph.json                 # AST + semantic + INFERRED edges over code, docs, papers, videos
+  GRAPH_REPORT.md            # one-page digest: god nodes, communities, surprising connections</code></pre>
+
+  <h3>Deliberately NOT in the vault (Standard / Minimal)</h3>
+  <ul class="compact">
+    <li><strong><code>components/</code></strong> — read the code; or <code>$PY -m graphify code</code> for a graph view.</li>
+    <li><strong><code>contracts/</code></strong> — auto-generated from OpenAPI / Pydantic / type defs.</li>
+    <li><strong><code>schemas/</code></strong> — from data models / migrations.</li>
+    <li><strong><code>test-plan/</code></strong> — tests are the plan.</li>
+    <li><strong><code>frontend/</code></strong> — code structure shows screens; mission briefs reference them by path.</li>
+    <li><strong><code>actors/</code></strong> — inline section in <code>concept.md</code> (one paragraph per actor); no separate files.</li>
+  </ul>
+  <p>If you find yourself wanting one of these, ask: would code (or a code-derived view) capture this better? Usually yes.</p>
+
+  <h3>Heavy mode additions (human-authored only)</h3>
+  <p><code>/heavy-architect</code> produces only the human-authored files. Code-derived views are regenerated on-demand by <code>/sync</code> before audits — they don't persist between runs.</p>
+  <pre><code>architecture/
+  (everything from thin vault, plus:)
+  actors/
+    &lt;actor&gt;.md               # one per actor with full role-play walkthroughs (human narratives)
+  threat-model.md            # STRIDE per component (human risk rationale)
+  cost-estimation.md         # per-component infra costs at 1K/10K/100K (human estimates)
+  requirements.md            # functional requirements by actor (human intent)
+  non-functional.md          # NFRs + compliance constraints (HIPAA/PCI/SOC2/GDPR — human mapping)
+  diagrams.md                # Mermaid: system overview + sequence (human design intent)
+  sync-log.md                # /sync execution history (audit trail)
+
+# Transient — generated by /sync on-demand:
+  components/&lt;component&gt;.md  # generated from code AST/imports
+  contracts/&lt;integration&gt;.md # generated from OpenAPI / route handlers / event annotations
+  schemas/&lt;entity&gt;.md        # generated from data models / migrations</code></pre>
+
+  <h3>Reversibility tags on every ADR</h3>
+  <p>Each ADR carries a frontmatter <code>reversibility:</code> field. Cheap-to-change → lock fast. Expensive-to-change → lock late, after evidence.</p>
+  <table>
+    <thead><tr><th>Decision</th><th>Reversibility</th><th>When to lock</th></tr></thead>
+    <tbody>
+      <tr><td>UI design tokens (colors, spacing)</td><td><span class="tag cheap">cheap</span></td><td><code>/triage</code> or first frontend slice</td></tr>
+      <tr><td>Logging format</td><td><span class="tag cheap">cheap</span></td><td>First slice that logs</td></tr>
+      <tr><td>Framework choice (React vs Vue)</td><td><span class="tag expensive">expensive</span></td><td>After <code>/discover</code> confirms team fit</td></tr>
+      <tr><td>Database choice (Postgres vs Mongo)</td><td><span class="tag expensive">expensive</span></td><td>After <code>/risk-spike</code> if any data model is novel</td></tr>
+      <tr><td>API contract (versioned public API)</td><td><span class="tag expensive">expensive</span></td><td>After 2+ slices exercise the endpoints</td></tr>
+      <tr><td>User identity model</td><td><span class="tag irreversible">irreversible</span></td><td>Only after user research / <code>/risk-spike</code></td></tr>
+      <tr><td>Tenant model (single / multi)</td><td><span class="tag irreversible">irreversible</span></td><td>Only with strong evidence</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Slice folder shape</h3>
+  <p>Every active slice folder contains a sequence of artifacts produced by the loop. <code>milestone.md</code> is the rolling state file updated by every skill; <code>/status</code> reads it as the primary source.</p>
+</section>
+
+<!-- ============== GRAPHIFY ============== -->
+<section id="graphify">
+  <div class="section-tag">Graphify</div>
+  <h2>Graphify integration — the always-on layer</h2>
+  <p>Graphify turns the codebase + vault + external references into a queryable multi-modal knowledge graph. Code (25 languages via tree-sitter), docs (markdown / HTML / RST), Office files (.docx / .xlsx), papers (PDF with citation mining), images (vision models), video / audio (transcribed locally with faster-whisper). Result: sub-second structural queries (reachability, blast-radius, shortest path) against a pre-built graph instead of re-scanning source.</p>
+
+  <h3>Installed by /triage and /adopt</h3>
+  <p>Both project openers offer (recommended yes):</p>
+  <pre><code># Pick the right Python path for the platform
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*) PY="$HOME/.claude/.venv/Scripts/python.exe" ;;
+  *)                    PY="$HOME/.claude/.venv/bin/python" ;;
+esac
+
+$PY -m graphify install                # base skill at ~/.claude/skills/graphify/
+$PY -m graphify claude install         # PreToolUse hook — every Glob/Grep redirects through GRAPH_REPORT.md
+$PY -m graphify hook install           # post-commit + post-checkout git hooks for auto-rebuild
+$PY -m graphify .                      # initial graph build</code></pre>
+
+  <div class="callout warn">
+    <strong>git init is the user's call</strong>
+    <p>If <code>graphify hook install</code> fails because there's no git repo, <code>/triage</code> stops and asks. Initializing a repo touches identity (default branch, user.name/email, authorship, CI assumptions) — not Claude's to do silently.</p>
+  </div>
+
+  <h3>The always-on pattern</h3>
+  <ol>
+    <li>User asks: "How does payment work?"</li>
+    <li>Claude's Glob/Grep would normally scan files.</li>
+    <li>PreToolUse hook intercepts: "Knowledge graph exists. Read <code>GRAPH_REPORT.md</code> first."</li>
+    <li>Claude reads <code>GRAPH_REPORT.md</code> (one file, ~2k tokens) instead of scanning raw files (~100k+ tokens).</li>
+    <li>Finds the "payment" community in the graph, the god nodes, the surprising connections.</li>
+    <li>Answers with structure-aware reasoning.</li>
+  </ol>
+  <p>This happens transparently every session. Nothing for the user to remember.</p>
+
+  <h3>Per-skill query patterns</h3>
+  <table>
+    <thead><tr><th>Skill</th><th>Graphify usage</th></tr></thead>
+    <tbody>
+      <tr><td><code>/triage</code></td><td>Installs hooks + builds initial graph after vault skeleton.</td></tr>
+      <tr><td><code>/adopt</code></td><td>Builds initial graph from existing code; uses graph to reverse-engineer <code>concept.md</code> and identify modules.</td></tr>
+      <tr><td><code>/discover</code></td><td>Adds external references via <code>graphify add &lt;url&gt;</code> (papers, design docs, interviews).</td></tr>
+      <tr><td><code>/risk-spike</code></td><td>Queries prior art (past spikes, past <code>field-recon</code> findings) before designing the spike. Live web survey is in the <code>field-recon</code> subagent at Step 2.5, not via graphify.</td></tr>
+      <tr><td><code>/slice</code></td><td>Semantic candidate discovery; finds related past slices across the full archive (not just recent-10).</td></tr>
+      <tr><td><code>/design-slice</code></td><td><code>graphify explain &lt;module&gt;</code> for plain-language understanding; <code>path A B</code> for blast radius.</td></tr>
+      <tr><td><code>/critique</code></td><td>Flags INFERRED / AMBIGUOUS edges the design depends on; finds similar past contracts.</td></tr>
+      <tr><td><code>/build-slice</code></td><td>Plan mode: blast radius before editing.</td></tr>
+      <tr><td><code>/drift-check</code></td><td>Graph queries instead of file reads — sub-second on large codebases.</td></tr>
+      <tr><td><code>/heavy-architect</code></td><td>Auto-discovers components + dependencies from graph nodes.</td></tr>
+      <tr><td><code>/sync</code></td><td>Regenerates components / contracts / schemas from graph nodes + OpenAPI / annotations.</td></tr>
+      <tr><td><code>/reduce</code></td><td>God nodes, orphans, layer-cake detection from graph structure.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Semantic archive retrieval — the slice-108 problem</h3>
+  <p>As projects cross ~30 slices, <code>_index.md</code>'s "Aggregated lessons" + "Recent 10" only capture nearby history. A lesson from slice-008 can be relevant when designing slice-108 but is no longer in the index.</p>
+  <p>Graphify solves this without new tooling — archived reflections are already in the graph. Query semantically:</p>
+  <pre><code># When designing slice-108 that touches image handling
+$PY -m graphify query "past lessons about image handling"
+# → surfaces slice-023's EXIF orientation lesson, slice-045's HEIC edge cases, etc.
+
+# Before spiking a new integration
+$PY -m graphify query "past spikes with OAuth scopes"
+
+# When critiquing a design touching auth
+$PY -m graphify query "past misses in auth-related slices"</code></pre>
+  <p>Bottom line: <code>_index.md</code> = recent context (in-context, free); <code>graphify query</code> = deep archive retrieval (~1.7k tokens per query).</p>
+
+  <h3>Edge confidence + rationale comments</h3>
+  <p>Graph edges are tagged: <code>EXTRACTED</code> (found in source, confidence 1.0), <code>INFERRED</code> (with confidence score), <code>AMBIGUOUS</code> (flagged for review). The Critic uses this — INFERRED edges with low confidence = design assumptions to challenge.</p>
+  <p>Rationale comments in code (<code># WHY:</code>, <code># NOTE:</code>, <code># IMPORTANT:</code>, <code># HACK:</code>) become graph edges alongside vault ADRs. The "why" lives in both places and is queryable in one.</p>
+</section>
+
+<!-- ============== PATTERNS ============== -->
+<section id="patterns">
+  <div class="section-tag">Patterns</div>
+  <h2>Patterns &amp; anti-patterns</h2>
+
+  <h3>Healthy patterns</h3>
+  <ul class="compact">
+    <li><strong>Slice 1 retires the scariest risk.</strong> Cross-device sync, novel auth, unproven API, new UX. If it works, everything else is execution. If it doesn't, you pivot cheaply.</li>
+    <li><strong>Verb-object slice names.</strong> <code>add-receipt-upload</code>, <code>enable-sync</code>, <code>fix-thumbnail-orientation</code>. Never <code>phase-2</code>, <code>slice-N</code>, or vague nouns.</li>
+    <li><strong>≤5 acceptance criteria, ≤1 day per slice.</strong> If a slice would take longer, split. If splitting produces a slice with no user-visible value, the original "feature" was probably 2+ features.</li>
+    <li><strong>Must-not-defer list every slice.</strong> Even trivial slices: auth, validation, error paths, observability, authorization — these can't be TODOs.</li>
+    <li><strong>Mid-slice smoke at ~50%.</strong> Hit the endpoint, open the page, install on the device. Catches "builds but doesn't work" before more is built on a broken base.</li>
+    <li><strong>Real-environment validation.</strong> Tests passing ≠ feature works. Real device, real user, real data — especially for HEIC files, EXIF orientation, weird unicode, multi-instance.</li>
+    <li><strong>Reflection captures honestly.</strong> Validated / Corrected / Discovered / Deferred + Critic calibration. If "Discovered" is empty for several slices: either you're not learning or not capturing.</li>
+    <li><strong>One critical-path test per slice.</strong> <code>/reflect</code> adds it to <code>shippability.md</code>. <code>/validate-slice</code> runs the full catalog at pre-finish — past slices' critical paths catch regressions introduced by the current one.</li>
+    <li><strong>Tests-first for bug fixes.</strong> Run <code>/repro</code> to write a failing test before any fix code. Bug can never silently regress.</li>
+    <li><strong>ADRs are append-only.</strong> Supersede with a new ADR (<code>supersedes:</code> + <code>superseded-by:</code> frontmatter); never edit in place. Decision history is audit trail.</li>
+    <li><strong>Reversibility tags on every ADR.</strong> Lock cheap decisions early. Defer expensive ones until a slice actually needs them. Defer irreversible ones until <code>/risk-spike</code> validates.</li>
+  </ul>
+
+  <h3>Anti-patterns</h3>
+
+  <article class="anti-pattern">
+    <h4>Auto-creating component files in Standard mode</h4>
+    <p><strong>Symptom</strong>: <code>/design-slice</code> produces <code>components/X.md</code> and <code>contracts/Y.md</code> in a Standard-mode project.</p>
+    <p><strong>Why bad</strong>: Thin vault is the Standard default. Component files duplicate what code already shows; they drift; they're maintenance burden.</p>
+    <p class="fix"><strong>Fix:</strong> tell Claude "we're in Standard mode (thin vault). The design.md should reference code locations, not create separate component files." Verify <code>architecture/triage.md</code> shows <code>mode: Standard</code>.</p>
+  </article>
+
+  <article class="anti-pattern">
+    <h4>Skipping /critique because "the design is obvious"</h4>
+    <p><strong>Symptom</strong>: User wants to skip critique to save time on a "trivial" slice.</p>
+    <p><strong>Why bad</strong>: The "trivial" ones are where you stop watching. Critic catches the auth gap on the trivial endpoint that exposes data.</p>
+    <p class="fix"><strong>Fix:</strong> only skip in Minimal mode AND for slices with no new auth, no new contracts, no new external dependencies. When in doubt: run it. ~5 minutes of Critic vs hours of bug.</p>
+  </article>
+
+  <article class="anti-pattern">
+    <h4>Letting Claude bypass the pipeline without confirming</h4>
+    <p><strong>Symptom</strong>: User asks Claude to "fix this bug" or "add this feature" and Claude jumps to editing code without checking for an active slice.</p>
+    <p><strong>Why bad</strong>: This is the "ditch the pipeline" failure. Discipline collapses; vault rots.</p>
+    <p class="fix"><strong>Fix:</strong> the auto-generated <code>./CLAUDE.md</code> (~20 lines) carries the hard rule. Big <code>CLAUDE.md</code> gets skimmed — keep it small. If Claude still bypasses: explicitly ask "did you check for an active slice?"</p>
+  </article>
+
+  <article class="anti-pattern">
+    <h4>Treating the vault as documentation for new humans</h4>
+    <p><strong>Symptom</strong>: Vault grows comprehensive component descriptions, architectural diagrams, "system overview" docs for hypothetical new readers.</p>
+    <p><strong>Why bad</strong>: That's not what the vault is for in Standard mode. It's the AI's project memory — decisions, risks, slice history. Documentation for humans is a different artifact (and probably best generated on demand from code).</p>
+    <p class="fix"><strong>Fix:</strong> review what's in the vault. If it's "what code does," delete it. If it's "why we decided X," keep it.</p>
+  </article>
+
+  <article class="anti-pattern">
+    <h4>Running /heavy-architect in Standard mode</h4>
+    <p><strong>Symptom</strong>: User wants "a real architecture" upfront, runs <code>/heavy-architect</code> in a Standard project.</p>
+    <p><strong>Why bad</strong>: Produces 30+ files of comprehensive vault that will drift, won't be maintained, and weren't needed.</p>
+    <p class="fix"><strong>Fix:</strong> <code>/heavy-architect</code> refuses if mode isn't Heavy. If you legitimately need it: <code>/triage --re-triage</code> to Heavy first.</p>
+  </article>
+
+  <article class="anti-pattern">
+    <h4>One slice for "the whole feature"</h4>
+    <p><strong>Symptom</strong>: A slice with 12 acceptance criteria and a 3-day estimate.</p>
+    <p><strong>Why bad</strong>: Defeats the slice model. Mid-slice smoke gates won't work; validation becomes fuzzy; reflection becomes "we built a lot."</p>
+    <p class="fix"><strong>Fix:</strong> split. Each slice ≤5 ACs, ≤1 day. If splitting produces a slice with no user-visible value, the feature was probably 3 features mashed together.</p>
+  </article>
+
+  <article class="anti-pattern">
+    <h4>Reflection as victory lap</h4>
+    <p><strong>Symptom</strong>: Reflections that say "all ACs passed, design was correct, no issues."</p>
+    <p><strong>Why bad</strong>: Teaches nothing. Next slice doesn't benefit. Critic calibration data isn't generated.</p>
+    <p class="fix"><strong>Fix:</strong> enforce honesty discipline. Reflections must populate Validated / Corrected / Discovered / Deferred sections explicitly. If Discovered is empty across multiple slices: push harder.</p>
+  </article>
+
+  <article class="anti-pattern">
+    <h4>Drift-check disabled because "it's annoying"</h4>
+    <p><strong>Symptom</strong>: Pre-commit hook disabled or bypassed with <code>--no-verify</code>.</p>
+    <p><strong>Why bad</strong>: Drift compounds silently. Six months later the vault claims sendgrid; reality is resend.</p>
+    <p class="fix"><strong>Fix:</strong> if the hook is too slow, use <code>--fast</code> mode (target &lt;1s on thin vault). If too noisy, the vault probably has bad assumptions about code paths — fix the vault, not the hook.</p>
+  </article>
+
+  <article class="anti-pattern">
+    <h4>Trusting README in brownfield</h4>
+    <p><strong>Symptom</strong>: <code>/adopt</code> writes <code>concept.md</code> from what README claims.</p>
+    <p><strong>Why bad</strong>: README is aspirational at best, fictional at worst. Code is truth.</p>
+    <p class="fix"><strong>Fix:</strong> trust hierarchy is graphify scan first → user firsthand history second → docs third (as hypothesis only). Run <code>/diagnose</code> for non-trivial brownfields to confirm reality.</p>
+  </article>
+
+  <article class="anti-pattern">
+    <h4>Doc archaeology for ADRs</h4>
+    <p><strong>Symptom</strong>: Reverse-engineering historical ADRs from existing docs the user can't articulate firsthand.</p>
+    <p><strong>Why bad</strong>: Better 0 ADRs than 5 fictional ones.</p>
+    <p class="fix"><strong>Fix:</strong> <code>/adopt</code> only captures ADRs the user can describe themselves — context, options considered, why this won. If user struggles to articulate: skip.</p>
+  </article>
+</section>
+
+<!-- ============== EXAMPLES ============== -->
+<section id="examples">
+  <div class="section-tag">Worked examples</div>
+  <h2>Worked examples</h2>
+
+  <article class="worked-example" id="example-minimal">
+    <header>
+      <h4>Minimal mode — personal CLI tool (duplicate-photo finder)</h4>
+      <p>Solo, weekend project, no users besides you. Total time ≈ 3–4 hours including spike.</p>
+    </header>
+    <div class="ex-body">
+      <div class="step"><strong>Step 1 — Triage.</strong> <code>/triage "CLI tool to find duplicate photos and emit a CSV report"</code></div>
+      <div class="dialog">Claude: 5 questions, one at a time. Mode: Minimal (solo, MVP, one-off).
+Risk register:
+| R1 | Perceptual hash accuracy on similar-but-different photos | irreversible-if-wrong | YES |
+
+Pipeline: /risk-spike R1 → /discover → /slice → ... → /reflect → loop
+Wrote: triage.md, risk-register.md, ./CLAUDE.md (~20 lines)
+Run /risk-spike R1 next.</div>
+
+      <div class="step"><strong>Step 2 — Risk-spike.</strong> <code>/risk-spike R1</code> — 15-line script tests imagehash on 20 known pairs.</div>
+      <div class="dialog">Result:
+- True duplicates: distance ≤ 5 (10/10 detected)
+- Similar-but-different: distance 8–25 (separable)
+- Threshold of 6 cleanly separates the two.
+
+Decision: GO. Caveat: expose threshold as a CLI flag.
+Wrote: spikes/spike-phash.md
+Updated: risk-register.md (R1 → RETIRED)</div>
+
+      <div class="step"><strong>Step 3 — Skip /discover (Minimal, trivial), straight to /slice.</strong></div>
+      <div class="step"><strong>Step 4 — /slice "scan a folder and write CSV of duplicates"</strong> — 5 ACs, must-not-defer (handle unreadable files, show progress on ≥100 files), out of scope (GUI, auto-deletion, cloud sync).</div>
+      <div class="step"><strong>Step 5 — /design-slice</strong> (lightweight in Minimal). One ADR: ADR-001 use imagehash.phash, reversibility: cheap.</div>
+      <div class="step"><strong>Step 6 — /build-slice → /validate-slice → /reflect.</strong> Critique skipped (Minimal, trivial). Real test on 50 photos with 5 known clusters → all 5 detected.</div>
+      <p style="margin-top:12px;font-size:13px;color:var(--text-muted);"><strong>What the pipeline added:</strong> ~30 minutes of overhead vs "just write the script". The spike alone saved a night of fighting hash thresholds.</p>
+    </div>
+  </article>
+
+  <article class="worked-example" id="example-standard">
+    <header>
+      <h4>Standard mode — household expense tracker (B2C web app)</h4>
+      <p>Two users per household, subscription tier later, ~3 months solo. Total time ≈ 4–6 hours per slice.</p>
+    </header>
+    <div class="ex-body">
+      <div class="step"><strong>Step 1 — Triage.</strong> Mode: Standard. Three risks identified:</div>
+      <ul style="font-size:13.5px;">
+        <li><strong>R1</strong> Cross-user data sharing model — <span class="tag irreversible">irreversible</span> — spike YES</li>
+        <li><strong>R2</strong> Receipt OCR accuracy at launch — <span class="tag expensive">expensive</span> — try Tesseract on 30 samples</li>
+        <li><strong>R3</strong> Subscription billing integration choice — <span class="tag expensive">expensive</span> — defer until needed</li>
+      </ul>
+
+      <div class="step"><strong>Step 2 — Spike R1 + R2.</strong> R1 → "household" entity with linked accounts is cleaner. GO. R2 → 60% extract amount correctly, 40% wrong (handwritten, faded ink). NOT good enough as primary entry method. <strong>NO-GO for OCR-as-default; CONDITIONAL for OCR-as-assist (user reviews).</strong></div>
+
+      <div class="step"><strong>Step 3 — /discover.</strong> WHAT (concept), WHO (household member + admin, inline in concept.md — thin vault), CONSTRAINTS (Next.js + Postgres on Vercel + Supabase, captured as ADRs).</div>
+
+      <div class="step"><strong>Step 4 — /user-test mockup</strong> for first slice (household creation + invitation). Findings:</div>
+      <ul style="font-size:13.5px;">
+        <li><strong>Surprised</strong>: User expected "Create household" to ask for household NAME. → Add name field.</li>
+        <li><strong>Ignored</strong>: Long welcome paragraph. → Cut it.</li>
+        <li><strong>Wanted</strong>: A way to undo invitation. → Add cancel-invitation in slice 2.</li>
+        <li><strong>Stuck</strong>: Confused about "joining" vs "creating" — verb mattered. → Clearer button labels.</li>
+      </ul>
+
+      <div class="step"><strong>Step 5 — Slice 1 loop.</strong> /slice → /design-slice → /critique → /build-slice → /validate-slice → /reflect.</div>
+      <div class="dialog">Critic finds:
+- B1: ADR-004 says invitation tokens have 24h expiry, but no DB cleanup. → expired tokens accumulate.
+- M1: Re-invitation flow not specified (what if user invites same email twice?).
+- m1: "Household name" field has no length limit.
+
+Builder addresses B1 (DB cleanup task), M1 (re-invitation cancels previous), defers m1.</div>
+
+      <div class="step"><strong>Step 6 — /validate-slice</strong>: real test, two browser windows, two emails, full invitation flow. PASS — all 5 ACs verified with screenshots.</div>
+
+      <div class="step"><strong>Step 7 — /reflect.</strong></div>
+      <div class="dialog">Validated: invitation flow works for normal case; magic links work.
+Corrected: design.md said magic link via Vercel KV; reality used Supabase Edge Functions (cleaner). Updated.
+Discovered: re-invitation case wasn't in mission brief, but Critic caught it (M1).
+Critic calibration: B1 VALIDATED (token cleanup hit mid-build). M1 VALIDATED (came up in real test). m1 NOT YET (deferred).
+Lesson added: in invitation/sharing slices, always think about the re-invite case.</div>
+
+      <p style="margin-top:12px;font-size:13px;color:var(--text-muted);"><strong>What Standard adds vs Minimal:</strong> /critique every slice (~30 min), /user-test before first UX-critical slice, stricter mission briefs, pre-commit /drift-check. Cost: real. Benefit: post-launch bugs avoided.</p>
+    </div>
+  </article>
+
+  <h3>Common scenarios — quick reference</h3>
+  <table>
+    <thead><tr><th>Situation</th><th>Skill</th></tr></thead>
+    <tbody>
+      <tr><td>Starting fresh (greenfield)</td><td><code>/triage</code></td></tr>
+      <tr><td>Adopting into existing codebase (brownfield)</td><td><code>/adopt</code></td></tr>
+      <tr><td>Re-scoping an existing project</td><td><code>/triage --re-triage</code></td></tr>
+      <tr><td>Session start / orientation</td><td><code>/status</code></td></tr>
+      <tr><td>Fixing a non-trivial bug</td><td><code>/repro</code> → <code>/slice</code> → ...</td></tr>
+      <tr><td>Generating an audit-grade commit after a slice</td><td><code>/commit-slice</code></td></tr>
+      <tr><td>Worried about a third-party API</td><td><code>/risk-spike</code></td></tr>
+      <tr><td>About to commit to a UX in a B2C product</td><td><code>/user-test mockup</code></td></tr>
+      <tr><td>Defining the next thing to build</td><td><code>/slice</code> (with or without description — actively recommends)</td></tr>
+      <tr><td>Want a second AI to attack your design</td><td><code>/critique</code></td></tr>
+      <tr><td>Pre-commit; checking vault matches code</td><td><code>/drift-check</code></td></tr>
+      <tr><td>Vault is bloated; complexity creeping</td><td><code>/reduce</code></td></tr>
+      <tr><td>Critic keeps missing the same kind of issue</td><td><code>/critic-calibrate</code></td></tr>
+      <tr><td>Heavy mode periodic deep reconciliation</td><td><code>/sync</code></td></tr>
+      <tr><td>Compliance requirement just emerged</td><td><code>/triage --re-triage</code> → mode upgrade to Heavy → <code>/heavy-architect</code></td></tr>
+      <tr><td>My session died mid-slice — where am I?</td><td><code>/status</code> reads <code>milestone.md</code>; "On resume" tells you exactly where to pick up</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============== PRINCIPLES ============== -->
+<section id="principles">
+  <div class="section-tag">Principles</div>
+  <h2>Five principles</h2>
+  <p>Every skill traces back to one or more.</p>
+
+  <div class="principle">
+    <h4><span class="num">1</span>Iterate per slice, not per phase</h4>
+    <p class="why"><strong>Why:</strong> You learn what to build by building. Phase-driven pipelines lock design decisions before evidence exists. By validation time, the wrong thing is built at scale.</p>
+    <p class="how"><strong>How:</strong> <code>/slice</code> defines the next cut. <code>/design-slice</code> scopes the spec to that cut only. <code>/build-slice</code> ships it. <code>/reflect</code> captures what reality taught you. Each cycle = working code + updated spec.</p>
+    <p class="why"><strong>Counter-principle:</strong> for compliance-driven work where contracts must be defined upfront (FDA, HIPAA, banking), Heavy mode relaxes this — contracts frozen before any slice runs. Even then, slices remain the execution unit.</p>
+  </div>
+
+  <div class="principle">
+    <h4><span class="num">2</span>Risk-first ordering</h4>
+    <p class="why"><strong>Why:</strong> Projects die from unknown-unknowns discovered late. Build the scary thing first — novel auth, unproven API, new UX, cross-device sync. If it works, everything else is execution. If it doesn't, you pivot cheaply.</p>
+    <p class="how"><strong>How:</strong> <code>/triage</code> builds the risk register. <code>/slice</code> selects the next cut by risk, not dependency order. <code>/risk-spike</code> runs before design when validation is cheaper than implementation (a 30-min spike beats an 8-sprint rebuild).</p>
+  </div>
+
+  <div class="principle">
+    <h4><span class="num">3</span>Two AI personas</h4>
+    <p class="why"><strong>Why:</strong> Same AI on both sides of a quality gate is the bootstrapping problem. AI writes a spec → same AI validates → same AI builds. Errors propagate silently because validator shares the writer's blind spots.</p>
+    <p class="how"><strong>How:</strong> <code>/critique</code> invokes a named subagent at <code>~/.claude/agents/critique.md</code> with the load-bearing adversarial prompt — stance, 8 attack dimensions each grounded in a named expert framework (Wiegers for requirements, Fowler for refactoring smells, Newman for service contracts, OWASP for security, Hendrickson / Bach / Bolton for edge case heuristics, etc.), specificity / honesty rules, output format. Citation-based grounding shifts the model from blended training-data heuristics to specific vetted methodology. Fresh context — no Builder reasoning trail. <code>/critic-calibrate</code> is the meta-skill that mines past misses to propose Critic prompt improvements (human-reviewed, never auto-applied).</p>
+    <p class="why"><strong>Cost:</strong> ~20% more tokens per slice. Cheaper than building the wrong thing. Failure mode to watch: Critic becomes a rubber stamp if its prompt is too mild.</p>
+  </div>
+
+  <div class="principle">
+    <h4><span class="num">4</span>Reversibility-tagged decisions</h4>
+    <p class="why"><strong>Why:</strong> Not all decisions are equal. Locking a UI color is free; locking a database schema or API contract is a migration. Phase-driven pipelines treat all decisions the same, forcing early commitment on expensive things before evidence supports them.</p>
+    <p class="how"><strong>How:</strong> Every ADR has a <code>reversibility:</code> frontmatter field (<span class="tag cheap">cheap</span> / <span class="tag expensive">expensive</span> / <span class="tag irreversible">irreversible</span>). <code>/design-slice</code> only locks expensive decisions when the slice <em>needs</em> them; cheap ones lock early to unblock work.</p>
+  </div>
+
+  <div class="principle">
+    <h4><span class="num">5</span>Thin vault — AI memory, not system documentation</h4>
+    <p class="why"><strong>Why:</strong> The biggest failure mode of spec-driven SDLC is spec rot. The deeper cause: trying to document what code already shows. Component descriptions, contract schemas, test plans drift not because discipline is weak, but because the same fact lives in two places (code + vault) that want to diverge. The cure is fewer places, not more discipline.</p>
+    <p class="how"><strong>The split:</strong> code is the source of truth for "what" (components, contracts, data shapes, test coverage, frontend structure). Vault is the source of truth for "why" (decisions, rationale, risks, intent, learnings). Reframe: vault is the <em>AI's project memory across sessions</em>, not project documentation for new readers.</p>
+    <p class="why"><strong>Heavy mode behavior:</strong> the same principle holds. <code>/heavy-architect</code> produces only human-authored files (threat model, NFRs, requirements, diagrams, actor narratives). Code-derived views (components / contracts / schemas) are regenerated on-demand by <code>/sync</code> right before audits — not maintained between runs. Audit artifacts when you need them; no drift between audits.</p>
+    <p class="how"><strong>Graph as structural index:</strong> <code>/triage</code> and <code>/adopt</code> install graphify — multi-modal knowledge graph over code + vault + external references. Skills query the graph for reachability, blast-radius, and shortest path instead of scanning files. Rationale comments in code (<code># WHY:</code>, <code># NOTE:</code>) become graph edges alongside vault ADRs — the "why" is queryable in one place.</p>
+  </div>
+
+  <h3>What these principles reject</h3>
+  <ul class="compact">
+    <li><strong>Waterfall-as-default.</strong> Phase-driven SDLC encodes a specific theory (specs come first, exhaustively) and applies it uniformly. Treated here as one mode (Heavy), not the default.</li>
+    <li><strong>Single-AI quality gates.</strong> One AI writing and another part of the same AI validating is theater, not review.</li>
+    <li><strong>Artifact completeness as a goal.</strong> A vault with 200 files and stale claims is worse than one with 20 files that match reality.</li>
+    <li><strong>Phase gates as milestones.</strong> The only milestone is working software a real user / device has touched.</li>
+  </ul>
+
+  <h3>What these principles are honest about</h3>
+  <ul class="compact">
+    <li><strong>Slice-driven has its own failure modes:</strong> losing sight of the whole, building inconsistently across slices, accumulating tech debt. <code>/reduce</code> and <code>/drift-check</code> are the counterweights, but discipline is still required.</li>
+    <li><strong>Two-persona costs tokens</strong>, and the Critic isn't perfect. Calibration happens over time by tracking <code>/reflect</code>'s "Missed by Critic" entries; <code>/critic-calibrate</code> closes the loop.</li>
+    <li><strong>Heavy mode exists because these principles don't always fit.</strong> Compliance domains genuinely need upfront contracts. Don't force slice-driven where it's wrong.</li>
+  </ul>
+</section>
+
+<!-- ============== INSTALL ============== -->
+<section id="install">
+  <div class="section-tag">Setup</div>
+  <h2>Install (one-time per machine)</h2>
+  <p>If you're using this pipeline, you already have Claude Code. Use it to install:</p>
+
+  <div class="callout info">
+    <strong>How to invoke</strong>
+    <p><code>cd</code> into the AI SDLC source directory, open Claude Code, and say:</p>
+    <p><em>"Install this. Read <code>INSTALL.md</code> and follow it."</em></p>
+  </div>
+
+  <p>Claude reads <code>INSTALL.md</code>, detects what's on your machine, asks before mutating shared files (global <code>CLAUDE.md</code>, <code>settings.json</code>), executes the install, and verifies at the end. Idempotent — safe to re-run if already partially configured.</p>
+
+  <h3>What the install does</h3>
+  <ol>
+    <li>Verifies / creates <code>~/.claude/.venv</code> (Python 3.11+).</li>
+    <li>Installs <code>graphify</code> (editable from <code>~/.claude/packages/graphify</code> if present, else PyPI).</li>
+    <li>Registers the graphify Claude Code skill at <code>~/.claude/skills/graphify/</code>.</li>
+    <li>Adds the <code>PY=...</code> shared-Python convention to <code>~/.claude/CLAUDE.md</code> (with your confirmation).</li>
+    <li>Adds <code>CLAUDE_CODE_FORK_SUBAGENT=1</code> to <code>~/.claude/settings.json</code> (so <code>/fork</code> works).</li>
+    <li>Copies AI SDLC skills + agents into <code>~/.claude/skills/</code> and <code>~/.claude/agents/</code>.</li>
+  </ol>
+
+  <p>After setup: <strong>restart Claude Code</strong> so the env var loads. Then <code>/triage</code> (greenfield) or <code>/adopt</code> (brownfield) runs a preflight check on first use; if anything is missing, it fails fast and points you back to <code>INSTALL.md</code>.</p>
+
+  <h3>The shared Python convention</h3>
+  <p>Don't activate the venv. Call the interpreter by absolute path. Cross-platform pattern (the same one used in <code>/triage</code>, <code>/adopt</code>, <code>/diagnose</code>, <code>/slice-candidates</code>):</p>
+  <pre><code>case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*) PY="$HOME/.claude/.venv/Scripts/python.exe" ;;
+  *)                    PY="$HOME/.claude/.venv/bin/python" ;;
+esac
+
+$PY -m graphify .          # build initial graph
+$PY -m graphify query "what does receipt-service depend on?"</code></pre>
+
+  <h3>First project</h3>
+  <pre><code># Greenfield
+cd your-project/
+/triage "family expense tracker that syncs between two phones"
+
+# Brownfield
+cd existing-project/
+/adopt</code></pre>
+
+  <p>Both opener skills ask ~3–5 questions one at a time, build the initial vault skeleton, install graphify integration, generate a small project <code>./CLAUDE.md</code> (~20 lines) with the hard rule + vault discipline, and tell you what to run next.</p>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <p>AI SDLC — Hybrid Pipeline. Single-page tutorial. Spec-driven SDLC for AI implementers.</p>
+  <p>Source-of-truth files: <code>README.md</code> · <code>pipeline.md</code> · <code>principles.md</code> · <code>tutorial.md</code> · <code>graphify-integration.md</code> · <code>INSTALL.md</code></p>
+</footer>
+
+</body>
+</html>

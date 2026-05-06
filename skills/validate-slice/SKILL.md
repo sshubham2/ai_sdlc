@@ -1,0 +1,196 @@
+---
+name: validate-slice
+description: "AI SDLC pipeline. Reality check the current slice — real device, real user, real data. NOT just 'tests pass'. Per-criterion PASS/FAIL with evidence. Classifies failures (implementation bug / spec gap / reality surprise). Use after /build-slice. Trigger phrases: '/validate-slice', 'validate this slice', 'reality check the slice', 'check slice on real device'. Per-slice continuous validation, not a terminal full-codebase audit."
+user_invokable: true
+---
+
+# /validate-slice — Reality Check
+
+You are validating the current slice on a real environment. Tests passing is not enough — real device, real user, real data.
+
+## Where this fits
+
+Runs after `/build-slice` completes its pre-finish gate. Output feeds `/reflect`.
+
+## Two phases
+
+1. **This slice's acceptance criteria** — real-device / real-user / real-data checks (this skill's traditional job)
+2. **Shippability catalog regression check** — run every past slice's critical-path test from `architecture/shippability.md` to catch regressions introduced by THIS slice breaking past work
+
+Both must pass before the slice is considered validated.
+
+## Why this matters
+
+Tests can pass while the feature doesn't work:
+- Mocks return what tests expect, not what the real API does
+- Simulated actors don't catch UX issues
+- Single-device tests don't validate multi-device features
+- Synthetic data doesn't surface real-data edge cases (HEIC files, EXIF orientation, weird unicode)
+
+This step closes that gap, per slice.
+
+## Prerequisite check
+
+- Find active slice folder
+- Read `mission-brief.md` (acceptance criteria + verification plan)
+- Read `build-log.md` (what was actually built; helps interpret deviations)
+- If `build-log.md` is missing or shows NOT-SHIPPED: stop, the slice isn't ready
+
+## Your task
+
+### Step 1: For each acceptance criterion, run the real-world check
+
+Read the verification plan from mission-brief.md. For each AC, execute the check:
+
+- **Backend endpoint**: hit it with a real client (curl, real test harness, Postman). Inspect response. Check DB state.
+- **Frontend page**: open in a real browser (or local dev server). Perform the user action. Observe.
+- **Mobile feature**: install on a real device. For multi-device features: install on TWO devices.
+- **CLI / script**: run on real sample data (not synthetic test data). Inspect output.
+- **ML inference**: evaluate on held-out data (not training data).
+
+### Step 2: Capture evidence per criterion
+
+Each AC's validation MUST record what was actually checked:
+
+- Command run + actual output (paste it)
+- Screenshot if UI (note where saved)
+- Log excerpts if backend
+- Manual steps + observation if observation-based
+
+"It worked" without evidence doesn't count. If you cannot produce evidence, the AC isn't validated — even if you trust the test suite.
+
+### Step 3: Classify results
+
+For each criterion: **PASS** | **FAIL** | **PARTIAL**
+
+For FAIL or PARTIAL, classify the cause:
+
+- **Implementation bug**: code wrong, spec right → fix code, re-validate, then `/reflect`
+- **Spec gap**: spec incomplete, can't actually deliver → don't fix yet; `/reflect` formally captures it
+- **Reality surprise**: neither predicted (e.g., HEIC EXIF issue) → log immediately to risk-register, `/reflect`
+
+### Step 4: Multi-instance validation (if applicable)
+
+For features involving:
+- >1 user (sharing, collaboration, permissions across users)
+- >1 device (sync, push, real-time)
+- >1 account (cross-account flows)
+
+Validation REQUIRES testing on multiple instances simultaneously. Single-instance passing is NOT proof. The Google Drive `drive.file` incident is the canonical example of why.
+
+### Step 5: Write `architecture/slices/slice-NNN-<name>/validation.md`
+
+```markdown
+# Validation: Slice NNN <name>
+
+**Date**: <YYYY-MM-DD>
+**Result**: PASS | PARTIAL | FAIL
+
+## Per-criterion results
+
+### AC1: <criterion text>
+- **Status**: PASS | FAIL | PARTIAL
+- **Evidence**: <command + output, screenshot ref, log excerpt>
+- **Notes**: <observations, edge cases noticed>
+
+### AC2: <criterion text>
+- **Status**: FAIL
+- **Cause**: implementation bug | spec gap | reality surprise
+- **Evidence**: <what failed, with output>
+- **Action**: <fix code now | flag for reflect | log to risk-register>
+
+(repeat per AC)
+
+## Multi-instance validation
+**Required?**: yes / no
+**Result**: PASS | FAIL | not-applicable
+**Evidence**: <devices/users/accounts used; what was checked>
+
+## Reality surprises
+- <thing not predicted by design or critique>
+- <impact on next slice>
+```
+
+### Step 5.5: Run the shippability catalog (regression check)
+
+Before deciding next action, verify no past slice was silently broken by this one:
+
+1. Read `architecture/shippability.md` — the catalog of critical-path tests from every past slice
+2. If the file doesn't exist (first slice, catalog empty): skip this step; `/reflect` will create the catalog
+3. Run each entry's **Command** column — execute it from project root
+4. Record PASS / FAIL per entry
+
+If any entry FAILS:
+- The current slice broke something a past slice established
+- Append to `validation.md` under a new "Shippability regressions" section — list which tests failed, with their output
+- **This blocks `/reflect`**. Either fix the regression or get explicit user approval to defer (with rationale)
+
+Example output:
+
+```
+Shippability catalog run: 14 tests, 13 PASS, 1 FAIL
+
+FAILED:
+  #3 slice-008-enable-sync: "2-device sync converges within 10s"
+    Command: `bash tests/multi-device/sync_converge.sh`
+    Output: timeout after 30s (expected <10s)
+    Likely cause: this slice's async refactor changed delivery guarantees
+
+Cannot proceed to /reflect. Fix the regression, OR get user approval to defer the fix to a new slice.
+```
+
+Target runtime: full catalog < 2 min. If it bloats past that, `/reduce` can propose trimming redundant entries.
+
+### Step 6: Decide next action
+
+- All PASS (current ACs + shippability), no surprises → `/reflect`
+- Implementation bug on current ACs: fix the code, re-validate, then `/reflect`
+- Spec gap or reality surprise: don't fix during validate; let `/reflect` capture and decide whether next slice addresses
+- Shippability regression: fix OR user-approved deferral (logged in validation.md); don't silently skip
+
+### Step 7: Update milestone.md
+
+Update `architecture/slices/slice-NNN-<name>/milestone.md`:
+
+- Frontmatter: `stage: validate`, `updated: <today>`, `next-action: run /reflect` (or `fix regression then re-run /validate-slice` if shippability caught one)
+- Check progress box: `- [x] /validate-slice — <date> — <PASS | PARTIAL | FAIL>`
+- Update phase artifact status: `validation.md — <result>`
+- "Current focus": validation summary (N/M ACs passed, shippability status)
+- If shippability regression caught: capture in "Current focus" with the specific test that failed
+
+## Critical rules
+
+- USE REAL ENVIRONMENTS. No mocks, no simulators-only when real is possible.
+- CAPTURE EVIDENCE per criterion. "It worked" doesn't count.
+- MULTI-INSTANCE for multi-user/device features. ALWAYS.
+- DO NOT auto-fix spec gaps during validation. Let `/reflect` formalize them.
+- DO NOT pass a partial criterion as PASS. Partial is partial.
+- DO NOT skip a criterion because "it's covered by the test suite." Tests pass != feature works.
+
+## When real validation isn't possible (early projects)
+
+Some slices have no deployment target yet. Acceptable substitutes:
+
+- Run locally with real sample data (not synthetic)
+- Demonstrate in user-facing form (terminal, screenshot, recording)
+- Manual user observation if UX-critical
+
+NOT acceptable: "we'll really test this later." If you can't validate now, the slice was either too early or missing a testable acceptance criterion.
+
+## Heavy mode adjustment
+
+In Heavy mode, validation produces a compliance-grade record:
+- Reproducible test commands (anyone can re-run)
+- Timestamped evidence
+- Sign-off field for QA / compliance reviewer
+- Cross-reference to test-plan IDs
+
+## Failure handling
+
+- **Implementation bug**: fix code → re-run validation for that AC → if pass, proceed to `/reflect`
+- **Spec gap**: log in validation.md as cause; let `/reflect` capture; next slice incorporates
+- **Reality surprise**: add to `architecture/risk-register.md` immediately (don't wait); `/reflect` may trigger a follow-up slice
+
+## Next step
+
+`/reflect` — capture what reality taught you.
