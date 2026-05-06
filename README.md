@@ -89,6 +89,7 @@ ai_sdlc/
     AUTHORING.md              # ⭐ How to author or modify a named subagent — frontmatter shape, tool selection, prompt structure, model selection, calibration awareness
     critique.md               # Adversarial Critic — invoked by /critique skill
     critic-calibrate.md       # Meta-Critic — invoked by /critic-calibrate skill
+    critique-review.md        # Meta-Critic — invoked by /critique-review skill (DR-1); dual review of first Critic's output
     diagnose-narrator.md      # Narrator — invoked by /diagnose Step 6.5; writes engaging executive summary
     field-recon.md            # Field Reconnaissance — invoked by /risk-spike Step 2.5; live web survey for platform changes, quotas, deprecations
   skills/                   # 22 drop-in Claude Code skills
@@ -108,6 +109,7 @@ ai_sdlc/
     slice/SKILL.md
     design-slice/SKILL.md
     critique/SKILL.md
+    critique-review/SKILL.md  # DR-1 dual review (per-slice second opinion)
     build-slice/SKILL.md
     validate-slice/SKILL.md
     reflect/SKILL.md
@@ -150,6 +152,7 @@ ai_sdlc/
       test_validate_slice_layers.py # Tests VAL-1 — layered /validate-slice (creds + deps)
       test_walking_skeleton_audit.py # Tests WS-1 — walking-skeleton slice variant
       test_exploratory_charter_audit.py # Tests ETC-1 — charter-based exploratory testing
+      test_critique_review_audit.py # Tests DR-1 — dual review structural audit
       test_mock_budget_lint.py      # Tests LINT-MOCK-1 — runs linter on fixtures
       fixtures/                     # Test fixtures (NOT collected by pytest)
         mock_budget_clean.py        # Python fixtures for LINT-MOCK-1
@@ -237,6 +240,11 @@ ai_sdlc/
           completed_no_findings_brief.md
           invalid_status_brief.md
           pre_finish_pending_brief.md
+        critique_review/            # DR-1 fixtures (critique-review.md fragments)
+          clean_review.md
+          missing_section_review.md
+          invalid_verdict_review.md
+          missing_verdict_review.md
   pytest.ini                # testpaths = tests + pythonpath = .
   tools/                    # Executable methodology tools (Python)
     mock_budget_lint.py       # LINT-MOCK-1/2/3 — AST + tree-sitter linter for TDD-2 mock budget (Python, TS/JS, Go)
@@ -248,6 +256,7 @@ ai_sdlc/
     validate_slice_layers.py  # VAL-1 — layered /validate-slice (credential scan + dep hallucination)
     walking_skeleton_audit.py # WS-1 — walking-skeleton slice variant audit (mission-brief.md)
     exploratory_charter_audit.py # ETC-1 — charter-based exploratory testing audit
+    critique_review_audit.py  # DR-1 — dual-review structural validator (critique-review.md)
 ```
 
 ## Getting started

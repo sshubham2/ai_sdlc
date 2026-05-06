@@ -34,6 +34,40 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.17.0 — 2026-05-06
+
+Adds **DR-1** — dual review for `/critique`. A new meta-Critic agent (`critique-review`) reviews the first Critic's `critique.md` for false positives (over-reach), false negatives (missed concerns), and severity miscalibrations. Per-slice second opinion that complements `/critic-calibrate`'s cross-slice pattern mining: DR-1 catches blind spots faster (one slice) where calibration only surfaces them after N slices accumulate.
+
+### Added
+
+- **DR-1 — Dual review for /critique**
+  Adds three components:
+
+  1. **`agents/critique-review.md`** — adversarial-meta Critic prompt. Inputs: mission-brief.md + design.md + critique.md + new ADRs. Stance: assume the first Critic was either too lenient or too aggressive until specifics prove otherwise. For each finding in critique.md, scores VALID / SUSPICIOUS / SEVERITY-WRONG. Independently re-applies the 8 review dimensions (same as agents/critique.md) to design.md to surface missed findings. Output: structured `critique-review.md` with 4 sections (Confirmed findings / Suspicious findings / Missed findings / Severity adjustments) + a top-level Dual-review verdict in `{ACCEPT, ADJUST, EXTEND}`. Frontmatter conforms to META-3 (name=critique-review, model=opus, read-only tools: Read+Glob+Grep+Bash+WebSearch).
+
+  2. **`skills/critique-review/SKILL.md`** — orchestration skill. Reads mission-brief.md + design.md + critique.md, spawns the agent via `Agent(subagent_type="critique-review", ...)`, writes the agent's output to `architecture/slices/slice-NNN-<name>/critique-review.md`, runs the audit, hands off to `/critique` Step 4.5 (TRI-1) for user reconciliation. Manual invocation in v1; auto-trigger via a `**Dual-review**: true` mission-brief field deferred to v2.
+
+  3. **`tools/critique_review_audit.py`** — structural validator. Checks the resulting critique-review.md has all 4 required sections (Confirmed findings, Suspicious findings, Missed findings, Severity adjustments), all 4 required header fields (Reviewed by, Date, First-Critic verdict, Dual-review verdict), and that verdict values are in their allowed sets (`{CLEAN, NEEDS-FIXES, BLOCKED}` for First-Critic mirroring TRI-1, `{ACCEPT, ADJUST, EXTEND}` for Dual-review).
+
+  TRI-1 reconciliation pattern: when the user runs `/critique` Step 4.5, they consult both critique.md (first Critic findings) and critique-review.md (meta-Critic adjustments) when assigning dispositions per finding. SUSPICIOUS findings carry reduced friction toward OVERRIDDEN; missed findings get added as new triage rows with their own dispositions; SEVERITY-WRONG entries adjust the severity in the triage table.
+
+  NFR-1 carry-over: slices whose `mission-brief.md` mtime predates `_DR_1_RELEASE_DATE` (2026-05-06) are exempt automatically.
+
+  CLI: `python -m tools.critique_review_audit <slice-folder> [--json] [--no-carry-over]`. Exit codes: 0 clean (or carry-over exempt), 1 violations, 2 usage error.
+
+  - **Rule reference**: DR-1
+  - **Defect class**: Single-Critic-pass review has two failure modes that `/critic-calibrate` doesn't catch in real time: (1) per-slice over-reach (Critic flags concerns already addressed in design.md, training the user to ignore findings) and (2) per-slice blind spots (Critic misses a real concern because of dimension-bias or framework gap; the calibration log will eventually surface this after N slices but only after it has happened N times). DR-1 adds a per-slice second opinion: a separate Agent with full meta-Critic context independently scores each finding and re-applies the 8 dimensions to design.md, catching both over-reach and under-reach immediately. The agent + skill + audit triple is structurally identical to the META-3 pattern (named subagent + orchestration skill + read-only artifact validator) used by /critique, /critic-calibrate, /diagnose's narrator, and /risk-spike's field-recon.
+  - **Validation**: `tests/methodology/test_critique_review_audit.py` — 11 tests over 4 fixtures (`tests/methodology/fixtures/critique_review/`): clean review with all 4 sections + valid verdicts, missing-section (2 sections absent), invalid-verdict (both verdicts use disallowed values), missing-verdict (header fields absent), missing critique-review.md graceful, carry-over mtime + override, plus skill prose pins (DR-1 reference + subagent_type dispatch), agent prose pins (Meta-Critic stance + scoring vocab VALID/SUSPICIOUS/SEVERITY-WRONG + verdict vocab ACCEPT/ADJUST/EXTEND + Specificity rule). The new `critique-review` agent also auto-conforms to META-3 via the existing `test_agent_frontmatter.py` parametrized test suite (frontmatter shape, name=filename, model in allowed set, tools non-empty, description substantive). Total methodology suite: 243 -> 258.
+
+  Limitations (v1, documented in code):
+  - **Manual invocation only**. The `/critique` skill does NOT auto-invoke `/critique-review`; the user must run it explicitly. v2 candidate: a `**Dual-review**: true` mission-brief field that auto-triggers /critique-review at end of /critique Step 3.
+  - **No outcome-tracking integration with /reflect**. The agent prompt mentions calibration outcomes (VALIDATED-ON-RECONSIDERATION / OVERRIDDEN-AT-TRIAGE / OVERRIDDEN-MISJUDGED) but `/reflect` Step 3 doesn't yet have a section for scoring meta-Critic findings. v2 will add this so /critic-calibrate can mine DR-1 patterns alongside CAL-1 patterns.
+  - **No automatic finding cross-reference**. The audit checks structure but doesn't verify that finding IDs in critique-review.md (e.g., "B1 — confirmed") actually match IDs in critique.md. v2 candidate: cross-file ID validation.
+  - **No Heavy-mode reviewer signature**. Heavy mode should record a human reviewer's sign-off on the dual review; the audit doesn't yet validate a Reviewed-by-human field. v2 candidate.
+  - **Agent dispatch only**. The skill spawns one meta-Critic agent. A v2 could spawn N parallel meta-Critics with different specializations (security-focused, contract-focused, framework-citation-focused) and aggregate.
+
+---
+
 ## v0.16.0 — 2026-05-06
 
 Adds **ETC-1** — charter-based exploratory testing. Mission briefs gain an opt-in `**Exploratory-charter**: true` field; when set, the brief must include a `## Exploratory test charter` section with timeboxed mission statements that the tester runs freely and records findings against. `/validate-slice` Step 5d refuses PENDING / IN-PROGRESS rows at strict-pre-finish; COMPLETED and DEFERRED are both accepted (DEFERRED is the escape hatch with rationale). COMPLETED and DEFERRED rows MUST have non-empty Findings — the discipline IS capturing what surfaces.
