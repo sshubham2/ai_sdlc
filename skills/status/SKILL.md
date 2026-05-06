@@ -84,9 +84,19 @@ If fallback triggers: flag to user "milestone.md missing — consider running `/
 - Active HIGH risks count
 - Pending spikes (HIGH risks marked "Spike? YES" that haven't been retired)
 
-### Step 3: Produce the summary
+### Step 3: Produce the summary via Haiku dispatch
 
-Output format (default, balanced):
+Per **COST-1** (cost-optimized model selection — `methodology-changelog.md` v0.4.0), the rendering work in this step is dispatched to a Haiku subagent. Steps 1+2 (vault reads + metric computation) stay main-thread; the summary text generation goes to Haiku.
+
+**Dispatch:**
+- Use the Agent tool with `subagent_type: "general-purpose"` and `model: haiku`.
+- Hand the agent the structured state from Steps 1+2 as a dict: `{mode_arg ("brief" | "default" | "full"), project, sdlc_mode, opened, methodology_version, methodology_last_rule, methodology_updated, active_slice, recent_slices, risks, shippability, calibration, drift, lessons, next_action}`.
+- Hand the agent the template for the requested mode (see below) and ask it to fill.
+- The agent returns the summary text. Main thread prints it.
+
+**Why Haiku**: `/status` is read-only summarization of structured state. No reasoning, no synthesis — just rendering. Haiku does this in a fraction of Opus's time and cost.
+
+Output format (default, balanced) — **the dispatched agent fills this**:
 
 ```markdown
 # Project Pulse — <YYYY-MM-DD>

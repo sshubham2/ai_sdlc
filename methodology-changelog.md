@@ -34,6 +34,20 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.4.0 — 2026-05-06
+
+Adds cost-optimized model selection (COST-1). Three skills now explicitly dispatch their template-filling and rendering work to a Haiku subagent rather than running entirely on the main thread's model.
+
+### Added
+
+- **COST-1 — Cost-optimized model selection (Haiku-dispatched skills)**
+  Adds explicit Haiku dispatch directives to `skills/commit-slice/SKILL.md` (Step 4 — commit message generation), `skills/status/SKILL.md` (Step 3 — summary rendering for default and brief modes), and `skills/archive/SKILL.md` (Step 3 — `slices/_index.md` regeneration; covers Step 4 archive catalog regeneration as well). The pattern: main thread gathers structured inputs (file reads + metric computation), then dispatches the formatting/rendering work to a `general-purpose` subagent with `model: haiku`. Quality is unchanged because the dispatched work is template-filling, not reasoning or synthesis — the cognitive demand is filling slots from a structured input dict, which Haiku does in a fraction of Opus's time and cost.
+  - **Rule reference**: COST-1
+  - **Defect class**: Skills running on the user's globally-set model (typically Opus) for work that has no reasoning component. `/commit-slice` fills a conventional-commit template from a structured dict — that's Haiku's shape, not Opus's. Running it on Opus burns ~5-10x cost for no quality difference. Same logic applies to `/status` (rendering metrics into a summary) and `/archive --index-only` (assembling tables from folder reads). Without explicit dispatch directives in each SKILL.md, the optimization sits unused — the executor doesn't know to delegate.
+  - **Validation**: `tests/methodology/test_skill_model_dispatch.py` parametrizes over the three skills and verifies each SKILL.md contains (1) an explicit `model: haiku` directive, (2) a `subagent_type: "general-purpose"` reference, (3) a "Why Haiku" rationale section so future maintainers understand the cognitive-shape analysis, and (4) a `COST-1` rule reference for cross-link to the changelog. Skills missing any marker fail the test, which is the rot guard against future "to be safe, use Opus" reverts.
+
+---
+
 ## v0.3.0 — 2026-05-06
 
 Adds the named-subagent authoring guide and frontmatter conformance tests. New named subagents must conform to the documented frontmatter shape, tool-selection rules, and prompt structure conventions. Existing agents are pinned by static checks.

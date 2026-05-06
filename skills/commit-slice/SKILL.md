@@ -70,9 +70,21 @@ If ambiguous: `feat` is the default.
 
 Scope: derived from slice name area (e.g., `slice-023-add-receipt-ocr` → scope `receipt`).
 
-### Step 4: Generate the commit message
+### Step 4: Generate the commit message via Haiku dispatch
 
-Format:
+Per **COST-1** (cost-optimized model selection — `methodology-changelog.md` v0.4.0), this step is template-filling and dispatches to a Haiku subagent rather than running on the main thread's model.
+
+**Dispatch:**
+- Use the Agent tool with `subagent_type: "general-purpose"` and `model: haiku`.
+- Hand the agent a structured input dict gathered in Step 2: `{type, scope, slice_id, slice_path, intent_one_line, body_2_3_sentences, ac_pass, ac_total, critic_blockers, adrs, shippability_entry_n, shippability_entry_text, deferrals, regressions, mode, do_commit_flag}`.
+- Hand the agent the template + example below as the spec it fills.
+- The agent returns the commit message string. Main thread either presents it (default) or runs `git add` + `git commit -m` (Step 5 with `--do-commit`).
+
+The main thread does not generate the message text — Haiku does. The main thread is responsible for input gathering (Step 2) and execution (Step 5).
+
+**Why Haiku**: this is structured-data → template rendering. The cognitive demand is filling slots from the input dict, not synthesis or reasoning. Haiku is faster and cheaper for this; quality is unchanged because no judgment is required.
+
+**Format** (the dispatched agent fills this):
 
 ```
 <type>(<scope>): slice-NNN — <one-line intent from mission brief>

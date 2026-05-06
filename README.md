@@ -139,6 +139,7 @@ ai_sdlc/
       test_diagnose_skill.py
       test_methodology_changelog.py
       test_agent_frontmatter.py     # Parametrized over all named agents
+      test_skill_model_dispatch.py  # Verifies COST-1 Haiku dispatch directives
   pytest.ini                # testpaths = tests
 ```
 

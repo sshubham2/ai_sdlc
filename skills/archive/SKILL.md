@@ -55,11 +55,20 @@ Tell user: "Archived N slices to `slices/archive/`."
 
 Edge case: if `slices/archive/<same-name>/` already exists (rare, only from manual edits): stop and ask user to resolve manually. Don't overwrite.
 
-### Step 3: Regenerate `slices/_index.md`
+### Step 3: Regenerate `slices/_index.md` via Haiku dispatch
+
+Per **COST-1** (cost-optimized model selection — `methodology-changelog.md` v0.4.0), index regeneration is dispatched to a Haiku subagent. This step and Step 4 (the archive catalog) both go to Haiku.
+
+**Dispatch:**
+- Use the Agent tool with `subagent_type: "general-purpose"` and `model: haiku`.
+- Hand the agent the active and archived slice paths (lists), the templates from Step 3 + Step 4 below, and instruction to read each slice's `mission-brief.md` (for one-line intent) and recent reflections' "Lessons" sections.
+- The agent returns both `_index.md` files' content. Main thread writes them to disk.
+
+**Why Haiku**: index regeneration is reading folder contents (mission-brief intent, reflection lessons, dates) and assembling tables. No synthesis. The agent reads ~10-N files in its fresh context, which keeps the main thread's context lean for the rest of the session.
 
 This is THE lookup file. Claude reads it to find past work instead of scanning individual slice folders.
 
-Read:
+Read (the dispatched agent does this; listed here so the spec is clear):
 - Each active slice folder in `slices/` (for the Active table)
 - Last 10 archived slices in `slices/archive/` (for Recent table + Aggregated lessons)
 
