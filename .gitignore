@@ -1,2 +1,8 @@
 .claude
 .claude\*
+
+# Python / pytest artifacts (introduced by tests/methodology/ in v0.2.0)
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

@@ -1,6 +1,6 @@
 ---
 name: diagnose-narrator
-description: Narrator for /diagnose. Reads all 11 pass findings (YAML) and per-pass summaries (markdown) and synthesizes ONE engaging narrative executive summary written to `sections/00-overview.md`. Used ONLY by the /diagnose skill at Step 6.5, after all analysis passes complete and before `assemble.py` runs. Tone is forensic and clear-eyed, not flattering — names what works, names what's broken, surfaces the 3-5 things the owner most needs to act on, ends with a verdict. Does NOT trust docs, only the structured findings + per-pass summaries handed in. Read-only — never modifies source files or vault content. Output: ~500-900 words of story-arc prose.
+description: Narrator for /diagnose. Reads all 11 pass findings (YAML) and per-pass summaries (markdown) and synthesizes ONE engaging narrative executive summary written to `sections/00-overview.md`. Used ONLY by the /diagnose skill at Step 6.5, after all analysis passes complete and before `assemble.py` runs. Tone is forensic and clear-eyed, not flattering — names what works, names what's broken, surfaces the 3-5 things the owner most needs to act on, ends with a verdict. Does NOT trust docs, only the structured findings + per-pass summaries handed in. Read-only — never modifies source files or vault content. Produces ~500-900 words of story-arc prose.
 tools: Read, Glob, Grep, Write
 model: opus
 ---

@@ -46,6 +46,8 @@ Read these files (non-recursive, small total):
 - `architecture/lessons-learned.md` → last 3-5 entries (most recent patterns)
 - `architecture/drift-log.md` (if exists) → unresolved drift count
 - `architecture/changelog.md` (if exists) → pipeline-bypass count
+- `~/.claude/methodology-changelog.md` (if exists) → most recent dated entry; surfaces AI SDLC methodology version and last rule added
+- `~/.claude/ai-sdlc-VERSION` (if exists) → AI SDLC semver string
 
 Don't read individual slice files (active slice excepted). Don't read ADRs (too many). Don't descend into `slices/archive/`.
 
@@ -93,6 +95,11 @@ Output format (default, balanced):
 **Project**: <name from concept.md, or dir name>
 **Mode**: <Minimal | Standard | Heavy>
 **Opened**: <triage date> (<days>d ago, <last re-triage date if any>)
+
+## Methodology
+**SDLC version**: <semver from `~/.claude/ai-sdlc-VERSION`, or "not installed — re-run install to surface methodology metadata">
+**Last rule added**: <RULE-ID from most recent changelog entry, e.g., "META-1 (Methodology versioning + changelog)">
+**Updated**: <date of most recent changelog entry>
 
 ## Slices
 **Total**: 23 shipped (22 archived, 1 active)
@@ -157,7 +164,7 @@ Queued-after candidates (from recent Discovered + Deferred):
 Compress to one-screen summary (~20 lines):
 
 ```markdown
-# <project> — slice-023 (critique stage) | Mode: Standard
+# <project> — slice-023 (critique stage) | Mode: Standard | SDLC v0.1.0
 
 **Next**: /critique (design done, Critic pending)
 

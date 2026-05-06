@@ -119,18 +119,20 @@ Tell update-config: `set CLAUDE_CODE_FORK_SUBAGENT=1 in user settings (global)`.
 
 If update-config isn't available in this session, manually merge: read existing JSON, add `"CLAUDE_CODE_FORK_SUBAGENT": "1"` to the `env` block (creating the block if absent), preserve all other keys.
 
-### 3f: Copy AI SDLC skills + agents + templates
+### 3f: Copy AI SDLC skills + agents + templates + methodology files
 
 ```bash
 mkdir -p ~/.claude/skills ~/.claude/agents ~/.claude/templates
 cp -r "$AI_SDLC_DIR/skills/"* ~/.claude/skills/
 cp -r "$AI_SDLC_DIR/agents/"* ~/.claude/agents/
 cp -r "$AI_SDLC_DIR/templates/"* ~/.claude/templates/
+cp "$AI_SDLC_DIR/methodology-changelog.md" ~/.claude/methodology-changelog.md
+cp "$AI_SDLC_DIR/VERSION" ~/.claude/ai-sdlc-VERSION
 ```
 
-Report counts: `N skills, M agents, K templates`.
+Report counts: `N skills, M agents, K templates, methodology v<cat ~/.claude/ai-sdlc-VERSION>`.
 
-Do NOT copy root MDs (`README.md`, `pipeline.md`, `principles.md`, `tutorial.md`, `graphify-integration.md`, `INSTALL.md`) or `tutorial-site/` — those are project-source artifacts, not installed runtime files. Skills and agents must be self-contained; the templates are the only auxiliary artifacts they reference.
+Do NOT copy other root MDs (`README.md`, `pipeline.md`, `principles.md`, `tutorial.md`, `graphify-integration.md`, `INSTALL.md`) or `tutorial-site/` — those are project-source artifacts, not installed runtime files. The exceptions are `methodology-changelog.md` and `VERSION` (above) — those are runtime artifacts `/status` reads. Skills and agents must be self-contained; the templates are the only auxiliary artifacts they reference.
 
 ## Step 4: Verify (the same preflight `/triage` and `/adopt` use)
 
@@ -140,9 +142,10 @@ test -f "$PY"                              && echo "venv: OK"     || echo "venv:
 test -f "$HOME/.claude/agents/critique.md" && test -f "$HOME/.claude/agents/critic-calibrate.md" && test -f "$HOME/.claude/agents/diagnose-narrator.md" && test -f "$HOME/.claude/agents/field-recon.md" && echo "agents: OK" || echo "agents: FAIL"
 test -f "$HOME/.claude/skills/slice/SKILL.md" && echo "skills: OK" || echo "skills: FAIL"
 test -f "$HOME/.claude/templates/mission-brief.md" && test -f "$HOME/.claude/templates/milestone.md" && echo "templates: OK" || echo "templates: FAIL"
+test -f "$HOME/.claude/methodology-changelog.md" && test -f "$HOME/.claude/ai-sdlc-VERSION" && echo "methodology: OK (v$(cat $HOME/.claude/ai-sdlc-VERSION))" || echo "methodology: FAIL"
 ```
 
-All five must say `OK`. If any `FAIL`: stop, show the user, do not claim success.
+All six must say `OK`. If any `FAIL`: stop, show the user, do not claim success.
 
 ## Step 5: Hand off
 

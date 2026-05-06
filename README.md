@@ -83,7 +83,10 @@ ai_sdlc/
   pipeline.md               # Full pipeline spec
   principles.md             # Five principles + rationale
   graphify-integration.md   # How every skill uses graphify (install, query, hooks, multi-modal)
+  VERSION                   # Methodology semver (read by /status; copied to ~/.claude/ai-sdlc-VERSION on install)
+  methodology-changelog.md  # Behavior-changing rules with rule reference + defect class + validation
   agents/                   # Named-subagent definitions (system prompts for fresh-context agents)
+    AUTHORING.md              # ⭐ How to author or modify a named subagent — frontmatter shape, tool selection, prompt structure, model selection, calibration awareness
     critique.md               # Adversarial Critic — invoked by /critique skill
     critic-calibrate.md       # Meta-Critic — invoked by /critic-calibrate skill
     diagnose-narrator.md      # Narrator — invoked by /diagnose Step 6.5; writes engaging executive summary
@@ -122,6 +125,21 @@ ai_sdlc/
     milestone.md
     critique-report.md
     reflection.md
+  tests/                    # Methodology self-tests (pytest)
+    README.md                 # Setup, run, how to add tests for new rules
+    methodology/              # Structural grep tests pinning load-bearing prose
+      test_critique_agent.py
+      test_critic_calibrate_agent.py
+      test_diagnose_narrator_agent.py
+      test_field_recon_agent.py
+      test_slice_skill.py
+      test_build_slice_skill.py
+      test_validate_slice_skill.py
+      test_reflect_skill.py
+      test_diagnose_skill.py
+      test_methodology_changelog.py
+      test_agent_frontmatter.py     # Parametrized over all named agents
+  pytest.ini                # testpaths = tests
 ```
 
 ## Getting started
