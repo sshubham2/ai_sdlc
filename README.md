@@ -143,6 +143,7 @@ ai_sdlc/
       test_diagnose_pass_models.py  # Verifies COST-1.1 per-pass model assignments
       test_status_cadence_enforcement.py  # Verifies CAL-1 critic-calibrate cadence
       test_wiring_matrix_audit.py    # Tests WIRE-1 — wiring matrix format validation
+      test_build_checks_audit.py     # Tests BC-1 — build-checks gate (project + global)
       test_mock_budget_lint.py      # Tests LINT-MOCK-1 — runs linter on fixtures
       fixtures/                     # Test fixtures (NOT collected by pytest)
         mock_budget_clean.py        # Python fixtures for LINT-MOCK-1
@@ -164,10 +165,20 @@ ai_sdlc/
           missing_rationale_design.md
           no_matrix_design.md
           empty_matrix_design.md
+        build_checks/               # BC-1 fixtures (build-checks.md fragments)
+          clean_project_checks.md
+          one_always_applies.md
+          glob_match.md
+          keyword_only.md
+          missing_severity.md
+          invalid_severity.md
+          multi_rules.md
+          global_checks.md
   pytest.ini                # testpaths = tests + pythonpath = .
   tools/                    # Executable methodology tools (Python)
     mock_budget_lint.py       # LINT-MOCK-1/2/3 — AST + tree-sitter linter for TDD-2 mock budget (Python, TS/JS, Go)
     wiring_matrix_audit.py    # WIRE-1 — wiring matrix format validator for slice design.md
+    build_checks_audit.py     # BC-1 — build-checks gate; surfaces evergreen rules at /build-slice
 ```
 
 ## Getting started

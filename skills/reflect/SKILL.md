@@ -152,6 +152,57 @@ Append a chronological entry:
 - <generalizable insight for future slices>
 ```
 
+### Step 5b: Promotion to build-checks (BC-1)
+
+Per **BC-1** (`methodology-changelog.md` v0.10.0), `/reflect` is where lessons-learned graduates to evergreen build-checks. Lessons-learned is a chronological journal — most entries don't matter to future slices. Build-checks is the curated, applies-at-every-slice layer that `/build-slice` reads at pre-finish.
+
+Ask the user explicitly:
+
+> Did this slice surface a **recurring pattern** that should become a build-check? (y/N)
+>
+> Examples of patterns worth promoting:
+> - "Image uploads need EXIF orientation normalization" — third time this slice hit it
+> - "JWT verification must check signature, not just decode claims" — root cause of two prior bugs
+> - "Migrations must include a down() reverse" — caught only in pre-prod
+>
+> Examples NOT worth promoting (one-off fixes):
+> - A typo in this slice's design
+> - A library version bump
+> - A specific endpoint's specific bug
+
+If the user answers yes, gather:
+
+1. **Title** (one line, imperative). Example: "All file uploads normalize EXIF orientation before storage"
+2. **Severity** — `Critical` (must address; not deferrable) or `Important` (surface; defer-with-rationale allowed)
+3. **Applies to** — file globs (e.g., `src/api/uploads/**, src/services/*upload*.py`) OR `always: true`
+4. **Trigger keywords** — comma-separated, lowercased words to match in mission-brief.md / design.md (e.g., `upload, image, jpeg, heic`)
+5. **Check** — actionable verification step (one paragraph)
+6. **Rationale** — why this is permanent, not a one-time fix (one paragraph; reference prior slices where the pattern recurred)
+7. **Validation hint** — how to verify (grep, pytest -k, curl, etc.)
+
+Append the rule to `architecture/build-checks.md` under the `## Rules` heading, using the next available `BC-PROJ-NNN` ID. Format (parsed by `tools/build_checks_audit.py`):
+
+```markdown
+## BC-PROJ-NNN — <title>
+
+**Severity**: Critical | Important
+**Applies to**: <globs> OR always: true
+**Promoted from**: slice-NNN-<name> (<YYYY-MM-DD>) — <recurrence note if any>
+**Trigger keywords**: <comma-separated>
+
+**Check**: <verification step>
+
+**Rationale**: <why permanent>
+
+**Validation hint**: <how to verify>
+```
+
+If `architecture/build-checks.md` doesn't exist yet, create it with the canonical header (see `tests/methodology/fixtures/build_checks/clean_project_checks.md` for the template).
+
+**Optional global promotion**: if the rule is generic enough to apply to **all projects** (not just this one), also offer to append it to `~/.claude/build-checks.md` with a `BC-GLOBAL-NNN` ID. Examples of globally generic rules: secrets in code, JWT signature verification, SQL injection prevention, file-upload size limits. Project-specific rules (e.g., "the `receipts` table requires `merchant_id`") stay project-only.
+
+If the user answers no, skip — promotion is opt-in and never auto-applied. Recurring patterns missed at this step still surface in lessons-learned.md and can be promoted in a later slice.
+
 ### Step 5.3: Add one entry to `architecture/shippability.md`
 
 Every completed slice contributes ONE critical-path test to the shippability catalog. Future `/validate-slice` runs execute the full catalog to catch regressions.

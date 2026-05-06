@@ -34,6 +34,36 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.10.0 — 2026-05-06
+
+Closes the lessons-learned -> builder feedback loop. Adds **BC-1** — a build-checks gate that surfaces curated, evergreen rules at `/build-slice` pre-finish based on the slice's changed files and mission-brief / design text. Promotion from per-project `lessons-learned.md` to per-project `architecture/build-checks.md` (or global `~/.claude/build-checks.md`) is manual at `/reflect` Step 5b.
+
+### Added
+
+- **BC-1 — Build-checks gate (lessons-learned -> builder feedback loop)**
+  Adds `tools/build_checks_audit.py` — a markdown parser + applicability resolver for build-checks files. Each rule is an H2 heading prefixed `BC-` with structured fields: `Severity` (Critical | Important), `Applies to` (file globs OR `always: true`), `Trigger keywords` (comma-separated), `Check`, `Rationale`, `Validation hint`, `Promoted from`. Applicability is the OR of three signals: `always: true`, any glob matching any of `--changed-files`, or any keyword appearing as a case-insensitive substring of `mission-brief.md` + `design.md`. Reads both project (`architecture/build-checks.md`) and global (`~/.claude/build-checks.md`) and merges results. Updates `skills/build-slice/SKILL.md` Step 6 (pre-finish gate) to run the audit and surface applicable rules with refusal-on-Critical semantics. Updates `skills/reflect/SKILL.md` to add Step 5b: explicit user prompt asking whether a recurring pattern surfaced this slice should become a build-check, with the structured-field schema documented inline.
+
+  Refusal semantics in `/build-slice`:
+  - Critical applies: must be addressed before declaring slice done; not deferrable
+  - Important applies: surfaced; defer-with-rationale allowed (matches the LINT-MOCK Important pattern)
+  - Parse violation in build-checks.md (missing required field, invalid severity): exit code 1, fix format first
+
+  NFR-1 carry-over: slices whose `mission-brief.md` mtime predates `_BC_1_RELEASE_DATE` (2026-05-06) are exempt automatically. CLI flag `--no-carry-over` disables the exemption for archive scans / CI.
+
+  CLI: `python -m tools.build_checks_audit --slice <slice-folder> [--changed-files <files...>] [--project-checks <path>] [--global-checks <path>] [--json] [--no-carry-over]`. Exit codes: 0 success (rules surfaced or none apply), 1 parse violation in build-checks.md, 2 usage error.
+
+  - **Rule reference**: BC-1
+  - **Defect class**: Recurring patterns silently re-surface across slices. The lessons-learned journal records them ("EXIF orientation issue with HEIC uploads — slice 7", "rotation broken on Pixel uploads — slice 12", "PDF metadata orientation — slice 18") but `/build-slice` never reads it, so the same class of defect ships repeatedly until a human notices the pattern at retrospective. Without an evergreen-rules layer that the builder consults at every slice's pre-finish, lessons-learned is journalism, not engineering. BC-1 closes the loop: recurring patterns get curated into build-checks, build-checks get surfaced at every slice, surface-relevant ones force builder attention.
+  - **Validation**: `tests/methodology/test_build_checks_audit.py` — 18 tests covering: glob matcher (single-segment `*`, multi-segment `**`, substring within filename, Windows separator normalization), parsing (clean file, always-true, glob-match, glob-no-match, keyword-only via mission-brief, missing-severity violation, invalid-severity violation, multi-rules with mixed applicability), source merge (project + global), carry-over exemption, `--no-carry-over` override, missing-file graceful handling, `/build-slice` BC-1 + tool-name reference pin, `/reflect` BC-1 + "recurring pattern" prose pin. Total methodology suite: 117 -> 135.
+
+  Limitations (v1, documented in code):
+  - **Surfaces, doesn't auto-verify**. The `Validation hint` field is human-readable; v2 will parse and execute it (e.g., run a grep / pytest -k command, refuse on non-zero exit).
+  - **Manual promotion**. `/reflect` Step 5b prompts the user; recurring-pattern auto-detection across N reflections is deferred to a future `/critic-calibrate` extension.
+  - **No rule-supersession mechanism**. Promoted rules accumulate; retiring or merging duplicates is manual.
+  - **Glob limited to `*` and `**`**. No `{a,b}` brace expansion, no `?` single-char, no negation. Sufficient for v1 file targeting.
+
+---
+
 ## v0.9.0 — 2026-05-06
 
 Adds the wiring matrix discipline (WIRE-1). Every new module introduced by a slice must declare its consumer (entry point + test) or carry an exemption with rationale. Audited at `/build-slice` pre-finish; format validation enforced in v1.

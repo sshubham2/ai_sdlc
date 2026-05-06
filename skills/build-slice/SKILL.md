@@ -100,8 +100,35 @@ Before declaring slice done, ALL of these must be true:
 - [ ] No new TODOs / FIXMEs / debug prints / console.logs
 - [ ] **Mock-budget lint passes (LINT-MOCK-1)** — see "Mock-budget lint" below
 - [ ] **Wiring matrix audit passes (WIRE-1)** — see "Wiring matrix audit" below
+- [ ] **Build-checks audit passes (BC-1)** — see "Build-checks audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
+
+#### Build-checks audit (BC-1)
+
+Per **BC-1** (`methodology-changelog.md` v0.10.0), every slice's pre-finish runs the build-checks audit to surface evergreen rules promoted from past lessons-learned. The audit reads `architecture/build-checks.md` (project-specific) and `~/.claude/build-checks.md` (global, cross-project), filters rules by applicability, and surfaces matches:
+
+```bash
+$PY -m tools.build_checks_audit \
+  --slice architecture/slices/slice-NNN-<name> \
+  --changed-files <list of files changed by this slice>
+```
+
+Applicability is the OR of three signals:
+- `Applies to: always: true` — always fires
+- `Applies to: <globs>` — fires when any glob matches a changed file (e.g., `src/api/uploads/**`)
+- `Trigger keywords: <words>` — fires when any keyword appears in mission-brief.md or design.md
+
+Refusal semantics:
+- **Critical rule applies**: this slice MUST address the rule before declaring done. Either fix the issue, or escalate (rule is wrong / rule needs scope adjustment) and document in build-log.md. Critical rules are not deferrable.
+- **Important rule applies**: surface to user; defer-with-rationale is allowed and logged in build-log.md (matching the LINT-MOCK Important pattern).
+- **Parse violations** (malformed `build-checks.md` rule, missing required field, invalid severity): fail the audit with exit code 1; fix the rule's format before continuing.
+
+NFR-1 carry-over: slices whose `mission-brief.md` mtime predates BC-1's release date (2026-05-06) are exempt automatically. The audit returns `carry_over_exempt: true` and zero applicable rules for those.
+
+If neither `architecture/build-checks.md` nor `~/.claude/build-checks.md` exists, the audit returns zero applicable rules. Both files are populated manually at `/reflect` Step 5b when a recurring pattern emerges across slices.
+
+v1 surfaces rules; the human/AI builder addresses them. Auto-verification (executable check command per rule) is deferred to a v2 — the format already includes `Validation hint` so v2 can parse and run it.
 
 #### Wiring matrix audit (WIRE-1)
 
