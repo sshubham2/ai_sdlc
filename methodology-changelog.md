@@ -34,6 +34,34 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.9.0 — 2026-05-06
+
+Adds the wiring matrix discipline (WIRE-1). Every new module introduced by a slice must declare its consumer (entry point + test) or carry an exemption with rationale. Audited at `/build-slice` pre-finish; format validation enforced in v1.
+
+### Added
+
+- **WIRE-1 — Wiring matrix discipline**
+  Adds `tools/wiring_matrix_audit.py` — a markdown table parser + format validator for the wiring matrix in each slice's `design.md`. Updates `skills/design-slice/SKILL.md` to require a `## Wiring matrix` section in the design.md template (4 columns: New module | Consumer entry point | Consumer test | Exemption). Updates `skills/build-slice/SKILL.md` Step 6 (pre-finish gate) to run the audit and refuse on Important findings.
+
+  The matrix's purpose is structural: every new module/file declares a consumer demand (entry point + test) — preventing dead-modules-with-green-tests where unit tests pass but no entry point ever imports the module. Per Freeman & Pryce (*Growing Object-Oriented Software*) — "consumer demand precedes producer build".
+
+  Exemption mechanism: a row with `internal helper, no consumer demanded — rationale: <reason>` in the Exemption column declares an internal helper without a direct consumer. The audit requires the literal `rationale:` substring; bare exemptions without rationale are flagged as `missing-rationale`. Empty matrices (header + separator + zero data rows) are accepted — the slice introduced no new modules.
+
+  NFR-1 carry-over: slices whose `mission-brief.md` mtime predates `_WIRE_1_RELEASE_DATE` (2026-05-06) are exempt automatically. The rule applies to slices authored on or after the rule's release. CLI flag `--no-carry-over` disables the exemption for testing / CI archive scans.
+
+  CLI: `python -m tools.wiring_matrix_audit <slice-folder>` (auto-finds design.md inside) OR `python -m tools.wiring_matrix_audit <design.md>`. Options: `--json`, `--no-carry-over`. Exit codes: 0 clean (or carry-over exempt), 1 violations, 2 usage error.
+
+  - **Rule reference**: WIRE-1
+  - **Defect class**: Dead modules with green tests. A slice introduces a module (passes its own unit tests in isolation) but no entry point imports it — the module never runs in production. Without consumer-demand discipline, this drift is invisible at PR review and surfaces only when someone notices the module was never wired in. WIRE-1 catches it at design time by requiring the consumer to be declared upfront.
+  - **Validation**: `tests/methodology/test_wiring_matrix_audit.py` — 11 tests covering: clean design (cells filled or rationalized exemption), missing-cells violation, missing-rationale violation, no-matrix violation, empty-matrix acceptance, missing design.md graceful handling, carry-over exemption with mtime, `--no-carry-over` flag override, missing-mission-brief means no carry-over claim, and skill-prose references in both `/design-slice` and `/build-slice`. Total methodology suite: 106 -> 117.
+
+  Limitations (v1, documented in code):
+  - **Format validation only**. A v2 will add existence/import audits: verify each Consumer entry point file exists in the repo, grep its contents for the named module's import + call site. The grep audit is the bigger structural value — without it, the matrix is a documentation discipline, not a refusal-on-dead-code mechanism.
+  - **No multi-language module-name normalization**. Module names are treated as opaque strings; the audit doesn't validate Python dotted vs filesystem path conventions, TS module specifiers, or Go import paths.
+  - **No test function existence check**. Consumer test cells like `tests/test_x.py::test_foo` are not split into file + function; only the surrounding format is validated. A v2 grep would also verify the function exists in the file.
+
+---
+
 ## v0.8.0 — 2026-05-06
 
 Adds Go support to the mock-budget linter (LINT-MOCK-3). Phase 3's mock-budget linter trio now covers Python, TypeScript/JavaScript, and Go.

@@ -142,6 +142,7 @@ ai_sdlc/
       test_skill_model_dispatch.py  # Verifies COST-1 Haiku dispatch directives
       test_diagnose_pass_models.py  # Verifies COST-1.1 per-pass model assignments
       test_status_cadence_enforcement.py  # Verifies CAL-1 critic-calibrate cadence
+      test_wiring_matrix_audit.py    # Tests WIRE-1 — wiring matrix format validation
       test_mock_budget_lint.py      # Tests LINT-MOCK-1 — runs linter on fixtures
       fixtures/                     # Test fixtures (NOT collected by pytest)
         mock_budget_clean.py        # Python fixtures for LINT-MOCK-1
@@ -157,9 +158,16 @@ ai_sdlc/
         mock_budget_clean.go        # Go fixtures for LINT-MOCK-3 (mock-budget v1)
         mock_budget_too_many.go
         syntax_error.go
+        wiring/                     # WIRE-1 fixtures (design.md fragments)
+          clean_design.md
+          missing_cells_design.md
+          missing_rationale_design.md
+          no_matrix_design.md
+          empty_matrix_design.md
   pytest.ini                # testpaths = tests + pythonpath = .
   tools/                    # Executable methodology tools (Python)
-    mock_budget_lint.py       # LINT-MOCK-1 — AST linter for TDD-2 mock budget
+    mock_budget_lint.py       # LINT-MOCK-1/2/3 — AST + tree-sitter linter for TDD-2 mock budget (Python, TS/JS, Go)
+    wiring_matrix_audit.py    # WIRE-1 — wiring matrix format validator for slice design.md
 ```
 
 ## Getting started

@@ -165,6 +165,19 @@ The thin vault philosophy applies: **reference code locations, don't duplicate t
 - **What's new**: <one-line summary; the schema lives in code>
 - **Validation / constraints**: <reference where these are enforced — DB constraint, Pydantic validator, etc.>
 
+## Wiring matrix
+
+Per **WIRE-1** (`methodology-changelog.md` v0.9.0). Every new module/file this slice introduces must declare a consumer entry point AND a consumer test, OR carry an explicit exemption with rationale. Empty cells without exemption are refused at `/build-slice` pre-finish.
+
+| New module | Consumer entry point | Consumer test | Exemption |
+|------------|---------------------|---------------|-----------|
+| `src/services/<example>.py` | `src/api/<entry>.py` | `tests/test_<entry>.py::test_<scenario>` | — |
+| `src/utils/_<helper>.py` | — | — | `internal helper, no consumer demanded — rationale: shared by other _utils modules` |
+
+If this slice introduces no new modules (e.g., config-only or refactor of existing files): keep the header + separator only — the audit treats zero-row matrices as clean.
+
+The `Exemption` cell, if used, MUST contain the substring `rationale:` followed by the actual reason. The audit checks for it.
+
 ## Decisions made (ADRs)
 - [[ADR-NNN]] — <one-sentence summary> — reversibility: <tag>
 

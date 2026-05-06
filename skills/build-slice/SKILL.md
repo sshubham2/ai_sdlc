@@ -99,8 +99,29 @@ Before declaring slice done, ALL of these must be true:
 - [ ] Mid-slice smoke still passes (no regression)
 - [ ] No new TODOs / FIXMEs / debug prints / console.logs
 - [ ] **Mock-budget lint passes (LINT-MOCK-1)** — see "Mock-budget lint" below
+- [ ] **Wiring matrix audit passes (WIRE-1)** — see "Wiring matrix audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
+
+#### Wiring matrix audit (WIRE-1)
+
+Per **WIRE-1** (`methodology-changelog.md` v0.9.0), this slice's `design.md` must include a wiring matrix declaring a consumer entry point + consumer test for every new module, or an exemption with explicit rationale. Run:
+
+```bash
+$PY -m tools.wiring_matrix_audit architecture/slices/slice-NNN-<name>
+```
+
+Refusal on Important findings:
+- `no-matrix`: design.md is missing the `## Wiring matrix` heading entirely
+- `missing-cells`: a row has neither (consumer entry point + consumer test) nor an exemption
+- `missing-rationale`: exemption present but no `rationale:` substring
+- `format`: malformed table (wrong column count, missing separator, etc.)
+
+v1 enforces format validation only. A v2 will add existence/import audits — verify entry-point files exist and grep for module imports.
+
+NFR-1 carry-over: slices whose `mission-brief.md` mtime predates WIRE-1's release date (2026-05-06) are exempt automatically. The audit returns zero findings for those.
+
+If the slice introduces no new modules: keep the matrix header + separator only — the audit accepts zero-row matrices as clean.
 
 #### Mock-budget lint (LINT-MOCK-1, LINT-MOCK-2, LINT-MOCK-3)
 
