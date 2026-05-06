@@ -153,7 +153,7 @@ Do NOT push. Push is a separate action with its own confirmation flow.
 - **Slice has deferrals**: note them in commit body; they're part of the audit trail
 - **Shippability regression caught**: if /validate-slice caught + fixed a regression during this slice, note it in the body ("Caught and fixed regression in slice-018's sync test")
 - **No new ADRs**: state "ADRs: none" — don't omit the line (audit expects consistent format)
-- **Critic APPROVED with no fixes**: "Critic blockers addressed: none (design passed review)"
+- **Critic CLEAN with no fixes**: "Critic blockers addressed: none (design passed review)"
 
 ## Critical rules
 

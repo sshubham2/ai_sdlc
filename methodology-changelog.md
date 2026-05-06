@@ -34,6 +34,39 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.11.0 — 2026-05-06
+
+Adds **TRI-1** — three-verdict + user-owned triage. Renames the critique verdicts (APPROVED -> CLEAN, APPROVED-WITH-FIXES -> NEEDS-FIXES; BLOCKED unchanged), inserts an explicit user-ratification step at `/critique` Step 4.5, and adds an audit tool that validates the resulting `## Triage` section in critique.md. Calibration vocabulary in `/reflect` Step 3 expands to include OVERRIDE-MISJUDGED so user-side override accuracy is tracked alongside Critic accuracy.
+
+### Added
+
+- **TRI-1 — Three-verdict + user-owned triage**
+  Adds `tools/triage_audit.py` — parser + validator for the `## Triage` section in critique.md. The section captures: `Triaged by`, `Date`, `Final verdict`, plus a 4-column dispositions table (ID | Severity | Disposition | Rationale). Audit checks: section exists, required header fields present, final verdict is one of {CLEAN, NEEDS-FIXES, BLOCKED}, every body finding (`#### B1`, `#### M1`, `#### m1`) has a disposition row, dispositions are in the allowed vocabulary {ACCEPTED-FIXED, ACCEPTED-PENDING, OVERRIDDEN, DEFERRED, ESCALATED}, OVERRIDDEN/DEFERRED/ESCALATED rows have non-empty rationale, and declared final verdict matches the disposition pattern (any ESCALATED -> BLOCKED; else any ACCEPTED-PENDING -> NEEDS-FIXES; else CLEAN).
+
+  Updates `agents/critique.md`: result-field rules now use CLEAN / NEEDS-FIXES / BLOCKED; verdicts are described as **provisional** (Critic emits) until user triage finalizes them.
+
+  Updates `skills/critique/SKILL.md`: Step 4 now generates a Builder **draft** disposition (not a final response). New Step 4.5 (User-owned triage) explicitly prompts the user to ratify each finding's disposition; computes the final verdict mechanically from the disposition pattern; runs `triage_audit` and refuses on violations. The embedded critique.md template now includes the `## Triage` section.
+
+  Updates `skills/reflect/SKILL.md` Step 3 calibration vocabulary: VALIDATED, FALSE-ALARM, **OVERRIDE-MISJUDGED** (new — user OVERRODE but reality showed Critic was right; calibration signal for both Critic AND user), NOT-YET, MISSED. The pre-TRI-1 `FALSE ALARM` (with a space) is replaced by `FALSE-ALARM` (hyphenated) for consistency with the new vocabulary tokens.
+
+  Renames carried through `templates/critique-report.md`, `templates/milestone.md`, and `skills/commit-slice/SKILL.md`. All references to APPROVED / APPROVED-WITH-FIXES in load-bearing prose are removed; backward references in archive carry-overs are handled by the audit's mtime-based exemption.
+
+  CLI: `python -m tools.triage_audit <slice-folder> [--json] [--no-carry-over]`. Exit codes: 0 clean (or carry-over exempt), 1 violations, 2 usage error.
+
+  NFR-1 carry-over: critiques in slices whose `mission-brief.md` mtime predates `_TRI_1_RELEASE_DATE` (2026-05-06) are exempt automatically; archived critiques continue using their original verdict vocabulary without retroactive refusal.
+
+  - **Rule reference**: TRI-1
+  - **Defect class**: Builder dispositions were unaudited — the user had no formal authority over the gate. Pre-TRI-1, the Builder's "Builder response: disputed: ..." line could flip a critique from BLOCKED to APPROVED with no user ratification, and `disputed` was a single-bit decision that lost calibration signal (was the user right? was the Critic right? both? we couldn't tell). TRI-1 makes triage user-owned and explicit, with a richer disposition vocabulary (5 tokens replace 3) so calibration data sharpens both Critic prompt tuning AND user-judgement tracking. The OVERRIDE-MISJUDGED state is the load-bearing addition: if the user repeatedly overrides correct Critic findings, that's a user-side awareness signal that is invisible without the explicit category.
+  - **Validation**: `tests/methodology/test_triage_audit.py` — 20 tests over 8 fixtures (`tests/methodology/fixtures/triage/`): verdict-computation unit tests (no findings -> CLEAN, ESCALATED dominates -> BLOCKED, PENDING -> NEEDS-FIXES, all-settled -> CLEAN), file-level audit tests (clean critique, needs-fixes critique, blocked critique, missing triage section, missing disposition row, missing rationale, invalid disposition, verdict-mismatch), carry-over (mtime exemption + --no-carry-over override), graceful missing-file handling, plus skill prose pins (TRI-1 reference + triage_audit module reference + Step 4.5 heading + disposition vocabulary + new verdicts + agent verdict alignment + reflect calibration vocabulary). Total methodology suite: 135 -> 155.
+
+  Limitations (v1, documented in code):
+  - **No automatic Builder draft -> final disposition link**. Builder draft text in `Builder draft:` lines is informational; the audit only enforces the table. v2 candidate: cross-link them (warn if Builder draft is OVERRIDDEN but the user's final disposition is ACCEPTED-PENDING).
+  - **No Heavy-mode reviewer signature**. Heavy mode requires human sign-off but the audit doesn't yet validate a `Reviewed by:` field. v2 candidate.
+  - **No retroactive verdict translation**. Archived critiques with old verdicts are exempt via carry-over but not auto-renamed; if needed, a one-shot migration script could rewrite them. Out of scope for TRI-1.
+  - **No Critic-emitted-verdict vs user-final-verdict gap analysis**. Both are stored (Critic in body header `**Result**:`, user in `## Triage` -> `Final verdict`) but we don't yet compute or surface the delta. /critic-calibrate v2 candidate.
+
+---
+
 ## v0.10.0 — 2026-05-06
 
 Closes the lessons-learned -> builder feedback loop. Adds **BC-1** — a build-checks gate that surfaces curated, evergreen rules at `/build-slice` pre-finish based on the slice's changed files and mission-brief / design text. Promotion from per-project `lessons-learned.md` to per-project `architecture/build-checks.md` (or global `~/.claude/build-checks.md`) is manual at `/reflect` Step 5b.

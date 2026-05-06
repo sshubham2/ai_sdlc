@@ -198,7 +198,7 @@ Produce a complete critique.md ready to drop into `architecture/slices/slice-NNN
 
 **Critic reviewed**: mission-brief.md, design.md, new ADRs (list IDs)
 **Date**: <YYYY-MM-DD>
-**Result**: APPROVED | APPROVED-WITH-FIXES | BLOCKED
+**Result**: CLEAN | NEEDS-FIXES | BLOCKED
 
 ## Summary
 <1-2 sentences: overall assessment>
@@ -234,9 +234,11 @@ Produce a complete critique.md ready to drop into `architecture/slices/slice-NNN
 ```
 
 **Result field rules**:
-- **APPROVED**: zero blockers, zero majors. Builder proceeds.
-- **APPROVED-WITH-FIXES**: blockers and majors exist but are addressable in this slice. Builder addresses them, then proceeds.
-- **BLOCKED**: a blocker fundamentally invalidates the design. Builder must re-design before proceeding.
+- **CLEAN**: zero blockers, zero majors. The design is ready to build as-is.
+- **NEEDS-FIXES**: blockers and majors exist but are addressable in this slice. The user-owned triage step (per TRI-1, /critique Step 4.5) ratifies dispositions; once the Builder applies any ACCEPTED-PENDING fixes, /build-slice can proceed.
+- **BLOCKED**: at least one finding requires redesign or spike investigation. The Builder must re-run /design-slice (or /risk-spike) before proceeding.
+
+These verdicts are **provisional** as the Critic emits them — the user's triage step (per TRI-1) sets the final verdict in `## Triage` -> `Final verdict`. The audit at `tools/triage_audit.py` validates the final verdict matches the disposition pattern (any ESCALATED -> BLOCKED; any ACCEPTED-PENDING -> NEEDS-FIXES; else CLEAN).
 
 ## What you DO NOT do
 

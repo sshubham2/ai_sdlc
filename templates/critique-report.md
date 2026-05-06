@@ -13,7 +13,7 @@ Per-slice critique from the Critic persona. Lives in `architecture/slices/slice-
 
 **Critic reviewed**: mission-brief.md, design.md, new ADRs
 **Date**: <date>
-**Result**: [APPROVED | APPROVED-WITH-FIXES | BLOCKED]
+**Result**: [CLEAN | NEEDS-FIXES | BLOCKED]
 
 ## Summary
 
@@ -78,7 +78,7 @@ Absence of finding ≠ absence of check.
 
 **Critic reviewed**: mission-brief.md, design.md, ADR-008-object-storage-thumbnails.md
 **Date**: 2026-04-19
-**Result**: APPROVED-WITH-FIXES
+**Result**: NEEDS-FIXES
 
 ## Summary
 

@@ -106,31 +106,105 @@ Return the agent's complete critique.md content. Do not re-prompt for dimensions
 
 Take the Critic's output and write it to `architecture/slices/slice-NNN-<name>/critique.md` using the template below.
 
-### Step 4: Builder responds to each finding
+### Step 4: Builder draft response per finding
 
-For each blocker and major, decide:
+For each blocker, major, and minor, the Builder proposes a **draft disposition** — not a final one. The user ratifies in Step 4.5.
 
-- **Fix applied**: edit design.md (or ADR), note the change
-- **Disputed**: rationale why the Critic is wrong (be specific; don't hand-wave)
-- **Deferred with risk acceptance**: only with explicit user approval; logged as accepted risk
+Draft disposition vocabulary:
 
-Update `critique.md` with Builder responses inline.
+- **ACCEPTED-FIXED**: Builder agrees with the Critic and has applied the fix in this round (edit design.md / ADR before triage). State the change reference.
+- **ACCEPTED-PENDING**: Builder agrees with the Critic; fix to apply during `/build-slice`. State what will be done.
+- **OVERRIDDEN**: Builder believes the Critic is wrong. State a specific rationale — not a hand-wave. The user adjudicates in Step 4.5.
+- **DEFERRED**: Builder agrees in principle but proposes punting to a later slice. State the slice or backlog target.
+- **ESCALATED**: Builder cannot resolve without further investigation (spike). State what's unknown.
+
+Update `critique.md` with Builder draft dispositions inline (one per finding under "Builder draft").
+
+### Step 4.5: User-owned triage (TRI-1)
+
+Per **TRI-1** (`methodology-changelog.md` v0.11.0), the user is the final triage authority — the Builder cannot override the Critic alone. This step is the explicit ratification gate.
+
+Present the user with a compact summary of every finding + the Builder's draft disposition + a one-line rationale (or fix reference). Format:
+
+```
+Critic findings for slice-NNN <name>:
+
+  [Blocker] B1 <title>
+    Critic: <issue summary>
+    Builder draft: ACCEPTED-FIXED — fix at design.md§endpoints
+    Ratify? (Enter to accept, or specify: ACCEPTED-FIXED | ACCEPTED-PENDING | OVERRIDDEN | DEFERRED | ESCALATED + rationale)
+
+  [Major] M1 <title>
+    Critic: <issue summary>
+    Builder draft: OVERRIDDEN — inline auth check is sufficient for v1
+    Ratify? (...)
+
+  [Minor] m1 <title>
+    ...
+```
+
+For each finding, the user either accepts the draft or replaces it. OVERRIDDEN, DEFERRED, ESCALATED MUST carry a non-empty rationale (the audit refuses empty rationale on these dispositions).
+
+Once all findings have user-ratified dispositions, compute the **Final verdict** mechanically:
+
+- Any disposition is `ESCALATED` -> **BLOCKED**
+- Else any disposition is `ACCEPTED-PENDING` -> **NEEDS-FIXES**
+- Else (only `ACCEPTED-FIXED` / `OVERRIDDEN` / `DEFERRED`) -> **CLEAN**
+- Zero findings -> **CLEAN**
+
+Append to `critique.md` after the Findings + Dimensions sections:
+
+```markdown
+## Triage
+
+**Triaged by**: user
+**Date**: <YYYY-MM-DD>
+**Final verdict**: CLEAN | NEEDS-FIXES | BLOCKED
+
+| ID | Severity | Disposition | Rationale |
+|----|----------|-------------|-----------|
+| B1 | Blocker  | ACCEPTED-FIXED | <fix ref> |
+| M1 | Major    | OVERRIDDEN | <user's reasoning, not Builder's> |
+| m1 | Minor    | DEFERRED | <slice / backlog target> |
+```
+
+Then run the triage audit:
+
+```bash
+$PY -m tools.triage_audit architecture/slices/slice-NNN-<name>
+```
+
+Refusal semantics:
+- `no-section`: critique.md is missing the `## Triage` heading entirely (Step 4.5 not run)
+- `missing-field`: Triaged by / Date / Final verdict missing
+- `invalid-verdict`: Final verdict not in {CLEAN, NEEDS-FIXES, BLOCKED}
+- `missing-row`: a finding declared in the body has no triage row
+- `invalid-disposition`: disposition not in the allowed vocabulary
+- `missing-rationale`: OVERRIDDEN / DEFERRED / ESCALATED row has empty rationale
+- `verdict-mismatch`: declared final verdict doesn't match the disposition pattern
+
+NFR-1 carry-over: critiques in slices whose `mission-brief.md` mtime predates 2026-05-06 are exempt; the audit returns zero violations and `carry_over_exempt: true`.
+
+If the audit returns violations: surface them, ask the user to correct the table or the verdict, and re-run. Do NOT bypass.
 
 ### Step 5: Gate decision
 
-- All blockers addressed → **APPROVED-WITH-FIXES** → proceed to `/build-slice`
-- All majors addressed too → **APPROVED** → proceed
-- Blocker disputed but unresolved → escalate to user; do not build
-- Critic produced "no blockers, no majors" → **APPROVED** → proceed
+After Step 4.5 (user-owned triage per TRI-1) sets the final verdict and dispositions, the gate is:
 
-In Heavy mode: any blocker requires human reviewer sign-off before build.
+- Final verdict **CLEAN** → proceed to `/build-slice`
+- Final verdict **NEEDS-FIXES** → Builder applies ACCEPTED-PENDING fixes during `/build-slice`; ACCEPTED-FIXED items already settled; OVERRIDDEN/DEFERRED items recorded but don't block
+- Final verdict **BLOCKED** → at least one finding ESCALATED; do not run `/build-slice`. Re-run `/design-slice` (redesign) or `/risk-spike` (investigate the unknown that prompted the escalation)
+
+The triage_audit (`tools/triage_audit.py`) validates verdict-pattern consistency before this gate runs. Mismatch (e.g., ACCEPTED-PENDING present but verdict declared CLEAN) is a refusal — the user re-runs Step 4.5 with corrected verdict or corrected dispositions.
+
+In Heavy mode: BLOCKED requires human reviewer sign-off on the redesign before triage may set CLEAN/NEEDS-FIXES on a re-critique.
 
 ### Step 5b: Update milestone.md
 
 Update `architecture/slices/slice-NNN-<name>/milestone.md`:
 
 - Frontmatter: `stage: critique`, `updated: <today>`, `next-action: run /build-slice` (or `address blockers in design.md then re-run /critique` if BLOCKED)
-- Check progress box: `- [x] /critique — <date> — <APPROVED | APPROVED-WITH-FIXES | BLOCKED>`
+- Check progress box: `- [x] /critique — <date> — <CLEAN | NEEDS-FIXES | BLOCKED>`
 - Update phase artifact status: `critique.md — <result>`
 - "Current focus" section: critique result summary (blocker count, major count)
 - "On resume": next step = /build-slice (or address blockers first)
@@ -144,7 +218,7 @@ If skipped (risk tier = low, no mandatory triggers): still update milestone.md w
 
 **Critic reviewed**: mission-brief.md, design.md, new ADRs
 **Date**: <YYYY-MM-DD>
-**Result**: APPROVED | APPROVED-WITH-FIXES | BLOCKED
+**Result**: CLEAN | NEEDS-FIXES | BLOCKED
 
 ## Summary
 <1-2 sentences>
@@ -158,7 +232,7 @@ If skipped (risk tier = low, no mandatory triggers): still update milestone.md w
 - **Issue**: <what's wrong>
 - **Evidence**: <vault ref / spec ref>
 - **Proposed fix**: <concrete change>
-- **Builder response**: pending | fix applied at <ref> | disputed: <rationale> | deferred with risk acceptance
+- **Builder draft**: ACCEPTED-FIXED at <ref> | ACCEPTED-PENDING <plan> | OVERRIDDEN: <rationale> | DEFERRED to <target> | ESCALATED: <unknown>
 
 #### B2: ...
 
@@ -176,6 +250,16 @@ If skipped (risk tier = low, no mandatory triggers): still update milestone.md w
 - [x] Contract gaps — <findings or "none">
 - [x] Security — <findings or "none">
 - [x] Drift from vault — <findings or "none">
+
+## Triage
+
+**Triaged by**: user
+**Date**: <YYYY-MM-DD>
+**Final verdict**: CLEAN | NEEDS-FIXES | BLOCKED
+
+| ID | Severity | Disposition | Rationale |
+|----|----------|-------------|-----------|
+| B1 | Blocker  | ACCEPTED-FIXED | <fix ref> |
 ```
 
 ## Critical rules
@@ -204,5 +288,5 @@ If the agent prompt needs tuning (e.g., `/critic-calibrate` proposes additions),
 
 ## Next step
 
-- APPROVED or APPROVED-WITH-FIXES (after fixes) → `/build-slice`
-- BLOCKED → revise design, re-run `/critique`
+- CLEAN or NEEDS-FIXES (after triage ratifies dispositions) → `/build-slice`
+- BLOCKED → revise design (or run `/risk-spike` for an unknown), re-run `/critique`

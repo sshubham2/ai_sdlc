@@ -78,17 +78,17 @@ If you find yourself wanting to update one of these: either you're in Heavy mode
 
 ### Step 3: Critic calibration
 
-For each Critic finding from this slice's `critique.md`, score:
+Per **TRI-1** (`methodology-changelog.md` v0.11.0), the calibration vocabulary now distinguishes between Critic accuracy AND user-override accuracy. For each Critic finding in this slice's `critique.md`, score:
 
-- **VALIDATED**: reality confirmed the Critic's concern
-- **FALSE ALARM**: Critic flagged something that turned out fine
-- **NOT YET**: deferred; can't score yet
+- **VALIDATED**: reality confirmed the Critic's concern (Critic was right; disposition was ACCEPTED-FIXED or ACCEPTED-PENDING and the underlying problem materialized)
+- **FALSE-ALARM**: user OVERRODE the Critic and reality confirmed the user — the Critic over-reached on this finding
+- **OVERRIDE-MISJUDGED**: user OVERRODE the Critic but reality showed the Critic was right after all. This is calibration learning for **both** the Critic AND the user — track recurrent patterns; if a user override pattern is consistently wrong, the user's mental model needs adjustment as much as the Critic's prompt does
+- **NOT-YET**: DEFERRED or ESCALATED; can't score yet — re-score in the future slice that addresses it
+- **MISSED by Critic**: surfaced during build/validate, was NOT in the Critic's findings at all. The Critic's prompt may need a new dimension or sharpened heuristic
 
-ALSO note: **MISSED by Critic** — things that surfaced during build/validate that the Critic should have caught but didn't.
+**Why this matters**: every 10-20 slices, `/critic-calibrate` reads these calibration entries across recent reflections. Patterns of MISSED feed Critic prompt updates. Patterns of OVERRIDE-MISJUDGED feed both Critic prompt updates AND a user-side awareness signal — the same person who was wrong twice on a similar override should see the pattern surface in `/status` or `/critic-calibrate` output. Specific entries produce specific improvements: "Critic didn't flag EXIF orientation on iPhone HEIC uploads" beats "Critic missed something."
 
-**Why this matters**: every 10-20 slices, `/critic-calibrate` reads these "Missed by Critic" entries across recent reflections, patterns them, and proposes targeted prompt updates to `critique/SKILL.md`. Be specific in the "Missed by Critic" entry — "Critic didn't flag EXIF orientation issue on iPhone HEIC uploads" beats "Critic missed something." Specific patterns produce specific prompt improvements.
-
-This data accumulates over time and informs Critic prompt tuning across projects.
+This data accumulates over time and informs Critic prompt tuning + user-judgement awareness across projects.
 
 ### Step 4: Write `architecture/slices/slice-NNN-<name>/reflection.md`
 
@@ -114,10 +114,14 @@ This data accumulates over time and informs Critic prompt tuning across projects
 - <item> — reason: <why> — lands in: <next slice | backlog>
 
 ## Critic calibration
-- B1 (<title>): VALIDATED — bug appeared exactly as flagged
-- B2 (<title>): VALIDATED — caught during validation
-- M1 (<title>): FALSE ALARM — turned out to be a non-issue because <reason>
-- m1 (<title>): NOT YET — deferred
+
+Per TRI-1, score each finding via the disposition in `critique.md` -> `## Triage` table + reality observed during build/validate:
+
+- B1 (<title>): VALIDATED — disposition ACCEPTED-FIXED; bug appeared exactly as flagged during validation
+- B2 (<title>): VALIDATED — disposition ACCEPTED-PENDING; reality confirmed concern when fix landed
+- M1 (<title>): FALSE-ALARM — disposition OVERRIDDEN by user with reasoning X; reality confirmed override was correct (Critic over-reached)
+- M2 (<title>): OVERRIDE-MISJUDGED — disposition OVERRIDDEN by user reasoning X; reality showed Critic was right after all (calibration signal for both Critic AND user)
+- m1 (<title>): NOT-YET — disposition DEFERRED to slice-NNN; will re-score there
 
 **Missed by Critic**: <things that surfaced during build/validate that Critic didn't flag>
 

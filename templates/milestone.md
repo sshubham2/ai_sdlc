@@ -53,7 +53,7 @@ If session resumes mid-slice, this section tells Claude where to pick up:
 
 - [mission-brief.md](mission-brief.md)
 - [design.md](design.md) — <optional brief status>
-- [critique.md](critique.md) — <APPROVED | APPROVED-WITH-FIXES | BLOCKED | skipped>
+- [critique.md](critique.md) — <CLEAN | NEEDS-FIXES | BLOCKED | skipped>
 - [build-log.md](build-log.md) — <N/M tasks done, or "complete">
 - [validation.md](validation.md) — <PASS | PARTIAL | FAIL | pending>
 - [reflection.md](reflection.md) — <pending | complete>
@@ -65,7 +65,7 @@ If session resumes mid-slice, this section tells Claude where to pick up:
 
 - **`/slice`**: creates the file; stage: `slice`, next: `/design-slice`, risk-tier from user input, checks "Progress" box for /slice
 - **`/design-slice`**: stage → `design`, next → `/critique` (or `/build-slice` if critique-skip-eligible), checks /design-slice box
-- **`/critique`**: stage → `critique`, writes result (APPROVED etc.), next based on blockers
+- **`/critique`**: stage → `critique`, writes result (CLEAN / NEEDS-FIXES / BLOCKED per TRI-1), next based on triage final verdict
 - **`/build-slice`**: stage → `build`; updates "Current work" and "Files being edited" as tasks progress; N/M count updates continuously; at completion, next → `/validate-slice`
 - **`/validate-slice`**: stage → `validate`, result recorded; next → `/reflect` (or "fix regression first" if shippability caught one)
 - **`/reflect`**: stage → `complete`, next → `none (slice complete)`; immediately after, `/archive` moves folder (milestone.md goes with it)
@@ -103,7 +103,7 @@ critic-required: true
 
 - [x] /slice — 2026-04-21
 - [x] /design-slice — 2026-04-21
-- [x] /critique — 2026-04-22 — APPROVED-WITH-FIXES (B1, B2 addressed)
+- [x] /critique — 2026-04-22 — NEEDS-FIXES (B1, B2 ACCEPTED-PENDING per triage)
 - [ ] /build-slice — in progress: 3/5 tasks complete
 - [ ] /validate-slice
 - [ ] /reflect
@@ -123,7 +123,7 @@ Implementing the receipt upload endpoint. S3 upload + DB record done (tasks 1-3)
 
 - [mission-brief.md](mission-brief.md)
 - [design.md](design.md) — 5 ACs, 3 must-not-defer items
-- [critique.md](critique.md) — APPROVED-WITH-FIXES; B1+B2 addressed in design v2
+- [critique.md](critique.md) — NEEDS-FIXES; B1+B2 ACCEPTED-PENDING per triage; addressed in design v2
 - [build-log.md](build-log.md) — 3/5 tasks done
 - [validation.md](validation.md) — pending
 - [reflection.md](reflection.md) — pending
