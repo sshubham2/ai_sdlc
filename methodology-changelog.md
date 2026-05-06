@@ -34,6 +34,38 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.14.0 — 2026-05-06
+
+Adds **VAL-1** — layered `/validate-slice` safety checks. Two defensive layers run against the slice's changed files before the shippability catalog: Layer A (credential scan, Critical, blocks `/reflect`) and Layer B (dependency hallucination check, Important, surfaces to user). Closes a class of defects that real-environment validation tends to miss: committed credentials and AI-hallucinated package imports.
+
+### Added
+
+- **VAL-1 — Layered /validate-slice safety checks**
+  Adds `tools/validate_slice_layers.py` — two-layer defensive check for the per-slice validation flow.
+
+  **Layer A (credential scan):** static regex patterns for AWS access keys (`AKIA...`), GitHub PATs (classic `ghp_`, fine-grained `github_pat_`, OAuth/user/app/refresh `gho_/ghu_/ghs_/ghr_`), Slack tokens (`xox[baprs]-`), JWTs (`eyJ.*\\..*\\..*`), PEM private keys (`-----BEGIN ... PRIVATE KEY-----`), Anthropic API keys (`sk-ant-`), OpenAI API keys (`sk-..T3BlbkFJ..`), and generic `api_key = "..."` literals. Each detected secret is a `Critical` finding that **cannot be deferred** — committed credentials are immediately exploitable. False positives (test fixtures, public-docs examples) are suppressed via `architecture/.secrets-allowlist` (one regex per line; `#` comments).
+
+  **Layer B (dependency hallucination check, Python only in v1):** ast-parses every changed `.py` file and resolves each top-level import against three sources: stdlib (via `sys.stdlib_module_names`), declared deps (`pyproject.toml` `[project.dependencies]` + `[project.optional-dependencies]` + `[tool.poetry.dependencies]`, OR `requirements.txt`), and a small known-aliases table (`yaml`->`pyyaml`, `bs4`->`beautifulsoup4`, `PIL`->`pillow`, `cv2`->`opencv-python`, `sklearn`->`scikit-learn`, etc.). Relative imports (`from . import X`) are skipped. Anything else is an `Important` `hallucinated-import` finding — possible AI hallucination, or a real package the project forgot to declare. Surfaces to user; defer-with-rationale allowed.
+
+  Updates `skills/validate-slice/SKILL.md` Step 5b (between Step 5 validation.md and Step 5.5 shippability catalog): runs both layers; refusal-on-Critical (Layer A); surface-with-defer (Layer B). Skip flags `--skip-secrets` and `--skip-deps` allow projects that run their own scanners/linters to disable each layer independently.
+
+  NFR-1 carry-over: slices whose `mission-brief.md` mtime predates `_VAL_1_RELEASE_DATE` (2026-05-06) are exempt automatically. CLI flag `--no-carry-over` disables for archive scans.
+
+  CLI: `python -m tools.validate_slice_layers --slice <slice-folder> --changed-files <files...> [--secrets-allowlist <path>] [--pyproject <path>] [--requirements <path>] [--skip-secrets] [--skip-deps] [--json] [--no-carry-over]`. Exit codes: 0 clean (or carry-over exempt), 1 findings (Critical or Important), 2 usage error.
+
+  - **Rule reference**: VAL-1
+  - **Defect class**: Real-environment validation (curl the endpoint, render the page, install on a real device) catches behavioral failures but is structurally blind to two AI-assisted-development defect classes. (1) **Committed credentials**: an AI implementation may inline an API key for testing convenience and forget to revert; the slice's runtime checks pass because the key works, and the secret leaks. (2) **Hallucinated dependencies**: an AI implementation may write `from acme_helpers import compute` against a package that doesn't exist or wasn't declared in pyproject.toml; the import only fails at runtime in a code path the slice didn't exercise. Both classes typically reach `/reflect` and `/commit-slice` undetected because they don't break the validation runs themselves. VAL-1 closes the gap with two static checks at the validation step.
+  - **Validation**: `tests/methodology/test_validate_slice_layers.py` — 24 tests over 15 fixtures (`tests/methodology/fixtures/validate_layers/`): parser unit tests (`_extract_pkg_name` handles version specifiers + extras + comments + URL specs; `_normalize_pkg` PEP 503; `_check_import_resolves` for stdlib + declared + alias), `parse_declared_deps` from pyproject.toml + requirements.txt, Layer A pattern detection (AWS, GitHub classic + fine + bot, JWT, private key, Anthropic, generic), allowlist suppression, `--skip-secrets` flag, Layer B detection (clean + hallucinated + aliased + relative), `--skip-deps` flag, run_layers integration aggregating both layers, NFR-1 carry-over + override, plus `/validate-slice` skill prose pin (VAL-1 + tool name + "credential scan" + "hallucinat..." substrings). Total methodology suite: 190 -> 214.
+
+  Limitations (v1, documented in code):
+  - **Python-only Layer B**. TS/JS dependency-hallucination check deferred to v2 (would need package.json parsing, scoped-package handling, peer-deps logic). The audit accepts non-Python files but doesn't lint their imports.
+  - **Pattern set is starting point, not exhaustive**. Layer A covers the most common secret formats but misses vendor-specific ones (Stripe live/test keys, Twilio SIDs, etc.). Projects can extend by maintaining a project-local copy or by contributing patterns upstream.
+  - **No fix-suggest action**. Layer B reports the missing import but doesn't propose adding the package to `pyproject.toml`. v2 candidate.
+  - **Allowlist is global**. The `.secrets-allowlist` applies to all patterns equally; a v2 could scope by pattern name or file glob.
+  - **No transitive-import resolution**. If a Python file imports `package_a`, and `package_a.foo` is what's imported, Layer B only checks `package_a` — it doesn't verify that `foo` is a real submodule. Out of scope for v1.
+
+---
+
 ## v0.13.0 — 2026-05-06
 
 Adds **TF-1** — test-first slice variant. Mission briefs gain an opt-in `**Test-first**: true` field; when set, the brief must include a `## Test-first plan` section mapping each AC to one or more tests with statuses tracked through the lifecycle (PENDING -> WRITTEN-FAILING -> PASSING). `/build-slice` Step 6 refuses non-PASSING rows at pre-finish.

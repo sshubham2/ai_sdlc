@@ -1,0 +1,14 @@
+[project]
+name = "fixture-project"
+version = "0.1.0"
+dependencies = [
+    "anthropic>=0.34.0",
+    "requests>=2.30",
+    "pyyaml>=6.0",
+    "beautifulsoup4",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+]

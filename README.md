@@ -147,6 +147,7 @@ ai_sdlc/
       test_triage_audit.py          # Tests TRI-1 — user-owned triage discipline
       test_risk_register_audit.py   # Tests RR-1 — risk register scoring + sorting
       test_test_first_audit.py      # Tests TF-1 — test-first slice variant audit
+      test_validate_slice_layers.py # Tests VAL-1 — layered /validate-slice (creds + deps)
       test_mock_budget_lint.py      # Tests LINT-MOCK-1 — runs linter on fixtures
       fixtures/                     # Test fixtures (NOT collected by pytest)
         mock_budget_clean.py        # Python fixtures for LINT-MOCK-1
@@ -201,6 +202,22 @@ ai_sdlc/
           invalid_status_brief.md
           ac_without_row_brief.md
           pre_finish_pending_brief.md
+        validate_layers/            # VAL-1 fixtures (changed-files samples)
+          secrets_clean.txt
+          secrets_aws.txt
+          secrets_github.txt
+          secrets_jwt.py
+          secrets_private_key.txt
+          secrets_anthropic.txt
+          secrets_generic.py
+          secrets_allowlisted.txt
+          secrets_allowlist.txt
+          imports_clean.py
+          imports_hallucinated.py
+          imports_aliased.py
+          imports_relative.py
+          pyproject_fixture.toml
+          requirements_fixture.txt
   pytest.ini                # testpaths = tests + pythonpath = .
   tools/                    # Executable methodology tools (Python)
     mock_budget_lint.py       # LINT-MOCK-1/2/3 — AST + tree-sitter linter for TDD-2 mock budget (Python, TS/JS, Go)
@@ -209,6 +226,7 @@ ai_sdlc/
     triage_audit.py           # TRI-1 — user-owned triage section validator for slice critique.md
     risk_register_audit.py    # RR-1 — risk register scoring + sorting (Likelihood x Impact)
     test_first_audit.py       # TF-1 — test-first slice variant audit (mission-brief.md)
+    validate_slice_layers.py  # VAL-1 — layered /validate-slice (credential scan + dep hallucination)
 ```
 
 ## Getting started

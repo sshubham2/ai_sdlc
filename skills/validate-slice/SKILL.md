@@ -111,6 +111,32 @@ Validation REQUIRES testing on multiple instances simultaneously. Single-instanc
 - <impact on next slice>
 ```
 
+### Step 5b: Layered safety checks (VAL-1)
+
+Per **VAL-1** (`methodology-changelog.md` v0.14.0), `/validate-slice` runs two defensive layers against the slice's changed files BEFORE the shippability catalog. These layers catch defect classes that real-environment validation tends to miss: committed credentials and AI-hallucinated dependencies.
+
+```bash
+$PY -m tools.validate_slice_layers \
+  --slice architecture/slices/slice-NNN-<name> \
+  --changed-files <list of files this slice changed>
+```
+
+**Layer A — Credential scan (Critical, blocks)**
+Static regex patterns for AWS access keys, GitHub PATs (classic + fine-grained + bot tokens), Slack tokens, JWTs, PEM private keys, Anthropic / OpenAI API keys, and generic `api_key = "..."` literals. Each detected secret is a Critical finding that **cannot be deferred** — committed credentials are immediately exploitable. False positives (test fixtures, public-docs examples) are silenced via `architecture/.secrets-allowlist` (one regex per line; `#` comments).
+
+**Layer B — Dependency hallucination check (Important, surfaces)**
+Python `ast`-parses every changed `.py` file and resolves each top-level import against the project's declared deps from `pyproject.toml` (`[project.dependencies]`, `[project.optional-dependencies]`, `[tool.poetry.dependencies]`) and `requirements.txt`. Stdlib imports (per `sys.stdlib_module_names`), relative imports (`from . import X`), and a small known-aliases table (`yaml`->`pyyaml`, `bs4`->`beautifulsoup4`, `PIL`->`pillow`, `cv2`->`opencv-python`, etc.) resolve cleanly. Anything else is an Important `hallucinated-import` finding — possible AI hallucination, or a real package that the project simply forgot to declare. Surface to user; defer-with-rationale allowed (consistent with the LINT-MOCK Important pattern).
+
+Refusal semantics:
+- Any Critical finding (Layer A) -> refuse `/reflect`. Either remove the secret + rotate it, or add a precise allowlist regex with a `#` comment explaining the suppression.
+- Any Important finding (Layer B) -> surface to user; allowed to proceed with documented rationale in `validation.md` (typical resolution: add the package to `pyproject.toml` and re-run, OR remove the import).
+
+NFR-1 carry-over: slices whose `mission-brief.md` mtime predates 2026-05-06 are exempt automatically; archive scans use `--no-carry-over`.
+
+Skip flags: `--skip-secrets` (when a project runs its own scanner), `--skip-deps` (when a project runs its own dep linter). Both default off.
+
+v1 limitations: Layer B is Python-only; TS/JS dep hallucination is deferred to v2 (needs npm package.json parsing + scoped-package handling). Layer A's pattern set is a starting point, not exhaustive — projects with vendor-specific secret formats can extend it via project-local copies.
+
 ### Step 5.5: Run the shippability catalog (regression check)
 
 Before deciding next action, verify no past slice was silently broken by this one:

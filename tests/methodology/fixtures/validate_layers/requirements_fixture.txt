@@ -1,0 +1,6 @@
+# Fixture: legacy requirements.txt format
+anthropic==0.34.0
+requests>=2.30
+PyYAML==6.0.1
+# Hashes / extras are stripped by the parser
+beautifulsoup4
