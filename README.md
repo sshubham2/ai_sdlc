@@ -142,7 +142,16 @@ ai_sdlc/
       test_skill_model_dispatch.py  # Verifies COST-1 Haiku dispatch directives
       test_diagnose_pass_models.py  # Verifies COST-1.1 per-pass model assignments
       test_status_cadence_enforcement.py  # Verifies CAL-1 critic-calibrate cadence
-  pytest.ini                # testpaths = tests
+      test_mock_budget_lint.py      # Tests LINT-MOCK-1 — runs linter on fixtures
+      fixtures/                     # Test fixtures (NOT collected by pytest)
+        mock_budget_clean.py
+        mock_budget_too_many.py
+        mock_budget_internal.py
+        mock_budget_seam.py
+        syntax_error.py
+  pytest.ini                # testpaths = tests + pythonpath = .
+  tools/                    # Executable methodology tools (Python)
+    mock_budget_lint.py       # LINT-MOCK-1 — AST linter for TDD-2 mock budget
 ```
 
 ## Getting started

@@ -98,8 +98,28 @@ Before declaring slice done, ALL of these must be true:
 - [ ] `/drift-check` passes (vault and code aligned)
 - [ ] Mid-slice smoke still passes (no regression)
 - [ ] No new TODOs / FIXMEs / debug prints / console.logs
+- [ ] **Mock-budget lint passes (LINT-MOCK-1)** — see "Mock-budget lint" below
 
 If any gate fails: don't declare done. Fix or escalate.
+
+#### Mock-budget lint (LINT-MOCK-1)
+
+Per **LINT-MOCK-1** (`methodology-changelog.md` v0.6.0), Python test files changed in this slice must pass `tools/mock_budget_lint.py`:
+
+```bash
+$PY -m tools.mock_budget_lint <changed-test-files>
+# Add --seam-allowlist architecture/.cross-chunk-seams (if file exists)
+# Add --strict in Heavy mode (Important also blocks)
+```
+
+Severity rules:
+- **Critical** (target is in `architecture/.cross-chunk-seams`): blocks pre-finish; cannot be deferred
+- **Important** in Standard / Minimal mode: surface to user; allow defer with rationale recorded in `build-log.md`
+- **Important** in Heavy mode: blocks pre-finish (`--strict` is mandatory)
+
+The `architecture/.cross-chunk-seams` allowlist (if present) names targets where mocking is escalated to Critical. One target per line; lines starting with `#` are comments.
+
+If the slice didn't touch any Python test files: skip this gate (not applicable). The mock-budget linter is Python-only in v0.6.0; TS and Go variants ship in later slices.
 
 ### Step 7: Do-not-defer enforcement
 

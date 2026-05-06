@@ -34,6 +34,24 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.6.0 — 2026-05-06
+
+Adds the Python mock-budget linter (LINT-MOCK-1) — the first AI SDLC rule that ships executable code rather than markdown-only discipline. Implements TDD-2 enforcement (≤1 mock per test, only at external boundaries) and integrates as a `/build-slice` pre-finish gate.
+
+### Added
+
+- **LINT-MOCK-1 — Mock-budget linter (Python)**
+  Adds `tools/mock_budget_lint.py` — an AST-based linter for Python test files. Detects (1) test functions with >1 mock invocation (`mock-budget` violation, severity Important) and (2) tests that mock targets outside the external-boundary allowlist (`internal-mock` violation, severity Important; escalated to Critical if target is in `architecture/.cross-chunk-seams`). The boundary allowlist (`_BOUNDARY_DEFAULTS`) covers HTTP/networking, OS/process, filesystem, databases, cloud SDKs (boto3/google/stripe/anthropic/openai/azure), email/messaging, SSH, and time. Detection covers `@patch`, `@patch.object`, `@mock.patch` decorators and `patch(...)`, `mocker.patch(...)`, `mocker.spy(...)`, `mocker.patch.object(...)` inline calls. Integrated into `skills/build-slice/SKILL.md` Step 6 (pre-finish gate): Critical findings block; Important surface to user (Standard/Minimal) or block (Heavy with `--strict`). CLI: `python -m tools.mock_budget_lint <files...> [--seam-allowlist <path>] [--strict] [--json]`. Exit codes: 0 clean, 1 Critical present, 2 usage error.
+  - **Rule reference**: LINT-MOCK-1
+  - **Defect class**: Internal-mock proliferation hides integration seams. A test that mocks `UserService` and asserts behavior against the mock is verifying nothing real — the seam the mock pretends to verify is the seam the test silently bypasses (Freeman & Pryce GOOS — protocol drift). Mock-budget violations (>1 per test) compound this: each additional mock disconnects the test further from any single behavior the system actually exhibits. Without lint enforcement, this drift is invisible at PR review and only surfaces in production when the unmocked code path fails.
+  - **Validation**: `tests/methodology/test_mock_budget_lint.py` — 12 tests over 5 fixtures (`tests/methodology/fixtures/mock_budget_*.py`): clean file, too-many-mocks, internal-class, seam-with-allowlist, seam-without-allowlist, syntax error, missing file, multi-file aggregation, allowlist file format (comments + blanks + trailing whitespace), missing allowlist file, boundary-defaults coverage sanity, `/build-slice` integration prose pin. Total methodology suite: 80 → 92.
+
+### Changed
+
+- **`pytest.ini`** — added `pythonpath = .` so the test suite can import `tools.mock_budget_lint` from anywhere under `tests/`. No effect on existing tests.
+
+---
+
 ## v0.5.0 — 2026-05-06
 
 Adds two improvements: per-pass model assignment for `/diagnose` (COST-1 extension), and explicit critic-calibrate cadence enforcement in `/status` (CAL-1).
