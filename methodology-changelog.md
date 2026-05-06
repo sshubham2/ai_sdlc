@@ -34,6 +34,26 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.5.0 — 2026-05-06
+
+Adds two improvements: per-pass model assignment for `/diagnose` (COST-1 extension), and explicit critic-calibrate cadence enforcement in `/status` (CAL-1).
+
+### Added
+
+- **COST-1.1 — Per-pass model assignment for /diagnose**
+  Adds a Model column to the Step 5 dispatch table in `skills/diagnose/SKILL.md` specifying per-pass model based on cognitive shape: Sonnet for the 5 extraction-shaped passes (03a dead-code, 03c size-outliers, 03f layering, 03g dead-config, 03h test-coverage — reachability + grep + classification work), Opus for the 5 reasoning-shaped passes (01 intent, 02 architecture, 03b duplicates, 03d half-wired, 03e contradictions — synthesis + judgment + cross-module analysis). HTML assembly remains pure Python (no model). Step 6.5 narrator stays Opus. Pass 04-ai-bloat is dispatched in Step 6 separately and remains on the main-thread default.
+  - **Rule reference**: COST-1.1 (extension of COST-1 to /diagnose passes)
+  - **Defect class**: All 11 /diagnose passes running on the same model wastes Opus budget on extraction-shaped work. The cognitive shape varies — graphify reachable + grep cross-reference is Sonnet's job; semantic equivalence judging across modules is Opus's. A flat model assignment burns 5-10x cost on the extraction passes for no quality difference.
+  - **Validation**: `tests/methodology/test_diagnose_pass_models.py` parametrizes over the 10 passes (excluding 04-ai-bloat) and verifies each row in Step 5 names the assigned model. Plus sanity checks: ≥5 extraction passes on Sonnet (rot guard against "everything on Opus"), ≥5 reasoning passes on Opus (rot guard against "everything on Sonnet to save more"), and a `COST-1.1` rule reference for traceability.
+
+- **CAL-1 — Critic-calibrate cadence enforcement in /status**
+  Adds explicit four-state cadence categorization to `skills/status/SKILL.md` Step 2: **within window** (0-9 slices), **approaching** (10-14), ⚠️ **recommended** (15-20), ⚠️⚠️ **overdue** (>20). When state is overdue, the calibration flag surfaces as the top line of "Recommended next action" in Step 3 output, overriding other suggestions until calibration runs. The check honors the deferred-first-run rule: empty calibration log + <10 archived slices = no warning, just "first calibration deferred until 10 slices accumulate".
+  - **Rule reference**: CAL-1
+  - **Defect class**: The "every 10-20 slices" cadence in `/critic-calibrate` was advisory; the previous `/status` had a single `If >15 slices: ⚠️ suggest running` line buried in metrics. Without explicit cadence enforcement, projects let calibration slip past 25, 30, 50 slices — at which point Critic calibration drift has accumulated and missed-pattern data is too noisy to mine effectively. The single-emoji warning was easy to miss; the double-emoji overdue escalation + override of next-action recommendations makes it actionable.
+  - **Validation**: `tests/methodology/test_status_cadence_enforcement.py` verifies the SKILL.md prose contains the four cadence categories (within / approaching / recommended / overdue), the literal threshold numbers (10-20), the deferred-first-run language, override semantics for the overdue state, the double-emoji escalation pattern (⚠️⚠️), and a `CAL-1` rule reference.
+
+---
+
 ## v0.4.0 — 2026-05-06
 
 Adds cost-optimized model selection (COST-1). Three skills now explicitly dispatch their template-filling and rendering work to a Haiku subagent rather than running entirely on the main thread's model.

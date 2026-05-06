@@ -75,22 +75,24 @@ You don't process this manually — `assemble.py` handles it. Just ensure prior 
 
 Each pass is self-contained. Read its template from `~/.claude/skills/diagnose/passes/<name>.md` and pass it verbatim to a subagent.
 
-**Parallel batch (run in a single message with multiple Agent tool calls):**
+**Parallel batch (run in a single message with multiple Agent tool calls).**
 
-| Pass | Template file |
-|------|---------------|
-| 01-intent | `passes/01-intent.md` |
-| 02-architecture | `passes/02-architecture.md` |
-| 03a-dead-code | `passes/03a-dead-code.md` |
-| 03b-duplicates | `passes/03b-duplicates.md` |
-| 03c-size-outliers | `passes/03c-size-outliers.md` |
-| 03d-half-wired | `passes/03d-half-wired.md` |
-| 03e-contradictions | `passes/03e-contradictions.md` |
-| 03f-layering | `passes/03f-layering.md` |
-| 03g-dead-config | `passes/03g-dead-config.md` |
-| 03h-test-coverage | `passes/03h-test-coverage.md` |
+Per **COST-1.1** (`methodology-changelog.md` v0.5.0), each pass is dispatched on a model matched to its cognitive shape — Sonnet for extraction-shaped passes (reachability + grep + classification), Opus for reasoning-shaped passes (synthesis + judgment + cross-module analysis). HTML assembly remains pure Python (no model). Step 6.5 narrator stays Opus.
 
-Spawn each as `Agent` with `subagent_type: general-purpose`. **Do NOT use `Explore`** — Explore agents lack the `Write` tool and will silently fail to produce output files. Only `general-purpose` has the full tool set needed (Read, Grep, Glob, Bash, Write).
+| Pass | Template file | Model | Rationale |
+|------|---------------|-------|-----------|
+| 01-intent | `passes/01-intent.md` | opus | Intent reconstruction = synthesis from entry points + handlers + models + integrations |
+| 02-architecture | `passes/02-architecture.md` | opus | Architecture judgment = reasoning about fitness, layering, KEEP/MODIFY/DROP decisions |
+| 03a-dead-code | `passes/03a-dead-code.md` | sonnet | Reachability analysis + verification (string grep, dynamic-import check) — extraction |
+| 03b-duplicates | `passes/03b-duplicates.md` | opus | Semantic duplicate detection requires judging functional equivalence across modules |
+| 03c-size-outliers | `passes/03c-size-outliers.md` | sonnet | Distribution computation + outlier flagging — extraction |
+| 03d-half-wired | `passes/03d-half-wired.md` | opus | Half-wired feature detection requires reasoning about UI ↔ backend disconnects |
+| 03e-contradictions | `passes/03e-contradictions.md` | opus | Cross-module assumption analysis = reasoning about how shared concepts diverge |
+| 03f-layering | `passes/03f-layering.md` | sonnet | Dominant-pattern extraction + deviation flagging — classification |
+| 03g-dead-config | `passes/03g-dead-config.md` | sonnet | Config registry vs consumer cross-reference — extraction |
+| 03h-test-coverage | `passes/03h-test-coverage.md` | sonnet | Reachability + test-import cross-reference — extraction |
+
+**Spawn each as `Agent` with `subagent_type: general-purpose`** AND the model from the table above (specified as `model: <opus|sonnet>` in the Agent invocation). **Do NOT use `Explore`** — Explore agents lack the `Write` tool and will silently fail to produce output files. Only `general-purpose` has the full tool set needed (Read, Grep, Glob, Bash, Write).
 
 Each subagent receives the template content + `TARGET` and `OUT` paths. Each writes:
 

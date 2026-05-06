@@ -76,9 +76,16 @@ If fallback triggers: flag to user "milestone.md missing — consider running `/
 - Slices since last run
 - If >3 slices since last full run AND catalog exists: ⚠️ flag
 
-**Critic calibration status**:
-- Slices since last `/critic-calibrate` run (from critic-calibration-log.md)
-- If >15 slices: ⚠️ suggest running
+**Critic calibration status (cadence enforcement per CAL-1)**:
+- Slices since last `/critic-calibrate` run (from `architecture/critic-calibration-log.md`)
+- Threshold: every 10-20 archived slices
+- Categorize cadence into one of four states:
+  - **within window** (0-9 slices): no flag
+  - **approaching** (10-14 slices): info only
+  - ⚠️ **recommended** (15-20 slices): "calibration recommended — N slices since last run"
+  - ⚠️⚠️ **overdue** (>20 slices): "calibration overdue — N slices; run /critic-calibrate next"
+- **Cadence-overdue override**: if state is ⚠️⚠️ overdue, the cadence flag supersedes other "Recommended next action" entries in Step 3 output (calibration runs first, then resume normal next-slice work)
+- **First-run handling**: if calibration log is empty AND <10 archived slices, do not flag — output "first calibration deferred until 10 archived slices accumulate" (this is not a warning)
 
 **Risk exposure**:
 - Active HIGH risks count
@@ -148,7 +155,10 @@ Output format (default, balanced) — **the dispatched agent fills this**:
 ## Critic calibration
 - Recent miss categories: 2 platform-specific (iOS HEIC), 1 concurrency (from last 10 reflections)
 - Last `/critic-calibrate` run: 8 slices ago (2 proposals accepted)
-- Threshold: every 10-20 slices. Current window: **hitting soon**.
+- Threshold: every 10-20 archived slices
+- Status: **within window** (8 of 20-slice budget — calibration not yet recommended)
+
+(For an overdue project, this section reads: `Status: ⚠️⚠️ overdue (24 slices since last; threshold 20)`. When overdue, the **Recommended next action** section below shows `/critic-calibrate` first, overriding other suggestions until run.)
 
 ## Drift & bypass
 - Unresolved drift entries: 0
@@ -162,6 +172,11 @@ Output format (default, balanced) — **the dispatched agent fills this**:
 - HEIC handling: always rotate via EXIF orientation
 
 ## Recommended next action
+
+**Cadence-overdue override (CAL-1)**: if Critic calibration is ⚠️⚠️ overdue (>20 slices since last run), the top line of this section is `Run /critic-calibrate (cadence-overdue: N slices since last; threshold 20)` — supersedes the active-slice next action until calibration runs. Other suggestions queue beneath. This is the only recommendation that overrides active-slice state.
+
+**Otherwise** (the common case — calibration within window or approaching threshold):
+
 **Run `/critique` on slice-023** (design complete; Critic hasn't reviewed).
 
 Queued-after candidates (from recent Discovered + Deferred):

@@ -140,6 +140,8 @@ ai_sdlc/
       test_methodology_changelog.py
       test_agent_frontmatter.py     # Parametrized over all named agents
       test_skill_model_dispatch.py  # Verifies COST-1 Haiku dispatch directives
+      test_diagnose_pass_models.py  # Verifies COST-1.1 per-pass model assignments
+      test_status_cadence_enforcement.py  # Verifies CAL-1 critic-calibrate cadence
   pytest.ini                # testpaths = tests
 ```
 
