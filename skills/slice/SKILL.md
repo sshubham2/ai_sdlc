@@ -39,7 +39,14 @@ Convention: `slices/` holds only active slices (no completed ones). All complete
 
 **Gather candidates from ALL these sources** — do NOT rely on the user to name the next slice:
 
-1. **Risk register** (`architecture/risk-register.md`): every HIGH risk marked "active" or "open" is a candidate — the slice would retire it
+1. **Risk register** (`architecture/risk-register.md`) — per **RR-1** (`methodology-changelog.md` v0.12.0), use the audit tool to get scored, sorted candidates instead of grepping for "HIGH" or "active":
+
+   ```bash
+   $PY -m tools.risk_register_audit architecture/risk-register.md \
+     --json --filter-status open --sort score --top 5
+   ```
+
+   Top open high-band risks are first-priority slice candidates — the slice would retire them. Open medium-band risks are second-priority. Retired / accepted risks are excluded automatically. If the audit emits zero risks (legacy table format or empty file), fall back to grepping the file directly and flag for migration.
 2. **Recent deferrals** (`slices/_index.md` "Aggregated lessons" + last 3 archived `reflection.md` files' "Deferred" sections): items deferred from prior slices are candidates
 3. **Recent discoveries** (last 3 reflections' "Discovered" sections): new risks or gaps that surfaced during recent slices
 4. **Concept scope not yet built** (`architecture/concept.md` — compare stated scope to `_index.md` catalog of shipped work): MVP features still unbuilt

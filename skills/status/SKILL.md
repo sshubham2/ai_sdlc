@@ -37,7 +37,7 @@ Read these files (non-recursive, small total):
 
 - `architecture/triage.md` → mode, classification, pipeline path, deferred steps
 - `architecture/concept.md` (if exists) → 1-line "what it does"
-- `architecture/risk-register.md` → risks with status (active / retired / blocked)
+- `architecture/risk-register.md` → risks with status (open / mitigating / retired / accepted) — use the **RR-1** audit (`$PY -m tools.risk_register_audit architecture/risk-register.md --json --filter-status open --sort score`) for scored, sorted output. Surface top-3 open by score in the "Risk exposure" section; older legacy table-format files emit zero risks and fall back to a grep-based summary with a one-line "register not migrated to RR-1 format" hint.
 - `architecture/slices/_index.md` → active slice list, recent-10, aggregated lessons
 - Active slice folder (if any): `milestone.md` FIRST (primary source — explicit stage, next-action, progress, on-resume data in one file). Only read `mission-brief.md` for extra detail on intent or ACs if the milestone summary isn't enough.
 - If `milestone.md` shows stage `build` (or later but `build-log.md` exists): also read the **tail (~last 15 lines) of `build-log.md`'s `## Events` section**. This is the append-only flight recorder written by `/build-slice` Step 7c. Tool failures and session deaths can leave `milestone.md` stale; the events trace is the durable record. Compare the latest event timestamp to milestone.md's last update — if events are newer, milestone.md is behind and the events tell the real story.

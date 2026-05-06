@@ -145,6 +145,7 @@ ai_sdlc/
       test_wiring_matrix_audit.py    # Tests WIRE-1 — wiring matrix format validation
       test_build_checks_audit.py     # Tests BC-1 — build-checks gate (project + global)
       test_triage_audit.py          # Tests TRI-1 — user-owned triage discipline
+      test_risk_register_audit.py   # Tests RR-1 — risk register scoring + sorting
       test_mock_budget_lint.py      # Tests LINT-MOCK-1 — runs linter on fixtures
       fixtures/                     # Test fixtures (NOT collected by pytest)
         mock_budget_clean.py        # Python fixtures for LINT-MOCK-1
@@ -184,12 +185,21 @@ ai_sdlc/
           verdict_mismatch_critique.md
           no_triage_section_critique.md
           invalid_disposition_critique.md
+        risk_register/              # RR-1 fixtures (risk-register.md fragments)
+          clean_register.md
+          missing_likelihood.md
+          invalid_status.md
+          duplicate_id.md
+          empty_register.md
+          legacy_register.md
+          all_retired.md
   pytest.ini                # testpaths = tests + pythonpath = .
   tools/                    # Executable methodology tools (Python)
     mock_budget_lint.py       # LINT-MOCK-1/2/3 — AST + tree-sitter linter for TDD-2 mock budget (Python, TS/JS, Go)
     wiring_matrix_audit.py    # WIRE-1 — wiring matrix format validator for slice design.md
     build_checks_audit.py     # BC-1 — build-checks gate; surfaces evergreen rules at /build-slice
     triage_audit.py           # TRI-1 — user-owned triage section validator for slice critique.md
+    risk_register_audit.py    # RR-1 — risk register scoring + sorting (Likelihood x Impact)
 ```
 
 ## Getting started

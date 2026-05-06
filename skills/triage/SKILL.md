@@ -158,13 +158,25 @@ You'll run: <ordered list of skill invocations for this mode>
 ## Initial risk register
 (mirrored in risk-register.md)
 
-| ID | Risk | Reversibility | Spike? |
-|----|------|---------------|--------|
-| R1 | ... | irreversible-if-wrong | YES |
-| R2 | ... | expensive | via /user-test |
+Per **RR-1** (`methodology-changelog.md` v0.12.0), risks are H2-structured with explicit Likelihood and Impact so the audit (`tools/risk_register_audit.py`) can score them and `/slice` / `/status` can sort by score. The legacy `| ID | Risk | Reversibility | Spike? |` table is retired for new projects.
+
+For each risk discovered during triage, write an entry to both `triage.md` (initial snapshot, won't be re-edited) and `architecture/risk-register.md` (running log; updated by `/reflect` and `/risk-spike`).
+
+```markdown
+## R1 — <short title>
+
+**Likelihood**: low | medium | high
+**Impact**: low | medium | high
+**Status**: open | mitigating | retired | accepted
+**Reversibility**: cheap | expensive | irreversible
+**Mitigation**: <free text — spike ref, planned slice, or "none yet">
+**Discovered**: triage (<YYYY-MM-DD>) — or slice-NNN-<name>
+**Notes**: <optional free text>
 ```
 
-Also write `architecture/risk-register.md` with the same risks (this becomes the running risk log).
+Score is computed as Likelihood × Impact (low=1, medium=2, high=3 -> 1..9). Band is derived: 1-2 low, 3-4 medium, 6-9 high. The audit refuses entries with missing required fields (Likelihood / Impact / Status) or invalid values. For each HIGH-band risk, decide if it can be retired with `/risk-spike` and note that in the Mitigation field.
+
+Also write `architecture/risk-register.md` with the same risks (this becomes the running risk log; verify with `$PY -m tools.risk_register_audit architecture/risk-register.md`).
 
 ### Step 5b-pre: Offer graphify integration
 

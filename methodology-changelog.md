@@ -34,6 +34,33 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.12.0 — 2026-05-06
+
+Adds **RR-1** — risk register scoring. The `architecture/risk-register.md` migrates from a freeform 4-column table to an H2-structured format with explicit Likelihood and Impact fields; the audit tool computes Score and Band so `/slice` and `/status` can sort by score instead of grepping for "HIGH" or "active".
+
+### Added
+
+- **RR-1 — Risk register scoring**
+  Adds `tools/risk_register_audit.py` — H2-structured parser for the risk register. Each risk is `## R-NN — <title>` followed by required fields (`Likelihood`, `Impact`, `Status`) and optional fields (`Reversibility`, `Mitigation`, `Discovered`, `Notes`). Score is computed as `Likelihood * Impact` with `low=1, medium=2, high=3` -> `1..9`. Band is derived: 1-2 = low, 3-4 = medium, 6-9 = high. The CLI supports `--filter-status`, `--filter-band`, `--sort=score|band|id`, `--top N`, `--json`, and `--warn-legacy` (opt-in deprecation hint for old table-format files).
+
+  Updates `skills/triage/SKILL.md` Step 5: replaces the legacy `| ID | Risk | Reversibility | Spike? |` table with the H2 format and references the audit. Updates `skills/slice/SKILL.md` Step 1: candidate gathering now consumes scored risks via the audit (`--filter-status open --sort score --top 5`) instead of grepping for "HIGH"/"active". Updates `skills/status/SKILL.md`: surfaces top-3 open by score in the Risk exposure section.
+
+  Opt-in migration: legacy table-format registers yield zero risks with no violation by default — projects migrate when ready. With `--warn-legacy`, a `legacy-format` violation surfaces so audits can flag the un-migrated state explicitly.
+
+  CLI: `python -m tools.risk_register_audit <register.md> [--json] [--warn-legacy] [--filter-status STATUS] [--filter-band BAND] [--sort {score,band,id}] [--top N]`. Exit codes: 0 clean, 1 violations, 2 usage error.
+
+  - **Rule reference**: RR-1
+  - **Defect class**: Pre-RR-1, the risk register was a freeform 4-column table with no structured Likelihood/Impact fields. `/slice` and `/status` could only describe risks with text grep ("Active HIGH: 2 — R7, R11") and the human had to mentally re-classify entries each session. There was no audit-time check that a risk had complete information, no consistent vocabulary for status, and no way to mechanically pull "the top 3 unmitigated concerns." When the register grew past ~10 risks, it became a wall of text that nobody re-read. RR-1 makes the register structured + scored + sortable so risk-first ordering is mechanical and `/status` can surface signal without manual triage.
+  - **Validation**: `tests/methodology/test_risk_register_audit.py` — 21 tests over 7 fixtures (`tests/methodology/fixtures/risk_register/`): score computation per band threshold, full-register parsing, optional-field capture, missing-required-field violation, invalid-status violation, duplicate-id violation, empty-register graceful handling, missing-file graceful handling, legacy-format silent-by-default + flagged-with-`--warn-legacy`, filter by status, filter by band, sort by score (desc with id-tiebreak), top-N limit, summary aggregates by band/status, `open_high_count` zero when all retired, plus skill prose pins (RR-1 reference + audit module reference + Likelihood/Impact field documentation in `/triage`, `/slice`, `/status`). Total methodology suite: 155 -> 176.
+
+  Limitations (v1, documented in code):
+  - **Likelihood × Impact only**. No exposure, time-to-detect, or weighted scoring (FAIR / FMEA-style). Sufficient for product-build risk; v2 candidate for compliance Heavy mode.
+  - **Status vocabulary fixed**. {open, mitigating, retired, accepted} doesn't include "deferred" or "transferred"; sufficient for current pipeline use.
+  - **No mitigation parsing**. The Mitigation field is captured as free text; v2 could parse spike refs and validate the spike file exists.
+  - **No automatic migration**. Legacy table format is not auto-converted; projects migrate manually when adopting RR-1.
+
+---
+
 ## v0.11.0 — 2026-05-06
 
 Adds **TRI-1** — three-verdict + user-owned triage. Renames the critique verdicts (APPROVED -> CLEAN, APPROVED-WITH-FIXES -> NEEDS-FIXES; BLOCKED unchanged), inserts an explicit user-ratification step at `/critique` Step 4.5, and adds an audit tool that validates the resulting `## Triage` section in critique.md. Calibration vocabulary in `/reflect` Step 3 expands to include OVERRIDE-MISJUDGED so user-side override accuracy is tracked alongside Critic accuracy.
