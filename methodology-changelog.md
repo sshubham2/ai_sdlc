@@ -34,6 +34,51 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.19.0 — 2026-05-06
+
+Adds two final pipeline rules. **SUP-1** introduces `/supersede-slice` for cleanly retiring a shipped (archived) slice when reality has contradicted its design. **PMI-1** adds a `plugin.yaml` manifest at the repo root with a parity audit against the actual filesystem, laying groundwork for plugin marketplace distribution.
+
+### Added
+
+- **SUP-1 — Slice supersession**
+  Adds `tools/supersede_audit.py` and `skills/supersede-slice/SKILL.md`.
+
+  When a shipped slice's design.md / mission-brief.md continues to read as a live claim about current code (vault drift), AND a new slice in active development is fixing it, `/supersede-slice <archived-id>` formalizes the link:
+  - Appends a `## Supersession` section to the archived slice's `reflection.md` with `**Superseded by**: <active-id>`, `**Date**:`, `**Reason**:` fields
+  - The active slice's `mission-brief.md` gains a `**Supersedes**: <archived-id>` field
+  - The audit walks both directions and validates bidirectional consistency
+
+  Refusal semantics:
+  - `missing-target`: Supersedes / Superseded-by points to a slice id that doesn't exist in active or archive
+  - `one-way-link`: only one end declares the link (active claims supersedes but archive doesn't acknowledge, or vice versa)
+
+  Append-only history: `/supersede-slice` does NOT modify other content in the archived reflection.md or delete the archived folder. Like ADR supersession, the original slice remains as historical record; the supersession section just marks its claims as no-longer-canonical.
+
+  CLI: `python -m tools.supersede_audit [--root <path>] [--json]`. Exit codes: 0 clean, 1 violations, 2 usage error.
+
+  - **Rule reference**: SUP-1
+  - **Defect class**: Without explicit supersession, fix slices accumulate as "another slice in the catalog" while the original archived slice's claims (in its reflection.md and design.md) continue reading as live assertions. /drift-check skips the archive (correctly — those slices already shipped) so the stale claims aren't surfaced. Vault rot accumulates silently across releases. SUP-1 makes supersession an explicit, auditable, bidirectional link, mirroring the ADR `supersedes:` / `superseded-by:` pattern at slice scope.
+  - **Validation**: `tests/methodology/test_supersede_audit.py` — 7 tests over tmp_path-built fixtures: no-supersession-clean, bidirectional-clean, missing-target, one-way-active-to-archived, one-way-archived-to-active, missing-slices-dir-graceful, plus skill prose pin (SUP-1 + supersede_audit reference + Supersedes/Superseded-by field formats).
+
+  Limitations (v1, documented in code): no automatic /reflect integration; single-slice supersession only (no chains); no slice-folder name format enforcement; no /critique cross-reference for superseded slices.
+
+- **PMI-1 — Plugin marketplace manifest**
+  Adds `plugin.yaml` at repo root + `tools/plugin_manifest_audit.py`.
+
+  The manifest enumerates every skill (24 entries), agent (5 entries), and tool (13 entries — auto-updates as new tools ship) the AI SDLC plugin distributes. The audit cross-validates the manifest against the actual filesystem layout: required top-level fields present (name, version, description, skills, agents, tools); version field matches the top-level `VERSION` file (lock-step semver); every manifest-listed skill has `skills/<id>/SKILL.md`; every manifest-listed agent has `agents/<id>.md`; every manifest-listed tool exists at the declared path; reverse: no orphan skills/agents/tools (real files not listed).
+
+  Format note: this is a starting-point YAML manifest. As the Claude Code plugin marketplace specification stabilizes, the file may be reformatted (e.g., to `.claude-plugin/plugin.json`) and the audit's parser updated. The structural invariants the audit checks (declared = actual; version sync) are the load-bearing piece.
+
+  CLI: `python -m tools.plugin_manifest_audit [--root <path>] [--json]`. Exit codes: 0 clean, 1 violations, 2 usage error. The audit found 2 real violations on its first run (orphan-tool — itself not yet in the manifest; version-mismatch during the in-progress release) — the rule's intended behavior caught its own bootstrap state.
+
+  - **Rule reference**: PMI-1
+  - **Defect class**: Distributing AI SDLC as a Claude Code plugin requires a manifest. Without an audit, the manifest drifts the moment a new skill / agent / tool is added without a corresponding manifest update. Installers see "ai-sdlc 0.19.0 with 24 skills" but the package contains 25 — the new one ships but isn't enumerated, so any consumer that walks the manifest (e.g., to render the plugin's contents in marketplace UI) misses it. PMI-1 keeps both in sync at audit time.
+  - **Validation**: `tests/methodology/test_plugin_manifest_audit.py` — 9 tests: clean tmp-project, missing-manifest, version-mismatch, missing-required-field, missing-skill, orphan-skill / orphan-agent / orphan-tool, plus a real-repo smoke test that the actual `plugin.yaml` is in sync with the AI SDLC repo (excluding version-mismatch during release-in-progress). Total methodology suite: 272 -> 288.
+
+  Limitations (v1, documented in code): YAML format is provisional (eventual marketplace spec may differ); no content-level validation of SKILL.md frontmatter (covered by other audits); no transitive dependency declaration (yaml, tomllib, tree_sitter); no version-compatibility range; no install-script integration with INSTALL.md.
+
+---
+
 ## v0.18.0 — 2026-05-06
 
 Adds **CSP-1** — cross-spec parity audit for Heavy mode. Walks `architecture/threat-model.md`, `architecture/requirements.md`, and `architecture/nfrs.md` and validates that every H2 item (`TM-NN` / `REQ-NN` / `NFR-NN`) has structured fields AND its `Implementation:` (TM/REQ) or `Verification:` (NFR) cross-reference points to a file that actually exists. Catches the canonical Heavy-mode failure mode: a threat / requirement / NFR claims a mitigation or verification that no longer exists in code (or never did).

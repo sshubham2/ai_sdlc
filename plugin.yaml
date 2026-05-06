@@ -1,0 +1,114 @@
+# AI SDLC plugin manifest (PMI-1)
+#
+# Per PMI-1 (methodology-changelog.md v0.19.0). The manifest enumerates
+# every skill, agent, and tool the AI SDLC plugin distributes. It pairs
+# with `tools/plugin_manifest_audit.py` which validates that the manifest
+# matches the actual filesystem (no orphan files, no missing entries) and
+# that the version field is in sync with the top-level VERSION file.
+#
+# This is a starting-point manifest format. As the Claude Code plugin
+# marketplace specification stabilizes, this file may be moved to
+# `.claude-plugin/plugin.json` or similar; for v1, this YAML serves as
+# both documentation and a target for the audit.
+
+name: ai-sdlc
+version: 0.19.0  # synced with VERSION file (PMI-1 audit enforces)
+description: |
+  Spec-driven SDLC for AI implementers. Hybrid of phase-driven rigor (for
+  knowable domains) and slice-driven iteration (for unknowable ones).
+  Two AI personas (Builder + Critic), three modes (Minimal/Standard/Heavy),
+  per-slice continuous validation, drift-check as pre-commit, thin vault
+  philosophy. Drop-in Claude Code skills + named subagents + executable
+  methodology tools.
+license: see LICENSE
+repository: ai_sdlc
+
+skills:
+  - id: adopt
+    description: Brownfield project opener (existing codebase)
+  - id: archive
+    description: Move completed slices to slices/archive/; maintain _index.md
+  - id: build-slice
+    description: Plan mode + verification gates; pre-finish gate enforces all rules
+  - id: commit-slice
+    description: Generate audit-grade commit message from vault artifacts
+  - id: critic-calibrate
+    description: Periodic meta-skill — analyze 'Missed by Critic' patterns; propose Critic prompt updates
+  - id: critique
+    description: Adversarial review by Critic persona; user-owned triage at Step 4.5
+  - id: critique-review
+    description: Dual review — meta-Critic reviews first Critic's output (DR-1)
+  - id: design-slice
+    description: Just-enough spec for current slice (per-slice design)
+  - id: diagnose
+    description: Forensic, code-only HTML deliverable for legacy/AI-assisted codebases
+  - id: discover
+    description: Discovery — concept + users + constraints
+  - id: drift-check
+    description: Vault vs code drift detection (pre-commit ready)
+  - id: heavy-architect
+    description: Heavy mode only — upfront comprehensive vault
+  - id: reduce
+    description: Complexity budget enforcer
+  - id: reflect
+    description: Capture learnings, update vault; auto-archive slice
+  - id: repro
+    description: Bug-fix discipline — failing test before fix slice
+  - id: risk-spike
+    description: Validate risky assumptions early
+  - id: slice
+    description: Define next thinnest valuable cut
+  - id: slice-candidates
+    description: Reads annotated diagnosis.html → backlog of dependency-ordered candidates
+  - id: status
+    description: Macro state summary — mode, active slice, risks, regression health
+  - id: supersede-slice
+    description: Cleanly retire a shipped slice when reality contradicts its design (SUP-1)
+  - id: sync
+    description: Heavy mode only — bidirectional vault-code reconciliation; runs CSP-1
+  - id: triage
+    description: Greenfield project opener — pick mode, build risk register, scope pipeline
+  - id: user-test
+    description: Real user validation gate (B2C)
+  - id: validate-slice
+    description: Reality check — real device, real user, real data; runs VAL-1 + WS-1 + ETC-1
+
+agents:
+  - id: critique
+    description: Adversarial Critic for slice designs; 8 dimensions
+  - id: critic-calibrate
+    description: Meta-Critic for cross-slice 'Missed by Critic' pattern mining (CAL-1)
+  - id: critique-review
+    description: Per-slice meta-Critic; reviews first Critic's output (DR-1)
+  - id: diagnose-narrator
+    description: Narrator for /diagnose Step 6.5 — engaging executive summary
+  - id: field-recon
+    description: Field reconnaissance for /risk-spike — live web survey
+
+tools:
+  - path: tools/build_checks_audit.py
+    rule: BC-1
+  - path: tools/critique_review_audit.py
+    rule: DR-1
+  - path: tools/cross_spec_parity_audit.py
+    rule: CSP-1
+  - path: tools/exploratory_charter_audit.py
+    rule: ETC-1
+  - path: tools/mock_budget_lint.py
+    rule: LINT-MOCK-1/2/3
+  - path: tools/plugin_manifest_audit.py
+    rule: PMI-1
+  - path: tools/risk_register_audit.py
+    rule: RR-1
+  - path: tools/supersede_audit.py
+    rule: SUP-1
+  - path: tools/test_first_audit.py
+    rule: TF-1
+  - path: tools/triage_audit.py
+    rule: TRI-1
+  - path: tools/validate_slice_layers.py
+    rule: VAL-1
+  - path: tools/walking_skeleton_audit.py
+    rule: WS-1
+  - path: tools/wiring_matrix_audit.py
+    rule: WIRE-1
