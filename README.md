@@ -154,6 +154,9 @@ ai_sdlc/
         mock_budget_internal.ts
         mock_budget_seam.ts
         syntax_error.ts
+        mock_budget_clean.go        # Go fixtures for LINT-MOCK-3 (mock-budget v1)
+        mock_budget_too_many.go
+        syntax_error.go
   pytest.ini                # testpaths = tests + pythonpath = .
   tools/                    # Executable methodology tools (Python)
     mock_budget_lint.py       # LINT-MOCK-1 — AST linter for TDD-2 mock budget

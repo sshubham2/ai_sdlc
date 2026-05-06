@@ -306,3 +306,83 @@ def test_build_slice_skill_references_lint_mock_2():
     """
     text = (REPO_ROOT / "skills" / "build-slice" / "SKILL.md").read_text(encoding="utf-8")
     assert "LINT-MOCK-2" in text, "no LINT-MOCK-2 reference in /build-slice SKILL.md"
+
+
+# ---------------------------------------------------------------------------
+# LINT-MOCK-3 — Go extension (mock-budget only in v1)
+# ---------------------------------------------------------------------------
+
+
+def test_go_clean_file_has_no_violations():
+    """A Go test file with one mock constructor call passes mock-budget.
+
+    Defect class: False positives on a single-mock test would train Go users
+    to ignore the linter.
+    Rule reference: LINT-MOCK-3.
+    """
+    violations = lint_file(FIXTURES / "mock_budget_clean.go")
+    assert violations == [], (
+        f"clean Go file had unexpected violations: "
+        f"{[(v.kind, v.severity, v.message) for v in violations]}"
+    )
+
+
+def test_go_too_many_mocks_flags_mock_budget():
+    """Go test functions with >1 mock constructor call should be flagged.
+
+    Defect class: Go test files with multiple gomock mocks (NewMockA + NewMockB)
+    in one TestXxx bypass multiple seams; the test verifies no single behavior.
+    Rule reference: LINT-MOCK-3.
+    """
+    violations = lint_file(FIXTURES / "mock_budget_too_many.go")
+    budget = [v for v in violations if v.kind == "mock-budget"]
+    assert len(budget) == 1, (
+        f"expected exactly 1 Go mock-budget violation; got {len(budget)}: "
+        f"{[v.message for v in budget]}"
+    )
+    assert budget[0].severity == "Important"
+    assert "TestUserAndOrder" in budget[0].test_function
+
+
+def test_go_syntax_error_emits_parse_error_finding():
+    """Go files with syntax errors emit a parse-error finding (not a crash).
+
+    Defect class: Tree-sitter Go grammar can produce parse errors on broken
+    source; the linter must surface these as findings rather than raise.
+    Rule reference: LINT-MOCK-3.
+    """
+    violations = lint_file(FIXTURES / "syntax_error.go")
+    assert any(v.kind == "parse-error" for v in violations), (
+        f"expected a parse-error finding; got {[v.kind for v in violations]}"
+    )
+
+
+def test_go_constructor_declarations_are_not_counted():
+    """`func NewMockX()` declarations must NOT count toward any test's budget.
+
+    Defect class: Counting function_declaration nodes as mocks would flag the
+    file's own constructor definitions. Only call_expression nodes count.
+    The clean fixture has 1 NewMockUserService DEFINITION + 1 CALL — only
+    the call should count.
+    Rule reference: LINT-MOCK-3.
+    """
+    violations = lint_file(FIXTURES / "mock_budget_clean.go")
+    # The file contains `func NewMockUserService()` (declaration) AND a call
+    # `NewMockUserService()` inside TestUserCreated. Only the call counts;
+    # the test has 1 mock, so no mock-budget violation.
+    assert not any(v.kind == "mock-budget" for v in violations), (
+        f"Go declaration vs call disambiguation broke: "
+        f"clean fixture flagged mock-budget when it has only 1 actual call"
+    )
+
+
+def test_build_slice_skill_references_lint_mock_3():
+    """skills/build-slice/SKILL.md must reference LINT-MOCK-3 (Go extension).
+
+    Defect class: Without the rule reference, executors won't know to lint
+    Go test files; the gate becomes Python+TS only by accident.
+    Rule reference: LINT-MOCK-3.
+    """
+    text = (REPO_ROOT / "skills" / "build-slice" / "SKILL.md").read_text(encoding="utf-8")
+    assert "LINT-MOCK-3" in text, "no LINT-MOCK-3 reference in /build-slice SKILL.md"
+    assert ".go" in text, "no .go extension reference in /build-slice SKILL.md"

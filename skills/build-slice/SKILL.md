@@ -102,9 +102,9 @@ Before declaring slice done, ALL of these must be true:
 
 If any gate fails: don't declare done. Fix or escalate.
 
-#### Mock-budget lint (LINT-MOCK-1, LINT-MOCK-2)
+#### Mock-budget lint (LINT-MOCK-1, LINT-MOCK-2, LINT-MOCK-3)
 
-Per **LINT-MOCK-1** (Python; v0.6.0) and **LINT-MOCK-2** (TypeScript / JavaScript; v0.7.0), Python and TS/JS test files changed in this slice must pass `tools/mock_budget_lint.py`. The linter dispatches by file extension automatically:
+Per **LINT-MOCK-1** (Python; v0.6.0), **LINT-MOCK-2** (TypeScript / JavaScript; v0.7.0), and **LINT-MOCK-3** (Go; v0.8.0), Python, TS/JS, and Go test files changed in this slice must pass `tools/mock_budget_lint.py`. The linter dispatches by file extension automatically:
 
 ```bash
 $PY -m tools.mock_budget_lint <changed-test-files>
@@ -112,16 +112,16 @@ $PY -m tools.mock_budget_lint <changed-test-files>
 # Add --strict in Heavy mode (Important also blocks)
 ```
 
-Supported extensions: `.py` (LINT-MOCK-1), `.ts` `.tsx` `.js` `.jsx` `.mts` `.cts` (LINT-MOCK-2). Go support ships in a later slice.
+Supported extensions: `.py` (LINT-MOCK-1), `.ts` `.tsx` `.js` `.jsx` `.mts` `.cts` (LINT-MOCK-2), `.go` (LINT-MOCK-3).
 
 Severity rules:
-- **Critical** (target is in `architecture/.cross-chunk-seams`): blocks pre-finish; cannot be deferred
+- **Critical** (target is in `architecture/.cross-chunk-seams`): blocks pre-finish; cannot be deferred. *(Critical applies to LINT-MOCK-1 and LINT-MOCK-2 only; LINT-MOCK-3 v1 enforces mock-budget without internal-mock classification — no Critical findings emitted.)*
 - **Important** in Standard / Minimal mode: surface to user; allow defer with rationale recorded in `build-log.md`
 - **Important** in Heavy mode: blocks pre-finish (`--strict` is mandatory)
 
-The `architecture/.cross-chunk-seams` allowlist (if present) names targets where mocking is escalated to Critical. One target per line; lines starting with `#` are comments. The same allowlist applies to both Python and TS files; format matches each language's import-target string (e.g., `src.api.receipts.upload_receipt` for Python, `./api/receipts` for TS).
+The `architecture/.cross-chunk-seams` allowlist (if present) names targets where mocking is escalated to Critical. One target per line; lines starting with `#` are comments. The same allowlist applies to Python and TS files; format matches each language's import-target string (e.g., `src.api.receipts.upload_receipt` for Python, `./api/receipts` for TS). Go v1 doesn't yet honor the allowlist; a later slice adds import-aware boundary classification for Go.
 
-If the slice didn't touch any Python or TS/JS test files: skip this gate (not applicable).
+If the slice didn't touch any Python, TS/JS, or Go test files: skip this gate (not applicable).
 
 ### Step 7: Do-not-defer enforcement
 

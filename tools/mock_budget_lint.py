@@ -258,6 +258,8 @@ def lint_file(
         return _lint_python(path, seam_allowlist)
     if suffix in {".ts", ".tsx", ".js", ".jsx", ".mts", ".cts"}:
         return _lint_typescript(path, seam_allowlist)
+    if suffix == ".go":
+        return _lint_go(path, seam_allowlist)
     return [LintViolation(
         path=str(path),
         line=0,
@@ -266,7 +268,7 @@ def lint_file(
         severity="Important",
         message=(
             f"unsupported file extension: '{suffix}' "
-            f"(supported: .py, .ts/.tsx/.js/.jsx/.mts/.cts)"
+            f"(supported: .py, .ts/.tsx/.js/.jsx/.mts/.cts, .go)"
         ),
     )]
 
@@ -573,6 +575,207 @@ def _lint_typescript(
                 message=(
                     f"test '{scope['name']}' mocks internal target "
                     f"'{mock.target}'{suffix_msg}"
+                ),
+            ))
+
+    return violations
+
+
+def _lint_go(
+    path: Path,
+    seam_allowlist: frozenset[str] = frozenset(),  # reserved for v2 internal-mock support
+) -> list[LintViolation]:
+    """Lint a single Go test file via tree-sitter.
+
+    v1 enforces mock-budget only (>1 mock per test = Important). Internal-mock
+    classification is deferred to a v2 — Go mocks are type-based without
+    string targets, so accurate boundary classification requires import-aware
+    analysis not yet implemented.
+
+    Detection (v1):
+    - Test scopes: function_declaration whose name matches `^Test[A-Z]` (Go
+      convention; uppercase second char filters out helpers like `Testing`)
+    - Subtests: call_expression matching `<ident>.Run("name", func ...)`
+    - Mock instances: call_expression whose function name matches
+      `^New(Mock|Fake|Stub|Spy)` — covers gomock-generated mocks
+      (NewMockXxx), manual mocks, fakes, stubs, spies
+
+    Limitations (v1):
+    - `var x MockUserService` declarations not yet counted (constructor pattern
+      is the dominant idiom in Go test code)
+    - testify `mock.Mock` embedding not yet detected (would require type-graph
+      walk; v2 candidate)
+    - `gomock.NewController` itself not counted (it's infra; the NewMockXxx
+      calls that follow are the mocks)
+    - `seam_allowlist` parameter ignored in v1; reserved for v2 when
+      internal-mock support arrives
+
+    Function declarations like `func NewMockUserService()` are correctly NOT
+    counted — only call_expressions match, not function_declaration nodes.
+    """
+    try:
+        import tree_sitter
+        import tree_sitter_go as _ts_go
+    except ImportError:
+        return [LintViolation(
+            path=str(path),
+            line=0,
+            test_function="<file>",
+            kind="parse-error",
+            severity="Important",
+            message=(
+                "tree_sitter and tree_sitter_go packages are required for Go "
+                "linting; install via `pip install tree_sitter tree_sitter_go`"
+            ),
+        )]
+
+    try:
+        source_bytes = path.read_bytes()
+    except OSError as exc:
+        return [LintViolation(
+            path=str(path),
+            line=0,
+            test_function="<file>",
+            kind="parse-error",
+            severity="Important",
+            message=f"could not read file: {exc}",
+        )]
+
+    lang = tree_sitter.Language(_ts_go.language())
+    parser = tree_sitter.Parser(lang)
+    tree = parser.parse(source_bytes)
+
+    if tree.root_node.has_error:
+        return [LintViolation(
+            path=str(path),
+            line=tree.root_node.start_point[0] + 1,
+            test_function="<file>",
+            kind="parse-error",
+            severity="Important",
+            message="syntax error in Go source (tree-sitter)",
+        )]
+
+    import re as _re
+    _GO_MOCK_FUNC_RE = _re.compile(r"^New(Mock|Fake|Stub|Spy)")
+
+    def _txt(node) -> str:
+        return node.text.decode("utf-8", errors="replace")
+
+    def _is_test_func_decl(node) -> bool:
+        if node.type != "function_declaration":
+            return False
+        name = node.child_by_field_name("name")
+        if name is None:
+            return False
+        text = _txt(name)
+        return len(text) >= 5 and text.startswith("Test") and text[4].isupper()
+
+    def _is_subtest_run_call(node) -> bool:
+        if node.type != "call_expression":
+            return False
+        func = node.child_by_field_name("function")
+        if func is None or func.type != "selector_expression":
+            return False
+        field = func.child_by_field_name("field")
+        if field is None or _txt(field) != "Run":
+            return False
+        args = node.child_by_field_name("arguments")
+        if args is None:
+            return False
+        for child in args.children:
+            if child.type in {"(", ",", ")"}:
+                continue
+            return child.type in {"interpreted_string_literal", "raw_string_literal"}
+        return False
+
+    def _subtest_name(node) -> str:
+        args = node.child_by_field_name("arguments")
+        if args is None:
+            return "<unknown>"
+        for child in args.children:
+            if child.type in {"(", ",", ")"}:
+                continue
+            if child.type in {"interpreted_string_literal", "raw_string_literal"}:
+                return _txt(child).strip("\"`")
+            return "<unknown>"
+        return "<unknown>"
+
+    def _mock_constructor_name(node) -> str | None:
+        if node.type != "call_expression":
+            return None
+        func = node.child_by_field_name("function")
+        if func is None:
+            return None
+        if func.type == "identifier":
+            return _txt(func)
+        if func.type == "selector_expression":
+            field = func.child_by_field_name("field")
+            if field is not None:
+                return _txt(field)
+        return None
+
+    test_scopes: list[dict] = []
+    mock_calls: list[tuple[int, MockCall]] = []
+
+    def _walk(node):
+        if _is_test_func_decl(node):
+            name_node = node.child_by_field_name("name")
+            test_scopes.append({
+                "start": node.start_byte,
+                "end": node.end_byte,
+                "name": _txt(name_node) if name_node else "<unknown>",
+                "line": node.start_point[0] + 1,
+                "mocks": [],
+            })
+        if _is_subtest_run_call(node):
+            test_scopes.append({
+                "start": node.start_byte,
+                "end": node.end_byte,
+                "name": _subtest_name(node),
+                "line": node.start_point[0] + 1,
+                "mocks": [],
+            })
+        if node.type == "call_expression":
+            func_name = _mock_constructor_name(node)
+            if func_name and _GO_MOCK_FUNC_RE.match(func_name):
+                mock_calls.append((node.start_byte, MockCall(
+                    target=func_name,
+                    line=node.start_point[0] + 1,
+                    kind="go-mock-constructor",
+                )))
+        for child in node.children:
+            _walk(child)
+
+    _walk(tree.root_node)
+
+    # Attribute each mock call to the innermost containing test scope
+    for byte_pos, mock in mock_calls:
+        innermost = None
+        for scope in test_scopes:
+            if scope["start"] <= byte_pos <= scope["end"]:
+                if (
+                    innermost is None
+                    or (scope["end"] - scope["start"])
+                    < (innermost["end"] - innermost["start"])
+                ):
+                    innermost = scope
+        if innermost is not None:
+            innermost["mocks"].append(mock)
+
+    # Apply mock-budget rule (v1 — internal-mock and seam allowlist deferred to v2)
+    violations: list[LintViolation] = []
+    for scope in test_scopes:
+        mocks = scope["mocks"]
+        if len(mocks) > 1:
+            violations.append(LintViolation(
+                path=str(path),
+                line=scope["line"],
+                test_function=scope["name"],
+                kind="mock-budget",
+                severity="Important",
+                message=(
+                    f"test '{scope['name']}' has {len(mocks)} mock instances; "
+                    f"TDD-2 limits tests to <=1 mock per test"
                 ),
             ))
 

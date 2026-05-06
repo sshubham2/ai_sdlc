@@ -34,6 +34,29 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.8.0 — 2026-05-06
+
+Adds Go support to the mock-budget linter (LINT-MOCK-3). Phase 3's mock-budget linter trio now covers Python, TypeScript/JavaScript, and Go.
+
+### Added
+
+- **LINT-MOCK-3 — Mock-budget linter (Go) — mock-budget rule v1**
+  Extends `tools/mock_budget_lint.py` with Go support via the `tree_sitter` + `tree_sitter_go` packages (already in the shared venv). Detection covers any `call_expression` whose function name matches `^New(Mock|Fake|Stub|Spy)` — covering gomock-generated mocks (`mocks.NewMockUserService(ctrl)`), manual mocks (`NewMockHTTPClient()`), fakes (`fakes.NewFakeRepository()`), stubs, and spies. Test scopes are top-level `func TestXxx(t *testing.T)` declarations (with the `Test` + uppercase-letter convention to filter helpers like `Testing`) plus `t.Run("name", func ...)` subtest blocks. Mocks are attributed to the innermost containing scope. The dispatcher recognizes `.go` and routes to `_lint_go`. Updates `skills/build-slice/SKILL.md` to broaden the gate to "Python, TS/JS, and Go test files" with the LINT-MOCK-3 reference.
+
+  Function declarations like `func NewMockUserService()` are correctly NOT counted — only `call_expression` nodes match, not `function_declaration` nodes (verified by a dedicated test).
+
+  - **Rule reference**: LINT-MOCK-3
+  - **Defect class**: Go test files were unlinted — gomock-generated mock proliferation in Go codebases (multiple `NewMockXxx(ctrl)` calls per `TestXxx` function) had no enforcement. Idiomatic Go testing with gomock makes it easy to bypass multiple internal interfaces in one test, which structurally bypasses the very integration seams the test pretends to verify. The Go extension closes that gap with the mock-budget rule (>1 mock per test = Important). Internal-mock classification is deferred to v2 — Go mocks are type-based without string targets, so accurate boundary classification requires import-aware analysis.
+  - **Validation**: `tests/methodology/test_mock_budget_lint.py` adds 5 new tests covering Go clean file, too-many mocks (`TestUserAndOrder` with 2 NewMock* calls), syntax error graceful handling, declaration-vs-call disambiguation rot guard (`func NewMockX()` definitions must NOT count), and `/build-slice` LINT-MOCK-3 reference. Total methodology suite: 101 -> 106.
+
+  Limitations (v1, documented in code):
+  - `var x MockUserService` declarations not yet counted (constructor pattern is dominant in Go test code)
+  - `testify/mock.Mock` embedding not yet detected (would require type-graph walk; v2 candidate)
+  - `gomock.NewController(t)` itself not counted (it's infra; the `NewMockXxx` calls that follow are the actual mocks)
+  - `seam_allowlist` parameter accepted but ignored for `.go` files in v1; reserved for v2 internal-mock support
+
+---
+
 ## v0.7.0 — 2026-05-06
 
 Adds TypeScript / JavaScript support to the mock-budget linter (LINT-MOCK-2). Same lint contract as the Python implementation — single tool, multi-language dispatch by file extension.
