@@ -34,6 +34,35 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.13.0 — 2026-05-06
+
+Adds **TF-1** — test-first slice variant. Mission briefs gain an opt-in `**Test-first**: true` field; when set, the brief must include a `## Test-first plan` section mapping each AC to one or more tests with statuses tracked through the lifecycle (PENDING -> WRITTEN-FAILING -> PASSING). `/build-slice` Step 6 refuses non-PASSING rows at pre-finish.
+
+### Added
+
+- **TF-1 — Test-first slice variant**
+  Adds `tools/test_first_audit.py` — a parser + validator for the test-first variant. Detects the opt-in `**Test-first**: true | false` field (case-insensitive, with or without hyphen normalization). When true: validates the `## Test-first plan` section exists with a 5-column markdown table (AC | Test type | Test path | Test function | Status); validates every AC referenced in the brief's `## Acceptance criteria` section (numbered list 1, 2, 3, ...) has at least one test-first row; validates each row's status is in `{PENDING, WRITTEN-FAILING, PASSING}`. With `--strict-pre-finish`, any non-PASSING row is a `non-passing-pre-finish` violation — used at `/build-slice` Step 6 to refuse declaring slice done while tests are still failing.
+
+  Default-off semantics: a brief without the field (or with `Test-first: false`) is unaffected — the audit returns clean and `/build-slice` skips the gate. TF-1 is opt-in per slice; existing briefs continue to work without modification.
+
+  Updates `skills/slice/SKILL.md` mission brief template + `templates/mission-brief.md`: documents the `**Test-first**:` field and the `## Test-first plan` 5-column table format. Updates `skills/build-slice/SKILL.md` Step 6 (pre-finish gate): runs the audit with `--strict-pre-finish` when the field is true; refuses on any of `missing-section`, `format`, `missing-cells`, `invalid-status`, `ac-without-row`, `non-passing-pre-finish`.
+
+  NFR-1 carry-over: slices whose `mission-brief.md` mtime predates `_TF_1_RELEASE_DATE` (2026-05-06) are exempt automatically. CLI flag `--no-carry-over` disables the exemption for archive scans.
+
+  CLI: `python -m tools.test_first_audit <slice-folder> [--strict-pre-finish] [--json] [--no-carry-over]`. Exit codes: 0 clean (or default-off / carry-over exempt), 1 violations, 2 usage error.
+
+  - **Rule reference**: TF-1
+  - **Defect class**: AI-implemented slices have a chronic problem with test-after-the-fact patterns: tests are written to confirm the implementation already works, not to specify the behavior before it exists. Test-after tests are weaker because they're shaped by the code rather than the requirement, often miss negative paths the implementation already passes, and don't catch regressions because they were never red. Test-first discipline (red-green-refactor) flips the order: each AC produces a failing test BEFORE the implementation, then the implementation drives the test green. Without an explicit gate at pre-finish, a slice declaring test-first can quietly skip the discipline (write the implementation first, then add tests at the end). TF-1 makes the gate explicit and refusable, with statuses tracked per-test through the slice lifecycle.
+  - **Validation**: `tests/methodology/test_test_first_audit.py` — 14 tests over 6 fixtures (`tests/methodology/fixtures/test_first/`): AC-label normalization (AC#1, ac 1, 1 -> 1), clean brief with all PASSING, default-off when field absent, missing-section when test-first true, invalid-status, ac-without-row (orphan AC), strict-pre-finish refuses non-PASSING, strict-pre-finish disabled allows PENDING/WRITTEN-FAILING, missing brief silent, carry-over mtime exemption + override, plus skill prose pins for `/slice` SKILL, `/build-slice` SKILL, and `templates/mission-brief.md`. Total methodology suite: 176 -> 190.
+
+  Limitations (v1, documented in code):
+  - **No filesystem existence check**. The audit doesn't verify that the test path + function actually exist on disk. v2 candidate: walk each row's `Test path`, parse it (Python ast / TS / Go), and verify the named test function exists.
+  - **No actual test execution**. The audit trusts the declared status — it doesn't run the test runner to confirm PASSING actually passes or WRITTEN-FAILING actually fails. v2 candidate: integrate a runner adapter (pytest -k, vitest filter, go test -run).
+  - **No build-log enforcement**. The audit doesn't verify that build-log.md events show test-first sequencing (test fails first, then implementation, then test passes). v2 candidate: parse `build-log.md` `## Events` section and check for `TEST: ... FAIL` entries followed by `TEST: ... PASS`.
+  - **AC reference normalization is heuristic**. `AC#1`, `ac 1`, `1` all normalize to `1`; if a project uses different conventions (e.g., `[AC-005]`), normalization may miss the match. v2 could surface a parse-mode warning.
+
+---
+
 ## v0.12.0 — 2026-05-06
 
 Adds **RR-1** — risk register scoring. The `architecture/risk-register.md` migrates from a freeform 4-column table to an H2-structured format with explicit Likelihood and Impact fields; the audit tool computes Score and Band so `/slice` and `/status` can sort by score instead of grepping for "HIGH" or "active".

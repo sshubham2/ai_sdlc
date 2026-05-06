@@ -146,6 +146,7 @@ ai_sdlc/
       test_build_checks_audit.py     # Tests BC-1 — build-checks gate (project + global)
       test_triage_audit.py          # Tests TRI-1 — user-owned triage discipline
       test_risk_register_audit.py   # Tests RR-1 — risk register scoring + sorting
+      test_test_first_audit.py      # Tests TF-1 — test-first slice variant audit
       test_mock_budget_lint.py      # Tests LINT-MOCK-1 — runs linter on fixtures
       fixtures/                     # Test fixtures (NOT collected by pytest)
         mock_budget_clean.py        # Python fixtures for LINT-MOCK-1
@@ -193,6 +194,13 @@ ai_sdlc/
           empty_register.md
           legacy_register.md
           all_retired.md
+        test_first/                 # TF-1 fixtures (mission-brief.md fragments)
+          clean_brief.md
+          test_first_off.md
+          missing_section_brief.md
+          invalid_status_brief.md
+          ac_without_row_brief.md
+          pre_finish_pending_brief.md
   pytest.ini                # testpaths = tests + pythonpath = .
   tools/                    # Executable methodology tools (Python)
     mock_budget_lint.py       # LINT-MOCK-1/2/3 — AST + tree-sitter linter for TDD-2 mock budget (Python, TS/JS, Go)
@@ -200,6 +208,7 @@ ai_sdlc/
     build_checks_audit.py     # BC-1 — build-checks gate; surfaces evergreen rules at /build-slice
     triage_audit.py           # TRI-1 — user-owned triage section validator for slice critique.md
     risk_register_audit.py    # RR-1 — risk register scoring + sorting (Likelihood x Impact)
+    test_first_audit.py       # TF-1 — test-first slice variant audit (mission-brief.md)
 ```
 
 ## Getting started

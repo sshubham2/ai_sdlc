@@ -18,6 +18,7 @@ Designed to be ~1 page (~60 lines max). Replaces the 500-line handoff-ai sprint 
 **Critic required**: [true | false] — true if slice touches auth/contracts/data model/multi-device/external integrations/security; else derived from tier (low=false, medium/high=true)
 **Estimated work**: [<1 day | 1 day | split needed]
 **Risk retired**: <which risk(s) from register this slice validates>
+**Test-first**: [true | false] — optional, per TF-1; when true, the brief MUST include a `## Test-first plan` section
 
 ## Intent
 
@@ -34,6 +35,18 @@ Each criterion must be:
 2. <criterion 2>
 3. <criterion 3>
 4. (max 5)
+
+## Test-first plan
+
+(only when `**Test-first**: true`; per **TF-1**)
+
+Each AC maps to one or more failing tests written BEFORE implementation. Statuses progress PENDING -> WRITTEN-FAILING -> PASSING. `/build-slice` Step 6 runs `tools/test_first_audit.py --strict-pre-finish` and refuses if any row is non-PASSING.
+
+| AC | Test type | Test path | Test function | Status |
+|----|-----------|-----------|---------------|--------|
+| 1 | integration | tests/api/test_X.py | test_endpoint_accepts_input | PENDING |
+| 1 | integration | tests/api/test_X.py | test_endpoint_rejects_oversize | PENDING |
+| 2 | unit | tests/services/test_Y.py | test_normalize_payload | PENDING |
 
 ## Verification plan
 

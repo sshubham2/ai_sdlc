@@ -101,8 +101,28 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **Mock-budget lint passes (LINT-MOCK-1)** — see "Mock-budget lint" below
 - [ ] **Wiring matrix audit passes (WIRE-1)** — see "Wiring matrix audit" below
 - [ ] **Build-checks audit passes (BC-1)** — see "Build-checks audit" below
+- [ ] **Test-first audit passes (TF-1)** — see "Test-first audit" below (only when `**Test-first**: true`)
 
 If any gate fails: don't declare done. Fix or escalate.
+
+#### Test-first audit (TF-1)
+
+Per **TF-1** (`methodology-changelog.md` v0.13.0), when this slice's `mission-brief.md` declares `**Test-first**: true`, every Acceptance criterion must map to one or more tests with a status field whose value at pre-finish is `PASSING`. Run:
+
+```bash
+$PY -m tools.test_first_audit architecture/slices/slice-NNN-<name> --strict-pre-finish
+```
+
+Refusal semantics:
+- `missing-section`: brief declares test-first true but has no `## Test-first plan` section
+- `format` / `missing-cells`: table is malformed (need 5 columns: AC | Test type | Test path | Test function | Status)
+- `invalid-status`: status outside `{PENDING, WRITTEN-FAILING, PASSING}`
+- `ac-without-row`: an AC declared in the brief body has no test-first row
+- `non-passing-pre-finish`: any row's status is `PENDING` or `WRITTEN-FAILING` (only emitted with `--strict-pre-finish`)
+
+Default-off semantics: when the brief lacks the `**Test-first**:` field or sets it to `false`, the audit returns clean and the gate passes silently. TF-1 is opt-in per slice; old briefs without the field continue to work.
+
+NFR-1 carry-over: slices whose `mission-brief.md` mtime predates 2026-05-06 are exempt automatically.
 
 #### Build-checks audit (BC-1)
 
