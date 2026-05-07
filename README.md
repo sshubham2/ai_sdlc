@@ -86,6 +86,7 @@ ai_sdlc/
   VERSION                   # Methodology semver (read by /status; copied to ~/.claude/ai-sdlc-VERSION on install)
   methodology-changelog.md  # Behavior-changing rules with rule reference + defect class + validation
   plugin.yaml               # PMI-1 plugin manifest (skills + agents + tools enumeration; in sync with filesystem)
+  pyproject.toml            # INST-1 ai-sdlc-tools package definition; pip-installs the tools/ package source-independently
   agents/                   # Named-subagent definitions (system prompts for fresh-context agents)
     AUTHORING.md              # ⭐ How to author or modify a named subagent — frontmatter shape, tool selection, prompt structure, model selection, calibration awareness
     critique.md               # Adversarial Critic — invoked by /critique skill
@@ -158,6 +159,7 @@ ai_sdlc/
       test_cross_spec_parity_audit.py # Tests CSP-1 — Heavy-mode cross-spec parity
       test_supersede_audit.py       # Tests SUP-1 — slice supersession bidirectional
       test_plugin_manifest_audit.py # Tests PMI-1 — plugin manifest filesystem parity
+      test_install_audit.py         # Tests INST-1 — ~/.claude/ install canonical-inventory parity
       test_mock_budget_lint.py      # Tests LINT-MOCK-1 — runs linter on fixtures
       fixtures/                     # Test fixtures (NOT collected by pytest)
         mock_budget_clean.py        # Python fixtures for LINT-MOCK-1
@@ -273,6 +275,7 @@ ai_sdlc/
     cross_spec_parity_audit.py # CSP-1 — Heavy-mode cross-spec parity (TM/REQ/NFR refs)
     supersede_audit.py        # SUP-1 — slice supersession bidirectional consistency
     plugin_manifest_audit.py  # PMI-1 — plugin.yaml vs filesystem parity
+    install_audit.py          # INST-1 — ~/.claude/ install canonical-inventory parity (source-independent install gate)
 ```
 
 ## Getting started

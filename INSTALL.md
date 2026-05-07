@@ -15,7 +15,17 @@ That's it. You take it from there.
 
 ## What you're installing
 
-The AI SDLC pipeline: **22 drop-in skills + 4 named subagents + graphify integration + fork mode**. After install, the user runs `/triage` (greenfield) or `/adopt` (brownfield) to start the workflow on any project.
+The AI SDLC pipeline (methodology v0.20.0):
+- **24 drop-in skills** — copied to `~/.claude/skills/`
+- **5 named subagents** — copied to `~/.claude/agents/`
+- **4 templates** — copied to `~/.claude/templates/`
+- **13 executable methodology tools** (audits, linters, validators) — installed as the `ai-sdlc-tools` Python package via `pip install`, so `$PY -m tools.<name>` resolves from `~/.claude/.venv/`
+- **methodology-changelog.md + VERSION** — copied to `~/.claude/`
+- Graphify integration + fork mode
+
+Per **INST-1** (`methodology-changelog.md` v0.20.0): after install, the AI SDLC source folder can be deleted. The install is entirely self-contained under `~/.claude/` (skills, agents, templates, methodology metadata) and `~/.claude/.venv/lib/.../site-packages/tools/` (the audit tools). Nothing references the source folder at runtime.
+
+After install, the user runs `/triage` (greenfield) or `/adopt` (brownfield) to start the workflow on any project.
 
 ## Step 0: Locate the source
 
@@ -48,9 +58,10 @@ echo "Conda:           $(command -v conda >/dev/null && echo available || echo n
 echo "Graphify:        $("$PY" -m graphify --help >/dev/null 2>&1 && echo installed || echo MISSING)"
 echo "Settings.json:   $([ -f "$HOME/.claude/settings.json" ] && echo exists || echo MISSING)"
 echo "Global CLAUDE.md: $([ -f "$HOME/.claude/CLAUDE.md" ] && echo exists || echo MISSING)"
-echo "AI SDLC skills:  $(ls "$HOME/.claude/skills/" 2>/dev/null | grep -c '^\(triage\|adopt\|slice\|critique\)$' || echo 0)/4 core skills already installed"
-echo "AI SDLC agents:  $(ls "$HOME/.claude/agents/" 2>/dev/null | grep -c '^\(critique\|critic-calibrate\|diagnose-narrator\|field-recon\)\.md$' || echo 0)/4"
+echo "AI SDLC skills:  $(ls "$HOME/.claude/skills/" 2>/dev/null | grep -c '^\(triage\|adopt\|slice\|critique\|critique-review\|supersede-slice\)$' || echo 0)/6 canary skills already installed"
+echo "AI SDLC agents:  $(ls "$HOME/.claude/agents/" 2>/dev/null | grep -c '^\(critique\|critic-calibrate\|critique-review\|diagnose-narrator\|field-recon\)\.md$' || echo 0)/5"
 echo "AI SDLC templates: $(ls "$HOME/.claude/templates/" 2>/dev/null | grep -c '\.md$' || echo 0)/4 templates"
+echo "ai-sdlc-tools:   $("$PY" -c 'import tools.build_checks_audit' 2>/dev/null && echo installed || echo MISSING)"
 ```
 
 ## Step 2: Resolve ambiguity
@@ -132,20 +143,46 @@ cp "$AI_SDLC_DIR/VERSION" ~/.claude/ai-sdlc-VERSION
 
 Report counts: `N skills, M agents, K templates, methodology v<cat ~/.claude/ai-sdlc-VERSION>`.
 
-Do NOT copy other root MDs (`README.md`, `pipeline.md`, `principles.md`, `tutorial.md`, `graphify-integration.md`, `INSTALL.md`) or `tutorial-site/` — those are project-source artifacts, not installed runtime files. The exceptions are `methodology-changelog.md` and `VERSION` (above) — those are runtime artifacts `/status` reads. Skills and agents must be self-contained; the templates are the only auxiliary artifacts they reference.
+Do NOT copy other root MDs (`README.md`, `pipeline.md`, `principles.md`, `tutorial.md`, `graphify-integration.md`, `INSTALL.md`, `plugin.yaml`, `pyproject.toml`) or `tutorial-site/` — those are project-source artifacts, not installed runtime files. The exceptions are `methodology-changelog.md` and `VERSION` (above) — those are runtime artifacts `/status` reads. Skills and agents must be self-contained; the templates are the only auxiliary markdown artifacts they reference. The executable tools (`tools/`) install via pip in Step 3g, NOT via cp.
+
+### 3g: Install ai-sdlc-tools as a pip package
+
+The 13 executable methodology tools (audit modules in `tools/`) ship as a proper Python package so `$PY -m tools.<name>` resolves from the shared venv's site-packages — source-independent. Per **INST-1**.
+
+```bash
+$PY -m pip install --upgrade "$AI_SDLC_DIR"
+```
+
+Important details:
+- **NOT** `pip install -e` — editable installs leave the package pointing back at the source folder. Non-editable copies the package contents into site-packages.
+- `--upgrade` ensures re-runs pick up new versions (idempotent: pip detects same-version no-op cleanly).
+- The pyproject.toml at AI SDLC root declares only the `tools` package; skills/agents/templates/tests are explicitly excluded from the wheel.
+- After this step, the user can `rm -rf "$AI_SDLC_DIR"` and `$PY -m tools.build_checks_audit` still works.
+
+Verify the package landed:
+
+```bash
+$PY -c "import tools.build_checks_audit; print('ai-sdlc-tools OK')"
+```
+
+If the import fails with `ModuleNotFoundError`: the install didn't complete; check pip output. Common cause: `pyproject.toml` missing from `$AI_SDLC_DIR` (older source folder pre-v0.20.0 won't have it; tell the user to update the source).
 
 ## Step 4: Verify (the same preflight `/triage` and `/adopt` use)
 
 ```bash
 test -f "$PY"                              && echo "venv: OK"     || echo "venv: FAIL"
 "$PY" -m graphify --help >/dev/null 2>&1    && echo "graphify: OK" || echo "graphify: FAIL"
-test -f "$HOME/.claude/agents/critique.md" && test -f "$HOME/.claude/agents/critic-calibrate.md" && test -f "$HOME/.claude/agents/diagnose-narrator.md" && test -f "$HOME/.claude/agents/field-recon.md" && echo "agents: OK" || echo "agents: FAIL"
-test -f "$HOME/.claude/skills/slice/SKILL.md" && echo "skills: OK" || echo "skills: FAIL"
+test -f "$HOME/.claude/agents/critique.md" && test -f "$HOME/.claude/agents/critic-calibrate.md" && test -f "$HOME/.claude/agents/critique-review.md" && test -f "$HOME/.claude/agents/diagnose-narrator.md" && test -f "$HOME/.claude/agents/field-recon.md" && echo "agents: OK (5/5)" || echo "agents: FAIL"
+test -f "$HOME/.claude/skills/slice/SKILL.md" && test -f "$HOME/.claude/skills/critique-review/SKILL.md" && test -f "$HOME/.claude/skills/supersede-slice/SKILL.md" && echo "skills: OK (canary)" || echo "skills: FAIL"
 test -f "$HOME/.claude/templates/mission-brief.md" && test -f "$HOME/.claude/templates/milestone.md" && echo "templates: OK" || echo "templates: FAIL"
 test -f "$HOME/.claude/methodology-changelog.md" && test -f "$HOME/.claude/ai-sdlc-VERSION" && echo "methodology: OK (v$(cat $HOME/.claude/ai-sdlc-VERSION))" || echo "methodology: FAIL"
+"$PY" -c "import tools.build_checks_audit, tools.wiring_matrix_audit, tools.cross_spec_parity_audit, tools.supersede_audit, tools.plugin_manifest_audit" 2>/dev/null && echo "ai-sdlc-tools: OK" || echo "ai-sdlc-tools: FAIL"
+"$PY" -m tools.install_audit --claude-dir "$HOME/.claude" >/dev/null 2>&1 && echo "install-parity: OK" || echo "install-parity: FAIL (run with --json for details)"
 ```
 
-All six must say `OK`. If any `FAIL`: stop, show the user, do not claim success.
+All eight must say `OK`. If any `FAIL`: stop, show the user, do not claim success.
+
+The `install-parity` line runs the **INST-1** install audit (`tools/install_audit.py`) — it cross-checks `~/.claude/` against the canonical inventory (24 skills, 5 agents, 4 templates, methodology files, 13 tool modules importable). This catches partial installs (e.g., new skill in source but not yet copied; tools package upgraded but skill copy stale).
 
 ## Step 5: Hand off
 
@@ -168,3 +205,28 @@ Tell the user:
 This file is idempotent. If the user runs it again on a machine that's already configured, every step should detect "already done" and skip. The Step 4 verify still runs and confirms green. Tell the user "everything was already installed — you're ready" rather than re-doing work.
 
 If Step 4 verify fails on a re-run (something got deleted or corrupted), repair only what's broken. Don't rebuild what's working.
+
+## Source independence (INST-1)
+
+After the install completes successfully, the AI SDLC source folder is no longer required at runtime. The user can:
+
+- Move the source folder elsewhere
+- Delete it (`rm -rf "$AI_SDLC_DIR"`)
+- Keep multiple copies on different machines without re-syncing
+
+Everything the runtime needs lives under:
+- `~/.claude/skills/` — markdown skill files (24)
+- `~/.claude/agents/` — markdown agent files (5)
+- `~/.claude/templates/` — markdown templates (4)
+- `~/.claude/methodology-changelog.md`, `~/.claude/ai-sdlc-VERSION` — runtime metadata
+- `~/.claude/.venv/Lib/site-packages/tools/` (or `lib/python*/site-packages/tools/` on Unix) — the executable methodology tools, installed via pip
+
+To **update** to a newer methodology version, the user re-acquires the source (clone / pull / download) and re-runs INSTALL.md. Step 3g's `pip install --upgrade` overwrites the old tools package; Step 3f's `cp -r` overwrites the old skill / agent / template files; methodology-changelog and VERSION update in place.
+
+If the user wants to verify current install state without the source, they can run:
+
+```bash
+$PY -m tools.install_audit --claude-dir ~/.claude
+```
+
+The audit reports any drift from the canonical inventory baked into v0.20.0. (Future versions update the canonical list.)

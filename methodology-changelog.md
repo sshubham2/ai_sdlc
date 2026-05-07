@@ -34,6 +34,55 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.20.0 — 2026-05-07
+
+Adds **INST-1** — source-independent install. After our 18 commits in v0.19.0 added 13 executable methodology tools under `tools/`, the install path was incomplete: INSTALL.md's `cp -r` flow copied skills/agents/templates but NOT `tools/`, leaving every audit invocation (`$PY -m tools.<name>`) broken at runtime in user projects. INST-1 ships `tools/` as a proper Python package via pip, so the AI SDLC source folder can be deleted after install with no functional impact.
+
+### Added
+
+- **INST-1 — Source-independent install**
+  Adds `pyproject.toml` at AI SDLC repo root + `tools/install_audit.py` + INSTALL.md updates.
+
+  **`pyproject.toml`** declares the `ai-sdlc-tools` package containing only the `tools/` directory. Excludes tests, skills, agents, templates from the wheel. Dependencies declared (pyyaml, tree_sitter, tree_sitter_typescript, tree_sitter_go) for cross-machine portability — the shared `~/.claude/.venv/` already has these via graphify, but pip resolves cleanly either way.
+
+  **`INSTALL.md`** updated:
+  - Step 3g (NEW): `$PY -m pip install --upgrade "$AI_SDLC_DIR"` — non-editable install (intentionally NOT `-e`); editable would point back at the source folder, defeating source-independence
+  - Step 3f's "do not copy" list updated to add `plugin.yaml` and `pyproject.toml`
+  - Step 4 verify expanded from 6 to 8 OK-checks: agents now name all 5 (added `critique-review.md`); skills check canary set including `critique-review/SKILL.md` and `supersede-slice/SKILL.md`; new `ai-sdlc-tools` import check; new `install-parity` line invoking `tools/install_audit.py`
+  - Step 1 preflight detection updated for the new artifacts
+  - Header line 18 updated from "22 skills + 4 agents" to "24 skills + 5 agents + 13 tools"
+  - New "Source independence (INST-1)" section explicitly stating the source folder can be deleted post-install
+
+  **`tools/install_audit.py`** (the new audit) validates `~/.claude/` matches the canonical inventory hardcoded in v0.20.0:
+  - 24 skills (each `~/.claude/skills/<id>/SKILL.md`)
+  - 5 agents (each `~/.claude/agents/<id>.md`)
+  - 4 templates (mission-brief, milestone, critique-report, reflection)
+  - 2 metadata files (methodology-changelog.md, ai-sdlc-VERSION)
+  - 14 tool modules importable from the venv (`tools.build_checks_audit`, `tools.critique_review_audit`, ..., `tools.install_audit`, `tools.mock_budget_lint`, ..., `tools.wiring_matrix_audit`)
+
+  CLI: `python -m tools.install_audit [--claude-dir <path>] [--strict / --no-strict] [--json]`. Exit codes: 0 clean, 1 violations, 2 usage error.
+
+  Refusal semantics:
+  - `no-claude-dir`: ~/.claude/ doesn't exist (INSTALL.md not run)
+  - `missing-skill`: a canonical skill folder + SKILL.md missing
+  - `missing-agent`: a canonical agent .md missing
+  - `missing-template`: a canonical template missing
+  - `missing-metadata`: methodology-changelog.md or ai-sdlc-VERSION missing
+  - `missing-tool-module`: a canonical tool module not importable (only emitted with `--strict`)
+
+  - **Rule reference**: INST-1
+  - **Defect class**: After v0.19.0's 18 commits added 13 audit tools under `tools/`, the install path was structurally broken in two ways: (1) INSTALL.md's `cp -r` flow copied skills/agents/templates but not `tools/`, so every skill that invoked `$PY -m tools.<name>` would fail with `ModuleNotFoundError` in any user project (the bug only didn't surface during pipeline development because we ran everything from the AI SDLC source dir where `pythonpath = .` was set in pytest.ini); (2) Step 4 verify checked only 4 agents and `slice/SKILL.md`, so users running INSTALL.md would see "all OK" while critique-review.md and supersede-slice/ were silently absent. The combination meant a pipeline that "appeared installed but was non-functional for the new gates." INST-1 fixes both: ships tools as a pip package (source folder deletable), and updates verify to catch partial / stale installs via the canonical-inventory audit.
+  - **Validation**: `tests/methodology/test_install_audit.py` — 14 tests over tmp_path-built fixtures: missing claude dir flagged, complete install clean, missing-skill / missing-agent / missing-template / missing-metadata each flagged independently, methodology version extracted, plus three drift-prevention tests pinning that `_CANONICAL_SKILLS` / `_CANONICAL_AGENTS` / `_CANONICAL_TOOLS` exactly match plugin.yaml (PMI-1's manifest), plus four prose pins on INSTALL.md (INST-1 reference + pip install + Step 4 expansion + source-independence section) plus a pin on pyproject.toml shape. Total methodology suite: 288 -> 302.
+
+  Limitations (v1, documented in code):
+  - **Canonical inventory is hardcoded**. Each methodology version bump that adds a skill/agent/tool needs install_audit's lists updated. Mitigation: tests cross-check plugin.yaml so drift between the two surfaces immediately. Hardcoding is intentional — install_audit must work without plugin.yaml at runtime (the manifest is project-source, not installed).
+  - **Tool import check requires the venv to be active OR `$PY` to be the venv's interpreter**. If a user runs `python -m tools.install_audit` with the system Python instead of `~/.claude/.venv/python`, the import check fails because the venv's site-packages isn't on path. INSTALL.md Step 4 invokes via `$PY` to avoid this.
+  - **No tool-version checking**. The audit confirms each canonical tool is importable but doesn't verify the installed version of `ai-sdlc-tools` matches the source's `pyproject.toml` version. v2 candidate: `pip show ai-sdlc-tools` cross-reference.
+  - **Updates require source re-acquisition**. Non-editable install means updating to a newer methodology version requires re-cloning / re-pulling the source folder and re-running INSTALL.md. This is by design (source-independence) but documented as a tradeoff: source-independent install vs. source-required updates.
+  - **Windows path conventions only partially handled**. The audit uses `pathlib.Path` so cross-platform paths work, but error messages may show platform-specific forms. The INSTALL.md verify block uses bash; Windows users running PowerShell-only need to manually translate (or rely on Git Bash / WSL).
+
+---
+
 ## v0.19.0 — 2026-05-06
 
 Adds two final pipeline rules. **SUP-1** introduces `/supersede-slice` for cleanly retiring a shipped (archived) slice when reality has contradicted its design. **PMI-1** adds a `plugin.yaml` manifest at the repo root with a parity audit against the actual filesystem, laying groundwork for plugin marketplace distribution.

@@ -1,0 +1,68 @@
+# AI SDLC executable methodology tools — pip-installable package.
+#
+# Per INST-1 (methodology-changelog.md v0.20.0). The pipeline ships skills,
+# agents, and templates via cp -r in INSTALL.md (those are markdown files
+# Claude Code reads directly from ~/.claude/). The executable methodology
+# tools (the 13 audit modules under tools/) are a Python package that ships
+# via pip install instead — that way `$PY -m tools.<name>` resolves from the
+# shared venv's site-packages, source-independent.
+#
+# After `$PY -m pip install <AI_SDLC_DIR>`, the user can delete the source
+# folder; the install lives entirely under ~/.claude/.venv/.../site-packages/
+# and ~/.claude/{skills,agents,templates}.
+#
+# Note: this is intentionally NOT an editable install (-e). Editable would
+# leave the install pointing back at the source folder, defeating the
+# source-independence requirement. INSTALL.md uses non-editable.
+
+[project]
+name = "ai-sdlc-tools"
+version = "0.20.0"
+description = "Executable methodology tools for the AI SDLC pipeline (audits, linters, validators)"
+readme = "README.md"
+license = { text = "see repository" }
+requires-python = ">=3.10"
+authors = [
+    { name = "AI SDLC contributors" },
+]
+keywords = ["sdlc", "claude-code", "ai-pipeline", "spec-driven", "audit"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = [
+    "pyyaml>=6.0",
+    "tree_sitter>=0.21",
+    "tree_sitter_typescript>=0.21",
+    "tree_sitter_go>=0.21",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.urls]
+Source = "https://github.com/sshubham2/ai_sdlc"
+Methodology = "https://github.com/sshubham2/ai_sdlc/blob/master/methodology-changelog.md"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# Only the `tools` package ships via pip. Everything else (skills, agents,
+# templates, tests, fixtures, plugin.yaml, methodology-changelog.md, VERSION)
+# is project-source — those are either markdown files INSTALL.md copies via
+# cp -r or test artifacts that don't ship.
+packages = ["tools"]
+
+[tool.setuptools.package-data]
+# The tools package itself has no non-Python data files in v0.20.0.
+# (Future audits that need bundled fixtures or templates would declare them here.)
+tools = []
