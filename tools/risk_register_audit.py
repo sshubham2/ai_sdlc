@@ -16,7 +16,7 @@ human re-classifying every entry each time.
 
 Format (H2-structured, matching BC-1 / TRI-1 conventions):
 
-    ## R-NN -- <title>
+    ## R-1 — <title>
 
     **Likelihood**: low | medium | high
     **Impact**: low | medium | high
@@ -25,6 +25,11 @@ Format (H2-structured, matching BC-1 / TRI-1 conventions):
     **Mitigation**: <text or spike ref>                             (optional)
     **Discovered**: slice-NNN-<name> (<YYYY-MM-DD>)                 (optional)
     **Notes**: <free text>                                          (optional)
+
+The separator between the risk ID and the title is em-dash `—` (canonical
+per slice-002 lessons-learned) OR single hyphen `-` (accepted alternate
+form). Double-hyphen `## R-1 -- <title>` is NOT accepted — the regex
+character class is single-character (em-dash or single hyphen).
 
 Old table-format files (`| R1 | ... |`) yield zero risks with no violation
 emitted — opt-in migration. Use --warn-legacy to surface a deprecation
@@ -52,7 +57,9 @@ import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-# H2 risk heading: "## R-NN -- title" or "## R-NN — title" (em dash)
+# H2 risk heading: "## R-1 — title" (em-dash separator, canonical) or
+# "## R-1 - title" (single hyphen, accepted alternate). Double-hyphen
+# "--" is NOT accepted — the regex character class [—\-] is single-character.
 _RISK_HEADING_RE = re.compile(r"^##\s+(R-?\d+)\s+[—\-]\s+(.+?)\s*$")
 
 # Field-line pattern (same as BC-1 / TRI-1)

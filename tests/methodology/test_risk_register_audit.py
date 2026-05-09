@@ -17,6 +17,7 @@ from pathlib import Path
 
 from tests.methodology.conftest import REPO_ROOT
 from tools.risk_register_audit import (
+    _RISK_HEADING_RE,
     _band_for_score,
     audit_register,
     filter_and_sort,
@@ -335,3 +336,160 @@ def test_status_skill_references_rr_1():
     assert "risk_register_audit" in text, (
         "no risk_register_audit module reference in /status"
     )
+
+
+# --- Slice-004: docstring/comment/risk-register.md prose-vs-regex consistency ---
+
+def test_docstring_format_examples_match_actual_regex():
+    """Module docstring's 'Format' section heading example matches _RISK_HEADING_RE.
+
+    Defect class: slice-002 hit silent 0-risks because the docstring
+    showed `## R-NN -- <title>` (double-dash; ALSO `R-NN` letters not
+    digits) but the regex required `R-?\\d+` AND single-character
+    separator. This test guards against future drift in either
+    direction.
+
+    Coverage gap intentionally accepted: the negative counterexample
+    `## R-1 -- <title>` lives INSIDE backticks within continuous
+    paragraph prose — never as a line's leading non-whitespace token —
+    so it's not picked up by `startswith("## R-")` after `.strip()`.
+    If a future maintainer reformats the prose such that a backticked
+    counterexample begins a stripped line, this test would extract it
+    and fail loudly (regex correctly rejects `--` two-character form).
+    Failing-loudly on counterexample-leakage is acceptable test
+    behavior.
+
+    Slice-004 AC #1.
+    Rule reference: RR-1.
+    """
+    import inspect
+    import tools.risk_register_audit as audit_module
+
+    docstring = inspect.getdoc(audit_module) or ""
+    candidates = [
+        line.strip()
+        for line in docstring.splitlines()
+        if line.strip().startswith("## R-")
+    ]
+    assert candidates, "no `## R-...` heading example found in docstring"
+    for heading in candidates:
+        assert _RISK_HEADING_RE.match(heading), (
+            f"docstring example heading {heading!r} does NOT match "
+            f"_RISK_HEADING_RE — docstring/regex contradiction (the "
+            f"slice-002 silent-zero-risks bug). Common causes: letter "
+            f"placeholder like `R-NN` (regex requires R-?\\d+); "
+            f"double-hyphen `--` (regex character class is single-char)."
+        )
+
+
+def test_inline_regex_comment_examples_match_actual_regex():
+    """Inline comment above _RISK_HEADING_RE shows only formats the regex actually accepts.
+
+    Coverage: extracts BOTH "..."-quoted (Python string literal
+    convention) AND `...`-quoted (markdown code-span convention)
+    heading shapes from the immediately-adjacent `#`-prefixed comment
+    block above the regex.
+
+    Known coverage gap (Critic M3): unquoted prose examples like
+    `# Also accepts ## R-1 — title` (no quotes) silently bypass this
+    test. If a future maintainer adds an unquoted example, the test
+    won't catch a `--`-vs-em-dash mismatch in that example. Acceptable
+    trade-off: tightening to also catch unquoted shapes risks false
+    positives on comment lines that happen to mention `## R-` in
+    non-example contexts. Address in a follow-on slice if drift recurs.
+
+    Slice-004 AC #2.
+    Rule reference: RR-1.
+    """
+    import re as re_module
+
+    src = (
+        REPO_ROOT / "tools" / "risk_register_audit.py"
+    ).read_text(encoding="utf-8")
+
+    # Find the line containing `_RISK_HEADING_RE = re.compile(`.
+    lines = src.splitlines()
+    target_idx = None
+    for i, line in enumerate(lines):
+        if "_RISK_HEADING_RE = re.compile(" in line:
+            target_idx = i
+            break
+    assert target_idx is not None, "_RISK_HEADING_RE assignment line not found"
+
+    # Walk backwards over consecutive `#` comment lines to gather the
+    # inline doc block. NOTE: stops at the first non-`#`-prefixed line.
+    # Multi-block comments separated by blank line have only the
+    # immediate block scanned. Intentional scoping — the test inspects
+    # what's adjacent to the regex.
+    comment_lines = []
+    j = target_idx - 1
+    while j >= 0 and lines[j].lstrip().startswith("#"):
+        comment_lines.insert(0, lines[j])
+        j -= 1
+    assert comment_lines, "no inline comment found above _RISK_HEADING_RE"
+
+    comment_blob = "\n".join(comment_lines)
+    # Extract every `## R-...`-shaped example, whether double-quoted or
+    # backtick-quoted. Per Critic M3: backtick-quoted is markdown
+    # convention; covering both shapes catches more realistic drift.
+    quoted_examples = re_module.findall(r'[`"](## R-[^`"]+)[`"]', comment_blob)
+    assert quoted_examples, (
+        f"no `## R-...` quoted example found in inline comment block:\n"
+        f"{comment_blob!r}"
+    )
+    for heading in quoted_examples:
+        assert _RISK_HEADING_RE.match(heading), (
+            f"inline-comment example heading {heading!r} does NOT match "
+            f"_RISK_HEADING_RE — inline-comment/regex contradiction."
+        )
+
+
+def test_risk_register_md_schema_description_examples_match_actual_regex():
+    """architecture/risk-register.md prelude prose's heading shape examples match _RISK_HEADING_RE.
+
+    Defect class (Critic M2): the user-facing risk-register.md file's
+    OPENING DESCRIPTION PROSE — the prelude before the first `## R-`
+    heading — is the third documentation surface (after the audit's
+    docstring + inline comment). Today (pre-slice-004) it shows
+    `## R-N -- <title>` (double-dash; ALSO `R-N` is a single letter,
+    not `\\d+`). A user reading this file follows the example, types
+    the same shape into a new entry, runs the audit, gets silent
+    0-risks. This test enforces the prelude prose stays consistent
+    with the audit's behavior.
+
+    Coverage: scans LINES BEFORE the first `## R-` heading (the
+    prelude); extracts backtick-quoted `## R-...` shapes; runs each
+    through _RISK_HEADING_RE.match; asserts each matches.
+
+    Slice-004 AC #3.
+    Rule reference: RR-1.
+    """
+    import re as re_module
+
+    register_path = REPO_ROOT / "architecture" / "risk-register.md"
+    text = register_path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+
+    # The prelude is everything before the first H2 risk heading.
+    prelude_end = None
+    for i, line in enumerate(lines):
+        if line.startswith("## R-") or line.startswith("## R"):
+            prelude_end = i
+            break
+    assert prelude_end is not None, (
+        "no `## R-...` heading found in risk-register.md"
+    )
+    prelude = "\n".join(lines[:prelude_end])
+
+    # Extract every backtick-quoted `## R-...` shape.
+    quoted_examples = re_module.findall(r"`(## R-[^`]+)`", prelude)
+    assert quoted_examples, (
+        f"no backtick-quoted `## R-...` example found in risk-register.md "
+        f"prelude:\n{prelude!r}"
+    )
+    for heading in quoted_examples:
+        assert _RISK_HEADING_RE.match(heading), (
+            f"risk-register.md prelude example {heading!r} does NOT match "
+            f"_RISK_HEADING_RE — user-facing schema documentation "
+            f"contradicts the audit's actual behavior."
+        )

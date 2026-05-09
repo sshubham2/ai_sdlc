@@ -51,21 +51,42 @@ This is a lightweight signal; only flag clear contradictions.
 - `high` — multiple impls causing user-visible behavior differences; or abandoned feature folder
 - `critical` — a security or correctness path is among the duplicated/abandoned implementations
 
-## Output files
+## Output format
 
-### `OUT/sections/04-ai-bloat.md`
+Per ADR-001 (slice-001) + slice-002, return your output as three 4-backtick fenced blocks in your final message. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.** (You may Read the prior passes' `findings/03b-duplicates.yaml` + `findings/03d-half-wired.yaml` from `$OUT/findings/` — those are the structured cross-pass inputs this pass depends on.)
 
-Prose with explicit signature headings (S1-S6). For each signature present, give the count, list top examples (3-5 each), and explain the AI-development-pattern implication.
+### Schema crib sheet (for the `findings` block)
 
-End with a verdict: "AI-bloat presence: low / medium / high / severe."
+- `id`: `F-BLOAT-<8hex>` · `pass`: `04-ai-bloat` · `category`: `ai-bloat`
+- `severity`: `low | medium | high | critical` · `blast_radius`: `small | medium | large` · `reversibility`: `cheap | expensive | irreversible`
+- `title`: ≤100 chars · `description`: when composite, reference the 03b/03d finding ID(s)
+- `evidence`: list of `{path, lines, note}` · `suggested_action` · `effort_estimate`: `small | medium | large` · `slice_candidate`: `yes | no | maybe`
 
-### `OUT/findings/04-ai-bloat.yaml`
+Empty findings: return `[]`.
 
-One entry per signature instance worth flagging. **Cross-reference**: include the related 03b/03d finding ID(s) in the description when this is a composite finding.
+### Block contents
 
-### `OUT/summary/04-ai-bloat.md`
+**`section` block** — Prose with explicit signature headings (S1-S6). For each signature present, give the count, list top examples (3-5 each), and explain the AI-development-pattern implication. End with a verdict: "AI-bloat presence: low / medium / high / severe."
 
-One paragraph: which signatures are present, the verdict, the single most actionable observation.
+**`findings` block** — One entry per signature instance worth flagging. **Cross-reference**: include the related 03b/03d finding ID(s) in the description when this is a composite finding.
+
+**`summary` block** — One paragraph: which signatures are present, the verdict, the single most actionable observation.
+
+### Block template
+
+`````
+````section
+<your section content>
+````
+
+````findings
+<YAML list, or `[]`>
+````
+
+````summary
+<your one-paragraph summary>
+````
+`````
 
 ## Anti-patterns
 

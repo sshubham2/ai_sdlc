@@ -40,19 +40,42 @@ This is a strong AI-bloat signal — an implementer started something and didn't
 - `high` — UI/backend disconnect on a user-visible flow; or migration/code mismatch
 - `critical` — empty implementation on a security-critical path (auth, payment, permission check)
 
-## Output files
+## Output format
 
-### `OUT/sections/03d-half-wired.md`
+Per ADR-001 (slice-001) + slice-002, return your output as three 4-backtick fenced blocks in your final message. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
 
-Prose: total half-wired items by subcategory. Top 5 most impactful. Highlight any user-visible features that don't actually work.
+### Schema crib sheet (for the `findings` block)
 
-### `OUT/findings/03d-half-wired.yaml`
+- `id`: `F-HALF-<8hex>` · `pass`: `03d-half-wired` · `category`: `half-wired`
+- `severity`: `low | medium | high | critical` · `blast_radius`: `small | medium | large` · `reversibility`: `cheap | expensive | irreversible`
+- `title`: ≤100 chars · `description`: multi-line, concrete
+- `evidence`: list of `{path, lines, note}` — include BOTH endpoints of a disconnect (UI + missing endpoint) · `suggested_action` · `effort_estimate`: `small | medium | large` · `slice_candidate`: `yes | no | maybe`
 
-One entry per half-wired feature. `evidence` includes both endpoints of a disconnect when applicable (e.g., the UI button file:line AND the missing endpoint location).
+Empty findings: return `[]`.
 
-### `OUT/summary/03d-half-wired.md`
+### Block contents
 
-One paragraph: count by subcategory + worst offender + AI-bloat verdict (does this codebase show signs of incomplete handoffs?).
+**`section` block** — Prose: total half-wired items by subcategory. Top 5 most impactful. Highlight any user-visible features that don't actually work.
+
+**`findings` block** — One entry per half-wired feature. `evidence` includes both endpoints of a disconnect when applicable (e.g., the UI button file:line AND the missing endpoint location).
+
+**`summary` block** — One paragraph: count by subcategory + worst offender + AI-bloat verdict (does this codebase show signs of incomplete handoffs?).
+
+### Block template
+
+`````
+````section
+<your section content>
+````
+
+````findings
+<YAML list, or `[]`>
+````
+
+````summary
+<your one-paragraph summary>
+````
+`````
 
 ## Anti-patterns
 

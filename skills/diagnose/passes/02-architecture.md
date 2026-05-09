@@ -35,63 +35,44 @@ $PY -m graphify reachable --from=<entry-file> --graph $OUT/graphify-out/graph.js
 
 Read `OUT/graphify-out/CODE_REPORT.md` for community structure.
 
-## Output files
+## Output format
 
-### `OUT/sections/02-architecture.md`
+Per ADR-001 (slice-001) + slice-002, return your output as three 4-backtick fenced blocks in your final message. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
 
-```markdown
-## 2. Architecture
+### Schema crib sheet (for the `findings` block)
 
-### 2.1 Current architecture (as observed)
+Each finding has 12 required fields. Orchestrator validates + recomputes malformed IDs deterministically.
 
-**Components:**
-| Component | Responsibility | Key files |
-|-----------|----------------|-----------|
-| ... | ... | ... |
+- `id`: `F-<CAT>-<8hex>` · `pass`: `02-architecture` · `category`: schema enum
+- `severity`: `low | medium | high | critical` · `blast_radius`: `small | medium | large` · `reversibility`: `cheap | expensive | irreversible`
+- `title`: ≤100 chars · `description`: multi-line · `evidence`: list of `{path, lines, note}`
+- `suggested_action` · `effort_estimate`: `small | medium | large` · `slice_candidate`: `yes | no | maybe`
 
-**Data flow (primary path):**
-<concrete trace>
+Empty findings: return `[]` in the findings block.
 
-**Stack:** <list>
+### Block contents
 
-**Where the code agrees with itself (implicit contract):**
-- <observed consistent pattern>
-- ...
+**`section` block** — H2 "## 2. Architecture" with H3 subsections: "2.1 Current architecture (as observed)" (Components table | Data flow primary-path trace | Stack list | "Where the code agrees with itself" patterns | "Where the code disagrees with itself" selective bypasses), "2.2 Architecture judgment" (2-4 paragraphs on fitness, over/under-engineering, load-bearing parts), "2.3 Recommendations" with **KEEP** (3-7), **MODIFY** (3-7), **DROP** (0-5) bullet lists, each with rationale + evidence.
 
-**Where the code disagrees with itself:**
-- <selective bypass>
-- ...
+**`findings` block** — `[]` (Architectural recommendations live in the prose; code-level findings come in 03* passes).
 
-### 2.2 Architecture judgment
+**`summary` block** — One paragraph, ~80 words: stack at a glance, dominant architectural pattern, main strength, main structural concern, overall fit-for-purpose verdict (well-fit / over-engineered / under-engineered / drifting).
 
-<2-4 paragraphs assessing fitness, over/under-engineering, load-bearing parts>
+### Block template
 
-### 2.3 Recommendations
+`````
+````section
+<your section content>
+````
 
-**KEEP** (preserve through any refactor):
-- <strength + rationale + evidence>
-- ...
-
-**MODIFY** (structural changes worth making):
-- <change + rationale + concrete what>
-- ...
-
-**DROP** (parts not earning their keep):
-- <part + rationale>
-- ...
-```
-
-### `OUT/findings/02-architecture.yaml`
-
-```yaml
+````findings
 []
-```
+````
 
-(Architectural recommendations live in the prose, not as findings. Code-level findings come in 03* passes.)
-
-### `OUT/summary/02-architecture.md`
-
-One paragraph, ~80 words: stack at a glance, dominant architectural pattern, main strength, main structural concern, overall fit-for-purpose verdict (well-fit / over-engineered / under-engineered / drifting).
+````summary
+<your one-paragraph summary>
+````
+`````
 
 ## Anti-patterns
 

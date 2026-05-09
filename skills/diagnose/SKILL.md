@@ -29,6 +29,41 @@ TARGET="${1:-$PWD}"
 OUT="$TARGET/diagnose-out"
 ```
 
+### If you're invoking with an explicit path, cd to it first
+
+The cwd-must-match-TARGET pattern: `/diagnose` works most reliably when invoked from inside the target's directory (i.e., when `$TARGET` resolves to the same path as `$PWD`). Subagents *may* lose tool access otherwise — slice-001 surfaced this on 2026-05-09 when TARGET was outside `$PWD`; spawned `general-purpose` subagents lost Read / Grep / Bash / PowerShell access (only Glob remained), producing degraded analyses with mostly-empty findings.
+
+Upstream root cause is uncertain: it may be **cwd-mismatch** specifically, or a **known parallel-spawn permission cascade-failure** ([claude-code #57037](https://github.com/anthropics/claude-code/issues/57037)) which fires when multiple `Agent` tool calls dispatch in one message — exactly what Step 5 does. So `cd $TARGET` is the cheapest mitigation but not guaranteed to fix every instance. (Tracked in this project's `architecture/risk-register.md` as **R-1**.)
+
+Run a cwd-mismatch check before fanning out subagents:
+
+```bash
+TARGET_REAL=$(cd "$TARGET" 2>/dev/null && pwd) || { echo "TARGET does not exist: $TARGET"; exit 1; }
+PWD_REAL=$(pwd)
+if [ "$TARGET_REAL" != "$PWD_REAL" ]; then
+  cat <<EOF
+WARNING: TARGET resolves to a path outside the current directory.
+
+  TARGET: $TARGET_REAL
+  PWD:    $PWD_REAL
+
+  Slice-001 surfaced this scenario at validation: spawned subagents may
+  lose Read/Grep/Bash access in this configuration, producing a degraded
+  diagnosis with mostly empty findings. Upstream root cause may be
+  cwd-mismatch and/or claude-code #57037 (parallel-spawn cascade).
+
+  Recommendation: cd to TARGET first, then re-invoke /diagnose:
+      cd "$TARGET"
+      # (re-invoke /diagnose from your client)
+
+  You may proceed anyway — the run will not fail outright, but findings
+  quality will be lower than ideal.
+EOF
+fi
+```
+
+If the warning fires: surface it to the user verbatim and proceed (do not abort). The user can choose to interrupt and re-invoke after `cd`'ing.
+
 ## Step 2 — Set up output structure
 
 ```
@@ -43,7 +78,7 @@ $TARGET/diagnose-out/
 
 Create all subdirs. If `diagnose-out/diagnosis.html` already exists from a prior run, **do not delete it yet** — `assemble.py` reads its embedded JSON for state carryover (Confirmed/Notes annotations).
 
-## Step 3 — Build the code graph
+## Step 3 — Build the code graph + load pass templates into memory
 
 Always run graphify first. Every pass depends on it.
 
@@ -52,12 +87,17 @@ case "$(uname -s)" in
   MINGW*|MSYS*|CYGWIN*) PY="$HOME/.claude/.venv/Scripts/python.exe" ;;
   *)                    PY="$HOME/.claude/.venv/bin/python" ;;
 esac
-$PY -m graphify code "$TARGET" --output "$OUT/graphify-out"
+$PY -m graphify code "$TARGET" --out "$OUT/graphify-out"
 ```
 
 This writes `graphify-out/graph.json` and `graphify-out/CODE_REPORT.md`. The CODE_REPORT contains god nodes, communities, hotspots — useful seed for several passes.
 
 **Fallback.** If graphify fails (unsupported language, broken AST), report the failure to the user and ask whether to proceed in **degraded mode** (passes that depend on graphify will produce reduced findings; clearly marked).
+
+**Read pass templates and the finding-schema crib sheet into memory now.** They will be embedded into subagent prompts in Step 5 — analysis subagents do NOT read out-of-cwd files themselves (per ADR-001 / slice-001-diagnose-orchestration-fix). Use the Read tool on:
+
+- `~/.claude/skills/diagnose/passes/*.md` — 11 pass templates (one per pass listed in Step 5's table)
+- `~/.claude/skills/diagnose/schema/finding.yaml` — read the file but for subagent prompts, use only the 5-line crib sheet that already lives in each pass template (avoids ~30KB redundant embedding per /diagnose run, per slice-001 critique m2)
 
 ## Step 4 — Detect prior run state
 
@@ -73,7 +113,9 @@ You don't process this manually — `assemble.py` handles it. Just ensure prior 
 
 ## Step 5 — Fan out the analysis passes (parallel)
 
-Each pass is self-contained. Read its template from `~/.claude/skills/diagnose/passes/<name>.md` and pass it verbatim to a subagent.
+Per ADR-001 (slice-001-diagnose-orchestration-fix), each analysis subagent **does analysis only** — it returns three 4-backtick fenced blocks (`section`, `findings`, `summary`) in its result message. The subagent does NOT call Write, Bash, or python; it does NOT read out-of-cwd files. The main thread does all I/O via the `write_pass.py` helper after each subagent returns.
+
+This pattern is robust to subagent permission configurations (`general-purpose` subagents may have narrower allowlists than the parent thread) and eliminates the schema-mismatch + YAML-quoting failure modes that arose under the prior "subagent writes its own files" contract.
 
 **Parallel batch (run in a single message with multiple Agent tool calls).**
 
@@ -92,17 +134,53 @@ Per **COST-1.1** (`methodology-changelog.md` v0.5.0), each pass is dispatched on
 | 03g-dead-config | `passes/03g-dead-config.md` | sonnet | Config registry vs consumer cross-reference — extraction |
 | 03h-test-coverage | `passes/03h-test-coverage.md` | sonnet | Reachability + test-import cross-reference — extraction |
 
-**Spawn each as `Agent` with `subagent_type: general-purpose`** AND the model from the table above (specified as `model: <opus|sonnet>` in the Agent invocation). **Do NOT use `Explore`** — Explore agents lack the `Write` tool and will silently fail to produce output files. Only `general-purpose` has the full tool set needed (Read, Grep, Glob, Bash, Write).
+**Spawn each as `Agent` with `subagent_type: general-purpose`** AND the model from the table above (specified as `model: <opus|sonnet>` in the Agent invocation).
 
-Each subagent receives the template content + `TARGET` and `OUT` paths. Each writes:
+### What goes into each subagent's prompt
 
-- `$OUT/sections/<pass-name>.md` — prose
-- `$OUT/findings/<pass-name>.yaml` — structured findings (or empty list `[]`)
-- `$OUT/summary/<pass-name>.md` — one paragraph self-summary
+Embed (in the prompt body):
 
-**Critical:** subagents must NOT read other passes' outputs and must NOT modify source files.
+1. The pass template content (loaded in Step 3)
+2. `TARGET` and `OUT` paths
+3. The explicit subagent contract — see canonical contract below.
 
-Wait for all 10 to finish before Step 6.
+The pass templates already include a 5-line schema crib sheet describing required-field shape. No need to embed the full `schema/finding.yaml`.
+
+### Subagent contract (preamble — human-readable breakdown)
+
+The subagent's tool envelope is a four-line permission breakdown:
+
+1. **Write**: forbidden — the orchestrator writes the three pass output files via `write_pass.py`.
+2. **Read / Grep / Glob**: allowed within `$TARGET` (including `$TARGET/diagnose-out/graphify-out/`); allowed for files in the subagent's cwd; not needed (and may not work) for paths outside cwd, hence templates + schema are embedded in the prompt.
+3. **Bash / python**: allowed for graphify queries against `$OUT/graphify-out/graph.json` (per each pass template's Method section).
+4. **Output**: return three 4-backtick fenced blocks (`section`, `findings`, `summary`) in your final message; the orchestrator parses + writes.
+
+### Subagent contract (canonical line — embed verbatim in subagent prompts)
+
+The line below is the **single canonical contract string** locked across SKILL.md Step 5 + 11 pass templates' Output format sections (slice-002 / triage M2). Edit it here and the byte-equality test forces consistent edits across all 12 sites:
+
+> **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
+
+### After each subagent returns
+
+For each completed subagent (process them as they finish — order doesn't matter):
+
+1. Save the subagent's raw response text to `$OUT/.tmp/<pass-name>.raw` (create `.tmp/` if missing)
+2. Invoke the writer helper:
+
+   ```bash
+   $PY $HOME/.claude/skills/diagnose/write_pass.py \
+       --pass <pass-name> \
+       --out $OUT \
+       --raw-file $OUT/.tmp/<pass-name>.raw
+   ```
+
+3. The helper extracts the three fenced blocks, normalizes the findings (per-pass signature extractor recomputes malformed IDs deterministically), validates against `REQUIRED_FIELDS` from `assemble.py`, and writes the three pass files via `yaml.safe_dump`. Exit codes: 0 clean / 1 validation failure / 2 parse failure.
+4. **Re-spawn cap (per slice-001 critique M3): at most 3 total attempts per pass.** If `write_pass.py` exits non-zero on the third attempt, save the raw response to `$OUT/.tmp/<pass-name>.failed.raw` and proceed with the pass marked degraded (`assemble.py` will surface this in the final report). Do not loop forever.
+
+**Critical:** subagents must NOT read other passes' outputs and must NOT modify source files. The "do not call Write" rule is enforced by the contract above; the prose-pin tests (`tests/skills/diagnose/test_skill_md_pins.py`) protect against regression.
+
+Wait for all 10 to finish (and for `write_pass.py` to have run on each) before Step 6.
 
 ### Step 5.5 — Verify all expected output files exist
 
@@ -112,15 +190,15 @@ After the parallel batch completes, check that every pass produced its three fil
 ls "$OUT/sections" "$OUT/findings" "$OUT/summary"
 ```
 
-Expected: 10 entries in each (pass 04 will add an 11th in Step 6). For any missing file, report which pass(es) failed to write and re-spawn just those passes (still as `general-purpose`). Do not proceed to Step 6 with gaps — silent gaps become silent omissions in the final report.
+Expected: 10 entries in each (pass 04 will add an 11th in Step 6). Also check `$OUT/.tmp/` for any `*.failed.raw` files — those are passes that exhausted the 3-attempt cap (Step 5) and shipped degraded. Note them for the user. For any missing file (i.e., the helper never wrote it because the cap wasn't reached but a prior validation/parse failure went unnoticed), report which pass(es) and re-spawn the affected pass once before proceeding. Do not proceed to Step 6 with gaps — silent gaps become silent omissions in the final report.
 
 ## Step 6 — Cross-reference pass: 04-ai-bloat
 
 This pass depends on `findings/03b-duplicates.yaml` and `findings/03d-half-wired.yaml`. Run it after Step 5.5 confirms those files exist.
 
-Spawn one Agent with `subagent_type: general-purpose` (NOT `Explore`) and the template `passes/04-ai-bloat.md`. It reads only the structured YAMLs from prior passes (never their prose), composes AI-bloat signatures, writes its three files like the others.
+Spawn one Agent with `subagent_type: general-purpose` and `model: opus`. The 04-ai-bloat subagent IS allowed to read the two prior YAML files from `$OUT/findings/` (those live inside the target's `diagnose-out/`, which the parent's working directory typically grants). Embed `passes/04-ai-bloat.md` content + paths + the same "do NOT call Write / return three 4-backtick fenced blocks" contract from Step 5 in the subagent's prompt.
 
-After it returns, verify `$OUT/sections/04-ai-bloat.md`, `$OUT/findings/04-ai-bloat.yaml`, and `$OUT/summary/04-ai-bloat.md` all exist. Re-spawn if any are missing.
+After it returns, run the same writer-helper flow as Step 5 (save raw text → invoke `write_pass.py --pass 04-ai-bloat --raw-file $OUT/.tmp/04-ai-bloat.raw`). Apply the same 3-attempt cap. Verify `$OUT/sections/04-ai-bloat.md`, `$OUT/findings/04-ai-bloat.yaml`, and `$OUT/summary/04-ai-bloat.md` all exist before continuing.
 
 ## Step 6.5 — Narrative synthesis pass: diagnose-narrator
 
@@ -145,6 +223,8 @@ Why a separate named subagent rather than a general-purpose pass:
 - **Fresh context** — the narrator doesn't see the main /diagnose conversation, doesn't get polluted by prior pass details, focuses purely on synthesis.
 - **Stable role** — its tone + structure rules live in the agent file, not inlined in this skill, so they can be tuned without touching the skill.
 - **Read-only** — narrator has Read/Glob/Grep/Write only. No source modifications, no risk to the analyzed repo.
+
+Per slice-001 / ADR-001: the narrator agent's pattern is **deliberately preserved**. It's a named subagent with an explicit Write tool grant, writes only `sections/00-overview.md`, and worked correctly under the same machine configuration that exposed the analysis-subagent failure mode. The fenced-block + write_pass.py pattern in Steps 5/6 is for **anonymous `general-purpose` subagents** whose tool allowlist may be narrower than the parent's; named subagents with explicit tool declarations operate normally.
 
 After it returns, verify `$OUT/sections/00-overview.md` exists. If absent, log the failure but continue to Step 7 — `assemble.py` falls back to per-pass summary stitching when the overview is missing (the report is degraded, not broken).
 

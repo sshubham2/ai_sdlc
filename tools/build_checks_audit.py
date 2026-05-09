@@ -1,11 +1,20 @@
 """Build-checks audit (BC-1).
 
-Reads `architecture/build-checks.md` (project) and `~/.claude/build-checks.md`
+Reads ``architecture/build-checks.md`` (project) and ``~/.claude/build-checks.md``
 (global) and surfaces rules applicable to the current slice based on:
-  - `Applies to: always: true` (always applies), OR
-  - `Applies to: <comma-separated globs>` matched against --changed-files, OR
-  - `Trigger keywords: <comma-separated words>` matched against mission-brief.md
-    + design.md text (case-insensitive substring)
+  - ``Applies to: always: true`` (always applies), OR
+  - ``Applies to: <comma-separated globs>`` matched against --changed-files, OR
+  - ``Trigger keywords: <comma-separated words>`` matched against
+    mission-brief.md + design.md text via case-insensitive **word-boundary**
+    regex (slice-005, ADR-004 — was bare substring pre-slice-005).
+
+Optional per-rule ``Trigger anchors:`` field (slice-005, ADR-004): comma-
+separated subset of ``Trigger keywords``. When specified, the rule fires on
+the keyword path only when at least one anchor matches (word-boundary).
+When absent, behavior preserves the legacy "any keyword match fires"
+semantic (modulo the substring -> word-boundary tightening). Anchors that
+aren't in trigger_keywords yield an ``anchor-not-in-keywords`` parse
+violation (Important severity).
 
 Per BC-1 (methodology-changelog.md v0.10.0). The rule's purpose: close the
 lessons-learned -> builder feedback loop by giving recurring patterns a
@@ -78,6 +87,7 @@ class BuildCheckRule:
     severity: str        # "Critical" | "Important"
     applies_to: tuple[str, ...]  # globs OR ("always",) sentinel
     trigger_keywords: tuple[str, ...]  # lowercased keywords
+    trigger_anchors: tuple[str, ...]  # lowercased anchor subset (slice-005)
     check: str           # what the builder must verify
     rationale: str       # why this is permanent (may be empty)
     validation_hint: str  # how to verify (may be empty)
@@ -88,6 +98,7 @@ class BuildCheckRule:
         d = asdict(self)
         d["applies_to"] = list(self.applies_to)
         d["trigger_keywords"] = list(self.trigger_keywords)
+        d["trigger_anchors"] = list(self.trigger_anchors)
         return d
 
 
@@ -240,6 +251,36 @@ def _parse_rules(
             kw.strip().lower() for kw in trigger_raw.split(",") if kw.strip()
         )
 
+        # slice-005: optional Trigger anchors field (subset of Trigger keywords).
+        # Validation: each anchor must appear in trigger_keywords; an anchor
+        # outside the keyword vocabulary emits anchor-not-in-keywords (per ADR-004).
+        # Storage: all parsed anchors retained as-is (per Critic m1 — invalid
+        # anchors silently never match because matched-set is a subset of
+        # trigger_keywords; the violation surfaces via the parse-violation
+        # channel, not by silently dropping the anchor).
+        anchors_raw = fields_collected.get("trigger anchors", "")
+        seen_anchors: set[str] = set()
+        anchors_list: list[str] = []
+        for raw in anchors_raw.split(","):
+            normalized = raw.strip().lower()
+            if not normalized or normalized in seen_anchors:
+                continue
+            seen_anchors.add(normalized)
+            anchors_list.append(normalized)
+        trigger_anchors = tuple(anchors_list)
+
+        for anchor in trigger_anchors:
+            if anchor not in trigger_keywords:
+                violations.append(BuildCheckViolation(
+                    path=path, line=heading_line + 1, rule_id=rule_id,
+                    kind="anchor-not-in-keywords", severity="Important",
+                    message=(
+                        f"rule {rule_id}: Trigger anchor '{anchor}' is not in "
+                        f"Trigger keywords {sorted(trigger_keywords)}. Anchors "
+                        f"must be a subset of the keyword vocabulary."
+                    ),
+                ))
+
         rules.append(BuildCheckRule(
             source=source,
             rule_id=rule_id,
@@ -247,6 +288,7 @@ def _parse_rules(
             severity=severity,
             applies_to=applies_to,
             trigger_keywords=trigger_keywords,
+            trigger_anchors=trigger_anchors,
             check=fields_collected.get("check", ""),
             rationale=fields_collected.get("rationale", ""),
             validation_hint=fields_collected.get("validation hint", ""),
@@ -265,9 +307,16 @@ def _rule_applies(
     """Decide whether a rule applies to the current slice.
 
     Applicability is OR over the three signals:
-      1. `Applies to: always: true` -> always applies
-      2. Any glob in `Applies to` matches any of `changed_files`
-      3. Any keyword in `Trigger keywords` is a substring of slice_text
+      1. ``Applies to: always: true`` -> always applies
+      2. Any glob in ``Applies to`` matches any of ``changed_files``
+      3. Keyword path (slice-005, ADR-004): keywords are matched against
+         ``slice_text`` via case-insensitive **word-boundary** regex
+         (``\\b{kw}\\b``), not substring. If the rule defines
+         ``Trigger anchors``, the rule fires only when at least one anchor
+         (subset of ``Trigger keywords``) matches; otherwise any keyword
+         match fires (legacy behavior + word-boundary tightening). Compound
+         keywords with hyphens (e.g., ``code-block``) match cleanly because
+         word-boundaries land at the start and end of the literal pattern.
     """
     if rule.applies_to == ("always",):
         return True
@@ -279,9 +328,15 @@ def _rule_applies(
 
     if rule.trigger_keywords and slice_text:
         haystack = slice_text.lower()
-        for kw in rule.trigger_keywords:
-            if kw in haystack:
-                return True
+        matched = {
+            kw for kw in rule.trigger_keywords
+            if re.search(rf"\b{re.escape(kw)}\b", haystack)
+        }
+        if not matched:
+            return False
+        if rule.trigger_anchors:
+            return any(a in matched for a in rule.trigger_anchors)
+        return True
 
     return False
 

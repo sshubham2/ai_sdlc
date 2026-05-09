@@ -9,8 +9,8 @@ You reconstruct what this codebase is **trying to be** from raw code. No README,
 
 ## Hard rules
 - **No documentation reads.** Do not read any `.md`, `.rst`, `.txt`, `.adoc`, `.markdown`, `.org` files or anything in a `docs/` directory in `TARGET`. Source code, config (`.yaml`, `.toml`, `.json`, `.env`), schemas, build manifests, and graphify only. Inline docstrings/comments may be read but not trusted as ground truth.
-- Do not modify any file in `TARGET`. Only write to `OUT/sections/`, `OUT/findings/`, `OUT/summary/`.
-- Findings (none expected for this pass) must conform to `~/.claude/skills/diagnose/schema/finding.yaml`.
+- Do not modify any file in `TARGET`. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.** Return your output as 4-backtick fenced blocks per the Output format section; the orchestrator writes the three pass files.
+- Findings (none expected for this pass) must conform to the schema crib sheet in the Output format section below.
 
 ## Method
 
@@ -31,43 +31,44 @@ $PY -m graphify query "models entities domain" --graph $OUT/graphify-out/graph.j
 $PY -m graphify query "external api integration client" --graph $OUT/graphify-out/graph.json
 ```
 
-## Output files
+## Output format
 
-### `OUT/sections/01-intent.md`
+Per ADR-001 (slice-001) + slice-002, return your output as three 4-backtick fenced blocks in your final message. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
 
-```markdown
-## 1. What the codebase does
+### Schema crib sheet (for the `findings` block)
 
-### Inferred intent
-<2-3 paragraphs>
+Each finding has 12 required fields. Orchestrator validates + recomputes malformed IDs deterministically.
 
-### Actors
-- **<actor>** — <role>; interacts via `<surface>` (`<file:line>`)
-- ...
+- `id`: `F-<CAT>-<8hex>` · `pass`: `01-intent` · `category`: schema enum
+- `severity`: `low | medium | high | critical` · `blast_radius`: `small | medium | large` · `reversibility`: `cheap | expensive | irreversible`
+- `title`: ≤100 chars, no trailing period · `description`: multi-line, concrete
+- `evidence`: list of `{path, lines, note}` · `suggested_action`: concrete · `effort_estimate`: `small | medium | large` · `slice_candidate`: `yes | no | maybe`
 
-### Domain model
-<table or list of primary entities, fields, relationships>
+Empty findings: return `[]` in the findings block.
 
-### Capability map
-- <verb phrase capability> — `<file:line>` evidence
-- ...
+### Block contents
 
-### External integrations
-- <service>: `<file:line>`, purpose
-- ...
-```
+**`section` block** — H2 "## 1. What the codebase does" with H3 subsections: "Inferred intent" (2-3 paragraphs), "Actors" (bulleted `**<actor>** — <role>; interacts via <surface> (<file:line>)`), "Domain model" (table or list of primary entities), "Capability map" (verb-phrase bullets with `<file:line>` evidence), "External integrations" (`<service>: <file:line>, purpose`).
 
-### `OUT/findings/01-intent.yaml`
+**`findings` block** — `[]` (Pass 01 is prose-only; produces no findings).
 
-```yaml
+**`summary` block** — One paragraph, ~80 words: "This codebase appears to be a `<type>` for `<users>`, primarily delivering `<top 3 capabilities>`. Built on `<stack>`. `<One sentence on what's distinctive or surprising>`."
+
+### Block template
+
+`````
+````section
+<your section content>
+````
+
+````findings
 []
-```
+````
 
-(Pass 01 produces no findings — it's prose only.)
-
-### `OUT/summary/01-intent.md`
-
-One paragraph, ~80 words: "This codebase appears to be a <type> for <users>, primarily delivering <top 3 capabilities>. Built on <stack>. <One sentence on what's distinctive or surprising about the inferred intent>."
+````summary
+<your one-paragraph summary>
+````
+`````
 
 ## Anti-patterns
 

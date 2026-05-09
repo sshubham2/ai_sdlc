@@ -14,6 +14,8 @@ import os
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from tests.methodology.conftest import REPO_ROOT
 from tools.build_checks_audit import (
     _BC_1_RELEASE_DATE,
@@ -365,4 +367,304 @@ def test_reflect_skill_references_bc_1():
     # Pin the promotion-prompt language so it can't be paraphrased away
     assert "recurring pattern" in text.lower(), (
         "promotion prompt should mention 'recurring pattern'"
+    )
+
+
+# --- Slice-005: BC-1 keyword precision (word-boundary + Trigger anchors) ---
+#
+# Per slice-005-add-bc-1-keyword-precision (mission-brief + ADR-004), the
+# BC-1 keyword-applicability path now uses case-insensitive word-boundary
+# matching (was bare substring) and supports an optional Trigger anchors:
+# field per rule. Tests below cover ACs #1-#5 + the M1/M2 promoted rows.
+
+_GLOBAL_BUILD_CHECKS = Path.home() / ".claude" / "build-checks.md"
+
+
+def test_slice_003_archive_backtest_no_bc_proj_2_or_global_1_applications():
+    """Slice-003 archive folder must NOT trigger BC-PROJ-2 or BC-GLOBAL-1.
+
+    Defect class: BC-1 trigger keywords matched as bare substrings produced
+    false positives across slices (slice-003 + slice-004 N=2 confirmed —
+    `parse_declared_deps` substring-matched `parse`). Word-boundary +
+    Trigger anchors silences the noise. The rule must appear in `skipped`
+    (per slice-003 lesson on TF-1 PENDING -> WRITTEN-FAILING genuineness:
+    a presence-only `not in applicable` assertion could mass-pass if no
+    rules apply at all; the in-`skipped` assertion makes the failure mode
+    unambiguous — distinguishes "fix not applied" from "fix doesn't exist").
+    Rule reference: BC-1 (slice-005 AC #1).
+    """
+    result = audit_slice(
+        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        / "slice-003-add-val-1-imports-allowlist",
+        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
+        global_checks=_GLOBAL_BUILD_CHECKS,
+        skip_if_carry_over=False,
+    )
+    applicable_ids = {r.rule_id for r in result.applicable}
+    skipped_ids = {r.rule_id for r in result.skipped}
+
+    assert "BC-PROJ-2" not in applicable_ids, (
+        f"BC-PROJ-2 should NOT apply to slice-003 archive (false-positive class). "
+        f"Got applicable: {applicable_ids}"
+    )
+    assert "BC-PROJ-2" in skipped_ids, (
+        f"BC-PROJ-2 should appear in skipped (rule was parsed but didn't fire). "
+        f"Got skipped: {skipped_ids}"
+    )
+    if _GLOBAL_BUILD_CHECKS.exists():
+        assert "BC-GLOBAL-1" not in applicable_ids, (
+            f"BC-GLOBAL-1 should NOT apply to slice-003 archive. "
+            f"Got applicable: {applicable_ids}"
+        )
+        assert "BC-GLOBAL-1" in skipped_ids, (
+            f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
+        )
+
+
+def test_slice_004_archive_backtest_no_bc_proj_2_or_global_1_applications():
+    """Slice-004 archive folder must NOT trigger BC-PROJ-2 or BC-GLOBAL-1.
+
+    Defect class: slice-004 mission-brief + design contain bare-word
+    `parse`, `backtick`, `output` in regex/markdown/CLI contexts (not LLM-
+    fence). Word-boundary alone is INSUFFICIENT here (those bare-word
+    matches still fire); the Trigger anchors filter (anchors fence/code-
+    block/llm) is what closes the gap. The skipped half-assertion pattern
+    matches test #1 above.
+    Rule reference: BC-1 (slice-005 AC #2).
+    """
+    result = audit_slice(
+        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        / "slice-004-fix-rr1-audit-docstring-or-regex",
+        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
+        global_checks=_GLOBAL_BUILD_CHECKS,
+        skip_if_carry_over=False,
+    )
+    applicable_ids = {r.rule_id for r in result.applicable}
+    skipped_ids = {r.rule_id for r in result.skipped}
+
+    assert "BC-PROJ-2" not in applicable_ids, (
+        f"BC-PROJ-2 should NOT apply to slice-004 archive (false-positive class). "
+        f"Got applicable: {applicable_ids}"
+    )
+    assert "BC-PROJ-2" in skipped_ids, (
+        f"BC-PROJ-2 should appear in skipped (rule was parsed but didn't fire). "
+        f"Got skipped: {skipped_ids}"
+    )
+    if _GLOBAL_BUILD_CHECKS.exists():
+        assert "BC-GLOBAL-1" not in applicable_ids, (
+            f"BC-GLOBAL-1 should NOT apply to slice-004 archive. "
+            f"Got applicable: {applicable_ids}"
+        )
+        assert "BC-GLOBAL-1" in skipped_ids, (
+            f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
+        )
+
+
+def test_legitimate_llm_fence_brief_still_triggers_bc_proj_2_and_global_1(
+    tmp_path: Path,
+):
+    """A synthetic brief discussing LLM-fence parsing DOES trigger BC-PROJ-2.
+
+    Defect class: precision improvement must not over-suppress. A real slice
+    that discusses LLM-fence parsing must still surface the BC-PROJ-2 /
+    BC-GLOBAL-1 rules. The canonical synthetic uses the bare anchor words
+    `LLM` and `code-block` (per Critic B2 — the AC #3 example uses `fenced`
+    which the new word-boundary regex doesn't match against `\\bfence\\b`;
+    `code-block` provides a domain-coherent anchor word that DOES match).
+    Rule reference: BC-1 (slice-005 AC #3).
+    """
+    slice_folder = _make_slice(
+        tmp_path,
+        brief_text=(
+            "Parse the LLM agent's fenced output for nested triple-backtick "
+            "code-block sections."
+        ),
+    )
+    result = audit_slice(
+        slice_folder=slice_folder,
+        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
+        global_checks=_GLOBAL_BUILD_CHECKS,
+        skip_if_carry_over=False,
+    )
+    applicable_ids = {r.rule_id for r in result.applicable}
+
+    assert "BC-PROJ-2" in applicable_ids, (
+        f"BC-PROJ-2 must apply to a brief that legitimately discusses "
+        f"LLM-fence parsing. Got applicable: {applicable_ids}"
+    )
+    if _GLOBAL_BUILD_CHECKS.exists():
+        assert "BC-GLOBAL-1" in applicable_ids, (
+            f"BC-GLOBAL-1 must apply to a brief that legitimately discusses "
+            f"LLM-fence parsing. Got applicable: {applicable_ids}"
+        )
+
+
+def test_build_checks_schema_documents_trigger_anchors_field_name():
+    """Schema description prose in BOTH project + global build-checks files
+    must mention the literal `Trigger anchors` field name.
+
+    Defect class: a new schema field added without documentation is invisible
+    to authors of future rules. Per slice-002 + slice-003 + slice-004 pattern
+    (methodology-tooling slices add prose-pin tests for every contract
+    surface they change), and per Critic M3 (slice-005 — two surfaces,
+    two pins).
+    Rule reference: BC-1 (slice-005 AC #5 surface a).
+    """
+    project_text = (
+        REPO_ROOT / "architecture" / "build-checks.md"
+    ).read_text(encoding="utf-8")
+    assert "Trigger anchors" in project_text, (
+        "architecture/build-checks.md schema description must mention the "
+        "literal `Trigger anchors` field name (case-sensitive)."
+    )
+    if not _GLOBAL_BUILD_CHECKS.exists():
+        pytest.skip(
+            f"global build-checks file not present at {_GLOBAL_BUILD_CHECKS}; "
+            f"project pin is the canonical CI surface (slice-005 design "
+            f"acknowledged this CI gap per Critic m4)."
+        )
+    global_text = _GLOBAL_BUILD_CHECKS.read_text(encoding="utf-8")
+    assert "Trigger anchors" in global_text, (
+        f"{_GLOBAL_BUILD_CHECKS} schema description must mention the "
+        f"literal `Trigger anchors` field name (case-sensitive)."
+    )
+
+
+def test_build_checks_schema_documents_word_boundary_semantics():
+    """Schema description prose in BOTH project + global build-checks files
+    must mention the literal `word-boundary` semantics phrase.
+
+    Defect class: word-boundary is the OTHER new contract surface (universal
+    semantic change, not just a new field). Per Critic M3 — pinning only the
+    field name leaves the semantics phrase unprotected against doc refactor
+    drift.
+    Rule reference: BC-1 (slice-005 AC #5 surface b).
+    """
+    project_text = (
+        REPO_ROOT / "architecture" / "build-checks.md"
+    ).read_text(encoding="utf-8")
+    assert "word-boundary" in project_text, (
+        "architecture/build-checks.md schema description must mention the "
+        "literal `word-boundary` semantics phrase (kebab-case)."
+    )
+    if not _GLOBAL_BUILD_CHECKS.exists():
+        pytest.skip(
+            f"global build-checks file not present at {_GLOBAL_BUILD_CHECKS}; "
+            f"project pin is the canonical CI surface."
+        )
+    global_text = _GLOBAL_BUILD_CHECKS.read_text(encoding="utf-8")
+    assert "word-boundary" in global_text, (
+        f"{_GLOBAL_BUILD_CHECKS} schema description must mention the "
+        f"literal `word-boundary` semantics phrase."
+    )
+
+
+def test_migrated_rules_have_expected_anchors():
+    """The 3 migrated rules MUST parse to the expected anchor tuples.
+
+    Defect class: a migration typo (e.g., `Trigger anchors: fenced` instead
+    of `fence`) would silently ship — backtest tests pass either way for
+    slice-003 / slice-004 (those briefs have neither variant). The
+    anchor-not-in-keywords parse violation would surface, but only if
+    a separate test exercises the violation channel. This test pins the
+    anchor TUPLES on the production rules themselves so a typo fails loud.
+    Per Critic M1 — closes the migration-typo gap.
+    Rule reference: BC-1 (slice-005 migration row).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_path = REPO_ROOT / "architecture" / "build-checks.md"
+    project_text = project_path.read_text(encoding="utf-8")
+    rules, violations = _parse_rules(
+        project_text, source="project", path=str(project_path)
+    )
+    by_id = {r.rule_id: r for r in rules}
+
+    assert "BC-PROJ-1" in by_id, "BC-PROJ-1 not parsed from project file"
+    assert by_id["BC-PROJ-1"].trigger_anchors == ("subagent", "fan-out"), (
+        f"BC-PROJ-1 anchors mismatch: got "
+        f"{by_id['BC-PROJ-1'].trigger_anchors!r}, "
+        f"expected ('subagent', 'fan-out')"
+    )
+
+    assert "BC-PROJ-2" in by_id, "BC-PROJ-2 not parsed from project file"
+    assert by_id["BC-PROJ-2"].trigger_anchors == ("fence", "code-block", "llm"), (
+        f"BC-PROJ-2 anchors mismatch: got "
+        f"{by_id['BC-PROJ-2'].trigger_anchors!r}, "
+        f"expected ('fence', 'code-block', 'llm')"
+    )
+
+    # No anchor-not-in-keywords violations expected on the production file
+    bad = [
+        v for v in violations
+        if v.kind == "anchor-not-in-keywords"
+    ]
+    assert not bad, (
+        f"production project build-checks.md emits anchor-not-in-keywords "
+        f"violations: {[(v.rule_id, v.message) for v in bad]}"
+    )
+
+    if not _GLOBAL_BUILD_CHECKS.exists():
+        pytest.skip(
+            f"global build-checks file not present at {_GLOBAL_BUILD_CHECKS}; "
+            f"project pins are the canonical CI surface."
+        )
+    global_text = _GLOBAL_BUILD_CHECKS.read_text(encoding="utf-8")
+    global_rules, global_violations = _parse_rules(
+        global_text, source="global", path=str(_GLOBAL_BUILD_CHECKS)
+    )
+    global_by_id = {r.rule_id: r for r in global_rules}
+    assert "BC-GLOBAL-1" in global_by_id, "BC-GLOBAL-1 not parsed from global file"
+    expected_global_anchors = ("fence", "code-block", "llm", "structured-output")
+    assert global_by_id["BC-GLOBAL-1"].trigger_anchors == expected_global_anchors, (
+        f"BC-GLOBAL-1 anchors mismatch: got "
+        f"{global_by_id['BC-GLOBAL-1'].trigger_anchors!r}, "
+        f"expected {expected_global_anchors}"
+    )
+
+
+def test_anchor_not_in_keywords_yields_violation(tmp_path: Path):
+    """A rule with anchors that aren't in trigger_keywords emits a violation.
+
+    Defect class: input validation on the new `Trigger anchors:` field is a
+    must-not-defer item per mission-brief.md; per Critic M2 — promoted from
+    OPTIONAL to mandatory TF-1 row. Mirrors the existing
+    `test_invalid_severity_yields_violation` pattern.
+    Rule reference: BC-1 (slice-005 validation row).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    fixture_text = (
+        "# Build checks (project-specific)\n"
+        "\n"
+        "## Rules\n"
+        "\n"
+        "## BC-PROJ-99 - Test rule with bad anchor\n"
+        "\n"
+        "**Severity**: Important\n"
+        "**Applies to**: src/**\n"
+        "**Trigger keywords**: alpha, beta, gamma\n"
+        "**Trigger anchors**: foo\n"
+        "\n"
+        "**Check**: This rule's anchor `foo` is not in trigger_keywords; "
+        "audit MUST emit anchor-not-in-keywords violation.\n"
+    )
+    fixture_path = tmp_path / "anchor_not_in_keywords.md"
+    fixture_path.write_text(fixture_text, encoding="utf-8")
+
+    rules, violations = _parse_rules(
+        fixture_text, source="project", path=str(fixture_path)
+    )
+    bad = [v for v in violations if v.kind == "anchor-not-in-keywords"]
+    assert len(bad) >= 1, (
+        f"expected at least 1 anchor-not-in-keywords violation; "
+        f"got violations: {[(v.kind, v.message) for v in violations]}"
+    )
+    assert bad[0].rule_id == "BC-PROJ-99", (
+        f"violation rule_id mismatch: got {bad[0].rule_id!r}, "
+        f"expected 'BC-PROJ-99'"
+    )
+    assert "foo" in bad[0].message, (
+        f"violation message must reference the offending anchor 'foo'; "
+        f"got {bad[0].message!r}"
     )

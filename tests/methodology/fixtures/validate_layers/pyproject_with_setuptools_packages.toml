@@ -1,0 +1,9 @@
+[project]
+name = "fixture-with-setuptools-packages"
+version = "0.1.0"
+dependencies = [
+    "anthropic>=0.34.0",
+]
+
+[tool.setuptools]
+packages = ["my_internal_pkg"]

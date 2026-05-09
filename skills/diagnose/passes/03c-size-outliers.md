@@ -33,19 +33,42 @@ You identify functions, classes, modules, and files that are oversized relative 
 - `high` — god node / single point of change for many features
 - `critical` — only if a single function has >cyclomatic 30 in a critical path (auth, billing, data integrity)
 
-## Output files
+## Output format
 
-### `OUT/sections/03c-size-outliers.md`
+Per ADR-001 (slice-001) + slice-002, return your output as three 4-backtick fenced blocks in your final message. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
 
-Prose: codebase distribution stats (mean/median/p90/p99 per category). Top outliers table. For top 5, brief justification analysis (justified vs accidental).
+### Schema crib sheet (for the `findings` block)
 
-### `OUT/findings/03c-size-outliers.yaml`
+- `id`: `F-SIZE-<8hex>` · `pass`: `03c-size-outliers` · `category`: `size-outlier`
+- `severity`: `low | medium | high | critical` · `blast_radius`: `small | medium | large` · `reversibility`: `cheap | expensive | irreversible`
+- `title`: ≤100 chars · `description`: include computed metric + codebase-relative percentile
+- `evidence`: list of `{path, lines, note}` · `suggested_action` · `effort_estimate`: `small | medium | large` · `slice_candidate`: `yes | no | maybe`
 
-One entry per outlier worth flagging. `description` includes the computed metric (lines / complexity / fan-in / fan-out) and codebase-relative percentile.
+Empty findings: return `[]`.
 
-### `OUT/summary/03c-size-outliers.md`
+### Block contents
 
-One paragraph: distribution summary + top 3 outliers + verdict on whether the codebase has a god-class problem.
+**`section` block** — Prose: codebase distribution stats (mean/median/p90/p99 per category). Top outliers table. For top 5, brief justification analysis (justified vs accidental).
+
+**`findings` block** — One entry per outlier worth flagging. `description` includes the computed metric (lines / complexity / fan-in / fan-out) and codebase-relative percentile.
+
+**`summary` block** — One paragraph: distribution summary + top 3 outliers + verdict on whether the codebase has a god-class problem.
+
+### Block template
+
+`````
+````section
+<your section content>
+````
+
+````findings
+<YAML list, or `[]`>
+````
+
+````summary
+<your one-paragraph summary>
+````
+`````
 
 ## Anti-patterns
 

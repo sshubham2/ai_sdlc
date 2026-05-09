@@ -17,16 +17,21 @@ with annotations baked into the embedded JSON state. Owner emails it back;
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html as htmlmod
 import json
+import logging
 import re
 import shutil
 import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 
 import yaml
+
+log = logging.getLogger(__name__)
 
 PASS_ORDER = [
     "01-intent",
@@ -70,19 +75,211 @@ SEVERITY_ORDER = ["critical", "high", "medium", "low"]
 
 
 # ---------------------------------------------------------------------------
+# Per-pass signature extractors (slice-001 / B2)
+# ---------------------------------------------------------------------------
+#
+# The schema's canonical ID recipe is F-<CAT>-<sha1(category +
+# primary_evidence_path + signature)[:8]>. The `signature` is per-pass:
+#   03a-dead-code:    function/class/module name being flagged → defaults to title
+#   03b-duplicates:   lexicographically smallest path among the duplicates
+#   03c-size-outliers: symbol → defaults to title
+#   03d-half-wired:   feature concept → defaults to title
+#   03e-contradictions: domain concept → defaults to title
+#   03f-layering:     module pair → defaults to title
+#   03g-dead-config:  config key → defaults to title
+#   03h-test-coverage: capability → defaults to title
+#   04-ai-bloat:      heuristic-specific → defaults to title
+#
+# When a subagent emits a malformed ID, normalize_finding() recomputes it
+# using these extractors so the recipe stays deterministic across runs
+# (preserves owner-annotation carryover per SKILL.md hard rule 4).
+
+_DEFAULT_SIGNATURE = lambda f: str(f.get("title", ""))
+
+
+def _smallest_evidence_path(f: dict) -> str:
+    """For 03b-duplicates: lexicographically smallest path across evidence list."""
+    ev = f.get("evidence") or []
+    paths = [
+        e.get("path", "") if isinstance(e, dict) else str(e)
+        for e in ev
+    ]
+    paths = [p for p in paths if p]
+    return sorted(paths)[0] if paths else ""
+
+
+_signature_extractors: dict[str, Callable[[dict], str]] = {
+    "__default__": _DEFAULT_SIGNATURE,
+    "01-intent": _DEFAULT_SIGNATURE,
+    "02-architecture": _DEFAULT_SIGNATURE,
+    "03a-dead-code": _DEFAULT_SIGNATURE,
+    "03b-duplicates": _smallest_evidence_path,
+    "03c-size-outliers": _DEFAULT_SIGNATURE,
+    "03d-half-wired": _DEFAULT_SIGNATURE,
+    "03e-contradictions": _DEFAULT_SIGNATURE,
+    "03f-layering": _DEFAULT_SIGNATURE,
+    "03g-dead-config": _DEFAULT_SIGNATURE,
+    "03h-test-coverage": _DEFAULT_SIGNATURE,
+    "04-ai-bloat": _DEFAULT_SIGNATURE,
+}
+
+
+# ---------------------------------------------------------------------------
+# normalize_finding (slice-001 / B2 / M1)
+# ---------------------------------------------------------------------------
+#
+# Ingest-time tolerance for common LLM-output mistakes. Called by
+# write_pass.py before YAML write. NOT called by load_findings() — load
+# remains strict so re-runs against existing diagnose-out/ stay
+# deterministic (per critique M1).
+
+_ID_SHAPE = re.compile(r"^F-[A-Z]+-[a-f0-9]{8}$")
+
+
+def _category_short(category: str) -> str:
+    """Map a full category name to its short uppercase form for IDs."""
+    mapping = {
+        "dead-code": "DEAD",
+        "duplicate": "DUP",
+        "size-outlier": "SIZE",
+        "half-wired": "HALF",
+        "contradiction": "CONTRA",
+        "layering-violation": "LAYER",
+        "dead-config": "CONFIG",
+        "test-gap": "TEST",
+        "ai-bloat": "BLOAT",
+    }
+    return mapping.get(category, category.upper().replace("-", "")[:6] or "OTHER")
+
+
+def _recompute_id(finding: dict, pass_name: str) -> str:
+    """Rebuild a canonical-recipe ID from finding fields + pass-specific signature."""
+    category = finding.get("category", "other")
+    primary_path = ""
+    ev = finding.get("evidence") or []
+    if ev:
+        first = ev[0]
+        primary_path = first.get("path", "") if isinstance(first, dict) else str(first)
+    extractor = _signature_extractors.get(pass_name) or _signature_extractors["__default__"]
+    signature = extractor(finding)
+    payload = f"{category}{primary_path}{signature}".encode("utf-8")
+    digest = hashlib.sha1(payload).hexdigest()[:8]
+    return f"F-{_category_short(category)}-{digest}"
+
+
+def _normalize_evidence(evidence) -> list[dict]:
+    """Convert evidence shapes (flat strings, partial dicts) to {path, lines, note}."""
+    if not isinstance(evidence, list):
+        return []
+    out = []
+    for entry in evidence:
+        if isinstance(entry, dict):
+            out.append({
+                "path": str(entry.get("path", "")),
+                "lines": str(entry.get("lines", "")),
+                "note": str(entry.get("note", "")),
+            })
+        elif isinstance(entry, str):
+            out.append({"path": entry, "lines": "", "note": ""})
+        else:
+            log.warning("dropping unrecognized evidence entry type: %r", type(entry))
+    return out
+
+
+def normalize_finding(raw: dict, pass_name: str) -> dict | None:
+    """Coerce a subagent-emitted finding into schema shape.
+
+    Returns the normalized finding dict, or None if the entry is
+    irrecoverably malformed (no evidence at all after coercion).
+
+    Coercions performed (per slice-001 AC #3 + B2):
+    - Unwraps {finding: {...}} or {findings: [{...}]} dict shapes
+    - Normalizes evidence: flat strings → {path, lines, note} dicts
+    - Recomputes ID via _signature_extractors when shape doesn't match
+      ^F-<CAT>-<8hex>$
+    - Drops fields not in REQUIRED_FIELDS, with a warning per dropped key
+    """
+    # Unwrap dict shapes
+    if isinstance(raw, dict):
+        if "finding" in raw and isinstance(raw["finding"], dict):
+            raw = raw["finding"]
+        elif "findings" in raw and isinstance(raw["findings"], list) and raw["findings"]:
+            # Caller passed the wrapper; take the first entry
+            raw = raw["findings"][0]
+    if not isinstance(raw, dict):
+        log.warning("normalize_finding got non-dict input: %r", type(raw))
+        return None
+
+    # Drop unknown fields
+    allowed = set(REQUIRED_FIELDS)
+    extras = [k for k in raw.keys() if k not in allowed]
+    for k in extras:
+        log.warning("dropping unknown field %r from finding", k)
+    finding = {k: v for k, v in raw.items() if k in allowed}
+
+    # Normalize evidence shape
+    finding["evidence"] = _normalize_evidence(finding.get("evidence"))
+    if not finding["evidence"]:
+        log.warning("finding has no usable evidence after normalization; rejecting")
+        return None
+
+    # ID validation + recompute
+    current_id = finding.get("id", "")
+    if not _ID_SHAPE.match(str(current_id)):
+        finding["id"] = _recompute_id(finding, pass_name)
+        log.warning(
+            "recomputed malformed ID %r → %r for pass %s",
+            current_id, finding["id"], pass_name,
+        )
+
+    # Set pass field if missing
+    finding.setdefault("pass", pass_name)
+
+    return finding
+
+
+# ---------------------------------------------------------------------------
 # Loading inputs
 # ---------------------------------------------------------------------------
 
 
+def _yaml_error_context(text: str, mark) -> str:
+    """Render ±2 lines around a yaml problem_mark for human-readable errors."""
+    if mark is None:
+        return ""
+    lines = text.splitlines()
+    line_num = mark.line  # 0-indexed
+    start = max(0, line_num - 2)
+    end = min(len(lines), line_num + 3)
+    snippet = []
+    for i in range(start, end):
+        marker = ">>" if i == line_num else "  "
+        snippet.append(f"{marker} {i + 1:4d} | {lines[i]}")
+    return "\n".join(snippet)
+
+
 def load_findings(findings_dir: Path) -> list[dict]:
+    """Load findings from <dir>/*.yaml. Strict: no normalization here (M1)."""
     by_id: dict[str, dict] = {}
     if not findings_dir.exists():
         return []
     for path in sorted(findings_dir.glob("*.yaml")):
+        text = path.read_text(encoding="utf-8")
         try:
-            data = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+            data = yaml.safe_load(text) or []
         except yaml.YAMLError as exc:
-            raise SystemExit(f"YAML parse failure in {path}: {exc}")
+            # M2: gracefully fall back when problem_mark is absent
+            mark = getattr(exc, "problem_mark", None)
+            if mark is not None:
+                context = _yaml_error_context(text, mark)
+                msg = (
+                    f"YAML parse failure in {path} at line {mark.line + 1}, "
+                    f"column {mark.column + 1}: {exc}\n{context}"
+                )
+            else:
+                msg = f"YAML parse failure in {path} (line/column unknown): {exc}"
+            print(msg, file=sys.stderr)
+            raise SystemExit(msg)
         if not isinstance(data, list):
             raise SystemExit(f"{path}: top level must be a YAML list")
         for entry in data:

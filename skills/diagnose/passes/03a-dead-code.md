@@ -34,19 +34,42 @@ You identify code unreachable from any entry point.
    - `high` — dead code path inside a function (e.g., unreachable branch after an early return); may indicate a logic bug
    - `critical` — only if the dead code is masking a security check or correctness invariant
 
-## Output files
+## Output format
 
-### `OUT/sections/03a-dead-code.md`
+Per ADR-001 (slice-001) + slice-002, return your output as three 4-backtick fenced blocks in your final message. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
 
-Prose: how many dead items, broken down by file/module/function/branch level. Top 5 most impactful (largest modules / clearest cuts). Note any verified-but-uncertain cases (e.g., "appears dead but referenced in YAML config — flagged for owner verification").
+### Schema crib sheet (for the `findings` block)
 
-### `OUT/findings/03a-dead-code.yaml`
+- `id`: `F-DEAD-<8hex>` · `pass`: `03a-dead-code` · `category`: `dead-code`
+- `severity`: `low | medium | high | critical` · `blast_radius`: `small | medium | large` · `reversibility`: `cheap | expensive | irreversible`
+- `title`: ≤100 chars · `description`: multi-line, include verification step
+- `evidence`: list of `{path, lines, note}` · `suggested_action`: concrete · `effort_estimate`: `small | medium | large` · `slice_candidate`: `yes | no | maybe`
 
-One YAML entry per dead item, conforming to schema. Include the verification step taken in the description.
+Empty findings: return `[]`.
 
-### `OUT/summary/03a-dead-code.md`
+### Block contents
 
-One paragraph: "Detected N dead-code items: M unreachable modules, K dead functions, J dead branches. Largest cluster: <name> (<LOC> lines). Verification: dynamic-import grep, config-reference grep."
+**`section` block** — Prose: how many dead items, broken down by file/module/function/branch level. Top 5 most impactful (largest modules / clearest cuts). Note any verified-but-uncertain cases (e.g., "appears dead but referenced in YAML config — flagged for owner verification").
+
+**`findings` block** — One YAML entry per dead item. Include the verification step taken in `description`.
+
+**`summary` block** — One paragraph: "Detected N dead-code items: M unreachable modules, K dead functions, J dead branches. Largest cluster: `<name>` (`<LOC>` lines). Verification: dynamic-import grep, config-reference grep."
+
+### Block template
+
+`````
+````section
+<your section content>
+````
+
+````findings
+<YAML list, or `[]`>
+````
+
+````summary
+<your one-paragraph summary>
+````
+`````
 
 ## Anti-patterns
 

@@ -42,19 +42,42 @@ You identify places where module A assumes one thing about a shared concept and 
 - `high` — contradictions affecting data integrity (e.g., soft-delete inconsistency)
 - `critical` — auth/permission contradictions (one module assumes the caller is authenticated, another doesn't enforce)
 
-## Output files
+## Output format
 
-### `OUT/sections/03e-contradictions.md`
+Per ADR-001 (slice-001) + slice-002, return your output as three 4-backtick fenced blocks in your final message. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
 
-Prose: contradictions grouped by entity. For each: the two sides, the user-facing symptom (or future symptom), recommended resolution direction.
+### Schema crib sheet (for the `findings` block)
 
-### `OUT/findings/03e-contradictions.yaml`
+- `id`: `F-CONTRA-<8hex>` · `pass`: `03e-contradictions` · `category`: `contradiction`
+- `severity`: `low | medium | high | critical` · `blast_radius`: `small | medium | large` · `reversibility`: `cheap | expensive | irreversible`
+- `title`: ≤100 chars · `description`: must concretely state both sides + implication
+- `evidence`: list of `{path, lines, note}` — cite both sides · `suggested_action` · `effort_estimate`: `small | medium | large` · `slice_candidate`: `yes | no | maybe`
 
-One entry per contradiction. Description must concretely state both sides and the implication.
+Empty findings: return `[]`.
 
-### `OUT/summary/03e-contradictions.md`
+### Block contents
 
-One paragraph: count, top entity affected, worst contradiction.
+**`section` block** — Prose: contradictions grouped by entity. For each: the two sides, the user-facing symptom (or future symptom), recommended resolution direction.
+
+**`findings` block** — One entry per contradiction. `description` must concretely state both sides and the implication.
+
+**`summary` block** — One paragraph: count, top entity affected, worst contradiction.
+
+### Block template
+
+`````
+````section
+<your section content>
+````
+
+````findings
+<YAML list, or `[]`>
+````
+
+````summary
+<your one-paragraph summary>
+````
+`````
 
 ## Anti-patterns
 

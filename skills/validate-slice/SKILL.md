@@ -125,11 +125,22 @@ $PY -m tools.validate_slice_layers \
 Static regex patterns for AWS access keys, GitHub PATs (classic + fine-grained + bot tokens), Slack tokens, JWTs, PEM private keys, Anthropic / OpenAI API keys, and generic `api_key = "..."` literals. Each detected secret is a Critical finding that **cannot be deferred** — committed credentials are immediately exploitable. False positives (test fixtures, public-docs examples) are silenced via `architecture/.secrets-allowlist` (one regex per line; `#` comments).
 
 **Layer B — Dependency hallucination check (Important, surfaces)**
-Python `ast`-parses every changed `.py` file and resolves each top-level import against the project's declared deps from `pyproject.toml` (`[project.dependencies]`, `[project.optional-dependencies]`, `[tool.poetry.dependencies]`) and `requirements.txt`. Stdlib imports (per `sys.stdlib_module_names`), relative imports (`from . import X`), and a small known-aliases table (`yaml`->`pyyaml`, `bs4`->`beautifulsoup4`, `PIL`->`pillow`, `cv2`->`opencv-python`, etc.) resolve cleanly. Anything else is an Important `hallucinated-import` finding — possible AI hallucination, or a real package that the project simply forgot to declare. Surface to user; defer-with-rationale allowed (consistent with the LINT-MOCK Important pattern).
+Python `ast`-parses every changed `.py` file and resolves each top-level import against the project's declared deps from `pyproject.toml` (`[project.dependencies]`, `[project.optional-dependencies]`, `[tool.poetry.dependencies]`, `[tool.setuptools] packages` — explicit-list form) and `requirements.txt`. Stdlib imports (per `sys.stdlib_module_names`), relative imports (`from . import X`), and a small known-aliases table (`yaml`->`pyyaml`, `bs4`->`beautifulsoup4`, `PIL`->`pillow`, `cv2`->`opencv-python`, etc.) resolve cleanly. Anything else is an Important `hallucinated-import` finding — possible AI hallucination, or a real package that the project simply forgot to declare. Surface to user; defer-with-rationale allowed (consistent with the LINT-MOCK Important pattern).
+
+**Two extension points for project-internal imports** (per slice-003, ADR-002): (a) `[tool.setuptools] packages` is auto-read — if your project declares its own pip-shipped package there, internal `from <self_pkg>.X import …` resolves without any flag; (b) `--imports-allowlist <name>` (repeatable) extends the resolved set per-invocation for non-pip-installed conventional roots. The canonical invocation in this repo, given `tests/` is a pytest namespace test root, is:
+
+```bash
+$PY -m tools.validate_slice_layers \
+  --slice architecture/slices/slice-NNN-<name> \
+  --changed-files <list of files this slice changed> \
+  --imports-allowlist tests
+```
+
+CLI is **strict**: empty / whitespace-only `--imports-allowlist` values are rejected via `parser.error` (exit 2). Python API (`run_layers(imports_allowlist=…)`) is **lenient**: empty-after-normalize entries silently skip — be liberal in what you accept programmatically.
 
 Refusal semantics:
 - Any Critical finding (Layer A) -> refuse `/reflect`. Either remove the secret + rotate it, or add a precise allowlist regex with a `#` comment explaining the suppression.
-- Any Important finding (Layer B) -> surface to user; allowed to proceed with documented rationale in `validation.md` (typical resolution: add the package to `pyproject.toml` and re-run, OR remove the import).
+- Any Important finding (Layer B) -> surface to user; allowed to proceed with documented rationale in `validation.md` (typical resolution: add the package to `pyproject.toml` and re-run, add it to `[tool.setuptools] packages` if it's a real internal package, add `--imports-allowlist <name>` to the invocation if it's a non-pip convention root, OR remove the import).
 
 NFR-1 carry-over: slices whose `mission-brief.md` mtime predates 2026-05-06 are exempt automatically; archive scans use `--no-carry-over`.
 

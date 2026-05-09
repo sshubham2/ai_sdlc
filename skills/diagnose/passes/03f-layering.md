@@ -38,19 +38,42 @@ You identify places where the codebase's dominant layering pattern is selectivel
 - `high` — bypass of auth, validation, or transaction boundary
 - `critical` — bypass of a security-critical layer (authn, authz, audit logging)
 
-## Output files
+## Output format
 
-### `OUT/sections/03f-layering.md`
+Per ADR-001 (slice-001) + slice-002, return your output as three 4-backtick fenced blocks in your final message. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
 
-Prose: state the inferred dominant layering pattern (with evidence: "X out of Y controllers follow this"). Then list each deviation, what layer it bypasses, and the apparent reason or absence of one.
+### Schema crib sheet (for the `findings` block)
 
-### `OUT/findings/03f-layering.yaml`
+- `id`: `F-LAYER-<8hex>` · `pass`: `03f-layering` · `category`: `layering-violation`
+- `severity`: `low | medium | high | critical` · `blast_radius`: `small | medium | large` · `reversibility`: `cheap | expensive | irreversible`
+- `title`: ≤100 chars · `description`: include dominant pattern + specific deviation
+- `evidence`: list of `{path, lines, note}` · `suggested_action` · `effort_estimate`: `small | medium | large` · `slice_candidate`: `yes | no | maybe`
 
-One entry per violation. Description must include the dominant pattern reference and the specific deviation.
+Empty findings: return `[]`.
 
-### `OUT/summary/03f-layering.md`
+### Block contents
 
-One paragraph: dominant pattern + violation count + worst violation.
+**`section` block** — Prose: state the inferred dominant layering pattern (with evidence: "X out of Y controllers follow this"). Then list each deviation, what layer it bypasses, and the apparent reason or absence of one.
+
+**`findings` block** — One entry per violation. `description` must include the dominant pattern reference and the specific deviation.
+
+**`summary` block** — One paragraph: dominant pattern + violation count + worst violation.
+
+### Block template
+
+`````
+````section
+<your section content>
+````
+
+````findings
+<YAML list, or `[]`>
+````
+
+````summary
+<your one-paragraph summary>
+````
+`````
 
 ## Anti-patterns
 

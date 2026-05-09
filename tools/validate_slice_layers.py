@@ -17,9 +17,13 @@ Layer B — Dependency hallucination check (Python only in v1)
       - Standard library (sys.stdlib_module_names, Python 3.10+)
       - Declared in pyproject.toml [project.dependencies] or
         [tool.poetry.dependencies] or [project.optional-dependencies.*]
+      - Declared in pyproject.toml [tool.setuptools] packages = [...]
+        (the explicit-list form; auto-discovery `find` is v2)
       - Declared in requirements.txt (legacy projects)
       - A known alias of a declared package (e.g. import yaml when
         pyyaml is declared)
+      - Listed via --imports-allowlist (repeatable; for non-pip-
+        installed conventional roots like 'tests', 'scripts', 'docs')
     Otherwise emits an Important finding (`hallucinated-import`). AI
     implementations have a chronic problem with importing packages
     that don't exist; the check catches them at validate time.
@@ -42,6 +46,9 @@ Usage:
         --changed-files <files...> --secrets-allowlist <path>
     python -m tools.validate_slice_layers --slice <slice-folder> \\
         --changed-files <files...> --pyproject <path> --requirements <path>
+    python -m tools.validate_slice_layers --slice <slice-folder> \\
+        --changed-files <files...> --imports-allowlist tests \\
+        --imports-allowlist scripts
 
 Exit codes:
     0  clean (or carry-over exempt; or no changed files)
@@ -300,6 +307,19 @@ def parse_declared_deps(
         for name in poetry_dev:
             deps.add(_normalize_pkg(name))
 
+        # setuptools — explicit-list form only (`[tool.setuptools] packages =
+        # ["pkg"]`). The `[tool.setuptools.packages.find]` auto-discovery
+        # variant is intentionally not handled in v1 (see ADR-002). Lives
+        # inside this `if pyproject_path ...` branch because `data` is only
+        # defined here.
+        setuptools_packages = (
+            data.get("tool", {}).get("setuptools", {}).get("packages", [])
+        )
+        if isinstance(setuptools_packages, list):
+            for name in setuptools_packages:
+                if isinstance(name, str) and name:
+                    deps.add(_normalize_pkg(name))
+
     if requirements_path and requirements_path.exists():
         for raw in requirements_path.read_text(encoding="utf-8").splitlines():
             line = raw.split("#", 1)[0].strip()
@@ -403,8 +423,17 @@ def run_layers(
     skip_secrets: bool = False,
     skip_deps: bool = False,
     skip_if_carry_over: bool = True,
+    imports_allowlist: list[str] | None = None,
 ) -> LayersResult:
-    """Run both VAL-1 layers against the changed files."""
+    """Run both VAL-1 layers against the changed files.
+
+    `imports_allowlist`: optional list of additional package names to
+    treat as resolved by Layer B (alongside stdlib + declared deps +
+    aliases + setuptools-packages). Lenient: entries that name-normalize
+    to empty are silently skipped (be liberal in what you accept
+    programmatically). The CLI is the strict boundary that rejects
+    empties via parser.error.
+    """
     result = LayersResult()
 
     if skip_if_carry_over and _slice_is_carry_over(slice_folder):
@@ -419,6 +448,10 @@ def run_layers(
 
     if not skip_deps:
         declared = parse_declared_deps(pyproject, requirements)
+        for name in imports_allowlist or []:
+            normalized = _normalize_pkg(name)
+            if normalized:
+                declared.add(normalized)
         result.declared_deps = sorted(declared)
         result.import_findings = scan_imports(changed_files, declared)
 
@@ -503,6 +536,16 @@ def main(argv: list[str] | None = None) -> int:
         help="Disable Layer B (dependency hallucination check)",
     )
     parser.add_argument(
+        "--imports-allowlist", action="append", default=None,
+        metavar="NAME",
+        help=(
+            "Additional package name to treat as resolved by Layer B "
+            "(repeatable). Useful for non-pip-installed conventional "
+            "roots like 'tests'. Values are name-normalized. Empty / "
+            "whitespace-only values are rejected at parse time."
+        ),
+    )
+    parser.add_argument(
         "--no-carry-over", action="store_true",
         help="Disable mtime-based carry-over exemption",
     )
@@ -510,6 +553,17 @@ def main(argv: list[str] | None = None) -> int:
         "--json", action="store_true", help="Output result as JSON",
     )
     args = parser.parse_args(argv)
+
+    # Strict CLI boundary: reject empty / whitespace-only --imports-allowlist
+    # values. The Python API's run_layers stays lenient (silently skips
+    # empty-after-normalize) per ADR-002.
+    if args.imports_allowlist is not None:
+        cleaned = [s.strip() for s in args.imports_allowlist]
+        if any(not c for c in cleaned):
+            parser.error(
+                "--imports-allowlist requires a non-empty package name"
+            )
+        args.imports_allowlist = cleaned
 
     slice_folder: Path = args.slice
     if not slice_folder.exists():
@@ -543,6 +597,7 @@ def main(argv: list[str] | None = None) -> int:
         skip_secrets=args.skip_secrets,
         skip_deps=args.skip_deps,
         skip_if_carry_over=not args.no_carry_over,
+        imports_allowlist=args.imports_allowlist,
     )
 
     if args.json:

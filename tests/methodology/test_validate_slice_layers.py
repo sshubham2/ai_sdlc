@@ -22,6 +22,8 @@ import os
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from tests.methodology.conftest import REPO_ROOT
 from tools.validate_slice_layers import (
     _VAL_1_RELEASE_DATE,
@@ -415,3 +417,247 @@ def test_validate_slice_skill_references_val_1():
     )
     assert "credential scan" in text.lower()
     assert "hallucinat" in text.lower(), "dep-hallucination layer prose missing"
+
+
+# --- Slice-003: setuptools-packages auto-read + --imports-allowlist flag ---
+
+def test_parse_declared_deps_reads_setuptools_packages():
+    """`[tool.setuptools] packages = [...]` entries are added to declared deps.
+
+    Defect class: Without this read, every project that ships its own
+    pip-installed package (e.g., this repo's `tools` package per INST-1)
+    sees `from <self_pkg>.X import …` flagged as a hallucinated import.
+    Slice-003 AC #1.
+    Rule reference: VAL-1.
+    """
+    deps = parse_declared_deps(
+        FIXTURES / "pyproject_with_setuptools_packages.toml",
+        None,
+    )
+    assert "my_internal_pkg" in deps, (
+        "setuptools-packages entry not picked up by parse_declared_deps"
+    )
+    # PEP 621 deps from the same fixture must still be present.
+    assert "anthropic" in deps
+
+
+def test_setuptools_packages_resolves_internal_import():
+    """`from my_internal_pkg.x import y` resolves cleanly with no flag.
+
+    Defect class: setuptools-packages reading must integrate with
+    scan_imports's resolution path so that internal-pkg imports stop
+    being flagged.
+    Slice-003 AC #1.
+    Rule reference: VAL-1.
+    """
+    declared = parse_declared_deps(
+        FIXTURES / "pyproject_with_setuptools_packages.toml",
+        None,
+    )
+    findings = scan_imports([FIXTURES / "imports_internal_pkg.py"], declared)
+    assert findings == [], (
+        f"expected zero findings, got {[f.import_name for f in findings]}"
+    )
+
+
+def test_imports_allowlist_flag_resolves_listed_name(tmp_path: Path):
+    """`run_layers(imports_allowlist=["custom_root"])` makes that name resolve.
+
+    Defect class: Non-pip-installed conventional roots (pytest's `tests`,
+    sphinx's `docs/conf.py`, project `scripts/`) must be allowlistable
+    per-project so VAL-1 stops flagging them.
+    Slice-003 AC #2 (function-API).
+    Rule reference: VAL-1.
+    """
+    slice_folder = tmp_path / "slice-003-test"
+    slice_folder.mkdir()
+    (slice_folder / "mission-brief.md").write_text("# slice", encoding="utf-8")
+    target = tmp_path / "uses_custom_root.py"
+    target.write_text(
+        "from custom_root.sub import thing\n",
+        encoding="utf-8",
+    )
+    result = run_layers(
+        slice_folder=slice_folder,
+        changed_files=[target],
+        pyproject=FIXTURES / "pyproject_fixture.toml",
+        imports_allowlist=["custom_root"],
+    )
+    assert result.import_findings == [], (
+        f"expected zero findings, got "
+        f"{[f.import_name for f in result.import_findings]}"
+    )
+
+
+def test_imports_allowlist_flag_repeatable_accumulates(tmp_path: Path):
+    """`imports_allowlist=["a", "b"]` resolves both `a` and `b` imports.
+
+    Defect class: Without accumulation, only the last allowlist entry
+    would resolve; CLI repeatable `--imports-allowlist a --imports-allowlist b`
+    behavior would silently lose entries.
+    Slice-003 AC #2 (function-API).
+    Rule reference: VAL-1.
+    """
+    slice_folder = tmp_path / "slice-003-test"
+    slice_folder.mkdir()
+    (slice_folder / "mission-brief.md").write_text("# slice", encoding="utf-8")
+    target = tmp_path / "uses_two_roots.py"
+    target.write_text(
+        "from root_a.x import y\nfrom root_b.x import y\n",
+        encoding="utf-8",
+    )
+    result = run_layers(
+        slice_folder=slice_folder,
+        changed_files=[target],
+        pyproject=FIXTURES / "pyproject_fixture.toml",
+        imports_allowlist=["root_a", "root_b"],
+    )
+    assert result.import_findings == [], (
+        f"expected zero findings (both roots allowlisted), got "
+        f"{[f.import_name for f in result.import_findings]}"
+    )
+
+
+def test_cli_imports_allowlist_rejects_empty_string(tmp_path: Path, capsys):
+    """CLI `--imports-allowlist ""` triggers parser.error → SystemExit(2).
+
+    Defect class: Empty allowlist values are user error; silently accepting
+    them dilutes the validation surface and masks typos. CLI is the strict
+    boundary (Python API stays lenient per ADR-002 design). Pinned to the
+    canonical error message — exit-code-2 alone is insufficient because
+    argparse's "unrecognized arguments" branch also produces code 2; the
+    test must distinguish "flag was rejected for empty value" from "flag
+    is not implemented yet".
+    Slice-003 AC #2 (CLI strictness).
+    Rule reference: VAL-1.
+    """
+    from tools.validate_slice_layers import main
+
+    slice_folder = tmp_path / "slice-003-test"
+    slice_folder.mkdir()
+    (slice_folder / "mission-brief.md").write_text("# slice", encoding="utf-8")
+    with pytest.raises(SystemExit) as excinfo:
+        main([
+            "--slice", str(slice_folder),
+            "--imports-allowlist", "",
+        ])
+    assert excinfo.value.code == 2, (
+        f"expected exit code 2 (parser.error), got {excinfo.value.code}"
+    )
+    captured = capsys.readouterr()
+    # The canonical message — must appear in stderr (argparse writes there).
+    assert "--imports-allowlist requires a non-empty" in captured.err, (
+        f"expected pinned error 'requires a non-empty' in stderr; got: "
+        f"{captured.err!r}"
+    )
+
+
+def test_cli_imports_allowlist_clean_on_internal_imports(
+    tmp_path: Path, capsys
+):
+    """CLI invocation with `--imports-allowlist custom_root` exits 0.
+
+    Defect class: Plumbing through main() must reach _check_import_resolves;
+    a regression where the kwarg gets dropped between argparse and
+    run_layers would silently lose the allowlist effect.
+    Slice-003 AC #2 (CLI plumbing end-to-end).
+    Rule reference: VAL-1.
+    """
+    from tools.validate_slice_layers import main
+
+    slice_folder = tmp_path / "slice-003-test"
+    slice_folder.mkdir()
+    (slice_folder / "mission-brief.md").write_text("# slice", encoding="utf-8")
+    target = tmp_path / "uses_custom_root.py"
+    target.write_text("from custom_root.sub import thing\n", encoding="utf-8")
+    rc = main([
+        "--slice", str(slice_folder),
+        "--changed-files", str(target),
+        "--no-carry-over",
+        "--skip-secrets",
+        "--pyproject", str(FIXTURES / "pyproject_fixture.toml"),
+        "--imports-allowlist", "custom_root",
+    ])
+    assert rc == 0, f"expected exit 0, got {rc}"
+    captured = capsys.readouterr()
+    # Either the human "Clean" line OR `0 import finding(s)` is acceptable
+    # — both indicate the layered check passed.
+    assert "0 import finding(s)" in captured.out or "Clean" in captured.out
+
+
+def test_slice_002_archive_replay_zero_findings_with_allowlist(
+    tmp_path: Path, capsys
+):
+    """End-to-end replay against slice-002 archive: 5 findings → 0.
+
+    The cardinal AC #3 verification: re-run Layer B on the same three
+    test files that produced 5 false-positive findings in slice-002's
+    real lifecycle, with `--imports-allowlist tests`. After fix, expect 0.
+
+    Defect class: Without this end-to-end test, the unit tests could
+    pass while the actual /validate-slice invocation in production still
+    reports findings — the kind of regression slice-002's "5-AC-but-no-
+    real-replay" reflection lesson explicitly warns against.
+    Slice-003 AC #3.
+    Rule reference: VAL-1.
+    """
+    from tools.validate_slice_layers import main
+
+    slice_002_archive = (
+        REPO_ROOT / "architecture" / "slices" / "archive"
+        / "slice-002-fix-diagnose-contract-and-cwd-mismatch"
+    )
+    if not slice_002_archive.exists():
+        pytest.skip(
+            "slice-002 archive folder not present; replay test skipped "
+            "(this codepath is the AC #3 cardinal check — investigate "
+            "if seen on master)."
+        )
+
+    changed_files = [
+        REPO_ROOT / "tests" / "methodology" / "test_validate_slice_layers.py",
+        REPO_ROOT / "tests" / "skills" / "diagnose" / "test_skill_md_pins.py",
+        REPO_ROOT / "tests" / "methodology"
+            / "test_risk_register_audit_real_file.py",
+    ]
+    # All three must exist or the assertion below would be vacuous.
+    for f in changed_files:
+        assert f.exists(), f"replay target file missing: {f}"
+
+    rc = main([
+        "--slice", str(slice_002_archive),
+        "--changed-files", *[str(f) for f in changed_files],
+        "--no-carry-over",
+        "--skip-secrets",
+        "--imports-allowlist", "tests",
+    ])
+    assert rc == 0, f"expected exit 0 on clean replay, got {rc}"
+    captured = capsys.readouterr()
+    assert "0 import finding(s)" in captured.out, (
+        f"expected '0 import finding(s)' in output; got:\n{captured.out}"
+    )
+
+
+def test_validate_slice_skill_documents_imports_allowlist_and_setuptools_packages():
+    """skills/validate-slice/SKILL.md Step 5b documents both new resolution paths.
+
+    Defect class: Without this prose pin, the must-not-defer-promoted-to-AC
+    (M1 from /critique) about updating SKILL.md prose has no enforcement;
+    a future edit could silently drop the documentation while the audit
+    behavior diverges from what the skill prose claims.
+    Slice-003 AC #4 (prose-pin per Critic M1).
+    Rule reference: VAL-1.
+    """
+    text = (REPO_ROOT / "skills" / "validate-slice" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    assert "--imports-allowlist" in text, (
+        "Step 5b prose missing literal flag spelling `--imports-allowlist` — "
+        "AC #4 (slice-003) regressed; prose drift would let the flag's "
+        "documentation silently rot."
+    )
+    assert "[tool.setuptools] packages" in text, (
+        "Step 5b prose missing literal `[tool.setuptools] packages` — "
+        "AC #4 (slice-003) regressed; the auto-read resolution path is "
+        "no longer documented in the canonical skill prose."
+    )

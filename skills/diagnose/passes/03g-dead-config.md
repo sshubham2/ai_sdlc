@@ -34,19 +34,42 @@ You identify configuration entries, feature flags, and environment variables tha
 - `high` — read with no default, not present in any deployment manifest (will crash at runtime if reached)
 - `critical` — flag controlling security/billing behavior with no consumer (feature is not actually gated)
 
-## Output files
+## Output format
 
-### `OUT/sections/03g-dead-config.md`
+Per ADR-001 (slice-001) + slice-002, return your output as three 4-backtick fenced blocks in your final message. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
 
-Prose: counts by subcategory (dead defined / read-but-unset / orphaned-flag). Tables listing each.
+### Schema crib sheet (for the `findings` block)
 
-### `OUT/findings/03g-dead-config.yaml`
+- `id`: `F-CONFIG-<8hex>` · `pass`: `03g-dead-config` · `category`: `dead-config`
+- `severity`: `low | medium | high | critical` · `blast_radius`: `small | medium | large` · `reversibility`: `cheap | expensive | irreversible`
+- `title`: ≤100 chars · `description`: multi-line, concrete
+- `evidence`: list of `{path, lines, note}` · `suggested_action` · `effort_estimate`: `small | medium | large` · `slice_candidate`: `yes | no | maybe`
 
-One entry per dead/broken config item.
+Empty findings: return `[]`.
 
-### `OUT/summary/03g-dead-config.md`
+### Block contents
 
-One paragraph: count by category + most concerning (e.g., a critical flag with no consumer).
+**`section` block** — Prose: counts by subcategory (dead defined / read-but-unset / orphaned-flag). Tables listing each.
+
+**`findings` block** — One entry per dead/broken config item.
+
+**`summary` block** — One paragraph: count by category + most concerning (e.g., a critical flag with no consumer).
+
+### Block template
+
+`````
+````section
+<your section content>
+````
+
+````findings
+<YAML list, or `[]`>
+````
+
+````summary
+<your one-paragraph summary>
+````
+`````
 
 ## Anti-patterns
 

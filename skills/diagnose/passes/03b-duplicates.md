@@ -45,19 +45,42 @@ You identify duplicated code: both literal/AST duplicates and **semantic** dupli
 - `high` — security or correctness implication (e.g., one auth check, the other none)
 - `critical` — duplicates with materially different behavior on the same code path
 
-## Output files
+## Output format
 
-### `OUT/sections/03b-duplicates.md`
+Per ADR-001 (slice-001) + slice-002, return your output as three 4-backtick fenced blocks in your final message. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
 
-Prose: total dupe clusters, breakdown by literal vs semantic. Top 5 most concerning (especially diverging-behavior ones). For each, explain what's duplicated, where canonical is, where the others are, what diverges.
+### Schema crib sheet (for the `findings` block)
 
-### `OUT/findings/03b-duplicates.yaml`
+- `id`: `F-DUP-<8hex>` · `pass`: `03b-duplicates` · `category`: `duplicate`
+- `severity`: `low | medium | high | critical` · `blast_radius`: `small | medium | large` · `reversibility`: `cheap | expensive | irreversible`
+- `title`: ≤100 chars · `description`: name canonical, explain divergence
+- `evidence`: list of `{path, lines, note}` for **ALL** paths in cluster · `suggested_action` · `effort_estimate`: `small | medium | large` · `slice_candidate`: `yes | no | maybe`
 
-One entry per cluster. `evidence` lists ALL paths in the cluster. `description` names the canonical and explains divergence (if any).
+Empty findings: return `[]`.
 
-### `OUT/summary/03b-duplicates.md`
+### Block contents
 
-One paragraph: "Found N duplicate clusters: M literal, K semantic. Highest concern: <one-line example>. <Yes/no on whether AI-bloat pattern is present>."
+**`section` block** — Prose: total dupe clusters, breakdown by literal vs semantic. Top 5 most concerning (especially diverging-behavior ones). For each, explain what's duplicated, where canonical is, where the others are, what diverges.
+
+**`findings` block** — One entry per cluster. `evidence` lists ALL paths in the cluster (the orchestrator's per-pass signature extractor uses the lexicographically smallest evidence path as the cluster's canonical signature, so make sure ALL paths are in evidence to keep the ID stable across runs). `description` names the canonical and explains divergence (if any).
+
+**`summary` block** — One paragraph: "Found N duplicate clusters: M literal, K semantic. Highest concern: `<one-line example>`. `<Yes/no on whether AI-bloat pattern is present>`."
+
+### Block template
+
+`````
+````section
+<your section content>
+````
+
+````findings
+<YAML list, or `[]`>
+````
+
+````summary
+<your one-paragraph summary>
+````
+`````
 
 ## Anti-patterns
 

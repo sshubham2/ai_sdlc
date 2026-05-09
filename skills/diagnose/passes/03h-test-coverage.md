@@ -35,19 +35,42 @@ You identify critical code paths that lack tests. Not "coverage percent low" —
 - `high` — auth, payment, or data-integrity module, no tests
 - `critical` — critical path explicitly has skipped tests (someone wrote them, they're not running)
 
-## Output files
+## Output format
 
-### `OUT/sections/03h-test-coverage.md`
+Per ADR-001 (slice-001) + slice-002, return your output as three 4-backtick fenced blocks in your final message. **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
 
-Prose: total test files, total tests, ratio of test code to source code (not coverage percent — call out that this is structural, not runtime). List critical-path modules with no test coverage. List skipped tests on critical paths.
+### Schema crib sheet (for the `findings` block)
 
-### `OUT/findings/03h-test-coverage.yaml`
+- `id`: `F-TEST-<8hex>` · `pass`: `03h-test-coverage` · `category`: `test-gap`
+- `severity`: `low | medium | high | critical` · `blast_radius`: `small | medium | large` · `reversibility`: `cheap | expensive | irreversible`
+- `title`: ≤100 chars · `description`: multi-line, concrete
+- `evidence`: list of `{path, lines, note}` · `suggested_action` · `effort_estimate`: `small | medium | large` · `slice_candidate`: `yes | no | maybe`
 
-One entry per significant gap.
+Empty findings: return `[]`.
 
-### `OUT/summary/03h-test-coverage.md`
+### Block contents
 
-One paragraph: structural test ratio + count of untested critical modules + worst gap.
+**`section` block** — Prose: total test files, total tests, ratio of test code to source code (not coverage percent — call out that this is structural, not runtime). List critical-path modules with no test coverage. List skipped tests on critical paths.
+
+**`findings` block** — One entry per significant gap.
+
+**`summary` block** — One paragraph: structural test ratio + count of untested critical modules + worst gap.
+
+### Block template
+
+`````
+````section
+<your section content>
+````
+
+````findings
+<YAML list, or `[]`>
+````
+
+````summary
+<your one-paragraph summary>
+````
+`````
 
 ## Anti-patterns
 
