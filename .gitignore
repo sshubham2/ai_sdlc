@@ -6,3 +6,11 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+
+# Local-only AI SDLC vault (per-project; never tracked)
+architecture/
+
+# Build artifacts (pip / setuptools / graphify outputs)
+build/
+ai_sdlc_tools.egg-info/
+graphify-out/
