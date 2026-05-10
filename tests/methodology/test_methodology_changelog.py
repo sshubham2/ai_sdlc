@@ -1,7 +1,10 @@
 """Validate the methodology-changelog itself: format, version sync, dated entries."""
 import re
+from pathlib import Path
 
-from tests.methodology.conftest import read_file
+import yaml
+
+from tests.methodology.conftest import REPO_ROOT, read_file
 
 
 def test_version_file_is_semver():
@@ -64,3 +67,71 @@ def test_each_changelog_entry_carries_rule_reference():
             f"Changelog entry #{i} has no `Rule reference` line. "
             f"Each entry must cite at least one rule ID."
         )
+
+
+# --- Slice-007 / CAD-1 entry pinning (AC #4) ---
+
+def test_v_0_22_0_cad_1_entry_present_in_repo_and_installed():
+    """methodology-changelog v0.22.0 / CAD-1 entry must exist in BOTH the
+    in-repo file AND the installed `~/.claude/methodology-changelog.md`.
+
+    Defect class (per slice-006 B1 + slice-007 CAD-1): if the entry exists
+    only in-repo and the forward-sync was forgotten, every future
+    /critic-calibrate run on the installed copy reads stale methodology
+    (no CAD-1 visible). The bidirectional check catches this directly.
+
+    Rule reference: CAD-1, AC #4.
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.22.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.22.0 entry"
+    )
+    assert "CAD-1" in in_repo, (
+        "in-repo methodology-changelog.md missing CAD-1 rule reference"
+    )
+
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    assert installed_path.exists(), (
+        f"installed methodology-changelog.md missing at {installed_path}"
+    )
+    installed = installed_path.read_text(encoding="utf-8")
+    assert "## v0.22.0" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing v0.22.0 entry — "
+        "forward-sync after in-repo edit was forgotten"
+    )
+    assert "CAD-1" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing CAD-1 rule reference"
+    )
+
+
+# --- AC #5: PMI-1 cleanliness (closes slice-006 escape) ---
+
+def test_plugin_yaml_version_matches_version_file_at_0_22_0():
+    """plugin.yaml.version == VERSION file content == '0.22.0' post-build.
+
+    Defect class (per Critic B2): slice-006 left a PMI-1 escape — plugin.yaml
+    version was '0.20.0' while VERSION was '0.21.0'. The slice's design
+    promised the bump from '0.21.0' → '0.22.0' would close the escape, but
+    no AC gated it pre-Critic. This test is the gate.
+
+    Rule reference: CAD-1, AC #5 (closes slice-006 PMI-1 escape).
+    """
+    version_file = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    plugin_manifest = yaml.safe_load(
+        (REPO_ROOT / "plugin.yaml").read_text(encoding="utf-8")
+    )
+    plugin_version = plugin_manifest["version"]
+
+    assert version_file == "0.22.0", (
+        f"VERSION file content is {version_file!r}, expected '0.22.0'. "
+        f"Slice-007 must bump from 0.21.0 → 0.22.0."
+    )
+    assert plugin_version == "0.22.0", (
+        f"plugin.yaml.version is {plugin_version!r}, expected '0.22.0'. "
+        f"Slice-007 must bump from 0.20.0 (slice-006 escape) → 0.22.0 "
+        f"atomically with VERSION."
+    )
+    assert version_file == plugin_version, (
+        f"PMI-1 mismatch: VERSION={version_file!r} != plugin.yaml.version="
+        f"{plugin_version!r}. The slice-006 escape recurred."
+    )

@@ -62,9 +62,11 @@ _CANONICAL_METADATA: tuple[str, ...] = (
     "methodology-changelog.md", "ai-sdlc-VERSION",
 )
 
-# The 14 tool modules in v0.20.0 (12 audits + lint + install_audit itself).
+# The 15 tool modules in v0.22.0 (13 audits + lint + install_audit itself).
+# Slice-007 added tools.critique_agent_drift_audit (CAD-1 — Critic Agent Drift).
 _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.build_checks_audit",
+    "tools.critique_agent_drift_audit",
     "tools.critique_review_audit",
     "tools.cross_spec_parity_audit",
     "tools.exploratory_charter_audit",

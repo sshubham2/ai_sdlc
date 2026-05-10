@@ -105,13 +105,23 @@ This skill PRODUCES proposals. It does NOT edit `~/.claude/agents/critique.md` i
 For accepted proposals, state:
 
 ```
-Accepted. To apply, edit ~/.claude/agents/critique.md and add the following under the
-"Review along these 9 dimensions" section (dimension <N>):
+Accepted. To apply:
+  1. Edit the in-repo agents/critique.md (the canonical source) — add the following
+     under the "Review along these 9 dimensions" section (dimension <N>):
 
-<exact text>
+     <exact text>
+
+  2. Forward-sync the edit to the installed copy at ~/.claude/agents/critique.md
+     (file copy preserving content byte-equal).
+
+  3. Verify byte-equality post-edit:
+     `python -m tools.critique_agent_drift_audit`
+     (CAD-1 audit; exit 0 = clean, exit 1 = drift, exit 2 = path-missing or sanity refusal).
 ```
 
-User edits manually. If they want help applying, they can explicitly ask Claude to make the edit — this skill itself never writes to the critique agent file.
+The in-repo agents/critique.md is canonical per project conventions; the installed copy at ~/.claude/agents/critique.md is the runtime working copy that the Critic agent loads. Editing only the installed copy creates content drift between the two — this was the structural cause of slice-006's Critic B1 catch (CAD-1, methodology-changelog v0.22.0). Always edit in-repo first, forward-sync second, verify with the audit third.
+
+User edits manually. If they want help applying, they can explicitly ask Claude to make the edits — this skill itself never writes to the critique agent file.
 
 ### Step 5: Log the calibration run
 
