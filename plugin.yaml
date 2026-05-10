@@ -75,7 +75,7 @@ skills:
 
 agents:
   - id: critique
-    description: Adversarial Critic for slice designs; 8 dimensions
+    description: Adversarial Critic for slice designs; 9 dimensions
   - id: critic-calibrate
     description: Meta-Critic for cross-slice 'Missed by Critic' pattern mining (CAL-1)
   - id: critique-review

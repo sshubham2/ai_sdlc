@@ -68,7 +68,7 @@ Collect the inputs the Critic needs:
 
 ### Step 2: Spawn the Critic agent
 
-Use the Agent tool with **`subagent_type: "critique"`**. This is a named subagent at `~/.claude/agents/critique.md` that carries the full adversarial Critic system prompt — stance, 8 dimensions, specificity/honesty rules, output format, calibration awareness. You don't repeat that here.
+Use the Agent tool with **`subagent_type: "critique"`**. This is a named subagent at `~/.claude/agents/critique.md` that carries the full adversarial Critic system prompt — stance, 9 dimensions, specificity/honesty rules, output format, calibration awareness. You don't repeat that here.
 
 Your job in this step is just to **hand the agent the inputs**. The prompt body should contain:
 
@@ -265,7 +265,7 @@ If skipped (risk tier = low, no mandatory triggers): still update milestone.md w
 ## Critical rules
 
 - USE THE Agent TOOL with `subagent_type: "critique"` for the Critic. Don't fake it by self-reviewing in the main thread — that defeats the two-persona separation.
-- DON'T re-state the adversarial stance or 8 dimensions in the prompt body — those live in the agent file (`~/.claude/agents/critique.md`). Skill prompt is just inputs.
+- DON'T re-state the adversarial stance or 9 dimensions in the prompt body — those live in the agent file (`~/.claude/agents/critique.md`). Skill prompt is just inputs.
 - DO NOT soften Critic findings. If the Critic is wrong, dispute with rationale; don't water down severity.
 - DO NOT bypass the gate. Blockers block.
 - TRACK Critic accuracy in `/reflect` (the calibration section). Every 10-20 slices, run `/critic-calibrate` — it analyzes "Missed by Critic" patterns across recent reflections and proposes targeted prompt updates to close blind spots (human-reviewed, never auto-applied).
@@ -281,7 +281,7 @@ If you spot this: rerun with a more pointed prompt, or escalate to user about Cr
 
 ## The agent vs the skill — separation of concerns
 
-- **Agent** (`~/.claude/agents/critique.md`): carries the adversarial Critic prompt — role, stance, 8 dimensions with examples, specificity/honesty rules, output format, calibration awareness. Read-only tools (Read/Glob/Grep/Bash). The prompt itself is load-bearing; treat it like compiled code, not a comment.
+- **Agent** (`~/.claude/agents/critique.md`): carries the adversarial Critic prompt — role, stance, 9 dimensions with examples, specificity/honesty rules, output format, calibration awareness. Read-only tools (Read/Glob/Grep/Bash). The prompt itself is load-bearing; treat it like compiled code, not a comment.
 - **Skill** (this file): orchestrates — gathers inputs, invokes the agent, writes the result to `critique.md`, handles Builder responses, gates `/build-slice`, updates `milestone.md`. The skill is glue; the agent is the work.
 
 If the agent prompt needs tuning (e.g., `/critic-calibrate` proposes additions), edit the agent file, not this skill. The skill should rarely need changes once stable.

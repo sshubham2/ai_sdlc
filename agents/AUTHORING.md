@@ -149,7 +149,7 @@ The four existing agents cover the main patterns:
 
 | Agent | Pattern | Why a named subagent |
 |-------|---------|----------------------|
-| `agents/critique.md` | Adversarial review (8 dimensions, expert frameworks) | Fresh context isolation — Critic must not see Builder's reasoning trail |
+| `agents/critique.md` | Adversarial review (9 dimensions, expert frameworks) | Fresh context isolation — Critic must not see Builder's reasoning trail |
 | `agents/critic-calibrate.md` | Meta-pattern analysis across reflections | Objective read; benefits from clean context |
 | `agents/diagnose-narrator.md` | Narrative synthesis from structured findings | Specialized storytelling discipline; doesn't pollute /diagnose conversation |
 | `agents/field-recon.md` | Live web survey with asymmetric drop rule | Web search noise stays out of main thread; recommendation is structured |

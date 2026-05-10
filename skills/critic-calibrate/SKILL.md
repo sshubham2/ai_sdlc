@@ -106,7 +106,7 @@ For accepted proposals, state:
 
 ```
 Accepted. To apply, edit ~/.claude/agents/critique.md and add the following under the
-"Review along these 8 dimensions" section (dimension <N>):
+"Review along these 9 dimensions" section (dimension <N>):
 
 <exact text>
 ```

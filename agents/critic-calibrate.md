@@ -64,7 +64,7 @@ A category needs **≥3 entries across distinct slices** to warrant a proposal.
 
 ### Step 3: Correlate with current Critic prompt
 
-Read `~/.claude/agents/critique.md`. The relevant section is "Review along these 8 dimensions" — each dimension has examples and sub-bullets, plus citation-based grounding (named experts per dimension in the "Reference frameworks" table at the top of the file).
+Read `~/.claude/agents/critique.md`. The relevant section is "Review along these 9 dimensions" — each dimension has examples and sub-bullets, plus citation-based grounding (named experts per dimension in the "Reference frameworks" table at the top of the file).
 
 For each high-frequency category from Step 2, ask:
 
