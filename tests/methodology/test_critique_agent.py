@@ -164,6 +164,78 @@ def test_critique_dim_9_citation_is_deliberate():
         "Dim 9 must carry an explicit honest-out for evidence basis (mirroring Dim 8 pattern)"
 
 
+def test_critique_dim_9_tooling_doc_vs_impl_parity_covers_design_md_tables():
+    """Dim 9 sub-clause 2 (Tooling-doc-vs-impl parity) must cover the design-doc-level
+    surface — design.md mechanical tables vs methodology canonical inventories.
+
+    Defect class: design.md mechanical tables (forward-sync targets, prerequisites,
+    install-time renames, dependencies) drift from methodology canonical inventories
+    in their corresponding implementation source. Promoted at N=2 per slice-007
+    reflection (slice-006 DEVIATION-1+2 INST-1 inventory drift + slice-007 Critic B1
+    install-time rename inversion); reinforced by slice-008 M1 (Wiegers AC-trace) +
+    M2 (TWO-surface schema-pin generalization to N-surface). Per CCC-1 v1.1 /
+    methodology-changelog.md v0.24.0 — extends the source-code-level cross-reference
+    to Dim 1 surgical sub-bullet with the design-doc-level sibling.
+    Rule reference: META-2 + CCC-1 v1.1.
+    """
+    assert "design.md mechanical tables" in CRITIQUE
+    # Prefix match covers both `canonical inventory` (singular) + `canonical inventories` (plural)
+    assert "canonical inventor" in CRITIQUE
+    assert "install-time rename" in CRITIQUE
+
+
+def test_critique_dim_9_sub_clause_2_body_contains_design_md_table_paragraph():
+    """The design.md mechanical-tables paragraph must live INSIDE Dim 9 sub-clause 2
+    (Tooling-doc-vs-implementation parity), NOT in a different sub-clause or dimension.
+
+    Defect class: substring-only pin tests don't enforce location. A future drift
+    moving the new paragraph to a different sub-clause body or dimension would
+    silently pass test_critique_dim_9_tooling_doc_vs_impl_parity_covers_design_md_tables.
+    Per Critic M1 at slice-009: anchor the canonical literal `design.md mechanical
+    tables` between the sub-clause 2 title and the sub-clause 3 title to detect
+    structural relocation.
+    Rule reference: META-2 + CCC-1 v1.1 (slice-009 location-pin guard).
+    """
+    # Use Dim 9 sub-clause titles in their canonical "- **<Title>**" bullet form to avoid
+    # collision with body-text occurrences of the same words elsewhere in the file
+    # (e.g., "Algorithm-path-conformance" also appears in Dim 4 sub-bullet body — same
+    # bullet syntax with `:` separator, vs Dim 9 sub-clause 3's ` — ` em-dash separator).
+    # Anchor on Dim 9 sub-clause 3's unique cross-reference text.
+    sub_clause_2_title_idx = CRITIQUE.find("- **Tooling-doc-vs-implementation parity**")
+    sub_clause_3_title_idx = CRITIQUE.find(
+        "Algorithm-path-conformance with pre-existing branches** — see Dimension 4 sub-bullet for full body"
+    )
+    canonical_phrase_idx = CRITIQUE.find("design.md mechanical tables")
+    assert sub_clause_2_title_idx != -1, "sub-clause 2 bullet title missing"
+    assert sub_clause_3_title_idx != -1, "sub-clause 3 bullet title missing"
+    assert canonical_phrase_idx != -1, "design.md mechanical tables phrase missing"
+    assert sub_clause_2_title_idx < canonical_phrase_idx < sub_clause_3_title_idx, (
+        f"'design.md mechanical tables' (idx={canonical_phrase_idx}) must fall between "
+        f"Dim 9 sub-clause 2 bullet title (idx={sub_clause_2_title_idx}) "
+        f"and Dim 9 sub-clause 3 bullet title (idx={sub_clause_3_title_idx})"
+    )
+
+
+def test_critique_dim_9_design_md_tables_paragraph_cites_slice_006_and_007():
+    """The design.md mechanical-tables paragraph must carry concrete cross-slice
+    examples at N=2: slice-006 (DEVIATION-1 + DEVIATION-2) + slice-007 (B1 with
+    ai-sdlc-VERSION install-time rename anchor).
+
+    Defect class: bare claims without exemplars degrade Critic retrieval. The
+    existing Dim 9 sub-clauses each carry slice-NNN example anchors (slice-001
+    cwd-mismatch, slice-002 RR-1 docstring vs regex, slice-005 BC-GLOBAL-1 always-true).
+    The design.md-tables sub-class promotion must follow the same example-carrying
+    pattern. N=2 evidence: slice-006 INST-1 inventory drift + slice-007 install-time
+    rename inversion.
+    Rule reference: META-2 + CCC-1 v1.1.
+    """
+    assert "slice-006" in CRITIQUE
+    assert "DEVIATION-1" in CRITIQUE
+    assert "DEVIATION-2" in CRITIQUE
+    assert "slice-007" in CRITIQUE
+    assert "ai-sdlc-VERSION" in CRITIQUE
+
+
 def test_critique_output_format_lists_nine_dimensions():
     """Output format `## Dimensions checked` example must list all 9 dimensions.
 
