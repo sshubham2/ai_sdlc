@@ -34,6 +34,48 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.23.0 — 2026-05-10
+
+Adds **BC-1 v1.2** — `Negative anchors:` per-rule schema field acting as a **final filter** on positive applicability decisions (suppresses an otherwise-applicable rule when ≥1 negative anchor matches the slice's mission-brief.md + design.md text). Closes the N=3 false-positive class on methodology-vocabulary slices (slice-005 + slice-006 + slice-007 all defer-with-rationale on BC-PROJ-1 + BC-GLOBAL-1 — confirmed at slice-007 reflection's BC-1 promotion-threshold-met deferral).
+
+The mechanism applies UNIFORMLY across all three positive-applicability paths (`always: true` short-circuit, `--changed-files` glob match, keyword/anchor match) — not path-specific. This addresses the slice-005 algorithm-path-conformance lesson generalized: slice-005's `Trigger anchors:` v1.1 mechanism only filtered the keyword path, leaving glob-path firings unaddressed (slice-006/007 trigger BC-PROJ-1 + BC-GLOBAL-1 via glob-path when --changed-files include `agents/critique.md`).
+
+Migrates BC-PROJ-1 (project) and BC-GLOBAL-1 (global) with a 9-token negative-anchor list `defer-with-rationale, aggregated lessons, false positive, meta-discussion, vocabulary, Critic-MISSED, back-sync, Dim 9, forward-sync` empirically curated against slice-001..007 archives (slice-001 has 0 hits → preserved; slice-005/006/007 each have ≥3 hits → silenced). BC-PROJ-2 NOT migrated per Critic M1 (N=1 below BC-1 promotion threshold; defer to N=2).
+
+Adds new parse-violation kind `negative-anchor-overlaps-positive` (Important severity) for rules whose negative anchors overlap with their own `Trigger keywords` or `Trigger anchors` (overlap is contradictory). Mirrors slice-005's `anchor-not-in-keywords` posture.
+
+Schema-prose updates in BOTH `architecture/build-checks.md` AND `~/.claude/build-checks.md`: TWO sentences (field-name doc + `final filter` semantics) per Critic M2 TWO-surface schema-pin discipline; PLUS a cross-project-applicability sentence in the global file (per Critic m1) noting that the AI-SDLC-internal tokens are calibrated for this project's vocabulary and may need re-curation by adopters in non-methodology domains.
+
+PMI-1 invariant maintained atomically: `VERSION` (in-repo) + `~/.claude/ai-sdlc-VERSION` (installed) + `plugin.yaml.version` all bump to 0.23.0.
+
+### Added
+
+- **BC-1 v1.2 — Negative-context anchors via final-filter `Negative anchors:` per-rule field**
+  Adds optional `**Negative anchors**: <comma-separated tokens>` field to the build-checks rule schema. Tokens are case-insensitive, word-boundary regex matched against the slice's mission-brief.md + design.md text. Acts as a **final filter** on positive applicability decisions: a rule that would otherwise fire (via any of the three positive-applicability paths) is suppressed when ≥1 negative anchor matches. Composes uniformly across all paths — not path-specific.
+
+  `tools/build_checks_audit.py` updates:
+  - `BuildCheckRule.negative_anchors: tuple[str, ...]` (new dataclass field; defaults to empty tuple).
+  - `to_dict()` includes `negative_anchors: list`.
+  - `_parse_rules()` reads `Negative anchors:` field (same comma-split + lower + dedupe as `Trigger anchors:`); validates non-overlap with positive trigger_keywords/trigger_anchors → emits `negative-anchor-overlaps-positive` violation kind on overlap.
+  - `_negative_anchor_match(rule, slice_text) -> bool` helper (case-insensitive word-boundary regex; returns False on empty `negative_anchors` or empty `slice_text`).
+  - `_rule_applies()` refactored: every positive-applicability return wrapped through `not _negative_anchor_match(...)` — uniform composition across `always: true` short-circuit, glob path, and keyword/anchor path.
+  - Module docstring extended with v1.2 negative-context paragraph.
+
+  Schema-prose updates in BOTH `architecture/build-checks.md` AND `~/.claude/build-checks.md`: two new sentences per file (field-name doc + `final filter` semantics framing), plus a cross-project-applicability sentence in the global file per Critic m1. Migrated rules (BC-PROJ-1 in project; BC-GLOBAL-1 in global) get the same 9-token negative-anchor list.
+
+  - **Rule reference**: BC-1 v1.2
+  - **Defect class**: Per slice-007 reflection.md Discovered: BC-1 false-positive class on methodology-vocabulary slices is N=3 (slice-005 + slice-006 + slice-007 all defer-with-rationale on BC-PROJ-1 + BC-GLOBAL-1). The recurring noise trains the builder to ignore BC-1 surfacing — defeating the lessons-learned-to-builder-feedback-loop the rule exists to close. Slice-005's Trigger anchors v1.1 mechanism filtered only the keyword path, leaving glob-path firings unaddressed (slice-006/007 trigger via glob path on `agents/**/*.md` and `**`). Slice-008's negative-anchor final filter closes the gap atomically across all positive-applicability paths.
+  - **Validation**: `tests/methodology/test_build_checks_audit.py` adds 9 new tests covering: (1) slice-005 archive backtest no longer fires BC-PROJ-1 or BC-GLOBAL-1 [AC #1]; (2) slice-006 archive backtest [AC #2]; (3) slice-007 archive backtest [AC #3]; (4) slice-001 archive still fires legitimate rules — backward-compat covenant per ADR-004 [AC #4]; (5a) `Negative anchors` field-name pinned in BOTH project + global build-checks files [AC #5a]; (5b) `final filter` semantics phrase pinned in BOTH files [AC #5b]; (6) always-true rule + negative anchor match → suppressed [must-not-defer per Critic M3 algorithm-path conformance]; (7) negative-anchor-overlaps-positive parse violation [must-not-defer input validation]; (8) migrated rules have expected canonical 9-token negative-anchor tuple [must-not-defer migration-tuple per Critic m3]. Plus `tests/methodology/test_methodology_changelog.py::test_v_0_23_0_bc_1_v_1_2_entry_present_in_repo_and_installed` (bidirectional changelog entry pin) and `test_plugin_yaml_version_matches_version_file_at_0_23_0` (PMI-1 invariant gate). Total methodology suite ratchets accordingly.
+
+  Limitations (v1.2, documented in code):
+  - **BC-PROJ-2 NOT migrated**: per Critic M1, BC-PROJ-2 has only N=1 false-positive recurrence (slice-005 keyword path on bare-words `llm`, `code-block`); slice-006 + slice-007 don't trigger BC-PROJ-2 (changed-files don't match `skills/**/*.py, tools/**/*.py` glob's required subfolder structure). N=1 is below BC-1 promotion threshold of N=3. Defer migration until a future slice's --changed-files match BC-PROJ-2's glob AND the slice's text cites methodology-vocabulary anchors (N=2).
+  - **Same negative-anchor list across rules**: this slice uses one 9-token list for both migrated rules. The schema supports per-rule customization (each rule's `Negative anchors:` field is independent); future BC-N rules in different domains can curate their own.
+  - **Cross-project applicability**: the `~/.claude/build-checks.md` curation contains AI-SDLC-internal tokens (`Critic-MISSED`, `Dim 9`, `back-sync`, `forward-sync`, `meta-discussion`) calibrated for this project. Adopters in non-methodology domains may need to re-curate per their own meta-vocabulary. Per Critic m1 — schema-prelude in the global file documents this so adopters can re-curate without surprise.
+  - **No morphological-variant expansion**: a typo like `false-positive` (with hyphen) instead of `false positive` (with space) would silently NOT match. Mitigated at /design-slice-time by `test_migrated_rules_have_expected_negative_anchors` pinning exact canonical tuple equality on production rules.
+  - **No automated curation**: when a new false-positive class surfaces, the negative-anchor list is updated manually at the next /reflect Step 5b promotion. v2 candidate: `/critic-calibrate` extension to mine defer-with-rationale entries across recent reflections and propose negative-anchor additions.
+
+---
+
 ## v0.22.0 — 2026-05-10
 
 Adds **CAD-1** — Critic Agent Drift detection. Closes the structural in-repo↔installed content drift class identified at slice-006 Critic B1 (every `/critic-calibrate` ACCEPTED proposal that follows the prior skill prose at `skills/critic-calibrate/SKILL.md:107-114` instructs editing the installed `~/.claude/agents/critique.md` only — leaving the in-repo canonical source out of sync). The slice-007 hybrid is option (d) per ADR-006: (c) skill-prose update naming in-repo as canonical with manual forward-sync (preventive) PLUS (a) standalone `tools/critique_agent_drift_audit.py` audit verifying sha256 byte-equality (detective). INST-2 (general content-equality across all installed files) was rejected as over-scoped vs N=1 evidence base — would violate INST-1's source-independence design contract.

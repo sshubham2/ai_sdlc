@@ -104,17 +104,59 @@ def test_v_0_22_0_cad_1_entry_present_in_repo_and_installed():
     )
 
 
-# --- AC #5: PMI-1 cleanliness (closes slice-006 escape) ---
+# --- Slice-008 / BC-1 v1.2 entry pinning ---
 
-def test_plugin_yaml_version_matches_version_file_at_0_22_0():
-    """plugin.yaml.version == VERSION file content == '0.22.0' post-build.
+def test_v_0_23_0_bc_1_v_1_2_entry_present_in_repo_and_installed():
+    """methodology-changelog v0.23.0 / BC-1 v1.2 entry must exist in BOTH the
+    in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
-    Defect class (per Critic B2): slice-006 left a PMI-1 escape — plugin.yaml
-    version was '0.20.0' while VERSION was '0.21.0'. The slice's design
-    promised the bump from '0.21.0' → '0.22.0' would close the escape, but
-    no AC gated it pre-Critic. This test is the gate.
+    Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
+    entry exists only in-repo and the forward-sync was forgotten, every
+    future read of the installed methodology-changelog reads stale
+    methodology (no BC-1 v1.2 visible). Bidirectional check catches this.
 
-    Rule reference: CAD-1, AC #5 (closes slice-006 PMI-1 escape).
+    Rule reference: BC-1 v1.2 (slice-008).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.23.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.23.0 entry"
+    )
+    assert "BC-1 v1.2" in in_repo, (
+        "in-repo methodology-changelog.md missing BC-1 v1.2 rule reference"
+    )
+    assert "Negative anchors" in in_repo, (
+        "in-repo methodology-changelog.md missing Negative anchors field doc"
+    )
+
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    assert installed_path.exists(), (
+        f"installed methodology-changelog.md missing at {installed_path}"
+    )
+    installed = installed_path.read_text(encoding="utf-8")
+    assert "## v0.23.0" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing v0.23.0 entry — "
+        "forward-sync after in-repo edit was forgotten"
+    )
+    assert "BC-1 v1.2" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing BC-1 v1.2 rule reference"
+    )
+    assert "Negative anchors" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing Negative anchors field doc"
+    )
+
+
+# --- PMI-1 cleanliness gate at v0.23.0 ---
+
+def test_plugin_yaml_version_matches_version_file_at_0_23_0():
+    """plugin.yaml.version == VERSION file content == '0.23.0' post-build.
+
+    Defect class (per slice-006 B1 escape, slice-007 PMI-1 closure pattern):
+    PMI-1 invariant requires `plugin.yaml.version` and the in-repo `VERSION`
+    file to bump atomically. Slice-008 bumps both from '0.22.0' → '0.23.0'.
+    Without this gate, an out-of-band /reflect or commit could leave the
+    plugin.yaml lagging (the slice-006 escape recurrence pattern).
+
+    Rule reference: PMI-1 invariant (slice-008 atomic bump).
     """
     version_file = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
     plugin_manifest = yaml.safe_load(
@@ -122,16 +164,15 @@ def test_plugin_yaml_version_matches_version_file_at_0_22_0():
     )
     plugin_version = plugin_manifest["version"]
 
-    assert version_file == "0.22.0", (
-        f"VERSION file content is {version_file!r}, expected '0.22.0'. "
-        f"Slice-007 must bump from 0.21.0 → 0.22.0."
+    assert version_file == "0.23.0", (
+        f"VERSION file content is {version_file!r}, expected '0.23.0'. "
+        f"Slice-008 must bump from 0.22.0 → 0.23.0."
     )
-    assert plugin_version == "0.22.0", (
-        f"plugin.yaml.version is {plugin_version!r}, expected '0.22.0'. "
-        f"Slice-007 must bump from 0.20.0 (slice-006 escape) → 0.22.0 "
-        f"atomically with VERSION."
+    assert plugin_version == "0.23.0", (
+        f"plugin.yaml.version is {plugin_version!r}, expected '0.23.0'. "
+        f"Slice-008 must bump atomically with VERSION."
     )
     assert version_file == plugin_version, (
         f"PMI-1 mismatch: VERSION={version_file!r} != plugin.yaml.version="
-        f"{plugin_version!r}. The slice-006 escape recurred."
+        f"{plugin_version!r}. The slice-006 PMI-1 escape recurred."
     )

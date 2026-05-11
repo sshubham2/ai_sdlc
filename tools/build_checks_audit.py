@@ -16,9 +16,23 @@ semantic (modulo the substring -> word-boundary tightening). Anchors that
 aren't in trigger_keywords yield an ``anchor-not-in-keywords`` parse
 violation (Important severity).
 
-Per BC-1 (methodology-changelog.md v0.10.0). The rule's purpose: close the
-lessons-learned -> builder feedback loop by giving recurring patterns a
-formal home that `/build-slice` reads at pre-finish.
+Optional per-rule ``Negative anchors:`` field (slice-008, ADR-007 — BC-1
+v1.2): comma-separated tokens (case-insensitive, word-boundary regex) that
+act as a **final filter** on positive applicability decisions. A rule that
+would otherwise fire (via ``always: true`` short-circuit, glob match, or
+keyword/anchor match) is SUPPRESSED when at least one negative anchor
+matches the slice's mission-brief.md + design.md text. Composes uniformly
+across all three positive-applicability paths — not path-specific. Negative
+anchors must NOT overlap with the rule's own ``Trigger keywords`` or
+``Trigger anchors`` (overlap is contradictory; emits a
+``negative-anchor-overlaps-positive`` parse violation, Important severity).
+Backward-compat: rules without the field have empty ``negative_anchors``
+tuple; final filter returns False; behavior identical to slice-005 v1.1.
+
+Per BC-1 (methodology-changelog.md v0.10.0; slice-005 v1.1; slice-008 v1.2).
+The rule's purpose: close the lessons-learned -> builder feedback loop by
+giving recurring patterns a formal home that `/build-slice` reads at
+pre-finish.
 
 Promotion in v1 is manual at `/reflect` Step 5b — when a recurring pattern
 emerges across slices, the user appends a rule to build-checks.md. Auto-
@@ -88,6 +102,7 @@ class BuildCheckRule:
     applies_to: tuple[str, ...]  # globs OR ("always",) sentinel
     trigger_keywords: tuple[str, ...]  # lowercased keywords
     trigger_anchors: tuple[str, ...]  # lowercased anchor subset (slice-005)
+    negative_anchors: tuple[str, ...]  # lowercased tokens (slice-008)
     check: str           # what the builder must verify
     rationale: str       # why this is permanent (may be empty)
     validation_hint: str  # how to verify (may be empty)
@@ -99,6 +114,7 @@ class BuildCheckRule:
         d["applies_to"] = list(self.applies_to)
         d["trigger_keywords"] = list(self.trigger_keywords)
         d["trigger_anchors"] = list(self.trigger_anchors)
+        d["negative_anchors"] = list(self.negative_anchors)
         return d
 
 
@@ -281,6 +297,44 @@ def _parse_rules(
                     ),
                 ))
 
+        # slice-008: optional Negative anchors field (case-insensitive, word-
+        # boundary regex). Acts as a FINAL FILTER on positive applicability
+        # decisions — a rule that would otherwise fire (always-true / glob /
+        # keyword) is suppressed when ≥1 negative anchor matches the slice's
+        # text. Validation: each negative anchor MUST NOT overlap with positive
+        # trigger_keywords or trigger_anchors (overlap is contradictory; emits
+        # negative-anchor-overlaps-positive parse violation per ADR-007).
+        # Storage: parsed tokens retained as-is (lowered + deduped). Overlap
+        # surfaces via the parse-violation channel; the algorithm itself does
+        # NOT silently drop overlapping tokens (matching slice-005 Critic m1
+        # posture for anchor-not-in-keywords).
+        negative_anchors_raw = fields_collected.get("negative anchors", "")
+        seen_negative: set[str] = set()
+        negative_anchors_list: list[str] = []
+        for raw in negative_anchors_raw.split(","):
+            normalized = raw.strip().lower()
+            if not normalized or normalized in seen_negative:
+                continue
+            seen_negative.add(normalized)
+            negative_anchors_list.append(normalized)
+        negative_anchors = tuple(negative_anchors_list)
+
+        for negative_anchor in negative_anchors:
+            if (
+                negative_anchor in trigger_keywords
+                or negative_anchor in trigger_anchors
+            ):
+                violations.append(BuildCheckViolation(
+                    path=path, line=heading_line + 1, rule_id=rule_id,
+                    kind="negative-anchor-overlaps-positive", severity="Important",
+                    message=(
+                        f"rule {rule_id}: Negative anchor '{negative_anchor}' "
+                        f"overlaps with positive Trigger keywords/anchors. "
+                        f"Negative anchors must be exclusionary (no overlap "
+                        f"with positive vocabulary)."
+                    ),
+                ))
+
         rules.append(BuildCheckRule(
             source=source,
             rule_id=rule_id,
@@ -289,6 +343,7 @@ def _parse_rules(
             applies_to=applies_to,
             trigger_keywords=trigger_keywords,
             trigger_anchors=trigger_anchors,
+            negative_anchors=negative_anchors,
             check=fields_collected.get("check", ""),
             rationale=fields_collected.get("rationale", ""),
             validation_hint=fields_collected.get("validation hint", ""),
@@ -299,6 +354,34 @@ def _parse_rules(
     return rules, violations
 
 
+def _negative_anchor_match(
+    rule: BuildCheckRule,
+    slice_text: str,
+) -> bool:
+    """True iff ≥1 negative anchor word-boundary-matches slice text (slice-008).
+
+    Negative anchors act as the FINAL FILTER on positive applicability
+    decisions per ADR-007: a rule that would otherwise fire is suppressed
+    when at least one negative anchor matches the slice's mission-brief +
+    design text. Returns False (does not suppress) when:
+      - the rule has no negative_anchors configured (empty tuple), OR
+      - the slice_text is empty.
+
+    Match semantic: case-insensitive word-boundary regex (``\\b{na}\\b``),
+    same as slice-005's positive Trigger anchors. Compound tokens with
+    spaces (``defer-with-rationale``, ``aggregated lessons``, ``Dim 9``)
+    match cleanly because re.escape() preserves spaces and word-boundaries
+    land at literal-pattern start/end.
+    """
+    if not rule.negative_anchors or not slice_text:
+        return False
+    haystack = slice_text.lower()
+    return any(
+        re.search(rf"\b{re.escape(na)}\b", haystack)
+        for na in rule.negative_anchors
+    )
+
+
 def _rule_applies(
     rule: BuildCheckRule,
     changed_files: list[str],
@@ -306,7 +389,7 @@ def _rule_applies(
 ) -> bool:
     """Decide whether a rule applies to the current slice.
 
-    Applicability is OR over the three signals:
+    Applicability is OR over the three POSITIVE signals:
       1. ``Applies to: always: true`` -> always applies
       2. Any glob in ``Applies to`` matches any of ``changed_files``
       3. Keyword path (slice-005, ADR-004): keywords are matched against
@@ -317,14 +400,22 @@ def _rule_applies(
          match fires (legacy behavior + word-boundary tightening). Compound
          keywords with hyphens (e.g., ``code-block``) match cleanly because
          word-boundaries land at the start and end of the literal pattern.
+
+    FINAL FILTER (slice-008, ADR-007 — BC-1 v1.2): every positive
+    applicability decision is gated through ``not _negative_anchor_match()``.
+    This composes UNIFORMLY across all three positive paths — not path-
+    specific. A rule that would otherwise fire via any positive path is
+    suppressed when the slice's text matches ≥1 negative anchor. Backward-
+    compat: rules with empty ``negative_anchors`` tuple have ``_negative_
+    anchor_match`` return False, preserving slice-005 v1.1 behavior.
     """
     if rule.applies_to == ("always",):
-        return True
+        return not _negative_anchor_match(rule, slice_text)
 
     for pattern in rule.applies_to:
         for changed in changed_files:
             if _matches_glob(changed, pattern):
-                return True
+                return not _negative_anchor_match(rule, slice_text)
 
     if rule.trigger_keywords and slice_text:
         haystack = slice_text.lower()
@@ -334,9 +425,9 @@ def _rule_applies(
         }
         if not matched:
             return False
-        if rule.trigger_anchors:
-            return any(a in matched for a in rule.trigger_anchors)
-        return True
+        if rule.trigger_anchors and not any(a in matched for a in rule.trigger_anchors):
+            return False
+        return not _negative_anchor_match(rule, slice_text)
 
     return False
 
