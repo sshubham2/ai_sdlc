@@ -112,20 +112,133 @@ def test_critique_dim_4_has_methodology_audit_conformance_sub_bullet():
     assert "Algorithm-path-conformance with pre-existing branches" in CRITIQUE
 
 
-def test_critique_dim_9_lists_five_sub_clauses():
-    """Dim 9 (Cross-cutting conformance) must enumerate all 5 sub-clause titles.
+def test_critique_dim_9_lists_six_sub_clauses():
+    """Dim 9 (Cross-cutting conformance) must enumerate all 6 sub-clause titles.
 
     Defect class: a Dim 9 body that drops sub-clauses loses the unified-pattern surface
     (e.g., dropping runtime-environment leaves slice-001-class misses without a home).
-    The 5 sub-clauses are: 3 cross-references to Dim 1/4 surgical sub-bullets +
-    2 N=1 standalone sub-clauses (runtime-environment, language-version).
-    Rule reference: META-2 + CCC-1.
+    The 6 sub-clauses are: 3 cross-references to Dim 1/4 surgical sub-bullets +
+    2 N=1 standalone sub-clauses (runtime-environment, language-version) +
+    1 N=3 meta-level sub-clause (recursive self-application discipline; slice-011).
+
+    Supersedes `test_critique_dim_9_lists_five_sub_clauses` per slice-011 PMI-1
+    versioned-gate supersession discipline applied at the structural-invariant
+    level (no two structural-invariant tests coexist).
+
+    Rule reference: META-2 + CCC-1 + RSAD-1 (slice-011).
     """
     assert "Methodology-audit conformance" in CRITIQUE
     assert "Tooling-doc-vs-implementation parity" in CRITIQUE
     assert "Algorithm-path-conformance" in CRITIQUE
     assert "Runtime-environment" in CRITIQUE
     assert "Language-version conformance" in CRITIQUE
+    assert "Recursive self-application discipline" in CRITIQUE
+
+
+def test_critique_dim_9_recursive_self_application_sub_clause_present():
+    """The new 6th Dim 9 sub-clause must carry the canonical literal title.
+
+    Defect class: a Dim 9 body that has the substring but not as a sub-clause title
+    (e.g., embedded in narrative prose elsewhere) would silently pass without
+    encoding the discipline as a structural sub-clause. The canonical literal pin
+    is a substring assertion; the location-pin test (below) enforces position.
+    Rule reference: META-2 + CCC-1 + RSAD-1.
+    """
+    assert "Recursive self-application discipline" in CRITIQUE
+
+
+def test_critique_dim_9_recursive_self_application_location_pinned():
+    """The new 6th sub-clause must fall between Language-version conformance and the Bonus H3.
+
+    Defect class: a future drift moving the new sub-clause out of Dim 9 (e.g., into Dim 8
+    or the Bonus section) would silently pass substring-only pin tests; the location-pin
+    guard catches it. Per slice-009 M1 + slice-010 M1 location-pin convention; per
+    slice-009 DEVIATION-2 + slice-010 anchor-uniqueness pre-emption: anchors verified
+    unique pre-AC-lock; scoped .find() to avoid first-occurrence-wins collision.
+
+    Location pin: sub-clause title MUST appear BETWEEN start anchor
+    `Language-version conformance` AND end anchor `### Bonus: weak graph edges`.
+
+    Rule reference: META-2 + CCC-1 + RSAD-1.
+    """
+    start_anchor = "Language-version conformance"
+    end_anchor = "### Bonus: weak graph edges"
+    canonical = "Recursive self-application discipline"
+    start_idx = CRITIQUE.find(start_anchor)
+    assert start_idx != -1, f"start anchor {start_anchor!r} not found"
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    assert end_idx != -1, f"end anchor {end_anchor!r} not found AFTER {start_anchor!r}"
+    canonical_idx = CRITIQUE.find(canonical, start_idx, end_idx)
+    assert canonical_idx != -1, (
+        f"{canonical!r} not found between {start_anchor!r} and {end_anchor!r} "
+        f"in agents/critique.md — sub-clause location drifted"
+    )
+
+
+def test_critique_dim_9_recursive_self_application_names_both_sub_modes():
+    """Sub-clause body must name BOTH design-time and build-time sub-modes.
+
+    Defect class: a body that only names design-time loses the build-time-via-/critique-
+    fix-prose sub-mode (slice-010 DEVIATION-3 evidence) — incomplete coverage of the N=3
+    cumulative evidence base.
+
+    Per slice-009 DEVIATION-1 case-sensitivity mitigation: canonical substrings
+    `design-time` AND `build-time` are lowercase compound forms placed mid-sentence in
+    the body prose (per slice-011 Critic B1 catch + fix: bullet titles capitalized,
+    lowercase canonical substrings relocated to mid-sentence positions).
+
+    Rule reference: META-2 + CCC-1 + RSAD-1.
+    """
+    start_anchor = "Recursive self-application discipline"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    assert start_idx != -1, f"sub-clause anchor {start_anchor!r} not found"
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    assert end_idx != -1, f"end anchor {end_anchor!r} not found AFTER sub-clause start"
+    body = CRITIQUE[start_idx:end_idx]
+    assert "design-time" in body, (
+        "sub-clause body missing canonical substring 'design-time' "
+        "(case-sensitive; must appear mid-sentence per slice-009 DEVIATION-1 mitigation)"
+    )
+    assert "build-time" in body, (
+        "sub-clause body missing canonical substring 'build-time' "
+        "(case-sensitive; must appear mid-sentence per slice-009 DEVIATION-1 mitigation)"
+    )
+
+
+def test_critique_dim_9_recursive_self_application_cites_at_least_two_cross_slice_anchors():
+    """Sub-clause body must cite BOTH cross-slice anchors + ≥1 sub-class anchor.
+
+    Defect class: descriptive sub-class text drifts unpinned to abstract framings without
+    concrete traceability — readers lose the path back to the empirical evidence base.
+    Pinned at N=3 evidence (slice-009 M2 + slice-010 design-time + slice-010 build-time).
+
+    Per slice-011 Critic m2 catch + fix: with 2-element cross-slice allowlist, the
+    `≥2 of 2` semantics is strict-both not permissive — body must cite BOTH slice-009
+    AND slice-010 (not "at least 2 of {slice-009, slice-010}").
+
+    Per slice-008 M2 + slice-009 M3 + slice-010 M3 N-substring + N-surface schema-pin
+    discipline.
+
+    Rule reference: META-2 + CCC-1 + RSAD-1.
+    """
+    start_anchor = "Recursive self-application discipline"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    body = CRITIQUE[start_idx:end_idx]
+    cross_slice = ["slice-009", "slice-010"]
+    sub_class = ["M2", "DEVIATION-3", "BC-PROJ-2", "B1", "B5", "M1"]
+    cs_count = sum(1 for anchor in cross_slice if anchor in body)
+    sc_count = sum(1 for anchor in sub_class if anchor in body)
+    assert cs_count == 2, (
+        f"strict-both cross-slice anchor requirement — need BOTH of {cross_slice}, "
+        f"got {cs_count} present in sub-clause body"
+    )
+    assert sc_count >= 1, (
+        f"insufficient sub-class instance anchors — need ≥1 of {sub_class}, "
+        f"got {sc_count} in sub-clause body"
+    )
 
 
 def test_critique_dim_9_cross_references_resolve():

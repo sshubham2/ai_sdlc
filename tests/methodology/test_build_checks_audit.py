@@ -1118,3 +1118,236 @@ def test_migrated_rules_have_expected_negative_anchors():
         f"{global_by_id['BC-GLOBAL-1'].negative_anchors!r}, "
         f"expected {expected_negative_anchors!r}"
     )
+
+
+# --- Slice-012 / BC-PROJ-2 negative-anchor migration (BC-1 v1.3) ---
+#
+# Per ADR-011 (slice-012, 2026-05-13), BC-PROJ-2 receives the same 9-token
+# methodology-vocabulary `Negative anchors:` set used for BC-PROJ-1 +
+# BC-GLOBAL-1 at slice-008. Migration is data-only; reuses BC-1 v1.2
+# infrastructure (slice-008's `_parse_rules` + `_negative_anchor_match` +
+# final-filter algorithm) verbatim.
+#
+# Per /critique B1 ACCEPTED-FIXED: AC #4 test MUST use `_parse_rules` +
+# `by_id['BC-PROJ-2'].negative_anchors == expected_tuple` per-rule scoping
+# — NOT naive file-level substring — because all 9 tokens already exist on
+# BC-PROJ-1's L20 Negative-anchors line file-globally from slice-008.
+# A naive substring check would PASS pre-migration, violating TF-1
+# PENDING -> WRITTEN-FAILING genuine-failure discipline (N=8 stable per
+# slice-011 reflection).
+
+# Representative --changed-files for slice-011 archive backtest (BC-PROJ-2
+# glob `skills/**/*.py, tools/**/*.py`). Mirrors `_SLICE_005_CHANGED_FILES`
+# pattern at L693.
+_SLICE_011_CHANGED_FILES = [
+    "tools/build_checks_audit.py",
+]
+
+
+def test_slice_005_archive_no_longer_fires_proj2():
+    """Slice-005 archive must NOT trigger BC-PROJ-2 post-migration.
+
+    Defect class: methodology-vocabulary slice-005 fires BC-PROJ-2 at build-
+    time via the glob path (`tools/build_checks_audit.py` matches
+    `skills/**/*.py, tools/**/*.py`) AND via the keyword-anchor path (bare-
+    word `fence`, `code-block`, `llm` match BC-PROJ-2's Trigger anchors).
+    Slice-012's 9-token negative-anchor migration suppresses BC-PROJ-2
+    because slice-005's text matches `defer-with-rationale, aggregated
+    lessons, false positive, meta-discussion, vocabulary` (5 distinct
+    negative-anchor hits per design.md Audit 3).
+
+    This is the N=1 evidence base per slice-008 Critic M1's BC-PROJ-2-
+    specific N=2 deferral language; ratified at slice-012 per N=2 met
+    (slice-005 + slice-011).
+
+    Rule reference: BC-1 v1.3 (slice-012 AC #1).
+    """
+    result = audit_slice(
+        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        / "slice-005-add-bc-1-keyword-precision",
+        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
+        global_checks=_GLOBAL_BUILD_CHECKS,
+        changed_files=_SLICE_005_CHANGED_FILES,
+        skip_if_carry_over=False,
+    )
+    applicable_ids = {r.rule_id for r in result.applicable}
+    skipped_ids = {r.rule_id for r in result.skipped}
+
+    assert "BC-PROJ-2" not in applicable_ids, (
+        f"BC-PROJ-2 should NOT apply to slice-005 archive post-migration "
+        f"(silenced via 9-token methodology-vocabulary negative anchors). "
+        f"Got applicable: {applicable_ids}"
+    )
+    assert "BC-PROJ-2" in skipped_ids, (
+        f"BC-PROJ-2 should appear in skipped (rule was applicable via glob "
+        f"+ keyword paths, final-filter suppressed). Got skipped: {skipped_ids}"
+    )
+
+
+def test_slice_011_archive_no_longer_fires_proj2():
+    """Slice-011 archive must NOT trigger BC-PROJ-2 post-migration.
+
+    Defect class: methodology-vocabulary slice-011 (RSAD-1 codification)
+    fires BC-PROJ-2 at /critique time via the keyword-anchor path on
+    `fence`, `code-block`, `llm` (slice-011's mission-brief + design.md
+    contain 26 BC-PROJ-2 positive-anchor matches as historical-lesson
+    context, not as LLM-fence-parsing implementation). Slice-012's 9-token
+    negative-anchor migration suppresses BC-PROJ-2 because slice-011's
+    text matches 8 distinct negative-anchor tokens (per design.md Audit 3:
+    `defer-with-rationale, aggregated lessons, meta-discussion, vocabulary,
+    Critic-MISSED, back-sync, Dim 9, forward-sync`).
+
+    This is the N=2 evidence base — slice-011's BC-PROJ-2 fire is the
+    N=2 promotion-threshold-met recurrence per slice-008 Critic M1 deferral
+    language ("defer BC-PROJ-2 migration until N=2 surfaces").
+
+    Rule reference: BC-1 v1.3 (slice-012 AC #2).
+    """
+    result = audit_slice(
+        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        / "slice-011-promote-recursive-self-application-discipline-to-critique-skill-prose",
+        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
+        global_checks=_GLOBAL_BUILD_CHECKS,
+        changed_files=_SLICE_011_CHANGED_FILES,
+        skip_if_carry_over=False,
+    )
+    applicable_ids = {r.rule_id for r in result.applicable}
+    skipped_ids = {r.rule_id for r in result.skipped}
+
+    assert "BC-PROJ-2" not in applicable_ids, (
+        f"BC-PROJ-2 should NOT apply to slice-011 archive post-migration "
+        f"(silenced via 9-token methodology-vocabulary negative anchors). "
+        f"Got applicable: {applicable_ids}"
+    )
+    assert "BC-PROJ-2" in skipped_ids, (
+        f"BC-PROJ-2 should appear in skipped (rule was applicable via glob "
+        f"+ keyword paths, final-filter suppressed). Got skipped: {skipped_ids}"
+    )
+
+
+def test_slice_001_archive_still_fires_proj2():
+    """Slice-001 archive (canonical legitimate LLM-fence-parsing slice)
+    MUST continue to fire BC-PROJ-2 post-migration — backward-compat
+    covenant per ADR-007 / ADR-011.
+
+    Defect class: precision improvement must not over-suppress. Slice-001
+    is the canonical legitimate slice for BC-PROJ-2 (4-backtick outer
+    fence parser at `skills/diagnose/write_pass.py`). Empirical per
+    design.md Audit 2: slice-001's mission-brief + design contain ZERO of
+    the 9 methodology-vocabulary negative-anchor tokens at word-boundary
+    — negative-anchor filter cannot suppress. BC-PROJ-2 continues to fire
+    via positive anchors (`fence`, `code-block`, `llm`) AND glob path
+    (`skills/diagnose/write_pass.py` matches `Applies to: skills/**/*.py`).
+
+    Per /critique B1 ACCEPTED-FIXED: TF-1 PENDING -> WRITTEN-FAILING
+    genuineness uses the `_parse_rules` + `by_id['BC-PROJ-2'].negative_anchors`
+    read pattern (mirrors slice-008's `test_slice_001_archive_still_fires_
+    legitimate_rules` at L843 + reuses the same `_parse_rules` API).
+
+    Rule reference: BC-1 v1.3 (slice-012 AC #3).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    # Pre-fix genuineness via slice-008 Critic M1 pattern: force read of
+    # the field as part of validation. Post-migration, BC-PROJ-2 has the
+    # 9-token tuple populated; pre-migration, it parses to () which then
+    # fails the assertion `BC-PROJ-2 in applicable` below for slice-001.
+    project_path = REPO_ROOT / "architecture" / "build-checks.md"
+    project_text = project_path.read_text(encoding="utf-8")
+    rules, _ = _parse_rules(
+        project_text, source="project", path=str(project_path)
+    )
+    by_id = {r.rule_id: r for r in rules}
+    assert "BC-PROJ-2" in by_id, "BC-PROJ-2 not parsed"
+    _ = by_id["BC-PROJ-2"].negative_anchors  # field-read assertion (slice-008 pattern)
+
+    result = audit_slice(
+        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        / "slice-001-diagnose-orchestration-fix",
+        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
+        global_checks=_GLOBAL_BUILD_CHECKS,
+        changed_files=_SLICE_001_CHANGED_FILES,
+        skip_if_carry_over=False,
+    )
+    applicable_ids = {r.rule_id for r in result.applicable}
+
+    # Mini-CAD-1 row 3 PASSING -> WRITTEN-FAILING -> PASSING transition
+    # (per slice-007/009/010/011 N=4 stable -> N=5 stable post-slice-012):
+    # this assertion was temporarily flipped to `not in` at Phase 1a to
+    # establish a genuine WRITTEN-FAILING signal pre-migration; flipped
+    # back to `in` at Phase 1a-verify, then verified to PASS post-Phase 2
+    # migration. The final-form assertion below is what guards backward-
+    # compat at every future audit run.
+    assert "BC-PROJ-2" in applicable_ids, (
+        f"BC-PROJ-2 MUST apply to slice-001 (legitimate LLM-fence-parsing). "
+        f"Backward-compat covenant per ADR-007 / ADR-011: slice-001's text "
+        f"contains zero methodology-vocabulary tokens, so the 9-token "
+        f"negative-anchor filter cannot suppress. "
+        f"Got applicable: {applicable_ids}"
+    )
+
+
+def test_bc_proj_2_has_methodology_vocabulary_negative_anchors():
+    """BC-PROJ-2 MUST parse to the canonical 9-token negative-anchor tuple.
+
+    Per /critique B1 ACCEPTED-FIXED: this test uses `_parse_rules` +
+    `by_id['BC-PROJ-2'].negative_anchors == expected_tuple` per-rule
+    scoping on the parsed `BuildCheckRule` dataclass — NOT a naive file-
+    level substring check. Reason: all 9 canonical tokens already exist
+    file-globally on BC-PROJ-1's `architecture/build-checks.md:20`
+    Negative-anchors line from slice-008's migration. A naive substring
+    check would PASS pre-slice-012-migration, violating TF-1 PENDING ->
+    WRITTEN-FAILING genuine-failure discipline (N=8 stable per slice-011
+    reflection).
+
+    Pinned failure signal pre-fix:
+        AssertionError: BC-PROJ-2 negative_anchors mismatch: got (),
+        expected (...)
+
+    Mirrors slice-008's `test_migrated_rules_have_expected_negative_anchors`
+    at L1054.
+
+    Rule reference: BC-1 v1.3 (slice-012 AC #4).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    expected_negative_anchors = (
+        "defer-with-rationale",
+        "aggregated lessons",
+        "false positive",
+        "meta-discussion",
+        "vocabulary",
+        "critic-missed",
+        "back-sync",
+        "dim 9",
+        "forward-sync",
+    )
+
+    project_path = REPO_ROOT / "architecture" / "build-checks.md"
+    project_text = project_path.read_text(encoding="utf-8")
+    rules, violations = _parse_rules(
+        project_text, source="project", path=str(project_path)
+    )
+    by_id = {r.rule_id: r for r in rules}
+
+    assert "BC-PROJ-2" in by_id, (
+        "BC-PROJ-2 not parsed from architecture/build-checks.md"
+    )
+    assert by_id["BC-PROJ-2"].negative_anchors == expected_negative_anchors, (
+        f"BC-PROJ-2 negative_anchors mismatch: got "
+        f"{by_id['BC-PROJ-2'].negative_anchors!r}, "
+        f"expected {expected_negative_anchors!r}"
+    )
+
+    # No negative-anchor-overlaps-positive violations expected on BC-PROJ-2
+    # (Audit 1 at design time: 9-token set disjoint from BC-PROJ-2's
+    # `parse, fence, code-block, backtick, llm, agent, prompt, output,
+    # response` keywords + `fence, code-block, llm` anchors).
+    bc_proj_2_violations = [
+        v for v in violations
+        if v.rule_id == "BC-PROJ-2" and v.kind == "negative-anchor-overlaps-positive"
+    ]
+    assert not bc_proj_2_violations, (
+        f"BC-PROJ-2 emits negative-anchor-overlaps-positive violations: "
+        f"{[(v.rule_id, v.message) for v in bc_proj_2_violations]}"
+    )
