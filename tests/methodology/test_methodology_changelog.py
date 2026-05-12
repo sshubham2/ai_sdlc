@@ -195,24 +195,78 @@ def test_v_0_24_0_ccc_1_v_1_1_entry_present_in_repo_and_installed():
     )
 
 
-# --- PMI-1 cleanliness gate at v0.24.0 (supersedes _at_0_23_0 per slice-007/008 N=2 supersession pattern) ---
+# --- Slice-010 / MCT-1 entry pinning ---
 
-def test_plugin_yaml_version_matches_version_file_at_0_24_0():
-    """plugin.yaml.version == VERSION file content == '0.24.0' post-build.
+def test_v_0_25_0_mct_1_entry_present_in_repo_and_installed():
+    """methodology-changelog v0.25.0 / MCT-1 entry must exist in BOTH the
+    in-repo file AND the installed `~/.claude/methodology-changelog.md`.
+
+    Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
+    entry exists only in-repo and the forward-sync was forgotten, every
+    future read of the installed methodology-changelog reads stale
+    methodology (no MCT-1 visible). Bidirectional check catches this.
+
+    Substantive canonical phrase pinned per Critic M3 at slice-009 +
+    slice-010 N-surface schema-pin discipline: `In-house methodology surfaces`
+    is the canonical phrase the MCT-1 entry MUST contain — reuses the same
+    canonical phrase pinned in `test_slice_skill.py` AC #1 row 1
+    (`test_slice_step4a_mandatory_critic_section_contains_in_house_methodology_surfaces_bullet`).
+    ONE canonical phrase pinned across N=3 surfaces: skills/slice/SKILL.md +
+    in-repo methodology-changelog.md + installed methodology-changelog.md.
+
+    Rule reference: MCT-1 (slice-010).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.25.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.25.0 entry"
+    )
+    assert "MCT-1" in in_repo, (
+        "in-repo methodology-changelog.md missing MCT-1 rule reference"
+    )
+    assert "In-house methodology surfaces" in in_repo, (
+        "in-repo methodology-changelog.md missing substantive canonical phrase "
+        "'In-house methodology surfaces' (per slice-010 N-surface pin discipline)"
+    )
+
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    assert installed_path.exists(), (
+        f"installed methodology-changelog.md missing at {installed_path}"
+    )
+    installed = installed_path.read_text(encoding="utf-8")
+    assert "## v0.25.0" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing v0.25.0 entry — "
+        "forward-sync after in-repo edit was forgotten"
+    )
+    assert "MCT-1" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing MCT-1 rule reference"
+    )
+    assert "In-house methodology surfaces" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing substantive "
+        "canonical phrase 'In-house methodology surfaces' (per slice-010 "
+        "N-surface pin discipline)"
+    )
+
+
+# --- PMI-1 cleanliness gate at v0.25.0 (supersedes _at_0_24_0 per slice-007/008/009 N=2 supersession pattern; slice-010 ratchets to N=3 supersession events) ---
+
+def test_plugin_yaml_version_matches_version_file_at_0_25_0():
+    """plugin.yaml.version == VERSION file content == '0.25.0' post-build.
 
     Defect class (per slice-006 B1 escape, slice-007 PMI-1 closure pattern):
     PMI-1 invariant requires `plugin.yaml.version` and the in-repo `VERSION`
-    file to bump atomically. Slice-009 bumps both from '0.23.0' → '0.24.0'.
+    file to bump atomically. Slice-010 bumps both from '0.24.0' → '0.25.0'.
     Without this gate, an out-of-band /reflect or commit could leave the
     plugin.yaml lagging (the slice-006 escape recurrence pattern).
 
-    Per slice-007 + slice-008 PMI-1 versioned-gate pattern (slice-007
-    introduced `_at_0_22_0`; slice-008 first-superseded with `_at_0_23_0` =
-    N=1 supersession event per Critic M5 at slice-009; slice-009 ratchets to
-    N=2 supersession events on completion). No two version-gates coexist —
-    `_at_0_23_0` is deleted in the same commit as this `_at_0_24_0` is added.
+    Per slice-007 + slice-008 + slice-009 PMI-1 versioned-gate supersession
+    pattern (slice-007 introduced `_at_0_22_0`; slice-008 first-superseded
+    with `_at_0_23_0`; slice-009 second-superseded with `_at_0_24_0` = N=2
+    supersession events post-slice-009 per Critic M5 framing). Slice-010
+    ratchets to N=3 supersession events on completion. No two version-gates
+    coexist — `_at_0_24_0` is deleted in the same commit as this
+    `_at_0_25_0` is added.
 
-    Rule reference: PMI-1 invariant (slice-009 atomic bump).
+    Rule reference: PMI-1 invariant (slice-010 atomic bump).
     """
     version_file = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
     plugin_manifest = yaml.safe_load(
@@ -220,13 +274,13 @@ def test_plugin_yaml_version_matches_version_file_at_0_24_0():
     )
     plugin_version = plugin_manifest["version"]
 
-    assert version_file == "0.24.0", (
-        f"VERSION file content is {version_file!r}, expected '0.24.0'. "
-        f"Slice-009 must bump from 0.23.0 → 0.24.0."
+    assert version_file == "0.25.0", (
+        f"VERSION file content is {version_file!r}, expected '0.25.0'. "
+        f"Slice-010 must bump from 0.24.0 → 0.25.0."
     )
-    assert plugin_version == "0.24.0", (
-        f"plugin.yaml.version is {plugin_version!r}, expected '0.24.0'. "
-        f"Slice-009 must bump atomically with VERSION."
+    assert plugin_version == "0.25.0", (
+        f"plugin.yaml.version is {plugin_version!r}, expected '0.25.0'. "
+        f"Slice-010 must bump atomically with VERSION."
     )
     assert version_file == plugin_version, (
         f"PMI-1 mismatch: VERSION={version_file!r} != plugin.yaml.version="

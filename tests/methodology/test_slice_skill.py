@@ -41,3 +41,253 @@ def test_slice_verb_object_naming_rule():
     Rule reference: META-2.
     """
     assert "VERB-OBJECT names only" in SLICE
+
+
+# --- Slice-010 / MCT-1: In-house methodology surfaces mandatory-Critic trigger ---
+#
+# Per MCT-1 (`methodology-changelog.md` v0.25.0): the `/slice` skill's Step 4a
+# "Always mandatory Critic" section gains a new bullet for in-house methodology
+# surfaces (skill prose, agent prompts, custom build / lint / audit tooling,
+# methodology rules) PLUS an adjacent evidence prose paragraph appended after
+# the existing "When producing the mission brief..." paragraph (per slice-010
+# Critic M1 split — keeps the bullet stylistically uniform with the existing 7
+# bullets while pinning the empirical-evidence-base anchors in adjacent prose).
+#
+# Per slice-008 M2 N-substring discipline + slice-009 M3 N-surface discipline:
+# the substantive canonical phrase `In-house methodology surfaces` is pinned
+# across N=3 surfaces (this file + `test_methodology_changelog.py` v0.25.0 pin
+# in BOTH in-repo + installed methodology-changelog.md).
+#
+# Per slice-009 DEVIATION-1 lesson: canonical literal `voluntary Critic` is
+# case-sensitive lowercase-v; the prose MUST place this phrase mid-sentence to
+# honor literal case without bullet-start auto-capitalization.
+#
+# Per slice-009 DEVIATION-2 lesson + slice-005 algorithm-path-conformance: the
+# location-pin test uses scoped `text.find()` chained off unique anchors;
+# anchor uniqueness empirically verified pre-AC-lock.
+#
+# Per slice-010 Critic M3 ACCEPTED-PENDING: the 5th test pins ≥2 of 4 sub-class
+# anchors so the descriptive sub-class text doesn't drift unpinned.
+
+# ---- Section anchors (empirically verified unique at slice-010 design time) ----
+
+_SECTION_START_ANCHOR = "Always mandatory Critic"  # unique L165 at slice-010 design time
+_SECTION_END_ANCHOR = "### Step 5:"  # unique markdown H3 header
+_BULLET_PRECEDING_ANCHOR = "- Security-sensitive paths"  # unique L171 at slice-010 design time
+_BULLET_FOLLOWING_ANCHOR = "- Heavy mode (always)"  # unique L172 at slice-010 design time
+
+
+def _step4a_section(skill_md: str) -> str:
+    """Return the substring of skill_md scoped to the Step 4a "Always mandatory
+    Critic" section. Bounds: from `Always mandatory Critic` (inclusive) to
+    `### Step 5:` (exclusive). Scoped section captures both the bullet list
+    AND the evidence prose paragraph appended below the "When producing..."
+    paragraph (per slice-010 Critic M1 split — widened end anchor from
+    `Heavy mode (always)` to `### Step 5:`).
+    """
+    start = skill_md.find(_SECTION_START_ANCHOR)
+    assert start != -1, (
+        f"Step 4a section start anchor {_SECTION_START_ANCHOR!r} not found in "
+        f"skills/slice/SKILL.md — has the Step 4a section been renamed?"
+    )
+    end = skill_md.find(_SECTION_END_ANCHOR, start)
+    assert end != -1, (
+        f"Step 4a section end anchor {_SECTION_END_ANCHOR!r} not found AFTER "
+        f"the start anchor at idx {start} — has Step 5 been renamed or removed?"
+    )
+    return skill_md[start:end]
+
+
+def test_slice_step4a_mandatory_critic_section_contains_in_house_methodology_surfaces_bullet():
+    """AC #1 row 1: the canonical literal `In-house methodology surfaces`
+    appears within the Step 4a "Always mandatory Critic" section bounds.
+
+    Pins the new bullet's title canonical literal (capitalized-I bullet-title
+    form per slice-009 DEVIATION-1 mitigation — bullet start gets natural
+    capitalization without forcing case manipulation).
+
+    Defect class: if a future slice deletes the bullet or rewords its title,
+    this test surfaces the drift at /validate-slice.
+
+    Rule reference: MCT-1 (slice-010).
+    """
+    section = _step4a_section(SLICE)
+
+    assert "In-house methodology surfaces" in section, (
+        "skills/slice/SKILL.md Step 4a section is missing canonical literal "
+        "'In-house methodology surfaces' — the MCT-1 bullet was removed or "
+        "renamed. Re-add the bullet between the existing `Security-sensitive "
+        "paths` bullet and the `Heavy mode (always)` bullet per "
+        "slice-010 design.md."
+    )
+
+    # File-class anchor: bullet body must name at least one of the 4 in-house
+    # surface families. Design selects all 4 for canonical-inventory
+    # completeness; AC #1 row 1 asserts >=1.
+    file_class_anchors = (
+        "skills/*/SKILL.md",
+        "agents/*.md",
+        "tools/**/*.py",
+        "methodology-changelog.md",
+    )
+    present = [a for a in file_class_anchors if a in section]
+    assert len(present) >= 1, (
+        f"skills/slice/SKILL.md Step 4a section is missing all 4 file-class "
+        f"anchors {file_class_anchors!r} — the MCT-1 bullet's body lost its "
+        f"in-house surface family references. Found 0 of 4."
+    )
+
+
+def test_slice_step4a_in_house_methodology_bullet_location_between_security_paths_and_heavy_mode():
+    """AC #1 row 2: the new `In-house methodology surfaces` bullet appears
+    BETWEEN the existing `Security-sensitive paths` bullet and the existing
+    `Heavy mode (always)` bullet. Pins the bullet's position within the
+    bullet list (content-trigger bullets grouped before the mode-meta closer).
+
+    Per slice-009 Critic M1 location-pin discipline + slice-005 + slice-009
+    DEVIATION-2 algorithm-path-conformance: anchor uniqueness empirically
+    verified at design time (each of the 3 anchors appears exactly once in
+    `skills/slice/SKILL.md`); scoped `text.find()` chained off prior anchor
+    pre-empts `.find()`-collision class.
+
+    Defect class: if the new bullet is inserted outside the bullet list (e.g.,
+    in narrative prose), or placed before `Security-sensitive paths`, or after
+    `Heavy mode (always)`, this test surfaces the misplacement.
+
+    Rule reference: MCT-1 (slice-010); slice-009 Critic M1 location-pin.
+    """
+    # Section start anchor (unique)
+    section_start = SLICE.find(_SECTION_START_ANCHOR)
+    assert section_start != -1, (
+        f"Section start anchor {_SECTION_START_ANCHOR!r} not found"
+    )
+
+    # Bullet anchors -- both scoped to start AFTER section_start to avoid
+    # any cross-section collision (defensive -- anchor-uniqueness empirically
+    # verified, but scoped find is the slice-009 DEVIATION-2 mitigation
+    # discipline).
+    security_paths_idx = SLICE.find(_BULLET_PRECEDING_ANCHOR, section_start)
+    assert security_paths_idx != -1, (
+        f"Preceding-bullet anchor {_BULLET_PRECEDING_ANCHOR!r} not found "
+        f"after section start at idx {section_start}"
+    )
+
+    heavy_mode_idx = SLICE.find(_BULLET_FOLLOWING_ANCHOR, security_paths_idx)
+    assert heavy_mode_idx != -1, (
+        f"Following-bullet anchor {_BULLET_FOLLOWING_ANCHOR!r} not found "
+        f"after preceding-bullet anchor at idx {security_paths_idx}"
+    )
+
+    # New bullet's canonical phrase must appear strictly between them
+    new_bullet_idx = SLICE.find(
+        "In-house methodology surfaces", security_paths_idx
+    )
+    assert new_bullet_idx != -1, (
+        "New bullet's canonical phrase 'In-house methodology surfaces' not "
+        "found after the preceding `Security-sensitive paths` bullet"
+    )
+    assert security_paths_idx < new_bullet_idx < heavy_mode_idx, (
+        f"New bullet 'In-house methodology surfaces' (idx={new_bullet_idx}) "
+        f"must appear BETWEEN `Security-sensitive paths` (idx="
+        f"{security_paths_idx}) and `Heavy mode (always)` (idx={heavy_mode_idx})."
+        f" Current placement violates the bullet position-pin: content-trigger "
+        f"bullets must be grouped before the `Heavy mode (always)` mode-meta closer."
+    )
+
+
+def test_slice_step4a_evidence_paragraph_cites_n_9_and_voluntary_critic():
+    """AC #1 row 3: the canonical literals `N=9/9` AND `voluntary Critic`
+    (case-sensitive lowercase-v) both appear within the Step 4a section bounds.
+
+    Per slice-010 Critic M1 split: these canonical literals live in the
+    evidence prose paragraph appended below the existing "When producing the
+    mission brief..." paragraph (NOT in the bullet itself -- the bullet stays
+    stylistically uniform with the existing 7 bullets). The section bounds
+    (`Always mandatory Critic` start -> `### Step 5:` end) capture both the
+    bullet list and the evidence paragraph.
+
+    Per slice-009 DEVIATION-1 mitigation: `voluntary Critic` is lowercase-v;
+    the prose must place this phrase mid-sentence (not at sentence start)
+    so markdown convention doesn't pull toward capitalization.
+
+    Defect class: if a future slice deletes the evidence paragraph or rewrites
+    it without the empirical-evidence anchors, this test surfaces the drift.
+
+    Rule reference: MCT-1 (slice-010).
+    """
+    section = _step4a_section(SLICE)
+
+    assert "N=9/9" in section, (
+        "skills/slice/SKILL.md Step 4a section is missing empirical-evidence "
+        "anchor 'N=9/9' -- the evidence prose paragraph below the bullet list "
+        "was removed or its N-count framing changed. Re-add or restore."
+    )
+
+    # Case-sensitive: lowercase 'voluntary Critic' (slice-009 DEVIATION-1
+    # mitigation -- assert exact case)
+    assert "voluntary Critic" in section, (
+        "skills/slice/SKILL.md Step 4a section is missing pattern-name "
+        "canonical literal 'voluntary Critic' (case-sensitive lowercase-v) -- "
+        "either the phrase is absent OR it was auto-capitalized to "
+        "'Voluntary Critic' at sentence start (slice-009 DEVIATION-1 trap "
+        "recurrence). Re-structure prose to keep the phrase mid-sentence."
+    )
+
+
+def test_slice_step4a_evidence_paragraph_cites_at_least_two_cross_cutting_tooling_slices():
+    """AC #2: the Step 4a section's evidence prose paragraph cites at least
+    TWO of the 4 cross-slice example anchors {slice-006, slice-007,
+    slice-008, slice-009} -- grounding the N=9/9 evidence base claim in
+    concrete reflection-record references.
+
+    Per slice-010 design: all 4 anchors are included for completeness; AC #2
+    asserts >=2 (allows minor prose refinement without test churn).
+
+    Defect class: if a future slice rewrites the evidence paragraph to drop
+    all concrete sub-class examples, the empirical-evidence base claim
+    becomes unverifiable.
+
+    Rule reference: MCT-1 (slice-010).
+    """
+    section = _step4a_section(SLICE)
+
+    cross_slice_anchors = ("slice-006", "slice-007", "slice-008", "slice-009")
+    present = [a for a in cross_slice_anchors if a in section]
+    assert len(present) >= 2, (
+        f"skills/slice/SKILL.md Step 4a section cites only {len(present)} of "
+        f"4 cross-slice example anchors {cross_slice_anchors!r}; need >=2. "
+        f"Found: {present}. The evidence prose paragraph lost its concrete "
+        f"reflection-record references."
+    )
+
+
+def test_slice_step4a_evidence_paragraph_cites_at_least_two_sub_class_anchors():
+    """AC #2 sub-row per slice-010 Critic M3 ACCEPTED-PENDING: the evidence
+    prose paragraph cites at least TWO of the 4 sub-class Critic-catch anchors
+    {INST-1 inventory drift, install-time rename, negative-anchor uniformity,
+    recursive self-application} -- pinning the sub-class evidence so a future
+    cleanup deleting them surfaces as a test failure.
+
+    Per slice-009 N-substring schema-pin discipline (referenced in slice-010
+    mission-brief): substantive prose anchors should be pinned. Without this
+    test the 4 sub-class anchors are descriptive-only and a drift vector.
+
+    Rule reference: MCT-1 (slice-010); slice-010 Critic M3 (ACCEPTED-PENDING
+    at /critique, applied at /build-slice Phase 1a).
+    """
+    section = _step4a_section(SLICE)
+
+    sub_class_anchors = (
+        "INST-1 inventory drift",
+        "install-time rename",
+        "negative-anchor uniformity",
+        "recursive self-application",
+    )
+    present = [a for a in sub_class_anchors if a in section]
+    assert len(present) >= 2, (
+        f"skills/slice/SKILL.md Step 4a section cites only {len(present)} of "
+        f"4 sub-class Critic-catch anchors {sub_class_anchors!r}; need >=2. "
+        f"Found: {present}. The evidence prose paragraph lost its concrete "
+        f"sub-class references -- a future reader can no longer verify which "
+        f"specific past Critic-catches the N=9/9 evidence base draws on."
+    )

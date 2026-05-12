@@ -169,9 +169,12 @@ Ask the user (or propose if obvious from the candidate):
 - Multi-device / multi-user / sync / sharing
 - External integrations (OAuth, payment gateways, third-party APIs)
 - Security-sensitive paths
+- In-house methodology surfaces (`skills/*/SKILL.md`, `agents/*.md`, `tools/**/*.py`, `methodology-changelog.md`)
 - Heavy mode (always)
 
 When producing the mission brief and milestone.md: scan the slice's scope for these triggers. If any match, set `critic-required: true` even if tier is `low`. Tell the user explicitly: "Tier is low, but slice touches auth — Critic will run anyway."
+
+> **Evidence for the In-house methodology surfaces trigger**: voluntary Critic on cross-cutting tooling slices has paid off N=9/9 across slices 1-9 in this project's reflection record (e.g., slice-006 INST-1 inventory drift; slice-007 install-time rename; slice-008 negative-anchor uniformity; slice-009 recursive self-application). Every voluntary Critic invocation on a cross-cutting tooling slice produced VALIDATED findings post-build with zero FALSE-ALARMs; see `architecture/slices/_index.md` "Aggregated lessons" and `archive/slice-NNN/reflection.md` "Critic calibration" sections for per-slice disposition records.
 
 ### Step 5: Scope check
 
