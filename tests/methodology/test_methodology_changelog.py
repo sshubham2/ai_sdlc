@@ -9,6 +9,38 @@ import yaml
 from tests.methodology.conftest import REPO_ROOT, read_file
 
 
+def _extract_v031_body(content: str) -> str:
+    """Extract methodology-changelog.md v0.31.0 entry body, scoped between
+    `## v0.31.0` and `## v0.30.0` boundaries.
+
+    Returns rest-of-file from `## v0.31.0` start if `## v0.30.0` is absent
+    (fallback branch retained for symmetry with slice-017 TPHD-1 sibling
+    canonical pattern at L1091-1094, though triggers only if v0.30.0 entry
+    is deleted — an extraordinary regression beyond this slice's threat
+    model per slice-018 /critique m1 ACCEPTED-FIXED).
+
+    Pre-validation contract: caller MUST have already asserted
+    `"## v0.31.0" in content` and emitted a surface-context-aware error
+    message at the call site (per slice-018 /critique-review m-add-1
+    ACCEPTED-FIXED — surface_name interpolation preserves slice-017
+    L1088-1090 diagnostic pattern). Helper returns empty/garbage if
+    `## v0.31.0` is absent; downstream assertions will fail, but the
+    surface-context error message must come from the caller. Helper
+    does NOT re-assert.
+
+    Used by both `test_v_0_31_0_rpcd_1_entry_names_three_sub_modes_in_repo_and_installed`
+    (refactored sibling test reading real methodology-changelog.md) AND
+    `test_v_0_31_0_rpcd_1_sibling_scoping_rejects_stripped_v031_body`
+    (regression test verifying scoping discipline on synthetic content).
+    Single code path under test — per slice-018 /critique M2 ACCEPTED-FIXED.
+    """
+    v031_start = content.find("## v0.31.0")
+    v030_start = content.find("## v0.30.0", v031_start) if v031_start != -1 else -1
+    if v030_start == -1:
+        return content[v031_start:] if v031_start != -1 else ""
+    return content[v031_start:v030_start]
+
+
 def test_version_file_is_semver():
     """VERSION must contain a semver-shaped string.
 
@@ -909,46 +941,124 @@ def test_v_0_31_0_rpcd_1_entry_present_in_repo_and_installed():
 
 def test_v_0_31_0_rpcd_1_entry_names_three_sub_modes_in_repo_and_installed():
     """methodology-changelog v0.31.0 / RPCD-1 entry must name ALL THREE
-    sub-modes (a)/(b)/(c) bidirectionally.
+    sub-modes (a)/(b)/(c) bidirectionally, scoped strictly to the v0.31.0
+    entry body (NOT global file substring).
 
-    Defect class: a v0.31.0 entry that names RPCD-1 but elides the three
-    sub-modes loses the operational discipline. The three sub-modes are
-    what makes RPCD-1 actionable at first-Critic time vs vague exhortation.
+    Scoping fix vs original slice-016 implementation: the original test
+    used global substring check on the entire file, which would false-positive
+    pass on any LATER entry's markers (e.g., v0.32.0+ entries retaining
+    Sub-mode markers while v0.31.0 body had them stripped). This slice-018
+    fix scopes to the v0.31.0 body specifically (between `## v0.31.0` and
+    `## v0.30.0` boundaries via `_extract_v031_body` helper) — proper
+    methodology-pin discipline.
 
-    Sub-mode anchors per slice-016 design.md Audit 1-3 canonical body:
-      - Sub-mode (a) NEW-symbol import-audit: `import` substring + sub-mode (a) marker
-      - Sub-mode (b) NEW-status/token allowlist-audit: `_ALLOWED_STATUSES` substring + sub-mode (b) marker
-      - Sub-mode (c) NEW-anchor sibling-grep audit: `sibling` substring + sub-mode (c) marker
+    Evidence anchor: slice-017 DEVIATION-1 (N=1 first-Critic-MISS at
+    /critique + /critique-review; surfaced at /build-slice Phase 2b
+    empirical pytest behavior analysis). Canonical pattern: slice-017
+    TPHD-1 sibling at `test_methodology_changelog.py:1086-1094`.
 
-    Rule reference: RPCD-1 (slice-016 AC #1 — sub-mode pin).
+    Surface-context-aware pre-validation per slice-018 /critique-review
+    m-add-1 ACCEPTED-FIXED: assert lives at call site so error message
+    interpolates `surface_name` (preserves slice-017 L1088-1090 diagnostic
+    pattern); helper assumes pre-validated input.
+
+    Sub-mode anchors per slice-016 design.md Audit 1-3 canonical body,
+    scoped to the v0.31.0 entry body (not global file):
+      - Sub-mode (a) NEW-symbol import-audit
+      - Sub-mode (b) NEW-status/token allowlist-audit (`_ALLOWED_STATUSES`)
+      - Sub-mode (c) NEW-anchor sibling-grep audit (`sibling`)
+
+    Rule reference: RPCD-1 (slice-016 AC #1 — sub-mode pin) +
+    slice-018 (test-scoping discipline restoration).
     """
     in_repo = read_file("methodology-changelog.md")
     installed_path = Path.home() / ".claude" / "methodology-changelog.md"
     installed = installed_path.read_text(encoding="utf-8")
 
     for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
-        # Sub-mode markers must appear in v0.31.0 body
-        assert "Sub-mode (a)" in content, (
-            f"{surface_name} methodology-changelog.md v0.31.0 missing "
+        # Surface-context-aware pre-validation per /critique-review m-add-1
+        # ACCEPTED-FIXED (preserves slice-017 L1088-1090 diagnostic pattern):
+        # assert lives at call site so error message can interpolate
+        # surface_name; helper assumes pre-validated input.
+        assert "## v0.31.0" in content, (
+            f"{surface_name} methodology-changelog.md missing v0.31.0 entry — "
+            f"entry-pin broken (slice-016 RPCD-1 surface)"
+        )
+        v031_body = _extract_v031_body(content)
+
+        # Sub-mode markers must appear in v0.31.0 body (scoped via helper)
+        assert "Sub-mode (a)" in v031_body, (
+            f"{surface_name} methodology-changelog.md v0.31.0 body missing "
             f"'Sub-mode (a)' marker — three-sub-mode pin broken"
         )
-        assert "Sub-mode (b)" in content, (
-            f"{surface_name} methodology-changelog.md v0.31.0 missing "
+        assert "Sub-mode (b)" in v031_body, (
+            f"{surface_name} methodology-changelog.md v0.31.0 body missing "
             f"'Sub-mode (b)' marker — three-sub-mode pin broken"
         )
-        assert "Sub-mode (c)" in content, (
-            f"{surface_name} methodology-changelog.md v0.31.0 missing "
+        assert "Sub-mode (c)" in v031_body, (
+            f"{surface_name} methodology-changelog.md v0.31.0 body missing "
             f"'Sub-mode (c)' marker — three-sub-mode pin broken"
         )
-        assert "_ALLOWED_STATUSES" in content, (
-            f"{surface_name} methodology-changelog.md v0.31.0 missing "
-            f"'_ALLOWED_STATUSES' substring — sub-mode (b) discipline anchor "
-            f"broken"
+        assert "_ALLOWED_STATUSES" in v031_body, (
+            f"{surface_name} methodology-changelog.md v0.31.0 body missing "
+            f"'_ALLOWED_STATUSES' substring — sub-mode (b) discipline "
+            f"anchor broken"
         )
-        assert "sibling" in content, (
-            f"{surface_name} methodology-changelog.md v0.31.0 missing "
+        assert "sibling" in v031_body, (
+            f"{surface_name} methodology-changelog.md v0.31.0 body missing "
             f"'sibling' substring — sub-mode (c) discipline anchor broken"
         )
+
+
+def test_v_0_31_0_rpcd_1_sibling_scoping_rejects_stripped_v031_body():
+    """Regression test: prove the v0.31.0 scoping discipline (via
+    `_extract_v031_body` helper) catches stripped sub-mode markers within
+    v0.31.0 body even when v0.32.0+ entries retain them.
+
+    Defect class (slice-017 DEVIATION-1, N=1 first-Critic-MISS):
+    the original slice-016 `_names_three_sub_modes` test pattern used
+    global substring check. If a future slice strips Sub-mode (a)/(b)/(c)
+    markers from the v0.31.0 entry body while v0.32.0+ retains them,
+    the global check would false-positive PASS — methodology pin
+    silently broken.
+
+    Single-code-path discipline (per slice-018 /critique M2 ACCEPTED-FIXED):
+    both the refactored sibling test AND this regression test call the
+    SAME `_extract_v031_body` helper. So this test's assertion empirically
+    proves the sibling's scoping would catch real-world v0.31.0-body
+    marker stripping (not just self-constructed synthetic content).
+
+    Rule reference: slice-018 AC #2 + slice-017 DEVIATION-1 evidence.
+    """
+    synthetic = (
+        "## v0.32.0\n"
+        "Sub-mode (a) /critique post-fix-prose harmonization\n"
+        "Sub-mode (b) /critique-review post-fix-prose harmonization\n"
+        "Sub-mode (c) /build-slice Prerequisite-check pre-flight\n"
+        "\n"
+        "## v0.31.0\n"
+        "[markers stripped — regression fixture]\n"
+        "_ALLOWED_STATUSES kept\n"
+        "sibling kept\n"
+        "\n"
+        "## v0.30.0\n"
+        "earlier entry\n"
+    )
+    v031_body = _extract_v031_body(synthetic)
+
+    # The scoping discipline (same helper the sibling uses) catches the
+    # stripped markers in v0.31.0 body
+    assert "Sub-mode (a)" not in v031_body, (
+        "regression: _extract_v031_body failed to isolate v0.31.0 body — "
+        "the slice-016 RPCD-1 sibling test would silently PASS on stripped "
+        "markers if this helper drifted"
+    )
+    # But the marker IS present file-globally — proves the global-substring
+    # fallacy the scoping fix defends against
+    assert "Sub-mode (a)" in synthetic, (
+        "regression-test fixture malformed: v0.32.0 must retain marker for "
+        "the test to demonstrate the global-substring fallacy"
+    )
 
 
 # --- ADR-015 pin (slice-016) ---
