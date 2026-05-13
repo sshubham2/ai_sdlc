@@ -1,7 +1,9 @@
 """Validate the methodology-changelog itself: format, version sync, dated entries."""
+import ast
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 from tests.methodology.conftest import REPO_ROOT, read_file
@@ -363,38 +365,199 @@ def test_v_0_27_0_bc_proj_2_entry_present_in_repo_and_installed():
     )
 
 
-# --- PMI-1 cleanliness gate at v0.27.0 (supersedes _at_0_26_0 per slice-007/008/009/010/011 N=4 supersession pattern; slice-012 ratchets to N=5 supersession events) ---
+# --- Slice-013 / EPGD-1 entry pinning ---
 
-def test_plugin_yaml_version_matches_version_file_at_0_27_0():
-    """plugin.yaml.version == VERSION file content == '0.27.0' post-build.
+def test_v_0_28_0_epgd_1_entry_present_in_repo_and_installed():
+    """methodology-changelog v0.28.0 / EPGD-1 entry must exist in BOTH
+    the in-repo file AND the installed `~/.claude/methodology-changelog.md`.
+
+    Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
+    entry exists only in-repo and the forward-sync was forgotten, every
+    future read of the installed methodology-changelog reads stale
+    methodology (no EPGD-1 discipline visible to /status).
+
+    Substantive canonical phrase pinned per slice-011 RSAD-1 3-surface
+    schema-pin precedent (N=2 instances stable at slice-013: RSAD-1 +
+    EPGD-1): `Entry-pin-vs-PMI-1-gate semantics conflation` is the
+    canonical phrase pinned across N=3 surfaces — (1) agents/critique.md
+    Dim 9 7th sub-clause title + (2) in-repo methodology-changelog.md
+    v0.28.0 entry + (3) installed methodology-changelog.md v0.28.0 entry.
+    3-pin shape: `## v0.28.0` heading + `EPGD-1` rule-ID + canonical
+    phrase across both bidirectional surfaces of the changelog.
+
+    Edit discipline (per slice-011 NEW Dim 9 sub-class N=1 + slice-012 N=2
+    promotion-threshold-met entry-pin-vs-PMI-1-gate-semantics-conflation,
+    codified at slice-013 as EPGD-1): this function lives under its OWN
+    `# --- Slice-013 / EPGD-1 entry pinning ---` SECTION header above —
+    structurally separate from the PMI-1 versioned-gate's own SECTION
+    header below. Entry-pin functions persist across ALL versions
+    (v0.22.0..v0.27.0 entry-pin functions above are NOT touched by
+    slice-013); only PMI-1 versioned-gate tests supersede latest-only.
+    The N=2 ratchet promotion-threshold-met at slice-012 is confirmed
+    empirically at slice-013 if all v0.22.0..v0.27.0 entry-pin functions
+    remain intact at slice-end (canonical reference instance of EPGD-1
+    self-application; RSAD-1 self-application N=5 cumulative).
+
+    Rule reference: EPGD-1 (slice-013 AC #4).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.28.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.28.0 entry"
+    )
+    assert "EPGD-1" in in_repo, (
+        "in-repo methodology-changelog.md missing EPGD-1 rule reference"
+    )
+    assert "Entry-pin-vs-PMI-1-gate semantics conflation" in in_repo, (
+        "in-repo methodology-changelog.md missing substantive canonical phrase "
+        "'Entry-pin-vs-PMI-1-gate semantics conflation' (per slice-011 RSAD-1 "
+        "3-surface schema-pin precedent; N=2 instances stable at slice-013)"
+    )
+
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    assert installed_path.exists(), (
+        f"installed methodology-changelog.md missing at {installed_path}"
+    )
+    installed = installed_path.read_text(encoding="utf-8")
+    assert "## v0.28.0" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing v0.28.0 entry — "
+        "forward-sync after in-repo edit was forgotten"
+    )
+    assert "EPGD-1" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing EPGD-1 rule reference"
+    )
+    assert "Entry-pin-vs-PMI-1-gate semantics conflation" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing substantive "
+        "canonical phrase 'Entry-pin-vs-PMI-1-gate semantics conflation' "
+        "(per slice-011 RSAD-1 3-surface schema-pin precedent)"
+    )
+
+
+# --- Slice-014 / PMI-1 v1.1 entry pinning ---
+
+def test_v_0_29_0_pmi_1_v1_1_entry_present_in_repo_and_installed():
+    """methodology-changelog v0.29.0 / PMI-1 v1.1 entry must exist in BOTH
+    the in-repo file AND the installed `~/.claude/methodology-changelog.md`.
+
+    Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
+    entry exists only in-repo and the forward-sync was forgotten, every
+    future read of the installed methodology-changelog reads stale
+    methodology (no PMI-1 v1.1 refactor visible to /status).
+
+    Substantive canonical phrase pinned per slice-011 RSAD-1 + slice-013
+    EPGD-1 3-surface schema-pin precedent (N=2 instances stable at
+    slice-013 -> N=3 stable at slice-014): the canonical phrase
+    `version-agnostic PMI-1 cleanliness gate` is pinned across N=3
+    surfaces — (1) ADR-013 title + body + (2) in-repo methodology-changelog
+    v0.29.0 entry + (3) installed methodology-changelog v0.29.0 entry.
+    3-pin shape: `## v0.29.0` heading + `PMI-1 v1.1` rule-ID + canonical
+    phrase across both bidirectional surfaces of the changelog.
+
+    Edit discipline (per slice-013 EPGD-1 Dim 9 7th sub-clause): this
+    function lives under its OWN `# --- Slice-014 / PMI-1 v1.1 entry
+    pinning ---` SECTION header above — structurally separate from any
+    PMI-1 gate SECTION header. Entry-pin functions persist across ALL
+    versions (v0.22.0..v0.28.0 entry-pin functions above are NOT touched
+    by slice-014); only PMI-1 versioned-gate tests supersede latest-only
+    — and at slice-014 the versioned-gate supersession pattern itself is
+    RETIRED (see test_plugin_yaml_version_matches_version_file_invariant
+    below + methodology-changelog v0.29.0 entry).
+
+    Rule reference: PMI-1 v1.1 (slice-014 AC #4).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.29.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.29.0 entry"
+    )
+    assert "PMI-1 v1.1" in in_repo, (
+        "in-repo methodology-changelog.md missing PMI-1 v1.1 rule reference"
+    )
+    assert "version-agnostic PMI-1 cleanliness gate" in in_repo, (
+        "in-repo methodology-changelog.md missing substantive canonical phrase "
+        "'version-agnostic PMI-1 cleanliness gate' (per slice-013 EPGD-1 "
+        "3-surface schema-pin precedent; slice-014 ratchets N=2 -> N=3 instances stable)"
+    )
+
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    assert installed_path.exists(), (
+        f"installed methodology-changelog.md missing at {installed_path}"
+    )
+    installed = installed_path.read_text(encoding="utf-8")
+    assert "## v0.29.0" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing v0.29.0 entry — "
+        "forward-sync after in-repo edit was forgotten"
+    )
+    assert "PMI-1 v1.1" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing PMI-1 v1.1 rule reference"
+    )
+    assert "version-agnostic PMI-1 cleanliness gate" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing substantive "
+        "canonical phrase 'version-agnostic PMI-1 cleanliness gate' "
+        "(per slice-013 EPGD-1 3-surface schema-pin precedent)"
+    )
+
+
+def test_v_0_29_0_entry_names_supersession_pattern_retired():
+    """methodology-changelog v0.29.0 entry MUST contain the canonical phrase
+    `supersession pattern retired at slice-014` in BOTH in-repo + installed
+    surfaces.
+
+    Defect class (slice-014-specific): the PMI-1 versioned-gate supersession
+    counter ran at N=6 events stable across slices 007-013 (slice-007
+    introduced _at_0_22_0; slices 008-013 superseded sequentially). At
+    slice-014 the pattern is retired: future slices' version bumps do NOT
+    supersede the gate function. The v0.29.0 changelog entry MUST annotate
+    this termination explicitly so future readers + /status + /critique
+    + /critic-calibrate distinguish "this is the LAST slice in the pattern"
+    from "this is yet another supersession slice".
+
+    Distinct from the canonical-phrase 3-pin (heading + rule-ID + phrase
+    `version-agnostic PMI-1 cleanliness gate`) tested above; this pins a
+    DIFFERENT canonical phrase carrying the supersession-retirement
+    annotation.
+
+    Rule reference: PMI-1 v1.1 (slice-014 AC #4) + N=6 versioned-gate
+    supersession counter termination.
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "supersession pattern retired at slice-014" in in_repo, (
+        "in-repo methodology-changelog.md v0.29.0 entry missing canonical "
+        "phrase 'supersession pattern retired at slice-014' — annotation "
+        "of N=6 PMI-1 versioned-gate supersession counter termination is "
+        "missing"
+    )
+
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    installed = installed_path.read_text(encoding="utf-8")
+    assert "supersession pattern retired at slice-014" in installed, (
+        "installed ~/.claude/methodology-changelog.md v0.29.0 entry missing "
+        "canonical phrase 'supersession pattern retired at slice-014' — "
+        "forward-sync after in-repo edit forgot the supersession-retirement "
+        "annotation"
+    )
+
+
+# --- PMI-1 cleanliness gate (version-agnostic, slice-014 refactor; PMI-1 v1.1 per methodology-changelog.md v0.29.0) ---
+
+def test_plugin_yaml_version_matches_version_file_invariant():
+    """VERSION file content == plugin.yaml.version (PMI-1 v1.1 invariant).
 
     Defect class (per slice-006 B1 escape, slice-007 PMI-1 closure pattern):
     PMI-1 invariant requires `plugin.yaml.version` and the in-repo `VERSION`
-    file to bump atomically. Slice-012 bumps both from '0.26.0' → '0.27.0'.
-    Without this gate, an out-of-band /reflect or commit could leave the
-    plugin.yaml lagging (the slice-006 escape recurrence pattern).
+    file to bump atomically. Without this gate, an out-of-band /reflect or
+    commit could leave one file lagging — the slice-006 escape recurrence
+    pattern.
 
-    Per slice-007 + slice-008 + slice-009 + slice-010 + slice-011 PMI-1
-    versioned-gate supersession pattern (slice-007 introduced `_at_0_22_0`;
-    slice-008 first-superseded with `_at_0_23_0`; slice-009 second-superseded
-    with `_at_0_24_0`; slice-010 third-superseded with `_at_0_25_0`;
-    slice-011 fourth-superseded with `_at_0_26_0` = N=4 supersession events
-    post-slice-011). Slice-012 ratchets to N=5 supersession events on
-    completion. No two version-gates coexist — `_at_0_26_0` is deleted
-    in the same commit as this `_at_0_27_0` is added.
+    Version-agnostic shape (PMI-1 v1.1 per slice-014 refactor): no hardcoded
+    version literal. The cross-file equality invariant IS the defect class
+    this gate exists to catch. The "did you bump at all?" discipline is
+    carried by per-version entry-pin tests (test_v_0_NN_0_*) + each slice's
+    mission-brief atomic-bump checklist + META-1
+    (test_version_matches_most_recent_changelog_entry). See
+    methodology-changelog.md v0.29.0 + ADR-013 for the supersession pattern
+    retirement rationale.
 
-    Edit discipline (per /critique M1 ACCEPTED-FIXED + slice-011 NEW Dim 9
-    sub-class N=1 entry-pin-vs-PMI-1-gate-semantics-conflation): this
-    function lives under its OWN `# --- PMI-1 cleanliness gate at v0.27.0 ---`
-    SECTION header above — separate from any entry-pin function's
-    `# --- Slice-NNN / RULE entry pinning ---` SECTION header. The
-    supersession Edit at slice-012 narrow-scoped to ONLY this function's
-    body + its dedicated SECTION header, NEVER spanning any entry-pin
-    function above. Entry-pin functions for v0.22.0..v0.26.0 persist
-    untouched per the N=2 promotion-threshold probe of the slice-011
-    sub-class candidate.
-
-    Rule reference: PMI-1 invariant (slice-012 atomic bump).
+    Rule reference: PMI-1 v1.1 (slice-014 atomic bump + version-agnostic
+    gate refactor).
     """
     version_file = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
     plugin_manifest = yaml.safe_load(
@@ -402,15 +565,178 @@ def test_plugin_yaml_version_matches_version_file_at_0_27_0():
     )
     plugin_version = plugin_manifest["version"]
 
-    assert version_file == "0.27.0", (
-        f"VERSION file content is {version_file!r}, expected '0.27.0'. "
-        f"Slice-012 must bump from 0.26.0 → 0.27.0."
-    )
-    assert plugin_version == "0.27.0", (
-        f"plugin.yaml.version is {plugin_version!r}, expected '0.27.0'. "
-        f"Slice-012 must bump atomically with VERSION."
-    )
     assert version_file == plugin_version, (
-        f"PMI-1 mismatch: VERSION={version_file!r} != plugin.yaml.version="
-        f"{plugin_version!r}. The slice-006 PMI-1 escape recurred."
+        f"PMI-1 mismatch: VERSION={version_file!r} != "
+        f"plugin.yaml.version={plugin_version!r}. The slice-006 escape "
+        f"recurred — atomic bump discipline broken."
+    )
+
+
+# --- PMI-1 v1.1 structural meta-tests (slice-014) ---
+
+def test_pmi_1_gate_function_is_version_agnostic_shape():
+    """AST-walk test_methodology_changelog.py's module, locate the
+    test_plugin_yaml_version_matches_version_file_invariant FunctionDef,
+    walk its body for any Constant(value=str) matching
+    r"^\\d+\\.\\d+\\.\\d+$", assert NONE found.
+
+    Defect class (slice-014-specific): a future regression could smuggle
+    a version literal back into the gate function's body (e.g., by adding
+    an "extra safety" assertion like `assert version_file == "0.29.0"`).
+    This AST meta-test pins the version-agnostic shape against that class
+    of regression — structural defense at the AST level, robust against
+    prose rephrasing.
+
+    Rule reference: PMI-1 v1.1 (slice-014 AC #1 — version-agnostic gate
+    function structural invariant).
+    """
+    source = (REPO_ROOT / "tests" / "methodology" / "test_methodology_changelog.py").read_text(encoding="utf-8")
+    module = ast.parse(source)
+
+    gate_fn = None
+    for node in ast.walk(module):
+        if isinstance(node, ast.FunctionDef) and node.name == "test_plugin_yaml_version_matches_version_file_invariant":
+            gate_fn = node
+            break
+    assert gate_fn is not None, (
+        "PMI-1 v1.1 gate function "
+        "test_plugin_yaml_version_matches_version_file_invariant not found "
+        "in tests/methodology/test_methodology_changelog.py"
+    )
+
+    version_literal_re = re.compile(r"^\d+\.\d+\.\d+$")
+    smuggled_literals = []
+    for node in ast.walk(gate_fn):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if version_literal_re.match(node.value):
+                smuggled_literals.append((node.value, node.lineno))
+
+    assert smuggled_literals == [], (
+        f"PMI-1 v1.1 gate function contains version-literal Constant(s) "
+        f"matching r'^\\d+\\.\\d+\\.\\d+$' (version-agnostic shape "
+        f"violated): {smuggled_literals!r}. The slice-014 refactor's "
+        f"structural invariant is broken — a future regression smuggled "
+        f"a version literal back into the gate body."
+    )
+
+
+def test_no_per_version_pmi_1_gate_functions_remain():
+    """AST-walk test_methodology_changelog.py's module, locate any
+    FunctionDef.name matching
+    r"^test_plugin_yaml_version_matches_version_file_at_0_\\d+_0$",
+    assert the list is EMPTY.
+
+    Defect class (slice-014-specific): a future regression could re-introduce
+    the per-version PMI-1 gate shape (e.g., test_..._at_0_30_0). This AST
+    meta-test pins the slice-014 deletion of all _at_0_NN_0-shaped gate
+    functions against that class of regression — structural counter-anchor
+    to the legacy shape.
+
+    Rule reference: PMI-1 v1.1 (slice-014 AC #3 — legacy _at_0_NN_0
+    shape deletion).
+    """
+    source = (REPO_ROOT / "tests" / "methodology" / "test_methodology_changelog.py").read_text(encoding="utf-8")
+    module = ast.parse(source)
+
+    legacy_pattern = re.compile(r"^test_plugin_yaml_version_matches_version_file_at_0_\d+_0$")
+    legacy_funcs = []
+    for node in ast.walk(module):
+        if isinstance(node, ast.FunctionDef) and legacy_pattern.match(node.name):
+            legacy_funcs.append((node.name, node.lineno))
+
+    assert legacy_funcs == [], (
+        f"Per-version PMI-1 gate function(s) still present (slice-014 "
+        f"deletion incomplete): {legacy_funcs!r}. The slice-014 refactor "
+        f"requires ALL test_plugin_yaml_version_matches_version_file_at_0_NN_0 "
+        f"functions to be deleted; only "
+        f"test_plugin_yaml_version_matches_version_file_invariant remains."
+    )
+
+
+# --- PMI-1 v1.1 regression test (slice-014) ---
+
+def test_pmi_1_gate_fails_with_pinned_message_when_version_files_diverge(tmp_path, monkeypatch):
+    """Regression test: gate fires with pinned error message when
+    VERSION != plugin.yaml.version.
+
+    Defect class (per slice-007 PMI-1 closure pattern + slice-014 v1.1
+    refactor): the version-agnostic gate's correctness depends on its
+    ability to FIRE when the cross-file equality is broken. This
+    regression test exercises the FAILURE path with tempdir + monkeypatch.
+
+    Monkeypatch target name-resolution semantics (per slice-014 /critique
+    M2 ACCEPTED-FIXED): the bare `REPO_ROOT` reference inside the gate
+    function resolves from test_methodology_changelog's module globals
+    (where REPO_ROOT was imported from tests.methodology.conftest at
+    module top). Patching
+    `tests.methodology.test_methodology_changelog.REPO_ROOT` (NOT the
+    `conftest` original) is correct. Patching `conftest.REPO_ROOT` would
+    silently no-op — gate would still read real VERSION/plugin.yaml files
+    (both at slice's current version), match, AssertionError NOT raised,
+    `pytest.raises` raises DID NOT RAISE, test fails for wrong reason.
+
+    Rule reference: PMI-1 v1.1 (slice-014 atomic bump + version-agnostic
+    gate refactor), AC #2 regression coverage.
+    """
+    (tmp_path / "VERSION").write_text("1.2.3\n", encoding="utf-8")
+    (tmp_path / "plugin.yaml").write_text("version: 4.5.6\n", encoding="utf-8")
+
+    # Patch via the object form anchored on the running module's actual
+    # sys.modules entry (slice-014 build-time DEVIATION-1): pytest's
+    # discovery under a `tests/` namespace package (no __init__.py)
+    # places this module in sys.modules under `methodology.test_methodology_changelog`
+    # (the bare key), NOT under the fully-qualified
+    # `tests.methodology.test_methodology_changelog` dotted path. A
+    # monkeypatch with the dotted-string target would patch a SEPARATE
+    # importlib-fetched copy of the module, leaving the running test's
+    # REPO_ROOT untouched and the gate reading real VERSION/plugin.yaml
+    # files (DID NOT RAISE). Using sys.modules[__name__] anchors the
+    # patch on the running module regardless of pytest's import-mode key
+    # choice — same fix-class as the VAL-1 Layer B `tests` namespace
+    # package issue (N=11 cumulative recurrence pre-slice-014).
+    import sys
+    monkeypatch.setattr(sys.modules[__name__], "REPO_ROOT", tmp_path)
+
+    with pytest.raises(AssertionError) as excinfo:
+        test_plugin_yaml_version_matches_version_file_invariant()
+
+    assert "PMI-1" in str(excinfo.value), (
+        f"regression error message missing 'PMI-1' substring: "
+        f"{str(excinfo.value)!r}"
+    )
+    assert "slice-006 escape" in str(excinfo.value), (
+        f"regression error message missing 'slice-006 escape' substring: "
+        f"{str(excinfo.value)!r}"
+    )
+
+
+# --- ADR-013 pin (slice-014) ---
+
+def test_adr_013_exists_and_names_pmi_1_refactor_canonical_phrase():
+    """architecture/decisions/ADR-013-*.md must exist AND contain the
+    canonical phrase `version-agnostic PMI-1 cleanliness gate`.
+
+    Defect class (slice-014-specific): the v0.29.0 changelog entry +
+    ADR-013 + 3-surface canonical-phrase pin discipline requires the ADR
+    artifact to carry the canonical phrase as one of the 3 surfaces
+    (other 2: in-repo + installed methodology-changelog). If ADR-013 is
+    missing or doesn't contain the canonical phrase, the N-surface
+    schema-pin (N=3 stable post-slice-014) breaks.
+
+    Rule reference: PMI-1 v1.1 (slice-014 AC #4 — ADR-013 surface of
+    3-surface canonical-phrase pin).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-013-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-013 file at "
+        f"architecture/decisions/ADR-013-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "version-agnostic PMI-1 cleanliness gate" in adr_content, (
+        f"ADR-013 ({adr_files[0].name}) missing canonical phrase "
+        f"'version-agnostic PMI-1 cleanliness gate' — N-surface schema-pin "
+        f"(N=3 stable post-slice-014: ADR-013 + in-repo + installed "
+        f"methodology-changelog) is broken at the ADR-013 surface"
     )
