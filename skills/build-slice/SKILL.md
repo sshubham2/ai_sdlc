@@ -20,6 +20,7 @@ Runs after `/critique` blockers + majors are addressed. Output: working code + t
 - Read `mission-brief.md`, `design.md`, `critique.md`, new ADRs from this slice
 - If `critique.md` shows BLOCKED: stop, tell user to address blockers first
 - If `critique.md` doesn't exist (Standard or Heavy mode): stop, run `/critique` first
+- **Run TPHD-1 pre-flight harmonization** (per `methodology-changelog.md` v0.32.0 sub-mode (c)): scan the mission-brief TF-1 plan table; for each row, verify (a) the Test path exists or will be created at the right path, (b) the Test function name will match what gets built. The /critique + /critique-review fix-prose may have changed test function names or AC row references without harmonizing the TF-1 plan in the same fix block (sub-modes (a) + (b) defend at fix-prose time; sub-mode (c) is the prerequisite-check defense-in-depth layer). Flag any drift to user for fix BEFORE Step 1 plan-mode entry. This closes the function-name-staleness audit gap that `tools/test_first_audit.py --strict-pre-finish` does not detect (status-only check per slice-017 /critique B1 ACCEPTED-FIXED).
 
 ## Your task
 

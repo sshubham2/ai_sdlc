@@ -82,6 +82,8 @@ Return the agent's complete `critique-review.md` content. Do not re-prompt for d
 
 Take the agent's output and write it to `architecture/slices/slice-NNN-<name>/critique-review.md` using the format the agent emits.
 
+Per **TPHD-1** (`methodology-changelog.md` v0.32.0) sub-mode (b), when the meta-Critic's ACCEPTED-FIXED findings (during /critique Step 4.5 TRI-1) will change test function names or AC #N row references in `mission-brief.md` or `design.md`, harmonize the mission-brief TF-1 plan section in the same fix block. Sub-mode (a) lives in `/critique` Step 4 (post-fix-prose harmonization); (c) lives in `/build-slice` Prerequisite check (pre-flight harmonization bullet).
+
 ### Step 4: Run the audit
 
 Validate the resulting file's structure:

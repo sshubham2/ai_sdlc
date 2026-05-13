@@ -120,6 +120,8 @@ Draft disposition vocabulary:
 
 Update `critique.md` with Builder draft dispositions inline (one per finding under "Builder draft").
 
+Per **TPHD-1** (`methodology-changelog.md` v0.32.0), when applying ACCEPTED-FIXED edits at this Step that change test function names or AC #N row references in `mission-brief.md` or `design.md`, harmonize the mission-brief TF-1 plan section (renaming function names + updating AC row references) in the SAME fix block. Otherwise the plan ships stale to `/build-slice` and surfaces at Phase 6 audit as DEVIATION (via pytest collection failure on stale function names, since `tools/test_first_audit.py --strict-pre-finish` only checks status — `tools/test_first_audit.py:350-364` — not function-existence). Sub-mode (a) of three; (b) lives in `/critique-review` Step 3 (post-fix-prose harmonization); (c) lives in `/build-slice` Prerequisite check (pre-flight harmonization bullet).
+
 ### Step 4.5: User-owned triage (TRI-1)
 
 Per **TRI-1** (`methodology-changelog.md` v0.11.0), the user is the final triage authority — the Builder cannot override the Critic alone. This step is the explicit ratification gate.

@@ -981,3 +981,209 @@ def test_adr_015_exists_and_names_rpcd_1_canonical_phrase():
         f"schema-pin (N=5 stable post-slice-016: ADR-015 + in-repo + installed "
         f"methodology-changelog) is broken at the ADR-015 surface"
     )
+
+
+# --- Slice-017 / TPHD-1 entry pinning ---
+
+def test_v_0_32_0_tphd_1_entry_present_in_repo_and_installed():
+    """methodology-changelog v0.32.0 / TPHD-1 entry must exist in BOTH the
+    in-repo file AND the installed `~/.claude/methodology-changelog.md`.
+
+    Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
+    entry exists only in-repo and the forward-sync was forgotten, every
+    future read of the installed methodology-changelog reads stale
+    methodology (no TPHD-1 codification visible to /status).
+
+    Substantive canonical phrase pinned per slice-011 RSAD-1 + slice-013
+    EPGD-1 + slice-014 PMI-1 v1.1 + slice-015 SCPD-1 + slice-016 RPCD-1
+    3-surface schema-pin precedent (N=5 instances stable at slice-016 ->
+    N=6 stable at slice-017): the canonical phrase `TF-1 plan harmonization
+    discipline` is pinned across N=3 surfaces — (1) skills/critique/SKILL.md
+    + skills/critique-review/SKILL.md + skills/build-slice/SKILL.md prose +
+    (2) in-repo methodology-changelog v0.32.0 entry + (3) installed
+    methodology-changelog v0.32.0 entry. 3-pin shape: `## v0.32.0` heading +
+    `TPHD-1` rule-ID + canonical phrase across both bidirectional surfaces
+    of the changelog.
+
+    Edit discipline (per slice-013 EPGD-1 Dim 9 7th sub-clause): this
+    function lives under its OWN `# --- Slice-017 / TPHD-1 entry pinning
+    ---` SECTION header above — structurally separate from any PMI-1 gate
+    SECTION header. Entry-pin functions persist across ALL versions
+    (v_0_22_0..v_0_31_0 entry-pin functions above are NOT touched by
+    slice-017); under PMI-1 v1.1 (slice-014) the versioned-gate
+    supersession pattern is RETIRED so slice-017 ADDS only — no Edit on
+    any pre-existing entry-pin or gate function. EPGD-1 self-application
+    N=5 -> N=6 stable post-slice-017 (12 prior entry-pin functions
+    untouched — v0.29.0 doubled per slice-014 (a)<->(b) duality + v0.31.0
+    doubled per slice-016 RPCD-1 (a)<->(b) duality counted, per
+    /critique-review m-add-1 ACCEPTED-FIXED count correction).
+
+    Rule reference: TPHD-1 (slice-017 AC #1).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.32.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.32.0 entry"
+    )
+    assert "TPHD-1" in in_repo, (
+        "in-repo methodology-changelog.md missing TPHD-1 rule reference"
+    )
+    assert "TF-1 plan harmonization discipline" in in_repo, (
+        "in-repo methodology-changelog.md missing substantive canonical phrase "
+        "'TF-1 plan harmonization discipline' (per slice-016 RPCD-1 3-surface "
+        "schema-pin precedent; slice-017 ratchets N=5 -> N=6 instances stable)"
+    )
+
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    assert installed_path.exists(), (
+        f"installed methodology-changelog.md missing at {installed_path}"
+    )
+    installed = installed_path.read_text(encoding="utf-8")
+    assert "## v0.32.0" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing v0.32.0 entry — "
+        "forward-sync after in-repo edit was forgotten"
+    )
+    assert "TPHD-1" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing TPHD-1 rule reference"
+    )
+    assert "TF-1 plan harmonization discipline" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing substantive "
+        "canonical phrase 'TF-1 plan harmonization discipline' (per slice-016 "
+        "RPCD-1 3-surface schema-pin precedent)"
+    )
+
+
+def test_v_0_32_0_tphd_1_entry_names_three_sub_modes_in_repo_and_installed():
+    """methodology-changelog v0.32.0 / TPHD-1 entry must name ALL THREE
+    sub-modes (a)/(b)/(c) bidirectionally, scoped strictly to the v0.32.0
+    entry body (NOT global file substring).
+
+    Defect class: a v0.32.0 entry that names TPHD-1 but elides the three
+    sub-modes loses the operational discipline. The three sub-modes are
+    what makes TPHD-1 actionable at /critique-time + /critique-review-time
+    + /build-slice-time, distinct from vague exhortation to "harmonize the
+    TF-1 plan".
+
+    Scoping fix vs slice-016 RPCD-1 sibling test precedent: the slice-016
+    `_names_three_sub_modes` test used global substring check, which would
+    false-positive pass on any prior entry's markers. This slice-017 sibling
+    scopes to the v0.32.0 body specifically (between `## v0.32.0` and
+    `## v0.31.0` boundaries) — proper WRITTEN-FAILING discipline.
+
+    Sub-mode anchors per slice-017 ADR-016 Decision canonical body:
+      - Sub-mode (a) /critique post-fix-prose harmonization
+      - Sub-mode (b) /critique-review post-fix-prose harmonization
+      - Sub-mode (c) /build-slice Prerequisite-check pre-flight harmonization
+
+    Rule reference: TPHD-1 (slice-017 AC #1 — three-sub-mode pin per
+    slice-016 RPCD-1 (a)/(b)/(c) precedent with scoping correction).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    installed = installed_path.read_text(encoding="utf-8")
+
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        # Scope strictly to v0.32.0 entry body
+        v032_start = content.find("## v0.32.0")
+        v031_start = content.find("## v0.31.0", v032_start)
+        assert v032_start != -1, (
+            f"{surface_name} methodology-changelog.md missing v0.32.0 entry"
+        )
+        if v031_start == -1:
+            v032_body = content[v032_start:]
+        else:
+            v032_body = content[v032_start:v031_start]
+
+        # Sub-mode markers must appear in v0.32.0 body (scoped)
+        assert "Sub-mode (a)" in v032_body, (
+            f"{surface_name} methodology-changelog.md v0.32.0 body missing "
+            f"'Sub-mode (a)' marker — three-sub-mode pin broken (scoped to "
+            f"v0.32.0..v0.31.0 boundary)"
+        )
+        assert "Sub-mode (b)" in v032_body, (
+            f"{surface_name} methodology-changelog.md v0.32.0 body missing "
+            f"'Sub-mode (b)' marker — three-sub-mode pin broken"
+        )
+        assert "Sub-mode (c)" in v032_body, (
+            f"{surface_name} methodology-changelog.md v0.32.0 body missing "
+            f"'Sub-mode (c)' marker — three-sub-mode pin broken"
+        )
+        # Sub-mode discipline anchors per slice-017 design.md Phase plan
+        assert "/critique-review" in v032_body, (
+            f"{surface_name} methodology-changelog.md v0.32.0 body missing "
+            f"'/critique-review' substring — sub-mode (b) skill anchor broken"
+        )
+        assert "Prerequisite" in v032_body, (
+            f"{surface_name} methodology-changelog.md v0.32.0 body missing "
+            f"'Prerequisite' substring — sub-mode (c) /build-slice placement "
+            f"anchor broken (per /critique M2 ACCEPTED-FIXED: sub-mode (c) "
+            f"lives in /build-slice ## Prerequisite check section, NOT a "
+            f"new ### Step 0)"
+        )
+
+
+def test_v_0_32_0_tphd_1_entry_names_slice_016_cross_slice_anchor():
+    """methodology-changelog v0.32.0 / TPHD-1 entry must cite slice-016
+    as the N=1 cross-slice anchor bidirectionally.
+
+    Defect class: TPHD-1 codified at N=1 (proactive ratchet ahead of typical
+    N=2 promotion threshold per slice-016 reflection language) — the entry
+    must cite slice-016 as the empirical source of the TF-1-plan-staleness
+    pattern. Without this anchor, the v0.32.0 entry doesn't surface the
+    evidence base.
+
+    Rule reference: TPHD-1 (slice-017 AC #1 — cross-slice anchor pin per
+    slice-013 EPGD-1 + slice-015 SCPD-1 strict-both-anchor precedent
+    adapted to N=1 single-anchor).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    installed = installed_path.read_text(encoding="utf-8")
+
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        # Find the v0.32.0 entry body
+        v032_start = content.find("## v0.32.0")
+        v031_start = content.find("## v0.31.0", v032_start)
+        assert v032_start != -1, (
+            f"{surface_name} methodology-changelog.md missing v0.32.0 entry"
+        )
+        if v031_start == -1:
+            v032_body = content[v032_start:]
+        else:
+            v032_body = content[v032_start:v031_start]
+        assert "slice-016" in v032_body, (
+            f"{surface_name} methodology-changelog.md v0.32.0 missing "
+            f"cross-slice anchor 'slice-016' — TPHD-1 codification at N=1 "
+            f"must cite slice-016 as evidence source"
+        )
+
+
+# --- ADR-016 pin (slice-017) ---
+
+def test_adr_016_exists_and_names_tphd_1_canonical_phrase():
+    """ADR-016 must exist at architecture/decisions/ADR-016-*.md AND contain
+    the canonical phrase `TF-1 plan harmonization discipline`.
+
+    Defect class (per slice-014 ADR-013 + slice-015 ADR-014 + slice-016
+    ADR-015 pin precedent): the ADR is the third surface of the N-surface
+    schema-pin (3-surface shape: ADR-016 + in-repo methodology-changelog
+    v0.32.0 + installed methodology-changelog v0.32.0). If the ADR file is
+    missing or doesn't contain the canonical phrase, the N-surface
+    schema-pin (N=6 stable post-slice-017) breaks.
+
+    Rule reference: TPHD-1 (slice-017 AC #3 — ADR-016 surface of 3-surface
+    canonical-phrase pin).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-016-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-016 file at "
+        f"architecture/decisions/ADR-016-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "TF-1 plan harmonization discipline" in adr_content, (
+        f"ADR-016 ({adr_files[0].name}) missing canonical phrase "
+        f"'TF-1 plan harmonization discipline' — N-surface schema-pin "
+        f"(N=6 stable post-slice-017: ADR-016 + in-repo + installed "
+        f"methodology-changelog) is broken at the ADR-016 surface"
+    )
