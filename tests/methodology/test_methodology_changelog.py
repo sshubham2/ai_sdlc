@@ -740,3 +740,100 @@ def test_adr_013_exists_and_names_pmi_1_refactor_canonical_phrase():
         f"(N=3 stable post-slice-014: ADR-013 + in-repo + installed "
         f"methodology-changelog) is broken at the ADR-013 surface"
     )
+
+
+# --- Slice-015 / SCPD-1 entry pinning ---
+
+def test_v_0_30_0_scpd_1_entry_present_in_repo_and_installed():
+    """methodology-changelog v0.30.0 / SCPD-1 entry must exist in BOTH
+    the in-repo file AND the installed `~/.claude/methodology-changelog.md`.
+
+    Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
+    entry exists only in-repo and the forward-sync was forgotten, every
+    future read of the installed methodology-changelog reads stale
+    methodology (no SCPD-1 codification visible to /status).
+
+    Substantive canonical phrase pinned per slice-011 RSAD-1 + slice-013
+    EPGD-1 + slice-014 PMI-1 v1.1 3-surface schema-pin precedent
+    (N=3 instances stable at slice-014 -> N=4 stable at slice-015): the
+    canonical phrase `Shippability-catalog consumer-reference propagation`
+    is pinned across N=3 surfaces — (1) agents/critique.md Dim 9 8th
+    sub-clause title + (2) in-repo methodology-changelog v0.30.0 entry +
+    (3) installed methodology-changelog v0.30.0 entry. 3-pin shape:
+    `## v0.30.0` heading + `SCPD-1` rule-ID + canonical phrase across
+    both bidirectional surfaces of the changelog.
+
+    Edit discipline (per slice-013 EPGD-1 Dim 9 7th sub-clause): this
+    function lives under its OWN `# --- Slice-015 / SCPD-1 entry pinning
+    ---` SECTION header above — structurally separate from any PMI-1
+    gate SECTION header. Entry-pin functions persist across ALL versions
+    (v0.22.0..v0.29.0 entry-pin functions above are NOT touched by
+    slice-015); under PMI-1 v1.1 (slice-014) the versioned-gate
+    supersession pattern is RETIRED so slice-015 ADDS only — no Edit on
+    any pre-existing entry-pin or gate function.
+
+    Rule reference: SCPD-1 (slice-015 AC #3).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.30.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.30.0 entry"
+    )
+    assert "SCPD-1" in in_repo, (
+        "in-repo methodology-changelog.md missing SCPD-1 rule reference"
+    )
+    assert "Shippability-catalog consumer-reference propagation" in in_repo, (
+        "in-repo methodology-changelog.md missing substantive canonical phrase "
+        "'Shippability-catalog consumer-reference propagation' (per slice-013 "
+        "EPGD-1 3-surface schema-pin precedent; slice-015 ratchets N=3 -> N=4 "
+        "instances stable)"
+    )
+
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    assert installed_path.exists(), (
+        f"installed methodology-changelog.md missing at {installed_path}"
+    )
+    installed = installed_path.read_text(encoding="utf-8")
+    assert "## v0.30.0" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing v0.30.0 entry — "
+        "forward-sync after in-repo edit was forgotten"
+    )
+    assert "SCPD-1" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing SCPD-1 rule reference"
+    )
+    assert "Shippability-catalog consumer-reference propagation" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing substantive "
+        "canonical phrase 'Shippability-catalog consumer-reference propagation' "
+        "(per slice-013 EPGD-1 3-surface schema-pin precedent)"
+    )
+
+
+# --- ADR-014 pin (slice-015) ---
+
+def test_adr_014_exists_and_names_scpd_1_canonical_phrase():
+    """ADR-014 must exist at architecture/decisions/ADR-014-*.md AND contain
+    the canonical phrase `Shippability-catalog consumer-reference propagation`.
+
+    Defect class (per slice-014 ADR-013 pin precedent): the ADR is the
+    third surface of the N-surface schema-pin (3-surface shape:
+    ADR-014 + in-repo methodology-changelog v0.30.0 + installed
+    methodology-changelog v0.30.0). If the ADR file is missing or
+    doesn't contain the canonical phrase, the N-surface schema-pin
+    (N=4 stable post-slice-015) breaks.
+
+    Rule reference: SCPD-1 (slice-015 AC #4 — ADR-014 surface of
+    3-surface canonical-phrase pin).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-014-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-014 file at "
+        f"architecture/decisions/ADR-014-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "Shippability-catalog consumer-reference propagation" in adr_content, (
+        f"ADR-014 ({adr_files[0].name}) missing canonical phrase "
+        f"'Shippability-catalog consumer-reference propagation' — N-surface "
+        f"schema-pin (N=4 stable post-slice-015: ADR-014 + in-repo + installed "
+        f"methodology-changelog) is broken at the ADR-014 surface"
+    )
