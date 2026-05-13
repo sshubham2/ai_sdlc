@@ -837,3 +837,147 @@ def test_adr_014_exists_and_names_scpd_1_canonical_phrase():
         f"schema-pin (N=4 stable post-slice-015: ADR-014 + in-repo + installed "
         f"methodology-changelog) is broken at the ADR-014 surface"
     )
+
+
+# --- Slice-016 / RPCD-1 entry pinning ---
+
+def test_v_0_31_0_rpcd_1_entry_present_in_repo_and_installed():
+    """methodology-changelog v0.31.0 / RPCD-1 entry must exist in BOTH
+    the in-repo file AND the installed `~/.claude/methodology-changelog.md`.
+
+    Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
+    entry exists only in-repo and the forward-sync was forgotten, every
+    future read of the installed methodology-changelog reads stale
+    methodology (no RPCD-1 codification visible to /status).
+
+    Substantive canonical phrase pinned per slice-011 RSAD-1 + slice-013
+    EPGD-1 + slice-014 PMI-1 v1.1 + slice-015 SCPD-1 3-surface schema-pin
+    precedent (N=4 instances stable at slice-015 -> N=5 stable at slice-016):
+    the canonical phrase `Runtime-prerequisite completeness on proposed
+    fixes` is pinned across N=3 surfaces — (1) agents/critique.md Dim 9
+    9th sub-clause title + (2) in-repo methodology-changelog v0.31.0 entry
+    + (3) installed methodology-changelog v0.31.0 entry. 3-pin shape:
+    `## v0.31.0` heading + `RPCD-1` rule-ID + canonical phrase across
+    both bidirectional surfaces of the changelog.
+
+    Edit discipline (per slice-013 EPGD-1 Dim 9 7th sub-clause): this
+    function lives under its OWN `# --- Slice-016 / RPCD-1 entry pinning
+    ---` SECTION header above — structurally separate from any PMI-1
+    gate SECTION header. Entry-pin functions persist across ALL versions
+    (v_0_22_0..v_0_30_0 entry-pin functions above are NOT touched by
+    slice-016); under PMI-1 v1.1 (slice-014) the versioned-gate
+    supersession pattern is RETIRED so slice-016 ADDS only — no Edit on
+    any pre-existing entry-pin or gate function. EPGD-1 self-application
+    N=4 -> N=5 stable post-slice-016 (10 prior entry-pin functions
+    untouched; v0.29.0 doubled entry-pin functions per slice-014 (a)<->(b)
+    duality counted).
+
+    Rule reference: RPCD-1 (slice-016 AC #1).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.31.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.31.0 entry"
+    )
+    assert "RPCD-1" in in_repo, (
+        "in-repo methodology-changelog.md missing RPCD-1 rule reference"
+    )
+    assert "Runtime-prerequisite completeness on proposed fixes" in in_repo, (
+        "in-repo methodology-changelog.md missing substantive canonical phrase "
+        "'Runtime-prerequisite completeness on proposed fixes' (per slice-015 "
+        "SCPD-1 3-surface schema-pin precedent; slice-016 ratchets N=4 -> N=5 "
+        "instances stable)"
+    )
+
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    assert installed_path.exists(), (
+        f"installed methodology-changelog.md missing at {installed_path}"
+    )
+    installed = installed_path.read_text(encoding="utf-8")
+    assert "## v0.31.0" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing v0.31.0 entry — "
+        "forward-sync after in-repo edit was forgotten"
+    )
+    assert "RPCD-1" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing RPCD-1 rule reference"
+    )
+    assert "Runtime-prerequisite completeness on proposed fixes" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing substantive "
+        "canonical phrase 'Runtime-prerequisite completeness on proposed fixes' "
+        "(per slice-015 SCPD-1 3-surface schema-pin precedent)"
+    )
+
+
+def test_v_0_31_0_rpcd_1_entry_names_three_sub_modes_in_repo_and_installed():
+    """methodology-changelog v0.31.0 / RPCD-1 entry must name ALL THREE
+    sub-modes (a)/(b)/(c) bidirectionally.
+
+    Defect class: a v0.31.0 entry that names RPCD-1 but elides the three
+    sub-modes loses the operational discipline. The three sub-modes are
+    what makes RPCD-1 actionable at first-Critic time vs vague exhortation.
+
+    Sub-mode anchors per slice-016 design.md Audit 1-3 canonical body:
+      - Sub-mode (a) NEW-symbol import-audit: `import` substring + sub-mode (a) marker
+      - Sub-mode (b) NEW-status/token allowlist-audit: `_ALLOWED_STATUSES` substring + sub-mode (b) marker
+      - Sub-mode (c) NEW-anchor sibling-grep audit: `sibling` substring + sub-mode (c) marker
+
+    Rule reference: RPCD-1 (slice-016 AC #1 — sub-mode pin).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    installed = installed_path.read_text(encoding="utf-8")
+
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        # Sub-mode markers must appear in v0.31.0 body
+        assert "Sub-mode (a)" in content, (
+            f"{surface_name} methodology-changelog.md v0.31.0 missing "
+            f"'Sub-mode (a)' marker — three-sub-mode pin broken"
+        )
+        assert "Sub-mode (b)" in content, (
+            f"{surface_name} methodology-changelog.md v0.31.0 missing "
+            f"'Sub-mode (b)' marker — three-sub-mode pin broken"
+        )
+        assert "Sub-mode (c)" in content, (
+            f"{surface_name} methodology-changelog.md v0.31.0 missing "
+            f"'Sub-mode (c)' marker — three-sub-mode pin broken"
+        )
+        assert "_ALLOWED_STATUSES" in content, (
+            f"{surface_name} methodology-changelog.md v0.31.0 missing "
+            f"'_ALLOWED_STATUSES' substring — sub-mode (b) discipline anchor "
+            f"broken"
+        )
+        assert "sibling" in content, (
+            f"{surface_name} methodology-changelog.md v0.31.0 missing "
+            f"'sibling' substring — sub-mode (c) discipline anchor broken"
+        )
+
+
+# --- ADR-015 pin (slice-016) ---
+
+def test_adr_015_exists_and_names_rpcd_1_canonical_phrase():
+    """ADR-015 must exist at architecture/decisions/ADR-015-*.md AND contain
+    the canonical phrase `Runtime-prerequisite completeness on proposed fixes`.
+
+    Defect class (per slice-014 ADR-013 + slice-015 ADR-014 pin precedent):
+    the ADR is the third surface of the N-surface schema-pin (3-surface shape:
+    ADR-015 + in-repo methodology-changelog v0.31.0 + installed
+    methodology-changelog v0.31.0). If the ADR file is missing or doesn't
+    contain the canonical phrase, the N-surface schema-pin (N=5 stable
+    post-slice-016) breaks.
+
+    Rule reference: RPCD-1 (slice-016 AC #3 — ADR-015 surface of 3-surface
+    canonical-phrase pin).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-015-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-015 file at "
+        f"architecture/decisions/ADR-015-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "Runtime-prerequisite completeness on proposed fixes" in adr_content, (
+        f"ADR-015 ({adr_files[0].name}) missing canonical phrase "
+        f"'Runtime-prerequisite completeness on proposed fixes' — N-surface "
+        f"schema-pin (N=5 stable post-slice-016: ADR-015 + in-repo + installed "
+        f"methodology-changelog) is broken at the ADR-015 surface"
+    )

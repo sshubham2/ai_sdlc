@@ -112,26 +112,28 @@ def test_critique_dim_4_has_methodology_audit_conformance_sub_bullet():
     assert "Algorithm-path-conformance with pre-existing branches" in CRITIQUE
 
 
-def test_critique_dim_9_lists_eight_sub_clauses():
-    """Dim 9 (Cross-cutting conformance) must enumerate all 8 sub-clause titles.
+def test_critique_dim_9_lists_nine_sub_clauses():
+    """Dim 9 (Cross-cutting conformance) must enumerate all 9 sub-clause titles.
 
     Defect class: a Dim 9 body that drops sub-clauses loses the unified-pattern surface
     (e.g., dropping runtime-environment leaves slice-001-class misses without a home).
-    The 8 sub-clauses are: 3 cross-references to Dim 1/4 surgical sub-bullets +
+    The 9 sub-clauses are: 3 cross-references to Dim 1/4 surgical sub-bullets +
     2 N=1 standalone sub-clauses (runtime-environment, language-version) +
     1 N=3 meta-level sub-clause (recursive self-application discipline; slice-011) +
     1 N=2 Edit-discipline sub-clause (entry-pin-vs-PMI-1-gate semantics conflation;
     slice-013) +
     1 N=2 cross-Phase-propagation sub-clause (shippability-catalog consumer-reference
-    propagation; slice-015).
+    propagation; slice-015) +
+    1 N=3 runtime-prerequisite-completeness sub-clause (runtime-prerequisite completeness
+    on proposed fixes; slice-016).
 
-    Supersedes `test_critique_dim_9_lists_seven_sub_clauses` per PMI-1 versioned-gate
+    Supersedes `test_critique_dim_9_lists_eight_sub_clauses` per PMI-1 versioned-gate
     supersession discipline applied at the structural-invariant level (slice-011 N=1
-    precedent + slice-013 N=2 + slice-015 N=3 stable — no two structural-invariant
-    tests coexist).
+    precedent + slice-013 N=2 + slice-015 N=3 + slice-016 N=4 stable — no two
+    structural-invariant tests coexist).
 
     Rule reference: META-2 + CCC-1 + RSAD-1 (slice-011) + EPGD-1 (slice-013) + SCPD-1
-    (slice-015).
+    (slice-015) + RPCD-1 (slice-016).
     """
     assert "Methodology-audit conformance" in CRITIQUE
     assert "Tooling-doc-vs-implementation parity" in CRITIQUE
@@ -141,6 +143,7 @@ def test_critique_dim_9_lists_eight_sub_clauses():
     assert "Recursive self-application discipline" in CRITIQUE
     assert "Entry-pin-vs-PMI-1-gate semantics conflation" in CRITIQUE
     assert "Shippability-catalog consumer-reference propagation" in CRITIQUE
+    assert "Runtime-prerequisite completeness on proposed fixes" in CRITIQUE
 
 
 def test_critique_dim_9_recursive_self_application_sub_clause_present():
@@ -513,10 +516,17 @@ def test_critique_dim_9_shippability_catalog_propagation_names_both_sub_modes():
     Per slice-011 Critic B1 + slice-013 case-sensitivity mitigation: canonical substrings
     `Reactive-catch mode` AND `Proactive-application mode` are capitalized bullet titles.
 
-    Rule reference: META-2 + CCC-1 + SCPD-1 (slice-015 AC #2).
+    Per slice-016 /critique B1 ACCEPTED-FIXED tighten provenance (mirrors slice-013 M1 +
+    slice-015 M1 convention): end_anchor tightened from `"### Bonus: weak graph edges"` to
+    `"Runtime-prerequisite completeness on proposed fixes"` (the 9th sub-clause title;
+    slice-016 RPCD-1 codification) to preserve 8th sub-clause regression-guard precision
+    after 9th sub-clause append. Generic methodology recurrence N=2 -> N=3 stable.
+
+    Rule reference: META-2 + CCC-1 + SCPD-1 (slice-015 AC #2) + RPCD-1 (slice-016 end_anchor
+    tighten per /critique B1 ACCEPTED-FIXED).
     """
     start_anchor = "Shippability-catalog consumer-reference propagation"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Runtime-prerequisite completeness on proposed fixes"
     start_idx = CRITIQUE.find(start_anchor)
     assert start_idx != -1, f"sub-clause anchor {start_anchor!r} not found"
     end_idx = CRITIQUE.find(end_anchor, start_idx)
@@ -548,10 +558,16 @@ def test_critique_dim_9_shippability_catalog_propagation_paragraph_cites_slice_0
         tuple `["Phase 5", "shippability catalog", "consumer reference", "rename propagation"]`
         Blocker-rejected because 3 of 4 use hyphenated or never-present forms)
 
-    Rule reference: META-2 + CCC-1 + SCPD-1 (slice-015 AC #2 + B1 + M2 ACCEPTED-FIXED).
+    Per slice-016 /critique B1 ACCEPTED-FIXED tighten provenance (mirrors slice-013 M1 +
+    slice-015 M1 convention): end_anchor tightened from `"### Bonus: weak graph edges"` to
+    `"Runtime-prerequisite completeness on proposed fixes"`. Generic methodology recurrence
+    N=2 -> N=3 stable.
+
+    Rule reference: META-2 + CCC-1 + SCPD-1 (slice-015 AC #2 + B1 + M2 ACCEPTED-FIXED) +
+    RPCD-1 (slice-016 end_anchor tighten per /critique B1 ACCEPTED-FIXED).
     """
     start_anchor = "Shippability-catalog consumer-reference propagation"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Runtime-prerequisite completeness on proposed fixes"
     start_idx = CRITIQUE.find(start_anchor)
     end_idx = CRITIQUE.find(end_anchor, start_idx)
     body = CRITIQUE[start_idx:end_idx]
@@ -588,10 +604,16 @@ def test_critique_dim_9_shippability_catalog_propagation_cites_at_least_two_cros
     differs: `_paragraph_cites` is the AC #2 acceptance test; this `_cites_at_least_two_*`
     is the symmetric-to-slice-011 + slice-013 sibling matching the regression-guard pattern.
 
-    Rule reference: META-2 + CCC-1 + SCPD-1 (slice-015 symmetric add per DR-1 N=3 stable).
+    Per slice-016 /critique B1 ACCEPTED-FIXED tighten provenance (mirrors slice-013 M1 +
+    slice-015 M1 convention): end_anchor tightened from `"### Bonus: weak graph edges"` to
+    `"Runtime-prerequisite completeness on proposed fixes"`. Generic methodology recurrence
+    N=2 -> N=3 stable.
+
+    Rule reference: META-2 + CCC-1 + SCPD-1 (slice-015 symmetric add per DR-1 N=3 stable) +
+    RPCD-1 (slice-016 end_anchor tighten per /critique B1 ACCEPTED-FIXED).
     """
     start_anchor = "Shippability-catalog consumer-reference propagation"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Runtime-prerequisite completeness on proposed fixes"
     start_idx = CRITIQUE.find(start_anchor)
     end_idx = CRITIQUE.find(end_anchor, start_idx)
     body = CRITIQUE[start_idx:end_idx]
@@ -611,6 +633,181 @@ def test_critique_dim_9_shippability_catalog_propagation_cites_at_least_two_cros
     assert sub_count >= 2, (
         f"insufficient substantive-discipline anchors — need ≥2 of {substantive}, "
         f"got {sub_count} in 8th sub-clause body"
+    )
+
+
+# --- Slice-016 / RPCD-1 (9th sub-clause) prose-pin tests ---
+
+def test_critique_dim_9_runtime_prerequisite_completeness_sub_clause_present():
+    """The new 9th Dim 9 sub-clause must carry the canonical literal title.
+
+    Defect class: a Dim 9 body that has the substring but not as a sub-clause title
+    would silently pass without encoding the discipline as a structural sub-clause.
+    The canonical literal pin is a substring assertion (per slice-015 L463 bare-substring
+    precedent); the `_location_pinned` test (below) enforces position. N=3 -> N=4 stable
+    `_sub_clause_present` + `_location_pinned` duality post-slice-016 (slice-011 + slice-013
+    + slice-015 + slice-016 each carry both tests).
+
+    Rule reference: META-2 + CCC-1 + RPCD-1.
+    """
+    assert "Runtime-prerequisite completeness on proposed fixes" in CRITIQUE
+
+
+def test_critique_dim_9_runtime_prerequisite_completeness_location_pinned():
+    """The new 9th sub-clause must fall between SCPD-1 (8th sub-clause) and the Bonus H3.
+
+    Defect class: a future drift moving the new sub-clause out of Dim 9 (e.g., into Dim 8
+    or the Bonus section) would silently pass substring-only pin tests; the location-pin
+    guard catches it. Per slice-009 M1 + slice-010 M1 + slice-013 + slice-015 location-pin
+    convention; slice-016 /critique-review M-add-1 ACCEPTED-FIXED — N=3 -> N=4 stable
+    `_sub_clause_present` + `_location_pinned` duality (slice-011 L146/158 + slice-013
+    L270/286 + slice-015 L463/475 + slice-016).
+
+    Per slice-009 DEVIATION-2 + slice-010/011/013/015 anchor-uniqueness pre-emption:
+    anchors verified unique pre-AC-lock; scoped .find() to avoid first-occurrence-wins
+    collision.
+
+    Location pin: sub-clause title MUST appear BETWEEN start anchor
+    `Shippability-catalog consumer-reference propagation` (8th sub-clause title — slice-015)
+    AND end anchor `### Bonus: weak graph edges`.
+
+    Rule reference: META-2 + CCC-1 + RPCD-1.
+    """
+    start_anchor = "Shippability-catalog consumer-reference propagation"
+    end_anchor = "### Bonus: weak graph edges"
+    canonical = "Runtime-prerequisite completeness on proposed fixes"
+    start_idx = CRITIQUE.find(start_anchor)
+    assert start_idx != -1, f"start anchor {start_anchor!r} not found"
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    assert end_idx != -1, f"end anchor {end_anchor!r} not found AFTER {start_anchor!r}"
+    canonical_idx = CRITIQUE.find(canonical, start_idx, end_idx)
+    assert canonical_idx != -1, (
+        f"{canonical!r} not found between {start_anchor!r} and {end_anchor!r} "
+        f"in agents/critique.md — sub-clause location drifted"
+    )
+
+
+def test_critique_dim_9_runtime_prerequisite_completeness_names_three_sub_modes():
+    """9th sub-clause body must name ALL THREE sub-modes (a) + (b) + (c).
+
+    Defect class: a body that names only one or two sub-modes loses coverage of the N=3
+    cumulative evidence base (slice-013 N=1 sub-mode (c) + slice-014 N=1 sub-mode (a) +
+    slice-015 N=1 sub-mode (b)). Symmetric pin for the new 9th sub-clause body (mirrors
+    slice-011 RSAD-1 `_names_both_sub_modes` for 6th sub-clause + slice-013 EPGD-1 +
+    slice-015 SCPD-1 `_names_both_sub_modes` for 7th/8th sub-clause body shapes —
+    extended to three sub-modes given RPCD-1's N=3 evidence base, not two).
+
+    Per slice-011 Critic B1 + slice-013 case-sensitivity mitigation: canonical literals
+    `(a)` + `_ALLOWED_STATUSES` + `sibling` are case-sensitive sub-mode anchors derived
+    from the canonical body literal-substring set (all 3 verified present at slice-016
+    start sha256 `f34c967eaaa34413...`).
+
+    Rule reference: META-2 + CCC-1 + RPCD-1 (slice-016 AC #4).
+    """
+    start_anchor = "Runtime-prerequisite completeness on proposed fixes"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    assert start_idx != -1, f"sub-clause anchor {start_anchor!r} not found"
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    assert end_idx != -1, f"end anchor {end_anchor!r} not found AFTER sub-clause start"
+    body = CRITIQUE[start_idx:end_idx]
+    assert "(a)" in body, (
+        "9th sub-clause body missing sub-mode (a) marker — "
+        "three-sub-mode pin broken"
+    )
+    assert "_ALLOWED_STATUSES" in body, (
+        "9th sub-clause body missing `_ALLOWED_STATUSES` substring — "
+        "sub-mode (b) NEW-status/token allowlist-audit discipline anchor broken"
+    )
+    assert "sibling" in body, (
+        "9th sub-clause body missing `sibling` substring — "
+        "sub-mode (c) NEW-anchor sibling-grep audit discipline anchor broken"
+    )
+
+
+def test_critique_dim_9_runtime_prerequisite_completeness_paragraph_cites_slice_013_014_015():
+    """9th sub-clause body must cite ALL THREE cross-slice anchors + ≥3 substantive-discipline anchors.
+
+    Defect class: descriptive sub-class text drifts unpinned to abstract framings without
+    concrete traceability — readers lose the path back to the empirical evidence base.
+    Pinned at N=3 evidence (slice-013 N=1 sibling-grep + slice-014 N=1 missing-imports +
+    slice-015 N=1 audit-allowlist non-membership).
+
+    Cross-slice anchors (strict-3-of-3): ["slice-013", "slice-014", "slice-015"] — all THREE
+    MUST be present (mirrors slice-015 `_paragraph_cites_slice_013_and_014` strict-both
+    precedent, extended to strict-three for RPCD-1's N=3 evidence base).
+
+    Substantive-discipline anchors (≥3-of-4): ["import", "_ALLOWED_STATUSES", "sibling",
+    "end_anchor"] — empirically verified all 4 present at slice-016 start sha256
+    `f34c967eaaa34413...`. Pin at ≥3-of-4 (not strict-4-of-4) to leave one degree of freedom
+    for future refinement.
+
+    Rule reference: META-2 + CCC-1 + RPCD-1 (slice-016 AC #4).
+    """
+    start_anchor = "Runtime-prerequisite completeness on proposed fixes"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    body = CRITIQUE[start_idx:end_idx]
+    cross_slice = ["slice-013", "slice-014", "slice-015"]
+    substantive = [
+        "import",
+        "_ALLOWED_STATUSES",
+        "sibling",
+        "end_anchor",
+    ]
+    cs_count = sum(1 for anchor in cross_slice if anchor in body)
+    sub_count = sum(1 for anchor in substantive if anchor in body)
+    assert cs_count == 3, (
+        f"strict-three cross-slice anchor requirement — need ALL of {cross_slice}, "
+        f"got {cs_count} present in 9th sub-clause body"
+    )
+    assert sub_count >= 3, (
+        f"insufficient substantive-discipline anchors — need ≥3 of {substantive}, "
+        f"got {sub_count} in 9th sub-clause body"
+    )
+
+
+def test_critique_dim_9_runtime_prerequisite_completeness_cites_substantive_discipline_anchors():
+    """Symmetric anchor-citation pin for 9th sub-clause body (mirror of slice-011/013/015 tests).
+
+    Defect class: symmetric to slice-011's `_cites_at_least_two_cross_slice_anchors` on
+    the 6th sub-clause body + slice-013's same on the 7th sub-clause body + slice-015's
+    same on the 8th sub-clause body. Per slice-013 DR-1 codification (meta-Critic-catching-
+    pattern-blindness): every sub-clause body needs its own symmetric cross-slice +
+    substantive-discipline anchor pin so future refinements don't drift unpinned.
+
+    NOTE: this test's assertions overlap with `_paragraph_cites_slice_013_014_015` above
+    — intentional duplicates per slice-013 EPGD-1 + slice-015 SCPD-1 convention. The
+    DEFECT CLASS each catches differs: `_paragraph_cites` is the AC #4 acceptance test;
+    this `_cites_substantive_discipline_anchors` is the symmetric-to-slice-011/013/015
+    sibling matching the regression-guard pattern.
+
+    Rule reference: META-2 + CCC-1 + RPCD-1 (slice-016 symmetric add per DR-1 N=4 stable
+    post-slice-016 + Wiegers regression-guard coverage symmetry per /critique-review
+    M-add-1).
+    """
+    start_anchor = "Runtime-prerequisite completeness on proposed fixes"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    body = CRITIQUE[start_idx:end_idx]
+    cross_slice = ["slice-013", "slice-014", "slice-015"]
+    substantive = [
+        "import",
+        "_ALLOWED_STATUSES",
+        "sibling",
+        "end_anchor",
+    ]
+    cs_count = sum(1 for anchor in cross_slice if anchor in body)
+    sub_count = sum(1 for anchor in substantive if anchor in body)
+    assert cs_count == 3, (
+        f"strict-three cross-slice anchor requirement — need ALL of {cross_slice}, "
+        f"got {cs_count} present in 9th sub-clause body"
+    )
+    assert sub_count >= 3, (
+        f"insufficient substantive-discipline anchors — need ≥3 of {substantive}, "
+        f"got {sub_count} in 9th sub-clause body"
     )
 
 
