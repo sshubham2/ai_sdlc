@@ -26,7 +26,34 @@ You identify places where the codebase's dominant layering pattern is selectivel
 3. **Distinguish intentional from accidental bypass:**
    - Intentional: explicit comment, matches a known requirement (e.g., "health check must not query DB"), part of a documented module exception.
    - Accidental: no comment, no obvious reason, looks like the implementer just didn't know.
-4. Use `graphify topo-sort` to confirm the layer order:
+4. **Grep-verify the import statement before emitting a HIGH-severity finding** (LAYER-EVID-1, `methodology-changelog.md` v0.33.0). For each candidate finding, apply the **textual import-evidence requirement**: grep `$TARGET` for an actual textual import statement matching the alleged bypass. Multi-line semantics: use `re.DOTALL` / ripgrep `--multiline` to span newlines (TypeScript codebases routinely break long named-import lists across lines).
+
+   **TypeScript / JavaScript (5 import variants + 3 re-export variants + 2 dynamic forms)** — regex strings below are byte-equal to those in `tests/skills/diagnose/test_layering_pass_textual_evidence.py::_grep_textual_import` per slice-019 /critique M1 visual byte-equality mitigation; edit-in-lockstep with the test helper if these patterns ever change:
+   - `^\s*import\s+\w+\s+from\s+['"]<bypassed-path>['"]`                    # default import: `import X from "..."`
+   - `^\s*import\s+\{[^}]*\}\s+from\s+['"]<bypassed-path>['"]`              # named import: `import { X, Y } from "..."` (multi-line via DOTALL)
+   - `^\s*import\s+\*\s+as\s+\w+\s+from\s+['"]<bypassed-path>['"]`         # namespace import: `import * as X from "..."`
+   - `^\s*import\s+type\s+\{[^}]*\}\s+from\s+['"]<bypassed-path>['"]`       # type-only named import: `import type { X } from "..."`
+   - `^\s*import\s+['"]<bypassed-path>['"]\s*;?\s*$`                        # side-effect import (no `from`): `import "..."`
+   - `^\s*export\s+\{[^}]*\}\s+from\s+['"]<bypassed-path>['"]`              # re-export named: `export { X } from "..."`
+   - `^\s*export\s+\*\s+from\s+['"]<bypassed-path>['"]`                     # re-export all: `export * from "..."`
+   - `^\s*export\s+type\s+\{[^}]*\}\s+from\s+['"]<bypassed-path>['"]`       # re-export type-only: `export type { X } from "..."`
+   - `require\(\s*['"]<bypassed-path>['"]\s*\)`                             # CommonJS: `require("...")`
+   - `\bimport\(\s*['"]<bypassed-path>['"]\s*\)`                            # dynamic: `import("...")`
+
+   **Alias-aware grep** (load-bearing — the witnessed F-LAYER-bca9c001 used `@/*` alias resolution): if `<bypassed-path>` is repo-relative (e.g., `src/workflow/adapters/types.ts`) AND `$TARGET` has `tsconfig.json` or `jsconfig.json` with non-empty `compilerOptions.paths` or `compilerOptions.baseUrl`, the subagent MUST also grep for the alias-resolved logical name (e.g., if `paths` maps `@/*` -> `src/*`, also grep for `from ['"]@/workflow/adapters/types['"]`). Failing to check both forms means the rule fails closed on the alias-pattern that produced the original witness.
+
+   **Python**:
+   - `^\s*from\s+<module>\s+import\s+`                                       # `from module import X`
+   - `^\s*import\s+<module>(\s|$|\.)`                                        # `import module` / `import module.sub`
+
+   **Rust**: `\buse\s+[\w:]*<module-name>(::|;|\s)` (e.g., `use crate::backend::types;`).
+   **Go**: `^\s*import\s+(\(\s*)?["']<path>["']` (single or block form).
+   **Java**: `^\s*import\s+(static\s+)?<fqn>(\.\*)?\s*;` (single import, optionally static, optionally `*`).
+   **Other languages**: fall back to grepping the bypassed-layer path string anchored within 1-3 tokens of any of `import|from|use|include|require` keywords.
+
+   **Action on result**: if zero textual matches exist in the evidence file across all applicable variants, the graphify edge is a phantom (often from cross-file same-name symbol collapse) — DOWNGRADE the finding to severity `low` with `evidence[].note: "downgraded: no textual import grep-match (LAYER-EVID-1)"`, OR skip emission entirely if no other layering signal supports it (e.g., no dynamic-import via string literal, no test-gap on alleged boundary).
+
+5. Use `graphify topo-sort` to confirm the layer order:
    ```bash
    $PY -m graphify topo-sort --graph $OUT/graphify-out/graph.json
    ```
@@ -37,6 +64,7 @@ You identify places where the codebase's dominant layering pattern is selectivel
 - `medium` — bypass of service or repository layer
 - `high` — bypass of auth, validation, or transaction boundary
 - `critical` — bypass of a security-critical layer (authn, authz, audit logging)
+- **Downgrade rule (LAYER-EVID-1)**: any candidate `high` or `critical` finding whose alleged import is not textually grep-verifiable in the evidence file is downgraded to `low` (or skipped). Phantom graphify edges from cross-file same-name symbol collapse are the witnessed failure mode (slice-019, F-LAYER-bca9c001 false-positive — frontend code with parallel-type-file defining identically-named enums; graphify symbol-resolution synthesized a phantom edge into the backend tier where zero textual imports existed).
 
 ## Output format
 
@@ -80,3 +108,4 @@ Empty findings: return `[]`.
 - **Don't apply external "best practices."** If the codebase has no service layer at all, don't flag controllers calling the DB directly — that's the codebase's pattern.
 - Don't flag the first/only place a pattern appears — there's no dominant pattern to violate.
 - Don't flag adapter/bridge code that explicitly translates between two layered worlds.
+- **Don't trust graphify edges for HIGH-severity boundary findings without textual import-evidence verification.** Cross-file same-name symbols (e.g., parallel type files defining identically-named enums) can collapse into phantom edges. Apply LAYER-EVID-1's grep-verification before emitting (see Method step 4 + Severity rubric downgrade rule).

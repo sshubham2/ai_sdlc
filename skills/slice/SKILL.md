@@ -139,6 +139,25 @@ If the user picks an option outside the ranked list (e.g., "actually, let's buil
 - If the score is weak (no risk retired + low user value + high effort): raise the concern briefly ("that slice has low risk retirement; are you sure over #1?") — but respect the user's decision after one round
 - Never silently build a weak slice without flagging
 
+### Step 3c: Bug-fix prelude (BFRD-1)
+
+The bug-fix repro prelude discipline routes bug-fix slices through `/repro` as a hard prerequisite, operationalizing CLAUDE.md's "Tests-first for bug fixes" cultural rule at `/slice` skill-runtime. When the chosen slice candidate is a bug fix, `/slice` MUST verify a failing repro test exists BEFORE writing the mission brief; if no such test exists → STOP and route the user to `/repro <issue>` first.
+
+**Detection modes** (apply both — mode (b) is primary; mode (a) is a fast-path fallback):
+
+- **Sub-mode (a) name-shape fast-path**: candidate verb-object name matches one of `fix-*` (prefix), `*-fix` (suffix — witnessed in-project at `slice-001-diagnose-orchestration-fix`), `bugfix-*`, `hotfix-*`, `defect-*`, `repair-*`, `patch-*`, or `harden-*-bug`. **Necessary-but-not-sufficient** — fast-path fallback only.
+- **Sub-mode (b) candidate-source signal (PRIMARY)**: candidate sourced from risk-register bug-class entry, prior reflection's "bug observed" note, user description explicitly identifying a defect, or `/repro` invocation context. When mode (a) misses (e.g., a `harden-X` security-hardening slice that fixes a latent defect), mode (b) catches.
+
+**Verification mechanism (shippability.md grep verification)**: when either detection mode fires, grep `architecture/shippability.md` for a row whose `Command` cell targets `tests/bugs/*` (the documented `/repro` skill convention at `skills/repro/SKILL.md` L87/L94/L114). If no such row exists → ask the user to paste the failing-test path and confirm it was just-added by `/repro` (verbal-claim-with-path is the documented fallback covering `/repro`'s "or project's convention for bug-fix tests" caveat at L87 — bug-fix tests outside `tests/bugs/`). If the user can't produce a path → STOP and route.
+
+**STOP-and-route behavior** (verbatim instruction to user):
+
+> "This slice is a bug fix. Before defining the mission brief, run `/repro <issue>` to establish a failing test that reproduces the bug. The test must FAIL with the expected signature. Then re-invoke `/slice` and cite the failing-test path under `Dependencies`."
+
+**Mission-brief consequences when proceeding past Step 3c**: cite the failing-test path under `Dependencies` (e.g., `tests/bugs/test_thumbnail_orientation_regression.py::test_iphone_exif_rotation`); one Acceptance criterion MUST assert "the failing repro test PASSES at slice end".
+
+`/repro` itself is not modified — this is a one-way coupling. See [[skills/repro/SKILL.md]] for the reproduction-test discipline that supplies the prerequisite.
+
 ### Step 4: Define the slice
 
 Once user agrees, define:

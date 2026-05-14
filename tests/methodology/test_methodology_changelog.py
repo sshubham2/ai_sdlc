@@ -9,36 +9,77 @@ import yaml
 from tests.methodology.conftest import REPO_ROOT, read_file
 
 
-def _extract_v031_body(content: str) -> str:
-    """Extract methodology-changelog.md v0.31.0 entry body, scoped between
-    `## v0.31.0` and `## v0.30.0` boundaries.
+def _extract_version_body(content: str, version: str) -> str:
+    """Extract methodology-changelog.md entry body for a specified version,
+    scoped between `## v<version>` and `## v<predecessor-version>` boundaries.
 
-    Returns rest-of-file from `## v0.31.0` start if `## v0.30.0` is absent
-    (fallback branch retained for symmetry with slice-017 TPHD-1 sibling
-    canonical pattern at L1091-1094, though triggers only if v0.30.0 entry
-    is deleted — an extraordinary regression beyond this slice's threat
-    model per slice-018 /critique m1 ACCEPTED-FIXED).
+    Generalized at slice-020 per /critique M5 ACCEPTED-FIXED (rule-of-three
+    promotion N=2 → N=3 stable; aggregated lesson at slices/_index.md row
+    19 explicitly named this generalization as next-codification-slice
+    target). Predecessor version is computed by decrementing the minor
+    component of the semver string (e.g., "0.31.0" → "0.30.0",
+    "0.33.0" → "0.32.0", "0.34.0" → "0.33.0").
 
     Pre-validation contract: caller MUST have already asserted
-    `"## v0.31.0" in content` and emitted a surface-context-aware error
-    message at the call site (per slice-018 /critique-review m-add-1
-    ACCEPTED-FIXED — surface_name interpolation preserves slice-017
-    L1088-1090 diagnostic pattern). Helper returns empty/garbage if
-    `## v0.31.0` is absent; downstream assertions will fail, but the
-    surface-context error message must come from the caller. Helper
-    does NOT re-assert.
+    `f"## v{version}" in content` and emitted a surface-context-aware
+    error message at the call site (per slice-018 /critique-review
+    m-add-1 ACCEPTED-FIXED — surface_name interpolation preserves
+    slice-017 L1088-1090 diagnostic pattern). Helper returns empty/
+    garbage if `## v{version}` is absent; downstream assertions will
+    fail, but the surface-context error message must come from the
+    caller. Helper does NOT re-assert.
 
-    Used by both `test_v_0_31_0_rpcd_1_entry_names_three_sub_modes_in_repo_and_installed`
-    (refactored sibling test reading real methodology-changelog.md) AND
-    `test_v_0_31_0_rpcd_1_sibling_scoping_rejects_stripped_v031_body`
-    (regression test verifying scoping discipline on synthetic content).
-    Single code path under test — per slice-018 /critique M2 ACCEPTED-FIXED.
+    Returns rest-of-file from `## v{version}` start if
+    `## v{predecessor}` is absent (fallback branch retained for
+    symmetry with slice-017 TPHD-1 sibling canonical pattern, though
+    triggers only if predecessor entry is deleted — an extraordinary
+    regression beyond this generalization's threat model per slice-018
+    /critique m1 ACCEPTED-FIXED).
+
+    Used by all `test_v_0_NN_0_*` entry-pin + sibling-scoping regression
+    tests via the thin wrappers `_extract_v031_body` / `_extract_v033_body`
+    (preserved for backward compatibility with slice-018 + slice-019 tests)
+    AND directly by slice-020's `test_v_0_34_0_bfrd_1_*` family per
+    /critique M5 ACCEPTED-FIXED + design.md Audit 4 Option C.
+    Single code path under test — per slice-018 /critique M2
+    ACCEPTED-FIXED + slice-019 /critique M4 ACCEPTED-PENDING.
     """
-    v031_start = content.find("## v0.31.0")
-    v030_start = content.find("## v0.30.0", v031_start) if v031_start != -1 else -1
-    if v030_start == -1:
-        return content[v031_start:] if v031_start != -1 else ""
-    return content[v031_start:v030_start]
+    major, minor, patch = version.split(".")
+    predecessor = f"{major}.{int(minor) - 1}.{patch}"
+    start_anchor = f"## v{version}"
+    end_anchor = f"## v{predecessor}"
+    start = content.find(start_anchor)
+    end = content.find(end_anchor, start) if start != -1 else -1
+    if end == -1:
+        return content[start:] if start != -1 else ""
+    return content[start:end]
+
+
+def _extract_v031_body(content: str) -> str:
+    """Thin wrapper around `_extract_version_body(content, "0.31.0")`
+    preserved for backward compatibility with slice-018's
+    `test_v_0_31_0_rpcd_1_*` family + regression test.
+
+    Per slice-020 /critique M5 ACCEPTED-FIXED + design.md Audit 4
+    Option C: rule-of-three generalization at slice-020; existing
+    wrappers preserve slice-018 call-site semantics (single code path
+    under test per slice-018 /critique M2 ACCEPTED-FIXED).
+    """
+    return _extract_version_body(content, "0.31.0")
+
+
+def _extract_v033_body(content: str) -> str:
+    """Thin wrapper around `_extract_version_body(content, "0.33.0")`
+    preserved for backward compatibility with slice-019's
+    `test_v_0_33_0_layer_evid_1_*` family + regression test.
+
+    Per slice-020 /critique M5 ACCEPTED-FIXED + design.md Audit 4
+    Option C: rule-of-three generalization at slice-020; existing
+    wrappers preserve slice-019 call-site semantics (single code path
+    under test per slice-018 /critique M2 + slice-019 /critique M4
+    ACCEPTED-PENDING).
+    """
+    return _extract_version_body(content, "0.33.0")
 
 
 def test_version_file_is_semver():
@@ -1296,4 +1337,365 @@ def test_adr_016_exists_and_names_tphd_1_canonical_phrase():
         f"'TF-1 plan harmonization discipline' — N-surface schema-pin "
         f"(N=6 stable post-slice-017: ADR-016 + in-repo + installed "
         f"methodology-changelog) is broken at the ADR-016 surface"
+    )
+
+
+# --- Slice-019 / LAYER-EVID-1 entry pinning ---
+
+
+def test_v_0_33_0_layer_evid_1_entry_present_in_repo_and_installed():
+    """methodology-changelog v0.33.0 / LAYER-EVID-1 entry MUST be present in
+    both in-repo and installed copies of methodology-changelog.md,
+    bidirectionally sha256 byte-equal at slice-019 ship hash (N=14 -> N=15
+    forensic capture).
+
+    Defect class (per slice-019 /critique B1 + AC #3): forgotten
+    forward-sync after in-repo edit leaves installed methodology-changelog
+    stale; /critic-calibrate + /status surfacing references stale data;
+    audit-trail across N-surface schema-pin is broken.
+
+    Rule reference: LAYER-EVID-1 (slice-019 AC #3); 3-surface schema-pin
+    precedent: slice-013 EPGD-1 + slice-014 PMI-1 v1.1 + slice-015 SCPD-1
+    + slice-016 RPCD-1 + slice-017 TPHD-1 (N=5 stable -> N=6 with slice-019).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.33.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.33.0 entry"
+    )
+    assert "LAYER-EVID-1" in in_repo, (
+        "in-repo methodology-changelog.md missing LAYER-EVID-1 rule reference"
+    )
+
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    assert installed_path.exists(), (
+        f"installed methodology-changelog.md missing at {installed_path}"
+    )
+    installed = installed_path.read_text(encoding="utf-8")
+    assert "## v0.33.0" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing v0.33.0 entry — "
+        "forward-sync after in-repo edit was forgotten"
+    )
+    assert "LAYER-EVID-1" in installed, (
+        "installed ~/.claude/methodology-changelog.md missing LAYER-EVID-1 "
+        "rule reference"
+    )
+
+
+def test_v_0_33_0_layer_evid_1_entry_names_textual_import_evidence_canonical_phrase():
+    """methodology-changelog v0.33.0 / LAYER-EVID-1 entry body MUST contain
+    the canonical phrase `textual import-evidence requirement` bidirectionally,
+    scoped strictly to the v0.33.0 entry body (NOT global file substring) via
+    `_extract_v033_body` helper per slice-018 sibling-scoping discipline.
+
+    Per slice-019 /critique M4 ACCEPTED-PENDING + slice-018 reflection:
+    every codification slice's entry-pin sibling test must scope to the
+    target version's body to avoid global-substring false-positives (the
+    slice-016 RPCD-1 sibling-test scoping flaw, retired at slice-018).
+
+    Surface-context-aware pre-validation per slice-018 /critique-review
+    m-add-1 ACCEPTED-FIXED (preserves slice-017 L1088-1090 diagnostic
+    pattern): assert lives at call site so error message interpolates
+    surface_name; helper assumes pre-validated input.
+
+    Rule reference: LAYER-EVID-1 (slice-019 AC #3 — N=3 surfaces pin:
+    skills/diagnose/passes/03f-layering.md + skills/diagnose/SKILL.md +
+    methodology-changelog v0.33.0 entry).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
+    installed = installed_path.read_text(encoding="utf-8")
+
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        # Surface-context-aware pre-validation per /critique-review m-add-1
+        # ACCEPTED-FIXED (preserves slice-017 L1088-1090 diagnostic pattern):
+        # assert lives at call site so error message can interpolate
+        # surface_name; helper assumes pre-validated input.
+        assert "## v0.33.0" in content, (
+            f"{surface_name} methodology-changelog.md missing v0.33.0 entry — "
+            f"entry-pin broken (slice-019 LAYER-EVID-1 surface)"
+        )
+        v033_body = _extract_v033_body(content)
+
+        assert "textual import-evidence requirement" in v033_body, (
+            f"{surface_name} methodology-changelog.md v0.33.0 body missing "
+            f"canonical phrase 'textual import-evidence requirement' — "
+            f"N-surface schema-pin (N=3 surfaces: pass template + SKILL.md "
+            f"+ methodology-changelog entry) broken at this surface"
+        )
+        assert "LAYER-EVID-1" in v033_body, (
+            f"{surface_name} methodology-changelog.md v0.33.0 body missing "
+            f"'LAYER-EVID-1' rule reference — entry-pin broken"
+        )
+
+
+def test_v_0_33_0_layer_evid_1_sibling_scoping_rejects_stripped_v033_body():
+    """Regression test: prove the v0.33.0 scoping discipline (via
+    `_extract_v033_body` helper) catches stripped canonical-phrase markers
+    within v0.33.0 body even when v0.32.0+ entries retain them.
+
+    Defect class (slice-018 reflection N=2 cumulative inheritance):
+    if slice-019's entry-pin tests had been written without `_extract_v033_body`
+    scoping (i.e., raw `in content` global-substring check), a future slice
+    could strip the canonical phrase from v0.33.0 body while v0.34.0+
+    entries retain it, and the sibling test would silently false-positive
+    PASS. Sibling-scoping helper retires that failure mode.
+
+    Single-code-path discipline per slice-018 /critique M2 ACCEPTED-FIXED:
+    this regression-test-passes ↔ sibling-test-fails-on-stripped-fixture
+    link is established by EXECUTION (this synthetic fixture exercises
+    the SAME `_extract_v033_body` helper that the real sibling test uses),
+    NOT by code-reading.
+
+    Pattern mirrors slice-018 L1010-1060 canonical regression pattern at
+    the PATTERN level (NOT literal-code) per slice-018 /critique-review
+    m-add-2 Audit 3 refinement.
+
+    Rule reference: LAYER-EVID-1 (slice-019 AC #3) + slice-018 sibling-test
+    scoping discipline (slice-019 /critique M4 ACCEPTED-PENDING).
+    """
+    # Synthetic: v0.33.0 entry body HAS BEEN STRIPPED of the canonical
+    # phrase; v0.32.0 entry retains it (as a foil that would false-positive
+    # PASS a global-substring check).
+    synthetic = (
+        "# Methodology Changelog (test fixture)\n"
+        "\n"
+        "## v0.33.0 — 2026-05-13\n"
+        "\n"
+        "Some other entry text without the canonical phrase. The v0.33.0\n"
+        "body has been hypothetically stripped of its key marker.\n"
+        "\n"
+        "## v0.32.0 — 2026-05-13\n"
+        "\n"
+        "TF-1 plan harmonization discipline codified, plus the strawman\n"
+        "phrase: textual import-evidence requirement (this is the foil —\n"
+        "appears in v0.32.0 body, NOT v0.33.0).\n"
+        "\n"
+        "## v0.31.0 — 2026-05-13\n"
+        "\n"
+        "Earlier entry.\n"
+    )
+
+    # Global-substring check on `synthetic` WOULD pass — the canonical
+    # phrase appears in the file (in v0.32.0 body). This is the trap
+    # the helper retires.
+    assert "textual import-evidence requirement" in synthetic, (
+        "synthetic fixture should contain the canonical phrase SOMEWHERE "
+        "(in v0.32.0 body) — proving the global-substring fallacy that the "
+        "scoping helper retires"
+    )
+
+    # Helper-scoped check: extract v0.33.0 body and verify the canonical
+    # phrase is ABSENT from it (proving the scoping discipline catches
+    # the stripped-body case).
+    v033_body = _extract_v033_body(synthetic)
+    assert "textual import-evidence requirement" not in v033_body, (
+        "_extract_v033_body should have scoped to v0.33.0 body only, "
+        "which has been hypothetically stripped. Canonical phrase appears "
+        "in v033_body — scoping discipline is broken; sibling test would "
+        "false-positive PASS on this fixture."
+    )
+    # Sanity: v0.32.0 marker should NOT appear inside v0.33.0 body
+    # (boundary discipline)
+    assert "## v0.32.0" not in v033_body, (
+        "_extract_v033_body should stop at `## v0.32.0` boundary; if "
+        "marker appears inside v033_body, the scoping helper is broken"
+    )
+
+
+def test_adr_017_exists_and_names_layer_evid_1_canonical_phrase():
+    """ADR-017 must exist at architecture/decisions/ADR-017-*.md AND contain
+    the canonical phrase `textual import-evidence requirement`.
+
+    Defect class (per slice-014 ADR-013 + slice-015 ADR-014 + slice-016
+    ADR-015 + slice-017 ADR-016 pin precedent): the ADR is the fourth
+    surface of the N-surface schema-pin discipline. If the ADR file is
+    missing or doesn't contain the canonical phrase, the N-surface
+    schema-pin (N=6 stable post-slice-017 -> N=7 with slice-019) breaks.
+
+    Rule reference: LAYER-EVID-1 (slice-019 AC #4 — ADR-017 surface of
+    N-surface canonical-phrase pin).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-017-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-017 file at "
+        f"architecture/decisions/ADR-017-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "textual import-evidence requirement" in adr_content, (
+        f"ADR-017 ({adr_files[0].name}) missing canonical phrase "
+        f"'textual import-evidence requirement' — N-surface schema-pin "
+        f"(N=7 with slice-019: ADR-017 + in-repo + installed "
+        f"methodology-changelog + 03f-layering.md prose + SKILL.md prose) "
+        f"is broken at the ADR-017 surface"
+    )
+
+
+# --- Slice-020 / BFRD-1 entry pinning ---
+#
+# Per BFRD-1 (`methodology-changelog.md` v0.34.0): `/slice` Step 3c codifies
+# the bug-fix repro prelude discipline. Entry-pin tests assert the v0.34.0
+# methodology-changelog body names BFRD-1 + both detection modes + STOP-and-
+# route behavior + verification-mechanism canonical phrase. ADR-pin asserts
+# ADR-018 exists and names the canonical phrase.
+#
+# Per slice-020 /critique B1 ACCEPTED-FIXED: mode (a) detection covers
+# `fix-*` prefix + `*-fix` suffix + bugfix-* + hotfix-* + defect-* +
+# repair-* + patch-* + harden-*-bug regex variants; slice-001's `-fix`
+# suffix shape is the witnessed in-project false-negative anchor.
+#
+# Per slice-020 /critique B2 + /critique-review M-add-2 ACCEPTED-FIXED:
+# verification mechanism is `shippability.md grep verification` for
+# `tests/bugs/*` Command-cell match + verbal-claim-with-path fallback.
+# The `bug:` provenance branch was DROPPED at /critique-review per
+# RPCD-1 sub-mode (b) class catch (zero precedent in shippability rows
+# 1-19; aspirational branch removed).
+#
+# Per slice-020 /critique M5 ACCEPTED-FIXED + design.md Audit 4 Option C:
+# entry-pin tests call `_extract_version_body(content, "0.34.0")`
+# directly (the generalized helper); slice-018 + slice-019 wrappers
+# preserved for backward compatibility.
+
+_V034 = "0.34.0"
+
+
+def test_v_0_34_0_bfrd_1_entry_present_in_repo_and_installed():
+    """v0.34.0 BFRD-1 entry exists in both in-repo + installed methodology-
+    changelog.md with bidirectional sha256 byte-equality (CAD-1 invariant).
+
+    Defect class: if the in-repo and installed copies diverge, Claude reads
+    stale prose at /status or /slice invocation. Bidirectional pin enforced
+    by reading both files and asserting both contain the v0.34.0 entry
+    header.
+    Rule reference: BFRD-1 (slice-020 AC #1).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V034}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V034} entry "
+            f"header — slice-020 BFRD-1 entry was not added or was lost; "
+            f"surface-context per slice-018 /critique-review m-add-1 ACCEPTED-FIXED"
+        )
+        body = _extract_version_body(content, _V034)
+        assert "BFRD-1" in body, (
+            f"{surface_name} v{_V034} entry body missing rule-ID 'BFRD-1' — "
+            f"entry-pin broken at the rule-ID layer"
+        )
+
+
+def test_v_0_34_0_bfrd_1_entry_names_both_detection_modes():
+    """v0.34.0 entry body names BOTH detection modes — mode (a) name-shape
+    fast-path with regex variants (fix-* prefix, *-fix suffix witnessed
+    at slice-001, bugfix-*, hotfix-*, defect-*, repair-*, patch-*,
+    harden-*-bug) AND mode (b) PRIMARY candidate-source signal.
+
+    Defect class: future slice strips one of the detection modes; entry
+    becomes single-mode and naïve-detection class re-introduces. Per
+    /critique B1 ACCEPTED-FIXED: widened mode (a) regex set is load-
+    bearing; without it slice-001's `-fix` suffix shape escapes detection.
+    Rule reference: BFRD-1 (slice-020 AC #1, /critique B1).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    body = _extract_version_body(in_repo, _V034)
+    mode_a_anchors = (
+        "name-shape fast-path",
+        "*-fix",  # suffix witnessed in-project
+        "slice-001",  # false-negative anchor citation
+    )
+    mode_b_anchors = (
+        "candidate-source signal",
+        "PRIMARY",
+    )
+    present_a = [a for a in mode_a_anchors if a in body]
+    present_b = [a for a in mode_b_anchors if a in body]
+    assert len(present_a) >= 2, (
+        f"v{_V034} BFRD-1 entry body missing mode (a) detection anchors; "
+        f"found {len(present_a)} of {len(mode_a_anchors)}: {present_a}. "
+        f"Required: at least 2 of {mode_a_anchors!r}"
+    )
+    assert len(present_b) >= 1, (
+        f"v{_V034} BFRD-1 entry body missing mode (b) PRIMARY detection "
+        f"anchor; found {len(present_b)} of {len(mode_b_anchors)}: "
+        f"{present_b}. Required: at least 1 of {mode_b_anchors!r}"
+    )
+
+
+def test_v_0_34_0_bfrd_1_entry_names_stop_and_route_behavior():
+    """v0.34.0 entry body names STOP-and-route behavior with /repro
+    routing instruction.
+
+    Defect class: future slice strips the STOP-and-route imperative;
+    the discipline degrades to advisory-only without an enforcement
+    primitive at /slice runtime.
+    Rule reference: BFRD-1 (slice-020 AC #1).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    body = _extract_version_body(in_repo, _V034)
+    assert "STOP" in body, (
+        f"v{_V034} BFRD-1 entry body missing STOP keyword for STOP-and-"
+        f"route behavior — discipline degrades to advisory-only"
+    )
+    assert "/repro" in body, (
+        f"v{_V034} BFRD-1 entry body missing /repro skill reference — "
+        f"STOP-and-route mechanism cannot describe where to route"
+    )
+
+
+def test_v_0_34_0_bfrd_1_entry_names_verification_mechanism():
+    """v0.34.0 entry body names verification-mechanism canonical phrase
+    `shippability.md grep verification` + `tests/bugs/*` path-targeting
+    convention per /critique B2 + /critique-review M-add-2 ACCEPTED-FIXED
+    Option (a).
+
+    Defect class: future slice strips the verification mechanism; BFRD-1
+    becomes advisory-only with no enforcement primitive (RPCD-1 sub-mode
+    (b) NEW-status/token allowlist-audit class regression at the
+    BFRD-1 surface).
+    Rule reference: BFRD-1 (slice-020 AC #1, /critique B2 +
+    /critique-review M-add-2).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    body = _extract_version_body(in_repo, _V034)
+    assert "shippability.md grep verification" in body, (
+        f"v{_V034} BFRD-1 entry body missing canonical phrase "
+        f"'shippability.md grep verification' — verification mechanism "
+        f"canonical-phrase pin broken per /critique B2 ACCEPTED-FIXED"
+    )
+    assert "tests/bugs/" in body, (
+        f"v{_V034} BFRD-1 entry body missing `tests/bugs/` path-targeting "
+        f"convention reference — verification mechanism's primary grep "
+        f"signature is unspecified"
+    )
+
+
+def test_adr_018_exists_and_names_bfrd_1_canonical_phrase():
+    """ADR-018 file exists at architecture/decisions/ADR-018-*.md AND
+    contains the canonical phrase `bug-fix repro prelude discipline`
+    pinned per slice-013/014/015/016/017/019 ADR-pin convention N=5
+    → N=6 stable.
+
+    Defect class: future slice renames ADR-018 or strips the canonical
+    phrase from its body; N-surface schema-pin breaks at the ADR
+    surface.
+    Rule reference: BFRD-1 (slice-020 AC #3 — ADR-018 surface of
+    N-surface canonical-phrase pin).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-018-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-018 file at "
+        f"architecture/decisions/ADR-018-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "bug-fix repro prelude discipline" in adr_content, (
+        f"ADR-018 ({adr_files[0].name}) missing canonical phrase "
+        f"'bug-fix repro prelude discipline' — N-surface schema-pin "
+        f"(N=7 with slice-020: ADR-018 + in-repo + installed "
+        f"methodology-changelog + SKILL.md prose) is broken at the "
+        f"ADR-018 surface"
     )

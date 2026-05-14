@@ -69,3 +69,49 @@ def test_slice_004_no_regression_in_existing_risk_register():
         f"R-2 expected score=2 band=low; got "
         f"score={by_id['R-2'].score} band={by_id['R-2'].band}"
     )
+
+
+def test_r_3_added_post_slice_019_with_graphify_symbol_conflation_class():
+    """R-3 must be added to risk-register.md per slice-019 AC #5,
+    parsing cleanly under RR-1 with status=mitigating.
+
+    Per slice-019 AC #5 + ADR-017: R-3 documents the broader-class concern
+    that graphify symbol-resolution may conflate same-name cross-file
+    symbols into phantom edges. LAYER-EVID-1 is the witness-scoped
+    mitigation at the /diagnose 03f-layering pass-template level (NOT
+    the graphify-level fix); R-3 tracks the broader class with
+    escalation criteria documented.
+
+    Defect class: forgetting to add R-3 leaves the broader-class risk
+    untracked; future /critic-calibrate cannot promote a follow-on slice
+    to extend LAYER-EVID-1 to other passes or fix graphify upstream
+    because the risk isn't in the register.
+
+    Rule reference: slice-019 AC #5 (RR-1 schema for new entry).
+    """
+    register_path = REPO_ROOT / "architecture" / "risk-register.md"
+    result = audit_register(register_path)
+    by_id = {r.risk_id: r for r in result.risks}
+    assert "R-3" in by_id, (
+        "R-3 missing from risk-register parse — slice-019 AC #5 not yet "
+        "shipped, or R-3 heading format doesn't match RR-1 schema"
+    )
+    r3 = by_id["R-3"]
+    assert r3.status == "mitigating", (
+        f"R-3 status expected 'mitigating' (not 'retired' because graphify-"
+        f"level root cause is untouched); got {r3.status!r}"
+    )
+    assert r3.reversibility == "cheap", (
+        f"R-3 reversibility expected 'cheap' (LAYER-EVID-1 pass-template "
+        f"prose can be retired in <1 day if graphify is later fixed); "
+        f"got {r3.reversibility!r}"
+    )
+    # The title should signal the broader class — symbol-conflation /
+    # phantom edges. Keyword check (lenient — any of these words signal
+    # the right concern class).
+    title_lower = r3.title.lower()
+    assert any(kw in title_lower for kw in ("symbol", "conflate", "phantom", "graphify")), (
+        f"R-3 title {r3.title!r} doesn't signal the broader-class concern "
+        f"(graphify symbol-resolution / phantom edges / conflation). Check "
+        f"AC #5 wording match."
+    )

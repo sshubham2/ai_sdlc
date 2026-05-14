@@ -248,6 +248,132 @@ def test_no_legacy_no_bash_no_python_phrase():
     )
 
 
+# --- Slice-019 / LAYER-EVID-1 prose pins (AC #1) ---
+
+# Canonical phrase locked by slice-019 / LAYER-EVID-1 across N=3 surfaces.
+# Per /critique M1 mitigation: this string is also embedded verbatim in
+# Method step 4 prose of 03f-layering.md (visual byte-equality is the
+# prose-pin equivalent of CAD-1 byte-equality at the rule-content level).
+SLICE_019_CANONICAL_PHRASE = "textual import-evidence requirement"
+
+LAYERING_PASS_TEMPLATE = PASSES_DIR / "03f-layering.md"
+
+
+def test_skill_md_step5_documents_textual_evidence_rule():
+    """SKILL.md Step 5 contains the LAYER-EVID-1 cross-reference paragraph.
+
+    Per slice-019 AC #1 + design.md Surface 2: SKILL.md Step 5 gains a
+    NEW paragraph between the "Subagent contract (canonical line)"
+    subsection and the "After each subagent returns" subsection,
+    cross-referencing the LAYER-EVID-1 rule body (which lives in
+    passes/03f-layering.md, not here).
+
+    Defect class: forgetting the cross-reference at SKILL.md means
+    the orchestrator may dispatch the 03f-layering subagent without
+    surfacing that LAYER-EVID-1 applies; subagent reads pass template
+    in isolation; misses the rule body if a future SKILL.md edit
+    obscures Step 5's structure.
+
+    Rule reference: LAYER-EVID-1 (slice-019 AC #1, Surface 2 of N=3).
+    """
+    text = _read(SKILL_MD)
+    assert "LAYER-EVID-1" in text, (
+        "SKILL.md missing 'LAYER-EVID-1' rule-ID reference — Step 5 "
+        "cross-reference paragraph not present"
+    )
+    assert SLICE_019_CANONICAL_PHRASE in text, (
+        f"SKILL.md missing canonical phrase {SLICE_019_CANONICAL_PHRASE!r} — "
+        f"Step 5 cross-reference paragraph not present at Surface 2 of N=3"
+    )
+
+
+def test_layering_pass_template_emits_textual_evidence_rule():
+    """skills/diagnose/passes/03f-layering.md carries the LAYER-EVID-1
+    rule body (Method step 4 + Severity rubric downgrade rule + Anti-patterns
+    negative-pin).
+
+    Per slice-019 AC #1 + design.md Surface 1: 03f-layering.md is the
+    PRIMARY carrier of the rule body. SKILL.md only cross-references; the
+    actual prose lives here.
+
+    Defect class: forgetting to update 03f-layering.md after promising
+    LAYER-EVID-1 at SKILL.md + methodology-changelog leaves the subagent
+    reading an old pass template that doesn't apply the rule.
+
+    Rule reference: LAYER-EVID-1 (slice-019 AC #1, Surface 1 of N=3 —
+    the PRIMARY carrier).
+    """
+    text = _read(LAYERING_PASS_TEMPLATE)
+    assert "LAYER-EVID-1" in text, (
+        "passes/03f-layering.md missing 'LAYER-EVID-1' rule-ID reference"
+    )
+    assert SLICE_019_CANONICAL_PHRASE in text, (
+        f"passes/03f-layering.md missing canonical phrase "
+        f"{SLICE_019_CANONICAL_PHRASE!r}"
+    )
+    # Method step 4 marker — proves the rule body lives inside Method
+    assert "Grep-verify the import statement" in text, (
+        "passes/03f-layering.md Method section missing 'Grep-verify the "
+        "import statement' marker — Method step 4 body not present"
+    )
+    # Anti-patterns negative-pin marker
+    assert "graphify edges for HIGH-severity boundary findings without textual" in text, (
+        "passes/03f-layering.md Anti-patterns section missing the "
+        "LAYER-EVID-1 negative-pin bullet"
+    )
+
+
+def test_textual_evidence_rule_byte_equal_across_n_3_surfaces():
+    """The canonical phrase `textual import-evidence requirement` MUST appear
+    byte-equal across all N=3 in-repo surfaces AND all N=3 installed
+    surfaces (bidirectional N=6 total).
+
+    Per slice-019 AC #1: N=3 surfaces are
+    (Surface 1) skills/diagnose/passes/03f-layering.md,
+    (Surface 2) skills/diagnose/SKILL.md (Step 5 cross-reference),
+    (Surface 3) methodology-changelog.md v0.33.0 entry.
+    Each surface has a bidirectional in-repo ↔ installed pair (mini-CAD
+    + methodology-changelog forward-sync per slice-018 N=14 -> N=15
+    forensic capture).
+
+    Defect class: partial forward-sync (e.g., updates in-repo but forgets
+    one of the installed copies) silently breaks the N-surface pin and
+    leaves /diagnose runtime reading stale prose.
+
+    Rule reference: LAYER-EVID-1 (slice-019 AC #1, byte-equality across
+    N=6 surfaces).
+    """
+    from pathlib import Path
+
+    installed_diagnose = Path.home() / ".claude" / "skills" / "diagnose"
+    installed_changelog = Path.home() / ".claude" / "methodology-changelog.md"
+
+    surfaces = {
+        "in-repo 03f-layering.md":     LAYERING_PASS_TEMPLATE,
+        "in-repo SKILL.md":            SKILL_MD,
+        "in-repo methodology-changelog.md": REPO_ROOT / "methodology-changelog.md",
+        "installed 03f-layering.md":   installed_diagnose / "passes" / "03f-layering.md",
+        "installed SKILL.md":          installed_diagnose / "SKILL.md",
+        "installed methodology-changelog.md": installed_changelog,
+    }
+
+    missing = []
+    for name, path in surfaces.items():
+        if not path.exists():
+            missing.append(f"{name} (file not found at {path})")
+            continue
+        text = path.read_text(encoding="utf-8")
+        if SLICE_019_CANONICAL_PHRASE not in text:
+            missing.append(name)
+
+    assert not missing, (
+        f"Canonical phrase {SLICE_019_CANONICAL_PHRASE!r} missing from "
+        f"N-surface schema-pin at: {missing}. All 6 surfaces (3 in-repo + "
+        f"3 installed) must carry the byte-equal phrase. Likely cause: "
+        f"forgotten forward-sync after in-repo edit."
+    )
+
+
 def test_pass_templates_match_skill_md_step5_contract():
     """Byte-equality: canonical contract string MUST appear identically in 12 sites.
 

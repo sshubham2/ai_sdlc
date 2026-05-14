@@ -161,6 +161,10 @@ The line below is the **single canonical contract string** locked across SKILL.m
 
 > **Do NOT call Write to produce output files (the orchestrator handles that). You MAY use Bash/python for graphify queries within $OUT/graphify-out/, and Read/Grep/Glob for source files within $TARGET.**
 
+### Pass-specific evidence requirement (LAYER-EVID-1)
+
+Per `methodology-changelog.md` v0.33.0 (slice-019), the `03f-layering` pass subagent MUST apply the **textual import-evidence requirement** before emitting any HIGH-severity layering-violation finding. The rule body lives in `passes/03f-layering.md` Method step 4 + Severity rubric downgrade rule + Anti-patterns negative-pin (the regex variants for TypeScript/JavaScript, Python, Rust, Go, Java + the alias-aware grep semantics for tsconfig.json `paths`/`baseUrl`). The subagent's Grep/Read/Glob tool envelope (per the canonical contract above) is sufficient — no new tools required. Witnessed failure mode: F-LAYER-bca9c001 false-positive (parallel type files defining identically-named enums; graphify symbol-resolution synthesized a phantom edge where zero textual imports existed).
+
 ### After each subagent returns
 
 For each completed subagent (process them as they finish — order doesn't matter):

@@ -291,3 +291,147 @@ def test_slice_step4a_evidence_paragraph_cites_at_least_two_sub_class_anchors():
         f"sub-class references -- a future reader can no longer verify which "
         f"specific past Critic-catches the N=9/9 evidence base draws on."
     )
+
+
+# --- Slice-020 / BFRD-1 bug-fix repro prelude pinning ---
+#
+# Per BFRD-1 (`methodology-changelog.md` v0.34.0): `skills/slice/SKILL.md`
+# Step 3c codifies the bug-fix repro prelude discipline. Section sits
+# between existing `### Step 3b: If user has their own idea` and
+# `### Step 4: Define the slice` anchors. Three prose-pin tests:
+# (1) `_prelude_present` asserts literal canonical phrase
+# `bug-fix repro prelude discipline` per /critique-review M2 SUSPICIOUS
+# clarification (rationale-strengthening locks N=3 surface schema-pin
+# into concrete test enforcement, not aspirational "phrase appears
+# naturally in section opener" rationale);
+# (2) `_prelude_location_pinned` scoped-find between Step 3b end-anchor
+# and Step 4 header-anchor per slice-009 DEVIATION-2 algorithm-path-
+# conformance discipline N=11 stable;
+# (3) `_verification_mechanism_present` asserts literal canonical phrase
+# `shippability.md grep verification` per /critique B2 + /critique-
+# review M-add-2 ACCEPTED-FIXED Option (a).
+
+_STEP3C_START_ANCHOR = "### Step 3c: Bug-fix prelude (BFRD-1)"
+_STEP3C_PRECEDING_ANCHOR = "### Step 3b: If user has their own idea"
+_STEP3C_FOLLOWING_ANCHOR = "### Step 4: Define the slice"
+
+
+def _step3c_section(skill_md: str) -> str:
+    """Return the substring of skill_md scoped to the Step 3c section
+    bounds. Bounds: from `### Step 3c: Bug-fix prelude (BFRD-1)`
+    (inclusive) to `### Step 4: Define the slice` (exclusive).
+    """
+    start = skill_md.find(_STEP3C_START_ANCHOR)
+    assert start != -1, (
+        f"Step 3c section start anchor {_STEP3C_START_ANCHOR!r} not found "
+        f"in skills/slice/SKILL.md — has Step 3c been renamed or removed?"
+    )
+    end = skill_md.find(_STEP3C_FOLLOWING_ANCHOR, start)
+    assert end != -1, (
+        f"Step 4 anchor {_STEP3C_FOLLOWING_ANCHOR!r} not found AFTER "
+        f"Step 3c start at idx {start} — has Step 4 been renamed or "
+        f"removed, or did Step 3c insertion break the file structure?"
+    )
+    return skill_md[start:end]
+
+
+def test_slice_skill_md_bfrd_1_prelude_present():
+    """AC #2 row 1: literal canonical phrase `bug-fix repro prelude
+    discipline` appears within the Step 3c section bounds.
+
+    Per slice-020 /critique-review M2 SUSPICIOUS ACCEPTED-FIXED
+    clarification (design.md "Prose-pin test assertion locks"): the
+    `_prelude_present` test asserts the literal canonical phrase, NOT
+    merely `BFRD-1` rule ID. This transitively requires Step 3c body
+    to contain the literal phrase, locking the design.md L93
+    commitment via test enforcement (closes the first-Critic M2
+    OVERRIDDEN rationale's "phrase appears naturally in section
+    opener" claim into a concrete test-assertion contract that
+    survives /build-slice Phase 1 prose drafting).
+
+    Defect class: if a future slice deletes the canonical phrase from
+    Step 3c (or rewords as "bug-fix repro prelude" without the
+    "discipline" word), the N=3 surface schema-pin breaks at the
+    skill-prose surface. Test surfaces drift at /validate-slice.
+    Rule reference: BFRD-1 (slice-020 AC #2, /critique-review M2).
+    """
+    section = _step3c_section(SLICE)
+    assert "bug-fix repro prelude discipline" in section, (
+        "skills/slice/SKILL.md Step 3c section is missing literal "
+        "canonical phrase 'bug-fix repro prelude discipline' — the "
+        "N=3 surface schema-pin is broken at the skill-prose surface. "
+        "Re-add the phrase to Step 3c's opening sentence per design.md "
+        "Step 3c content structure item 2 + 'Prose-pin test assertion "
+        "locks' clarification."
+    )
+
+
+def test_slice_skill_md_bfrd_1_prelude_location_pinned():
+    """AC #2 row 2: Step 3c section sits BETWEEN existing Step 3b
+    section and Step 4 section header. Pins the section's position
+    within the skill file's overall step structure.
+
+    Per slice-009 DEVIATION-2 algorithm-path-conformance discipline
+    N=11 stable: anchor uniqueness empirically verified at design
+    time (each of the 3 anchors appears exactly once in
+    `skills/slice/SKILL.md`); scoped `text.find()` chained off prior
+    anchor pre-empts `.find()`-collision class.
+
+    Defect class: if a future slice moves Step 3c outside the
+    intended position (e.g., into Step 2 or after Step 4), this
+    test surfaces the misplacement. Step 3c MUST sit at the
+    candidate-selection→slice-definition inflection point.
+    Rule reference: BFRD-1 (slice-020 AC #2; slice-009 DEVIATION-2
+    + slice-017 TPHD-1 location-pin discipline N=11 stable).
+    """
+    step3b_idx = SLICE.find(_STEP3C_PRECEDING_ANCHOR)
+    assert step3b_idx != -1, (
+        f"Step 3b preceding anchor {_STEP3C_PRECEDING_ANCHOR!r} not "
+        f"found in skills/slice/SKILL.md"
+    )
+    step3c_idx = SLICE.find(_STEP3C_START_ANCHOR, step3b_idx)
+    assert step3c_idx != -1, (
+        f"Step 3c start anchor {_STEP3C_START_ANCHOR!r} not found "
+        f"after Step 3b anchor at idx {step3b_idx}"
+    )
+    step4_idx = SLICE.find(_STEP3C_FOLLOWING_ANCHOR, step3c_idx)
+    assert step4_idx != -1, (
+        f"Step 4 following anchor {_STEP3C_FOLLOWING_ANCHOR!r} not "
+        f"found after Step 3c at idx {step3c_idx}"
+    )
+    assert step3b_idx < step3c_idx < step4_idx, (
+        f"Step 3c (idx={step3c_idx}) must appear BETWEEN Step 3b "
+        f"(idx={step3b_idx}) and Step 4 (idx={step4_idx}). Current "
+        f"placement violates the section position-pin: bug-fix "
+        f"prelude must sit at the candidate-selection→slice-"
+        f"definition inflection point."
+    )
+
+
+def test_slice_skill_md_bfrd_1_verification_mechanism_present():
+    """AC #2 row 3: literal canonical phrase `shippability.md grep
+    verification` appears within the Step 3c section bounds.
+
+    Per slice-020 /critique B2 + /critique-review M-add-2 ACCEPTED-
+    FIXED Option (a): verification mechanism is `shippability.md grep
+    verification` for `tests/bugs/*` Command-cell match + verbal-
+    claim-with-path fallback. Canonical phrase pinned in skill prose
+    per design.md "Prose-pin test assertion locks" clarification.
+
+    Defect class: future slice strips the verification mechanism from
+    Step 3c; BFRD-1 becomes advisory-only without an enforcement
+    primitive (RPCD-1 sub-mode (b) NEW-status/token allowlist-audit
+    class regression at the BFRD-1 surface).
+    Rule reference: BFRD-1 (slice-020 AC #2, /critique B2 +
+    /critique-review M-add-2 ACCEPTED-FIXED Option (a)).
+    """
+    section = _step3c_section(SLICE)
+    assert "shippability.md grep verification" in section, (
+        "skills/slice/SKILL.md Step 3c section is missing literal "
+        "canonical phrase 'shippability.md grep verification' — "
+        "verification mechanism canonical-phrase pin broken per "
+        "/critique B2 ACCEPTED-FIXED + /critique-review M-add-2 "
+        "ACCEPTED-FIXED Option (a). Re-add the phrase to Step 3c's "
+        "verification-mechanism bullet per design.md Step 3c content "
+        "structure item 4."
+    )
