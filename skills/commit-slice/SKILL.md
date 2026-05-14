@@ -1,8 +1,8 @@
 ---
 name: commit-slice
-description: "Generate an audit-grade commit message from a just-completed slice's vault artifacts. Pulls subject/body/refs from mission-brief.md, build-log.md, validation.md, and new ADRs. Produces conventional-commit-style output with slice folder reference, ADR IDs, AC count, Critic blockers addressed, and shippability entry — no hand-crafting required. Run right before committing code (after /reflect, which auto-archives the slice). With --merge: commits to current slice branch + no-ff merges back to default branch + safe-deletes the slice branch (per BRANCH-1 sub-mode (b)). Trigger phrases: '/commit-slice', 'generate commit message', 'audit commit', 'slice commit message', '/commit-slice --merge'."
+description: "Generate an audit-grade commit message from a just-completed slice's vault artifacts. Pulls subject/body/refs from mission-brief.md, build-log.md, validation.md, and new ADRs. Produces conventional-commit-style output with slice folder reference, ADR IDs, AC count, Critic blockers addressed, and shippability entry — no hand-crafting required. Run right before committing code (after /reflect, which auto-archives the slice). Three mutually-exclusive mode flags (per ADR-020): with --merge (BRANCH-1 sub-mode (b) — local-merge into default + safe-delete; solo-dev / no-protected-branch path); with --push (push slice branch to origin + display PR-creation URL hint; PR-based workflow path); with --sync-after-pr (post-PR-merge local cleanup via two-signal merged-state detection + safe-delete; post-PR-merge cleanup path). No-flag invocation preserves slice-021 generate-only default. Trigger phrases: '/commit-slice', 'generate commit message', 'audit commit', 'slice commit message', '/commit-slice --merge', '/commit-slice --push', '/commit-slice --sync-after-pr'."
 user_invokable: true
-argument-hint: [--merge]
+argument-hint: [--merge | --push | --sync-after-pr]
 ---
 
 # /commit-slice — Audit-Grade Commit from Vault
@@ -19,10 +19,26 @@ Heavy mode benefits most — compliance trails want consistent commit format ref
 
 ## Argument modes
 
-- `/commit-slice` — generate the message, show it to user, user copies to `git commit -m`
+- `/commit-slice` — generate the message, show it to user, user copies to `git commit -m` (no-flag default; slice-021 generate-only behavior preserved per ADR-020)
 - `/commit-slice --merge` — generate + run `git add` + `git commit` on the current slice branch + no-ff merge into default branch + safe-delete the slice branch (per **BRANCH-1** sub-mode (b))
+- `/commit-slice --push` — generate + run `git add` + `git commit` on the current slice branch + `git push -u origin slice/NNN-<name>` + display PR-creation URL hint (per **ADR-020**; PR-based workflow path; never merges locally, never deletes)
+- `/commit-slice --sync-after-pr` — post-PR-merge local cleanup (no commit; skips Steps 1-4): two-signal merged-state detection then safe `git checkout <default> + git pull --ff-only + git branch -d slice/NNN-<name>` (per **ADR-020**; post-PR-merge cleanup workflow)
 
-Default: generate only. `--merge` requires user confirmation at multiple checkpoints before executing git commands; see Step 5 for the 5-step flow.
+The 3 mode flags are **mutually exclusive** — passing two or more → STOP with "Mode flags `--merge`, `--push`, `--sync-after-pr` are mutually exclusive; pass exactly one (or none for the slice-021 generate-only default)."
+
+Default: generate only. Mode flags require user confirmation at multiple checkpoints before executing git commands; see Step 5 for the per-mode flows.
+
+## When to use which mode
+
+Pick the mode that matches your repo's contribution workflow:
+
+- **`--merge`** — **solo-dev / no-protected-branch path**. Use when you have direct push access to the default branch AND there's no required-PR / required-review / CI-gate policy. The fastest path: local merge + safe-delete the slice branch in one skill invocation. Don't use if your team has protected branches or required PR review — your local merge will fail at `git push` (or worse, succeed locally and diverge from origin's required-review-gated state).
+
+- **`--push`** — **PR-based workflow path**. Use when the default branch is protected OR your team requires PR review OR CI must evaluate the slice branch in isolation. The skill pushes the slice branch to `origin/slice/NNN-<name>` and displays a `gh pr create` command + (for GitHub.com remotes) a raw compare URL. You open the PR (manually or via the displayed `gh` command), reviewers approve, the PR merges on GitHub, the origin branch is auto-deleted. Local cleanup happens later via `--sync-after-pr`.
+
+- **`--sync-after-pr`** — **post-PR-merge local cleanup path**. Use AFTER your PR (opened post-`--push`) has been merged AND the origin slice branch has been auto-deleted. The skill detects the merged state via two independent signals (remote-branch absence via `git ls-remote` + commit-reachability on `origin/<default>` via `git cherry` Pass 1 + aggregate-tree-diff Pass 2 fallback for multi-commit GitHub squash-merge) and, on confirmation, runs `git checkout <default> + git pull --ff-only + git branch -d slice/NNN-<name>`. STOPs with diagnostic if either signal disagrees.
+
+Per **ADR-020** the 3 modes are mutually exclusive; the no-flag default (generate only, no git operations) remains the slice-021 behavior unchanged.
 
 ## Prerequisite check
 
@@ -126,7 +142,11 @@ Compliance: <applicable frameworks from non-functional.md>
 
 ### Step 5: Present or execute
 
-**Default (no flag)**: Show the message to user with instruction:
+The 3 mode flags are **mutually exclusive** (per ADR-020 + /critique B4 ACCEPTED-FIXED). If the user passes two or more, STOP with diagnostic: "Mode flags `--merge`, `--push`, `--sync-after-pr` are mutually exclusive; pass exactly one (or none for the slice-021 generate-only default)."
+
+#### Step 5a: Default (no flag)
+
+Show the message to user with instruction:
 
 ```
 Copy this to your commit command:
@@ -137,12 +157,14 @@ EOF
 )"
 ```
 
-Note: HEREDOC format to preserve newlines and special characters.
+Note: HEREDOC format to preserve newlines and special characters. The no-flag default preserves slice-021 generate-only behavior — no git operations are executed.
 
-**With `--merge`** (per **BRANCH-1** sub-mode (b), `methodology-changelog.md` v0.35.0):
+#### Step 5b: With `--merge` (per **BRANCH-1** sub-mode (b), `methodology-changelog.md` v0.35.0 — solo-dev / no-protected-branch path)
+
+Per slice-022 AC #1 + ADR-020: the slice-021 `--merge` 5-step flow + 2 pre-flight guardrails are preserved verbatim. Behavior is unchanged; what's superseded is the implicit claim that `--merge` is the only post-/reflect cleanup path.
 
 Pre-flight guardrails (run BEFORE any state change):
-1. **Stale-slice-branch check** (per /critique B5 ACCEPTED-PENDING — refuse if prior conflict-recovery left orphan branches): `git for-each-ref --format='%(refname)' refs/heads/slice/` — if any non-current `slice/*` branches return, STOP. Print: "Stale slice branches detected: `<list>`. These are artefacts of prior unresolved conflicts. Resolve manually (`git branch -d` each, after verifying merged) before retrying `--merge`."
+1. **Stale-slice-branch check** (per /critique B5 ACCEPTED-PENDING — refuse if prior conflict-recovery left orphan branches): `git for-each-ref --format='%(refname)' refs/heads/slice/` — if any non-current `slice/*` branches return, STOP. Print: "Stale slice branches detected: `<list>`. For legitimate post-PR-merge stragglers, run `/commit-slice --sync-after-pr` on each. For other artefacts of prior unresolved conflicts, resolve manually (`git branch -d` each, after verifying merged) before retrying `--merge`."
 2. **WT-clean check** (per /critique M5 ACCEPTED-PENDING — closes silent-WT-discard local-state-loss path): `git status --porcelain` MUST return empty. If non-empty, STOP. Print: "Uncommitted changes detected. Commit or stash before `--merge` (closes silent-WT-discard path)."
 
 Then the 5-step merge flow:
@@ -155,12 +177,95 @@ Then the 5-step merge flow:
 6. Show `git log -1` + `git log --graph --oneline -5` to confirm merge commit + slice attribution preserved.
 
 **Critical rules for `--merge`**:
-- NEVER `git push`, NEVER `git push --force`, NEVER remote-delete (push is a separate user-driven action).
+- NEVER `git push`, NEVER `git push --force`, NEVER remote-delete (push is a separate user-driven action — use `--push` for PR-based workflows).
 - NEVER `git branch -D` (force-delete) — safe-delete only.
 - NEVER auto-resolve merge conflicts.
 - NEVER `--no-verify` to bypass pre-commit hooks.
 
-Do NOT push. Push is a separate action with its own confirmation flow.
+Do NOT push. Push is a separate action with its own confirmation flow (use `--push`).
+
+#### Step 5c: With `--push` (per **ADR-020**, `methodology-changelog.md` v0.36.0 — PR-based workflow path)
+
+`--push` commits on the current slice branch and pushes to `origin/slice/NNN-<name>` for downstream PR creation. Never merges locally, never deletes the slice branch, never touches the default branch.
+
+Pre-flight guardrails (run BEFORE any state change):
+
+1. **WT-clean check**: `git status --porcelain` MUST return empty. If non-empty, STOP. Print: "Uncommitted changes detected. Commit or stash before `--push`."
+2. **Stale-slice-branch check**: `git for-each-ref --format='%(refname)' refs/heads/slice/` — if any non-current `slice/*` branches return, STOP. Print: "Stale slice branches detected: `<list>`. For legitimate post-PR-merge stragglers, run `/commit-slice --sync-after-pr` on each. For other artefacts, resolve manually before retrying `--push`."
+3. **Current-branch-is-slice-branch**: `git symbolic-ref --short HEAD` MUST start with `slice/`. Otherwise STOP. Print: "`--push` must be invoked from a `slice/*` branch; you are on `<current branch>`."
+4. **Origin-remote presence**: `git remote get-url origin` MUST succeed. If it fails, STOP. Print: "No `origin` remote configured. `/commit-slice --push` requires an `origin` remote; configure it (`git remote add origin <url>`) before retrying. `--push` never falls back to alternate remotes silently."
+
+Then the 5-step push flow:
+
+1. Show the message + show which files will be staged (`git status` before commit) on the current slice branch.
+2. Ask: "Confirm commit on `<current slice branch>`? (yes/no)" — on yes: `git add` the relevant files (source code touched in this slice — from build-log.md's "Files changed" section), then `git commit -m "..."` on the slice branch with the generated message.
+3. Ask: "Confirm push to `origin/<current slice branch>`? (yes/no)" — on yes: `git push -u origin slice/NNN-<name>` (first-push semantics; sets upstream tracking). NEVER `--force`, NEVER `--force-with-lease`. Two error sub-paths (per /critique M4 ACCEPTED-FIXED):
+   - **Non-ff push** (remote ref has diverged from local — typically rebase/amend after prior `--push`): STOP. Print: "Remote `origin/slice/NNN-<name>` has diverged from local. This typically means local history was rebased/amended after a prior push. Resolve manually (force-push intentionally via `git push --force-with-lease origin slice/NNN-<name>` if you confirm the rebase was correct, or `git pull --rebase` if remote has new commits). `/commit-slice --push` never force-pushes."
+   - **Fast-forward re-push** (remote ref exists and local is ahead by N commits): ASK explicit confirmation: "Remote ref `origin/slice/NNN-<name>` already exists and local is ahead by N commits. Confirm fast-forward re-push? (yes/no)" — on no: ABORT cleanly.
+4. On push success: display the PR-creation hint block.
+   - **GitHub.com origin remote** (URL matches `git@github.com:OWNER/REPO`, `https://github.com/OWNER/REPO[.git]`, or `ssh://git@github.com/OWNER/REPO`): display BOTH:
+     - `gh pr create --base <default> --head slice/NNN-<name> --web` (command form — works for any `gh`-supported host including GitHub Enterprise via `gh` config)
+     - `https://github.com/OWNER/REPO/compare/<default>...slice/NNN-<name>` (raw browser-openable compare URL)
+   - **Non-GitHub.com remotes** (GitLab, Bitbucket, GitHub Enterprise custom-host — Enterprise URL derivation deferred per ADR-020 to follow-on slice `add-github-enterprise-url-derivation`): display ONLY `gh pr create --base <default> --head slice/NNN-<name> --web` + a note "Or open the PR via your hosting UI (compare URL format varies per platform — slice's out-of-scope for multi-remote URL derivation in v1)."
+5. Show `git log -1 origin/slice/NNN-<name>` to confirm remote received the commit.
+
+**What `--push` does NOT do**: NOT `git checkout <default>`, NOT `git merge`, NOT `git branch -d`, NOT remote-delete. The slice branch stays present locally and remotely until the PR is merged and `/commit-slice --sync-after-pr` is invoked. `--push` is NOT merged locally and NOT deleted; default branch is NOT touched.
+
+**Critical rules for `--push`**:
+- NEVER `git push --force`, NEVER `git push --force-with-lease` (force-push remains user-driven manual action).
+- NEVER auto-create the PR via `gh pr create` execution — display the command/URL only.
+- NEVER push to a remote other than `origin`.
+- NEVER `--no-verify` to bypass pre-commit hooks.
+
+#### Step 5d: With `--sync-after-pr` (per **ADR-020**, `methodology-changelog.md` v0.36.0 — post-PR-merge local cleanup path)
+
+`--sync-after-pr` is the resolution path for the PR-based workflow: dev ran `--push`, opened PR, reviewers approved, PR merged on GitHub, origin slice branch auto-deleted. `--sync-after-pr` detects the merged state and cleans up local default + slice branch.
+
+`--sync-after-pr` SKIPS Steps 1-4 (no commit message is generated — the PR has already been merged externally; this mode is local-state cleanup only).
+
+Pre-flight guardrails (run BEFORE any state change):
+
+1. **WT-clean check**: `git status --porcelain` MUST return empty. If non-empty, STOP. Print: "Uncommitted changes detected. Commit or stash before `--sync-after-pr`."
+2. **Current-branch-is-slice-branch**: `git symbolic-ref --short HEAD` MUST start with `slice/`. Otherwise STOP. Print: "`--sync-after-pr` must be invoked from the slice branch you intend to clean up; you are on `<current branch>`."
+3. **Origin-remote presence**: `git remote get-url origin` MUST succeed (same as `--push`).
+4. **Slice branch has upstream tracking**: `git rev-parse --abbrev-ref --symbolic-full-name @{u}` MUST succeed (i.e., `--push` was run for this branch previously). Otherwise STOP. Print: "Slice branch has no upstream — was `/commit-slice --push` ever run? Use `/commit-slice --merge` for solo workflows or `--push` to push first."
+
+Then the cleanup flow:
+
+1. **Sync remote refs**: `git fetch --prune origin <default> slice/NNN-<name>` (explicit refspec per /critique M1 ACCEPTED-FIXED — Signal B requires fresh local view of `origin/<default>`; the explicit form ensures it regardless of remote.fetch config).
+2. **Resolve default branch** (per BRANCH-1 canonical helper — same N=3 surfaces as `--merge` + `--push`):
+   ```
+   default=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+   [ -z "$default" ] && default=$(git config init.defaultBranch 2>/dev/null)
+   # STOP if neither resolves
+   ```
+3. **Two-signal merged-state detection**:
+   - **Signal A**: `git ls-remote --exit-code origin slice/NNN-<name>` returns non-zero (remote branch absent — pruned because PR merged and remote auto-deleted).
+   - **Signal B (two-pass — per /critique B2 ACCEPTED-FIXED + /critique-review M-add-5 ACCEPTED-FIXED — handles GitHub squash-merge of N>1-commit slice branches)**:
+     - **Pass 1 (per-commit cherry-pick equivalence)**: `git cherry origin/<default> slice/NNN-<name>` returns no lines starting with `+` → Signal B=YES (every commit individually represented; covers plain merge-commit + rebase-merge + cherry-pick-equivalence + single-commit-squash).
+     - **Pass 2 (aggregate-tree-diff fallback, when Pass 1 reports `+` lines)**: compute `BASE=$(git merge-base origin/<default> slice/NNN-<name>)`; build the slice's full file-set `FILES=$(git diff --name-only BASE..slice/NNN-<name>)`. Three guards apply:
+       - **Empty-FILES guard** (closes data-loss false-YES path): if `FILES` is empty (slice net-changes nothing — e.g., file added then removed, or intermediate-commit churn nets to zero) → Signal B Pass 2 = **NO**; STOP with diagnostic "Slice has empty net file-set — `--sync-after-pr` cannot verify merge via Pass 2. Manually verify PR-merged state and use `git branch -D` only if confirmed."
+       - **Perf bound** (closes unbounded-scan path): Pass 2 scan is bounded to the most recent N=500 commits on `BASE..origin/<default>`. If `BASE..origin/<default>` exceeds 500 commits → STOP with diagnostic "Slice base is older than 500 commits behind `origin/<default>` (long-lived slice on busy default). Pass 2 scan exceeds perf bound. Manually verify PR-merged state via your PR UI and `git log origin/<default>` inspection, then use `git branch -D slice/NNN-<name>` after confirmation."
+       - **Predicate** (after both guards pass): for each commit C on `BASE..origin/<default>` (within the 500-commit bound) check whether C's **touched-file set is a superset of `FILES`** (touched ⊇ FILES — allows GitHub conflict-resolution to touch additional files during the PR merge) AND C's **tree-state at the paths in `FILES`** (intersection only) equals `slice/NNN-<name>^{tree}` at those same paths. If ANY such C exists → Signal B Pass 2 = **YES** (squash-merge detected; the matching C is the squash commit). Else → Signal B Pass 2 = **NO**.
+   - **Both signals MUST agree YES** → proceed to cleanup flow.
+   - **Signal A=NO** (remote branch still exists at `origin/slice/NNN-<name>`): STOP. Print: "Remote slice branch still exists at `origin/slice/NNN-<name>`. PR may be open / unmerged / approved-but-not-merged. Resolve via your PR UI before retrying `--sync-after-pr`."
+   - **Signal B=NO** (neither Pass 1 nor Pass 2 matched — commits NOT yet on `origin/<default>`): STOP. Print: "Slice branch's commits are NOT yet on `origin/<default>`. PR likely not merged yet. Re-run after PR is merged. (Detected via `git cherry` Pass 1 + aggregate-tree-diff Pass 2 — both failed.)"
+   - **Signal A=YES + Signal B=NO has two common causes** (per /critique M5 ACCEPTED-FIXED): (1) PR commits don't represent the slice branch's full work — verify via `git log origin/<default>` vs `git log slice/...` AND aggregate-tree-diff at `FILES`; (2) abandoned/force-deleted PR where commits were never merged. STOP regardless and ask user to disambiguate via the printed `git diff` hints.
+4. **Cleanup flow**: ask: "Slice branch's PR appears merged + remote-deleted. Confirm local cleanup (checkout `<default>` + pull --ff-only + safe-delete `slice/NNN-<name>`)? (yes/no)" — on no: ABORT cleanly.
+5. On yes: `git checkout <default>` → `git pull --ff-only origin <default>` (explicit `--ff-only` per /critique B1 ACCEPTED-FIXED — `git pull`'s default is MERGE not ff-only; if pull is non-ff or conflicts, STOP and leave repo state intact per slice-021's NEVER-auto-resolve rule) → `git branch -d slice/NNN-<name>` (safe-delete; if `-d` refuses, STOP and print "Safe-delete refused — branch has unmerged commits. Inspect with `git log <default>..slice/NNN-<name>`. Do NOT use `-D` without understanding what's being discarded.").
+6. Show `git log -1` + `git log --graph --oneline -5` to confirm local default branch advanced past the merged slice commits.
+
+If `git checkout <default>` fails because `<default>` is already checked out in another worktree, STOP and print git's stderr + add: "Resolve via `git worktree remove <conflicting-path>` if intentional, or run `--sync-after-pr` from the worktree where `<default>` lives."
+
+**What `--sync-after-pr` does NOT do**: NOT a new commit (skips Steps 1-4), NOT a push, NOT a force-pull. It is local-state-cleanup AFTER an external PR merge.
+
+**Critical rules for `--sync-after-pr`**:
+- NEVER `git branch -D` (force-delete) — safe-delete only; if `-d` refuses, STOP with diagnostic.
+- NEVER auto-resolve merge/rebase conflicts during `git pull --ff-only` — STOP, leave repo in conflicted state.
+- NEVER omit the explicit `--ff-only` flag from `git pull` — `git pull`'s default is MERGE, which would silently create a merge commit on the local default branch.
+- NEVER omit the explicit fetch refspec — Signal B requires fresh local view of `origin/<default>`.
+- NEVER skip the two-signal AND (Signal A AND Signal B both YES) — destructive `git branch -d` requires both signals confirming.
+- NEVER `--no-verify` to bypass pre-commit hooks.
 
 ### Step 6: Handle edge cases
 
