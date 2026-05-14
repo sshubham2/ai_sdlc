@@ -747,7 +747,7 @@ The auto-generated `./CLAUDE.md` (project root, ~20 lines) is supposed to catch 
 → `/repro "<issue description>"` first. It writes a failing test that reproduces the bug, confirms it actually fails, adds it to `shippability.md`, then hands off. Now run `/slice "fix <issue>"` — the fix slice's AC is "make the test pass," and the test lives in the regression catalog forever so this bug can't come back silently. Skip `/repro` only for typos/one-liners.
 
 ### "I finished a slice — how do I write a good commit?"
-→ `/commit-slice`. Pulls from mission-brief / build-log / validation / ADRs and produces a conventional-commit-style message with slice folder reference, ACs passed, Critic blockers addressed, ADR IDs, shippability entry. Use `/commit-slice --do-commit` to also execute `git add` + `git commit` (confirmation required).
+→ `/commit-slice`. Pulls from mission-brief / build-log / validation / ADRs and produces a conventional-commit-style message with slice folder reference, ACs passed, Critic blockers addressed, ADR IDs, shippability entry. Use `/commit-slice --merge` (per BRANCH-1, methodology v0.35.0) to commit on the current slice branch + no-ff merge back to the resolved default branch + safe-delete the slice branch (with explicit confirmation at each checkpoint).
 
 ### "Compliance requirement just emerged"
 → `/triage --re-triage` → mode upgrade to Heavy → `/heavy-architect` (yes, even mid-project — it can read existing slices and produce comprehensive vault retroactively, though some component descriptions become reverse-engineered)

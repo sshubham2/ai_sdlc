@@ -1699,3 +1699,96 @@ def test_adr_018_exists_and_names_bfrd_1_canonical_phrase():
         f"methodology-changelog + SKILL.md prose) is broken at the "
         f"ADR-018 surface"
     )
+
+
+# --- Slice-021 / BRANCH-1 branch-per-slice workflow ---
+# Per /critique-rerun M-add-2 ACCEPTED-FIXED: canonical ADR-pin test function
+# name is `test_adr_019_branch_per_slice_workflow_exists_and_links_to_branch_1`
+# (harmonized across mission-brief TF-1 plan + design.md Command cell + here).
+
+_V035 = "0.35.0"
+
+
+def test_v_0_35_0_branch_1_entry_present_in_repo_and_installed():
+    """v0.35.0 BRANCH-1 entry exists in both in-repo + installed methodology-
+    changelog.md.
+
+    Defect class: if the in-repo and installed copies diverge, Claude reads
+    stale prose at /status or /slice invocation. Bidirectional pin enforced
+    by reading both files and asserting both contain the v0.35.0 entry
+    header AND the BRANCH-1 rule ID.
+
+    Rule reference: BRANCH-1 (slice-021 AC #5).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V035}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V035} entry "
+            f"header — slice-021 BRANCH-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V035)
+        assert "BRANCH-1" in body, (
+            f"{surface_name} v{_V035} entry body missing rule-ID 'BRANCH-1' — "
+            f"entry-pin broken at the rule-ID layer"
+        )
+
+
+def test_v_0_35_0_branch_1_entry_names_three_sub_modes_in_repo_and_installed():
+    """v0.35.0 entry body names ALL three BRANCH-1 sub-modes — (a) build-time
+    branch-create, (b) commit-time `--merge` flow, (c) audit-time pre-finish
+    refusal.
+
+    Defect class: future slice strips one of the sub-modes; entry becomes
+    N<3 surface schema-pin and the 3-sub-mode discipline regresses.
+    Rule reference: BRANCH-1 (slice-021 AC #5).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    body = _extract_version_body(in_repo, _V035)
+    sub_mode_anchors = (
+        "Sub-mode (a)",
+        "Sub-mode (b)",
+        "Sub-mode (c)",
+        "build-time branch-create",
+        "commit-time",  # --merge flow
+        "audit-time pre-finish refusal",
+    )
+    present = [a for a in sub_mode_anchors if a in body]
+    assert len(present) >= 5, (
+        f"v{_V035} BRANCH-1 entry body missing sub-mode anchors; "
+        f"found {len(present)} of {len(sub_mode_anchors)}: {present}. "
+        f"Required: at least 5 of {sub_mode_anchors!r}"
+    )
+
+
+def test_adr_019_branch_per_slice_workflow_exists_and_links_to_branch_1():
+    """ADR-019 file exists at architecture/decisions/ADR-019-*.md AND
+    contains the canonical phrase `branch-per-slice workflow` AND the
+    BRANCH-1 rule reference pinned per slice-013/014/015/016/017/019/020
+    ADR-pin convention N=6 → N=7 stable.
+
+    Defect class: future slice renames ADR-019 or strips the canonical
+    phrase from its body; N-surface schema-pin breaks at the ADR
+    surface.
+    Rule reference: BRANCH-1 (slice-021 AC #5 — ADR-019 surface of
+    N-surface canonical-phrase pin).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-019-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-019 file at "
+        f"architecture/decisions/ADR-019-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "branch-per-slice workflow" in adr_content, (
+        f"ADR-019 ({adr_files[0].name}) missing canonical phrase "
+        f"'branch-per-slice workflow' — N-surface schema-pin is broken "
+        f"at the ADR-019 surface"
+    )
+    assert "BRANCH-1" in adr_content, (
+        f"ADR-019 ({adr_files[0].name}) missing BRANCH-1 rule reference — "
+        f"ADR must link to the codified rule"
+    )

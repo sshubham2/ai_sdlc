@@ -94,7 +94,7 @@ All 22 skills are drop-in Claude Code skills at `skills/<name>/SKILL.md` with pr
 | [/critic-calibrate](skills/critic-calibrate/SKILL.md) | all | Meta-skill: every 10-20 slices, analyze "Missed by Critic" patterns across recent reflections and propose targeted updates to `critique/SKILL.md`. Human reviews; never auto-applies. Closes the Critic feedback loop systematically |
 | [/status](skills/status/SKILL.md) | all | Orientation: compact macro-state summary (mode, active slice + stage, risk exposure, regression health, Critic calibration status, recommended next action). Use at session start, after time away, for handoff |
 | [/repro](skills/repro/SKILL.md) | all | Bug-fix discipline: write failing test that reproduces the issue, confirm it fails, add to shippability.md BEFORE running `/slice` for the fix. Bug can't silently return once fixed |
-| [/commit-slice](skills/commit-slice/SKILL.md) | all | Generate audit-grade commit message from slice artifacts (mission-brief + build-log + validation + ADRs). Conventional-commit format; Heavy mode adds sign-off + compliance lines. Optional `--do-commit` executes |
+| [/commit-slice](skills/commit-slice/SKILL.md) | all | Generate audit-grade commit message from slice artifacts (mission-brief + build-log + validation + ADRs). Conventional-commit format; Heavy mode adds sign-off + compliance lines. Optional `--merge` (per BRANCH-1) commits to current slice branch + no-ff merges back to default branch + safe-deletes slice branch |
 
 ## Vault structure (thin vault)
 

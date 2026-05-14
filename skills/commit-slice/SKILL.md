@@ -1,8 +1,8 @@
 ---
 name: commit-slice
-description: "Generate an audit-grade commit message from a just-completed slice's vault artifacts. Pulls subject/body/refs from mission-brief.md, build-log.md, validation.md, and new ADRs. Produces conventional-commit-style output with slice folder reference, ADR IDs, AC count, Critic blockers addressed, and shippability entry — no hand-crafting required. Run right before committing code (after /reflect, which auto-archives the slice). Trigger phrases: '/commit-slice', 'generate commit message', 'audit commit', 'slice commit message'."
+description: "Generate an audit-grade commit message from a just-completed slice's vault artifacts. Pulls subject/body/refs from mission-brief.md, build-log.md, validation.md, and new ADRs. Produces conventional-commit-style output with slice folder reference, ADR IDs, AC count, Critic blockers addressed, and shippability entry — no hand-crafting required. Run right before committing code (after /reflect, which auto-archives the slice). With --merge: commits to current slice branch + no-ff merges back to default branch + safe-deletes the slice branch (per BRANCH-1 sub-mode (b)). Trigger phrases: '/commit-slice', 'generate commit message', 'audit commit', 'slice commit message', '/commit-slice --merge'."
 user_invokable: true
-argument-hint: [--do-commit]
+argument-hint: [--merge]
 ---
 
 # /commit-slice — Audit-Grade Commit from Vault
@@ -20,9 +20,9 @@ Heavy mode benefits most — compliance trails want consistent commit format ref
 ## Argument modes
 
 - `/commit-slice` — generate the message, show it to user, user copies to `git commit -m`
-- `/commit-slice --do-commit` — generate + run `git add` + `git commit` with the message
+- `/commit-slice --merge` — generate + run `git add` + `git commit` on the current slice branch + no-ff merge into default branch + safe-delete the slice branch (per **BRANCH-1** sub-mode (b))
 
-Default: generate only. `--do-commit` requires user confirmation before executing git commands.
+Default: generate only. `--merge` requires user confirmation at multiple checkpoints before executing git commands; see Step 5 for the 5-step flow.
 
 ## Prerequisite check
 
@@ -38,7 +38,7 @@ If no slice artifacts found: stop. Tell user to run `/reflect` first (or if mid-
 
 Default: most recently archived slice (highest slice number in `slices/archive/`).
 
-If `--do-commit` and multiple uncommitted slices exist: ask user which to commit (or commit them in order, one per commit).
+If `--merge` and multiple uncommitted slices exist: ask user which to commit (or commit them in order, one per commit).
 
 ### Step 2: Read vault artifacts
 
@@ -78,7 +78,7 @@ Per **COST-1** (cost-optimized model selection — `methodology-changelog.md` v0
 - Use the Agent tool with `subagent_type: "general-purpose"` and `model: haiku`.
 - Hand the agent a structured input dict gathered in Step 2: `{type, scope, slice_id, slice_path, intent_one_line, body_2_3_sentences, ac_pass, ac_total, critic_blockers, adrs, shippability_entry_n, shippability_entry_text, deferrals, regressions, mode, do_commit_flag}`.
 - Hand the agent the template + example below as the spec it fills.
-- The agent returns the commit message string. Main thread either presents it (default) or runs `git add` + `git commit -m` (Step 5 with `--do-commit`).
+- The agent returns the commit message string. Main thread either presents it (default) or runs the 5-step merge flow (Step 5 with `--merge`).
 
 The main thread does not generate the message text — Haiku does. The main thread is responsible for input gathering (Step 2) and execution (Step 5).
 
@@ -126,7 +126,7 @@ Compliance: <applicable frameworks from non-functional.md>
 
 ### Step 5: Present or execute
 
-**Default (no `--do-commit`)**: Show the message to user with instruction:
+**Default (no flag)**: Show the message to user with instruction:
 
 ```
 Copy this to your commit command:
@@ -139,12 +139,26 @@ EOF
 
 Note: HEREDOC format to preserve newlines and special characters.
 
-**With `--do-commit`**: 
-1. Show the message
-2. Show which files will be staged (git status before commit)
-3. Ask: "Confirm commit? (yes/no)"
-4. On yes: `git add` the relevant files (source code touched in this slice — from build-log.md's "Files changed" section), then `git commit` with the message
-5. Show `git log -1` to confirm
+**With `--merge`** (per **BRANCH-1** sub-mode (b), `methodology-changelog.md` v0.35.0):
+
+Pre-flight guardrails (run BEFORE any state change):
+1. **Stale-slice-branch check** (per /critique B5 ACCEPTED-PENDING — refuse if prior conflict-recovery left orphan branches): `git for-each-ref --format='%(refname)' refs/heads/slice/` — if any non-current `slice/*` branches return, STOP. Print: "Stale slice branches detected: `<list>`. These are artefacts of prior unresolved conflicts. Resolve manually (`git branch -d` each, after verifying merged) before retrying `--merge`."
+2. **WT-clean check** (per /critique M5 ACCEPTED-PENDING — closes silent-WT-discard local-state-loss path): `git status --porcelain` MUST return empty. If non-empty, STOP. Print: "Uncommitted changes detected. Commit or stash before `--merge` (closes silent-WT-discard path)."
+
+Then the 5-step merge flow:
+
+1. Show the message + show which files will be staged (`git status` before commit) on the current slice branch.
+2. Ask: "Confirm commit on `<current slice branch>`? (yes/no)" — on yes: `git add` the relevant files (source code touched in this slice — from build-log.md's "Files changed" section), then `git commit -m "..."` on the slice branch with the generated message.
+3. Resolve default branch (per **BRANCH-1** + /critique M1 ACCEPTED-PENDING — no hard-coded `master`/`main`): `default=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')`; fallback `default=$(git config init.defaultBranch)`. STOP if neither resolves. Then `git checkout $default` + `git merge --no-ff slice/NNN-<name> -m "Merge slice/NNN-<name>: <intent>"`. If conflict: STOP. Leave default-branch in conflicted state. Print: "Merge conflict at `<files>`. Resolve manually, then `git commit` to finalize the merge. Do NOT re-run `/commit-slice --merge` post-conflict — the slice branch will linger; cleanup is manual in v1 (recovery flow deferred to follow-on slice `add-merge-conflict-recovery-to-commit-slice-merge`)."
+4. Ask explicit confirmation (per /critique M5 ACCEPTED-PENDING — closes unrecoverable-without-push local-state-loss path): "Confirm merge + delete? (yes/no)" — on no: ABORT skill cleanly, leave merged slice branch present for user inspection.
+5. `git branch -d slice/NNN-<name>` (safe-delete, local only; NEVER `-D`; if `-d` refuses, STOP and print: "Safe-delete refused (branch has unmerged commits). Inspect with `git log <default>..slice/NNN-<name>`. Do NOT use `-D` without understanding what's being discarded.").
+6. Show `git log -1` + `git log --graph --oneline -5` to confirm merge commit + slice attribution preserved.
+
+**Critical rules for `--merge`**:
+- NEVER `git push`, NEVER `git push --force`, NEVER remote-delete (push is a separate user-driven action).
+- NEVER `git branch -D` (force-delete) — safe-delete only.
+- NEVER auto-resolve merge conflicts.
+- NEVER `--no-verify` to bypass pre-commit hooks.
 
 Do NOT push. Push is a separate action with its own confirmation flow.
 
@@ -159,7 +173,7 @@ Do NOT push. Push is a separate action with its own confirmation flow.
 
 - NEVER fabricate content. Every field comes from an actual vault file.
 - If a field is missing (e.g., no critique.md in Minimal mode): say "Critic: skipped (Minimal mode)" not omit.
-- With `--do-commit`: always show the message + staged files BEFORE committing. Wait for explicit "yes."
+- With `--merge`: always show the message + staged files BEFORE committing on the slice branch; show the merge plan BEFORE `git checkout <default>`; show the safe-delete plan BEFORE `git branch -d`. Wait for explicit "yes" at each checkpoint.
 - NEVER `--no-verify`. Pre-commit hooks (like `/drift-check`) exist for a reason; don't bypass.
 - NEVER push. Push requires user decision.
 - CONSISTENT FORMAT. Every slice's commit looks the same shape. Audit tools scan for these patterns.
@@ -208,5 +222,5 @@ Reproduction test added: tests/bugs/test_receipt_upload_heic_timeout.py
 
 ## Next step
 
-- Message shown → user commits (or skill commits with `--do-commit`)
+- Message shown → user commits (or skill commits + merges + safe-deletes with `--merge`)
 - After commit: next slice begins via `/slice` (or `/status` to re-orient)

@@ -22,6 +22,29 @@ Runs after `/critique` blockers + majors are addressed. Output: working code + t
 - If `critique.md` doesn't exist (Standard or Heavy mode): stop, run `/critique` first
 - **Run TPHD-1 pre-flight harmonization** (per `methodology-changelog.md` v0.32.0 sub-mode (c)): scan the mission-brief TF-1 plan table; for each row, verify (a) the Test path exists or will be created at the right path, (b) the Test function name will match what gets built. The /critique + /critique-review fix-prose may have changed test function names or AC row references without harmonizing the TF-1 plan in the same fix block (sub-modes (a) + (b) defend at fix-prose time; sub-mode (c) is the prerequisite-check defense-in-depth layer). Flag any drift to user for fix BEFORE Step 1 plan-mode entry. This closes the function-name-staleness audit gap that `tools/test_first_audit.py --strict-pre-finish` does not detect (status-only check per slice-017 /critique B1 ACCEPTED-FIXED).
 
+### Branch state
+
+Per **BRANCH-1** (`methodology-changelog.md` v0.35.0): branch-per-slice workflow runs at /build-slice as a structural prerequisite (NOT a new Step — slice-021 follows slice-017 TPHD-1 sub-mode (c) precedent of placing prerequisite-class disciplines under `## Prerequisite check` rather than creating a numbered Step 0). The slice's own commits live on a dedicated `slice/NNN-<slice-name>` branch; `/commit-slice --merge` integrates them back at slice end.
+
+Resolve the repo's default branch at runtime (per /critique M1 ACCEPTED-PENDING — replaces hard-coded `master`/`main` for cross-project portability):
+
+```bash
+# Primary resolution
+default=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+# Fallback if no origin remote
+[ -z "$default" ] && default=$(git config init.defaultBranch 2>/dev/null)
+# STOP if neither resolves
+```
+
+Then apply the branch-create logic:
+
+1. **If on default branch** (HEAD == resolved default): `git checkout -b slice/NNN-<slice-name>` from current HEAD. Switch is immediate; WT must be clean.
+2. **If `slice/NNN-<slice-name>` already exists** (resume after session death): `git checkout slice/NNN-<slice-name>`.
+3. **If on any other branch** (including stale `slice/<other-number>-*` from prior conflict): STOP, ask user to switch to default branch or document `BRANCH=skip` escape-hatch in `build-log.md` Events per Step 7c canonical shape.
+4. **If working tree is dirty** (`git status --porcelain` non-empty): STOP, ask user to commit or stash. NO auto-stash.
+
+The canonical `BRANCH=skip` escape-hatch line shape (Step 7c-pinned): `<YYYY-MM-DD HH:MM> DEVIATION: BRANCH=skip — rationale: <text>`. The `tools/branch_workflow_audit.py` (BRANCH-1) audit at Step 6 pre-finish refuses anything else.
+
 ## Your task
 
 ### Step 1: Load full slice context
@@ -103,8 +126,26 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **Wiring matrix audit passes (WIRE-1)** — see "Wiring matrix audit" below
 - [ ] **Build-checks audit passes (BC-1)** — see "Build-checks audit" below
 - [ ] **Test-first audit passes (TF-1)** — see "Test-first audit" below (only when `**Test-first**: true`)
+- [ ] **Branch workflow audit passes (BRANCH-1)** — see "Branch workflow audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
+
+#### Branch workflow audit (BRANCH-1)
+
+Per **BRANCH-1** (`methodology-changelog.md` v0.35.0 sub-mode (c)): the slice's commits MUST live on a `slice/NNN-<slice-name>` branch matching the active slice (created at the `## Prerequisite check ### Branch state` sub-section above). Run:
+
+```bash
+$PY -m tools.branch_workflow_audit architecture/slices/slice-NNN-<name>
+```
+
+Refusal semantics:
+- `on-default-branch`: current branch is the resolved default branch AND no canonical `BRANCH=skip` escape-hatch line in `build-log.md` Events.
+- `slice-branch-mismatch`: current branch is `slice/<wrong-number>-<wrong-name>` (doesn't match active slice).
+- `escape-hatch-malformed`: a `BRANCH=skip` line is present but doesn't conform to the canonical regex `^- \d{4}-\d{2}-\d{2} \d{2}:\d{2} DEVIATION: BRANCH=skip\b.+rationale: .+` (HH:MM + `rationale:` token required per Step 7c canonical shape).
+- `default-branch-unresolvable`: neither `git symbolic-ref refs/remotes/origin/HEAD` nor `git config init.defaultBranch` resolves (exit 2 usage error).
+- `stale-slice-branch`: lingering `slice/*` branches detected from prior `--merge` conflict-recovery (warning class — surfaces but doesn't refuse).
+
+Default-branch resolution mirrors the `## Prerequisite check ### Branch state` sub-section logic.
 
 #### Test-first audit (TF-1)
 
@@ -237,6 +278,8 @@ Updates during build:
 - `2026-05-03 14:30 SMOKE: mid-slice run on Pixel 7`
 - `2026-05-03 14:32 FINDING: version footer half-hidden by nav bar — screenshot pending`
 - `2026-05-03 14:33 ERROR: screenshot read failed (binary corruption); finding still valid via manual inspection`
+
+**Canonical `BRANCH=skip` sub-shape** (per **BRANCH-1**, `methodology-changelog.md` v0.35.0 sub-mode (a) — narrows the empirically-permissive parent DEVIATION convention for audit-quality): when documenting a deliberate skip of BRANCH-1's branch-create discipline, the DEVIATION line MUST conform to this exact shape: `<YYYY-MM-DD HH:MM> DEVIATION: BRANCH=skip — rationale: <text>` (HH:MM required; `rationale:` token required; text is non-empty). `tools/branch_workflow_audit.py` escape-hatch grep accepts only this shape via the regex `^- \d{4}-\d{2}-\d{2} \d{2}:\d{2} DEVIATION: BRANCH=skip\b.+rationale: .+`. Example: `2026-05-14 20:14 DEVIATION: BRANCH=skip — rationale: trivial 1-line typo fix per CLAUDE.md hard-rule exception`.
 
 Keep entries to one line each. Detailed evidence (full command output, stack traces, screenshot paths) goes in the Summary section at slice end. The events section is the trace; the summary is the report.
 
