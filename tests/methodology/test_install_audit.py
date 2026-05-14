@@ -300,3 +300,22 @@ def test_pyproject_toml_declares_tools_package():
     assert 'name = "ai-sdlc-tools"' in text
     assert 'packages = ["tools"]' in text
     assert "build-backend" in text
+
+
+# --- Slice-021 / BRANCH-1 INST-1 enumeration ---
+
+
+def test_install_audit_enumerates_branch_workflow_audit():
+    """INST-1 canonical inventory `_CANONICAL_TOOLS` must enumerate the new
+    `tools.branch_workflow_audit` per slice-021 AC #5.
+
+    Defect class: a slice ships a new audit but forgets to add it to
+    INST-1's canonical list; PMI-1 + INST-1 drift produces partial
+    installs where the audit is on disk but not validated as part of
+    the install.
+    Rule reference: INST-1 (slice-021 AC #5).
+    """
+    assert "tools.branch_workflow_audit" in _CANONICAL_TOOLS, (
+        f"`tools.branch_workflow_audit` must be in INST-1 _CANONICAL_TOOLS "
+        f"per slice-021 AC #5; current list: {_CANONICAL_TOOLS!r}"
+    )

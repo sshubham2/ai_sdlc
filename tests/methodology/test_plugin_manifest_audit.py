@@ -210,3 +210,26 @@ def test_actual_repo_plugin_yaml_in_sync():
         f"plugin.yaml has non-version violations: "
         f"{[(v.kind, v.message) for v in non_version]}"
     )
+
+
+# --- Slice-021 / BRANCH-1 PMI-1 enumeration ---
+
+
+def test_plugin_yaml_lists_branch_workflow_audit():
+    """plugin.yaml `tools:` list must enumerate the new `branch_workflow_audit`
+    per slice-021 AC #5.
+
+    Defect class: a slice ships a new audit but forgets to add it to
+    plugin.yaml; PMI-1 orphan-tool finding fires + downstream marketplace
+    consumers see a tool missing from the manifest.
+    Rule reference: PMI-1 (slice-021 AC #5).
+    """
+    plugin_yaml_text = (REPO_ROOT / "plugin.yaml").read_text(encoding="utf-8")
+    plugin_yaml_data = yaml.safe_load(plugin_yaml_text)
+    tools = plugin_yaml_data.get("tools", [])
+    # plugin.yaml entries use `path:` + `rule:` shape (no `id:` field).
+    tool_paths = [t.get("path") if isinstance(t, dict) else t for t in tools]
+    assert "tools/branch_workflow_audit.py" in tool_paths, (
+        f"plugin.yaml `tools:` must enumerate `tools/branch_workflow_audit.py` "
+        f"per slice-021 AC #5; current tools paths: {tool_paths!r}"
+    )

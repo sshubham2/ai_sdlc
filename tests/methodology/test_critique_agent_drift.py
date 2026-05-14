@@ -222,3 +222,30 @@ def test_repo_root_without_plugin_yaml_or_install_md_exits_usage_error(tmp_path:
         f"so the user knows what's wrong; full output:\n"
         f"{result.stdout}\n{result.stderr}"
     )
+
+
+# --- Slice-021 / BRANCH-1 CAD-1 vacuous-clean check ---
+
+
+def test_critique_agent_drift_audit_clean_at_slice_021_ship():
+    """At slice-021 ship, CAD-1 audit MUST be clean on the actual repo —
+    slice-021 does NOT touch `agents/critique.md` (Critic-agent content-
+    equality discipline invariant preserved at slice-017 ship hash).
+
+    Defect class: a future slice accidentally edits agents/critique.md
+    (e.g., via /critic-calibrate ACCEPTED proposal); CAD-1 byte-equality
+    diverges between in-repo and installed.
+    Rule reference: CAD-1 (slice-021 AC #5 + Must-not-defer).
+    """
+    result = subprocess.run(
+        [sys.executable, "-m", "tools.critique_agent_drift_audit", "--repo-root", str(REPO_ROOT)],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+    assert result.returncode == 0, (
+        f"CAD-1 audit returned non-zero at slice-021 ship — slice-021 must NOT "
+        f"touch agents/critique.md per Must-not-defer; output:\n"
+        f"stdout: {result.stdout}\n"
+        f"stderr: {result.stderr}"
+    )

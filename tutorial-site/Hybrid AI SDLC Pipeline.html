@@ -580,7 +580,7 @@ ul.compact li strong { color: var(--text); }
     </article>
     <article class="skill">
       <h4>/commit-slice <span class="mode-tag">all</span></h4>
-      <p>Generates an audit-grade commit message from the slice's vault artifacts (mission-brief / build-log / validation / new ADRs). Conventional-commit format with slice folder reference, AC count, Critic blockers addressed, ADR IDs, shippability entry. <code>--do-commit</code> executes <code>git add</code> + <code>git commit</code> with confirmation.</p>
+      <p>Generates an audit-grade commit message from the slice's vault artifacts (mission-brief / build-log / validation / new ADRs). Conventional-commit format with slice folder reference, AC count, Critic blockers addressed, ADR IDs, shippability entry. <code>--merge</code> (per BRANCH-1, methodology v0.35.0) commits on the current slice branch + no-ff merges back to the resolved default branch + safe-deletes the slice branch (explicit confirmation at each checkpoint).</p>
       <p class="triggers">Triggers: /commit-slice, "audit commit"</p>
     </article>
   </div>
