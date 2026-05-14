@@ -1792,3 +1792,143 @@ def test_adr_019_branch_per_slice_workflow_exists_and_links_to_branch_1():
         f"ADR-019 ({adr_files[0].name}) missing BRANCH-1 rule reference — "
         f"ADR must link to the codified rule"
     )
+
+
+# --- Slice-022 / ADR-020 PR-aware /commit-slice modes ---
+# Per /build-slice TPHD-1 sub-mode (c) Prerequisite-check 2026-05-15:
+# ADR-020 tests live in test_methodology_changelog.py per slice-013→021
+# ADR-pin convention N=7 → N=8 stable (NOT a separate `test_adr_020_*.py` file).
+# Per /critique-review M-add-1 ACCEPTED-FIXED: ADR-020 supersession encoding is
+# one-directional (`supersedes: ADR-019` frontmatter slot); ADR-019 stays
+# unmodified per append-only; SUP-1 does NOT apply to ADRs.
+
+_V036 = "0.36.0"
+
+
+def test_v_0_36_0_pr_aware_commit_slice_entry_present_in_repo_and_installed():
+    """v0.36.0 PR-aware /commit-slice entry exists in both in-repo + installed
+    methodology-changelog.md.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge, Claude
+    reads stale prose at /status or /slice. Enforced by reading both and
+    asserting both contain the v0.36.0 entry header AND the canonical phrase.
+
+    Rule reference: slice-022 AC #5 (methodology-changelog v0.36.0 entry).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V036}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V036} entry "
+            f"header — slice-022 PR-aware /commit-slice entry was not added or "
+            f"was lost"
+        )
+        body = _extract_version_body(content, _V036)
+        assert "3-mode PR-aware /commit-slice taxonomy" in body, (
+            f"{surface_name} v{_V036} entry body missing canonical phrase "
+            f"'3-mode PR-aware /commit-slice taxonomy' — entry-pin broken at "
+            f"the canonical-phrase layer"
+        )
+
+
+def test_v_0_36_0_entry_names_three_modes_in_repo_and_installed():
+    """v0.36.0 entry body names all 3 modes (`--merge`, `--push`,
+    `--sync-after-pr`) AND the partial supersession scope (ADR-020 supersedes
+    ADR-019 sub-mode (b) only; sub-modes (a) + (c) unchanged).
+
+    Defect class: future slice strips a mode reference from the entry; the
+    3-mode taxonomy regresses at the documentation surface.
+
+    Rule reference: slice-022 AC #5 + ADR-020.
+    """
+    in_repo = read_file("methodology-changelog.md")
+    body = _extract_version_body(in_repo, _V036)
+    mode_anchors = ("--merge", "--push", "--sync-after-pr")
+    for anchor in mode_anchors:
+        assert anchor in body, (
+            f"v{_V036} entry body missing mode anchor {anchor!r} — "
+            f"3-mode taxonomy is incomplete in the changelog entry"
+        )
+    # Partial supersession scope anchors.
+    supersession_anchors = ("ADR-020", "ADR-019", "sub-mode (b)")
+    for anchor in supersession_anchors:
+        assert anchor in body, (
+            f"v{_V036} entry body missing supersession anchor {anchor!r} — "
+            f"partial supersession of ADR-019 sub-mode (b) only is unclear"
+        )
+
+
+def test_adr_020_exists_and_supersedes_adr_019():
+    """ADR-020 file exists at architecture/decisions/ADR-020-*.md AND has
+    frontmatter `supersedes: ADR-019` (one-directional encoding per ADR family
+    convention; ADR-019 stays unmodified per append-only).
+
+    Defect class: future slice strips the supersession link OR mistakenly edits
+    ADR-019 to add a `superseded-by:` field (violating append-only). Test pins
+    the canonical one-directional shape.
+
+    Rule reference: slice-022 AC #4 + /critique-review M-add-1 ACCEPTED-FIXED
+    (SUP-1 does NOT apply to ADRs; ADR family convention is one-directional).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-020-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-020 file at "
+        f"architecture/decisions/ADR-020-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    # Forward link: ADR-020 must declare it supersedes ADR-019.
+    assert "supersedes: ADR-019" in adr_content, (
+        f"ADR-020 ({adr_files[0].name}) missing `supersedes: ADR-019` "
+        f"frontmatter slot — one-directional supersession encoding broken"
+    )
+    # ADR-019 must NOT carry a reverse `superseded-by:` field (ADR family
+    # convention is one-directional; append-only respected).
+    adr_019_files = list(decisions_dir.glob("ADR-019-*.md"))
+    assert len(adr_019_files) == 1, (
+        f"Expected exactly one ADR-019 file; found {len(adr_019_files)}"
+    )
+    adr_019_content = adr_019_files[0].read_text(encoding="utf-8")
+    assert "superseded-by:" not in adr_019_content, (
+        f"ADR-019 ({adr_019_files[0].name}) carries `superseded-by:` field — "
+        f"violates append-only discipline AND ADR family one-directional "
+        f"convention (SUP-1 applies to /supersede-slice for archived-slice "
+        f"reflection.md links, NOT ADRs; per slice-022 /critique-review M-add-1)"
+    )
+
+
+def test_adr_020_documents_three_mode_taxonomy():
+    """ADR-020 body documents the 3-mode taxonomy (`--merge`, `--push`,
+    `--sync-after-pr`) AND the partial supersession scope (sub-mode (b) only;
+    sub-modes (a) + (c) unchanged).
+
+    Defect class: future slice strips a mode reference OR misrepresents the
+    supersession scope (e.g., claims ADR-020 fully supersedes ADR-019); ADR
+    canonical content regresses.
+
+    Rule reference: slice-022 AC #4.
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-020-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-020 file at "
+        f"architecture/decisions/ADR-020-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    mode_anchors = ("--merge", "--push", "--sync-after-pr")
+    for anchor in mode_anchors:
+        assert anchor in adr_content, (
+            f"ADR-020 ({adr_files[0].name}) missing mode anchor {anchor!r} — "
+            f"3-mode taxonomy incomplete"
+        )
+    # Partial-supersession scope anchors.
+    scope_anchors = ("sub-mode (a)", "sub-mode (b)", "sub-mode (c)")
+    for anchor in scope_anchors:
+        assert anchor in adr_content, (
+            f"ADR-020 ({adr_files[0].name}) missing sub-mode anchor "
+            f"{anchor!r} — partial supersession scope unclear"
+        )
