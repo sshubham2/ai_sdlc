@@ -280,3 +280,14 @@ In Standard / Minimal mode: thin vault applies. Per-slice design writes only `sl
 ## Next step
 
 `/critique` — adversarial review by separate Critic AI persona.
+
+## Pipeline position
+
+- **predecessor**: `/slice`
+- **successor**: `/critique`
+- **auto-advance**: true
+- **on-clean-completion**: once design.md + any ADRs are written, invoke `/critique` via the Skill tool without waiting for the user. (If the slice is low-tier with `critic-required: false`, the chain still routes through `/critique`, which self-skips per its own mode/tier gate and auto-advances onward.)
+- **user-input gates** (halt auto-advance — surface to user, resume only on explicit user action):
+  - Real design ambiguity → Step 2 clarifying questions (≤4) — HALT. No clean-path plan-mode here (plan mode belongs to `/build-slice`).
+
+> Per PCA-1 (methodology-changelog.md v0.41.0). The `## Next step` section above is the human-readable companion; this block is the machine-actionable auto-advance directive. Manual invocation remains supported.

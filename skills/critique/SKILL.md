@@ -126,6 +126,8 @@ Per **TPHD-1** (`methodology-changelog.md` v0.32.0), when applying ACCEPTED-FIXE
 
 Per **TRI-1** (`methodology-changelog.md` v0.11.0), the user is the final triage authority — the Builder cannot override the Critic alone. This step is the explicit ratification gate.
 
+> **PCA-1 gate-halt (v0.41.0)**: TRI-1 is an enumerated user-input gate. When the pipeline is auto-advancing, DO NOT auto-advance through this step — surface the reconciled findings + Builder drafts to the user and HALT. Resume only on explicit user ratification.
+
 Present the user with a compact summary of every finding + the Builder's draft disposition + a one-line rationale (or fix reference). Format:
 
 ```
@@ -196,6 +198,8 @@ After Step 4.5 (user-owned triage per TRI-1) sets the final verdict and disposit
 - Final verdict **CLEAN** → proceed to `/build-slice`
 - Final verdict **NEEDS-FIXES** → Builder applies ACCEPTED-PENDING fixes during `/build-slice`; ACCEPTED-FIXED items already settled; OVERRIDDEN/DEFERRED items recorded but don't block
 - Final verdict **BLOCKED** → at least one finding ESCALATED; do not run `/build-slice`. Re-run `/design-slice` (redesign) or `/risk-spike` (investigate the unknown that prompted the escalation)
+
+> **PCA-1 gate-halt (v0.41.0)**: BLOCKED is an enumerated user-input gate. DO NOT auto-advance — surface to the user and HALT; the chain resumes only after the user directs redesign / `/risk-spike` and `/critique` is re-run.
 
 The triage_audit (`tools/triage_audit.py`) validates verdict-pattern consistency before this gate runs. Mismatch (e.g., ACCEPTED-PENDING present but verdict declared CLEAN) is a refusal — the user re-runs Step 4.5 with corrected verdict or corrected dispositions.
 
@@ -292,3 +296,15 @@ If the agent prompt needs tuning (e.g., `/critic-calibrate` proposes additions),
 
 - CLEAN or NEEDS-FIXES (after triage ratifies dispositions) → `/build-slice`
 - BLOCKED → revise design (or run `/risk-spike` for an unknown), re-run `/critique`
+
+## Pipeline position
+
+- **predecessor**: `/design-slice`
+- **successor**: `/critique-review`
+- **auto-advance**: true
+- **on-clean-completion**: verdict-dependent. After the Critic returns and Builder drafts are written, invoke `/critique-review` via the Skill tool (mandatory in Standard mode for methodology surfaces). After `/critique-review` returns, present Step 4.5 TRI-1 (HALT). Post-TRI-1: on CLEAN or NEEDS-FIXES invoke `/build-slice`; on BLOCKED do NOT auto-advance — revise design (or `/risk-spike`) then re-run `/critique` (a `/critique`→`/critique` self-loop). The flat `successor:` models only the primary `/critique-review` edge; the post-TRI-1 and BLOCKED hops live in this prose and the PCA-1 audit does not flag them.
+- **user-input gates** (halt auto-advance — surface to user, resume only on explicit user action):
+  - Step 4.5 TRI-1 user-owned triage — **HALT (always, by methodology — the Builder cannot self-ratify dispositions; the user is final triage authority)**.
+  - Verdict BLOCKED (any ESCALATED disposition) — HALT (redesign / `/risk-spike`, then re-run `/critique`).
+
+> Per PCA-1 (methodology-changelog.md v0.41.0). The `## Next step` section above is the human-readable companion; this block is the machine-actionable auto-advance directive. Manual invocation remains supported.

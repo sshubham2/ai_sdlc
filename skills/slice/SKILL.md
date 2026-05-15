@@ -394,3 +394,15 @@ Expected: <outcome>. If fails: STOP, diagnose, don't continue.
 ## Next step
 
 `/design-slice` — turn the mission brief into a just-enough spec.
+
+## Pipeline position
+
+- **predecessor**: `/reflect` (or `/discover` for slice 1 — loop entry)
+- **successor**: `/design-slice`
+- **auto-advance**: true
+- **on-clean-completion**: once the mission brief + milestone.md are written AND a candidate is settled (user supplied explicit `/slice "<intent>"`, picked from the ranked list, or said "you pick"/autonomous), invoke `/design-slice` via the Skill tool without waiting for the user.
+- **user-input gates** (halt auto-advance — surface to user, resume only on explicit user action):
+  - Candidate selection — HALT unless the user supplied explicit intent OR said "you pick"/autonomous (Step 3 / Step 3b).
+  - BFRD-1 bug-fix STOP-route (Step 3c) — HALT and route the user to `/repro` first.
+
+> Per PCA-1 (methodology-changelog.md v0.41.0). The `## Next step` section above is the human-readable companion; this block is the machine-actionable auto-advance directive read at skill-completion. Manual single-skill invocation remains fully supported — auto-advance fires only on clean completion with no pending user-input gate.

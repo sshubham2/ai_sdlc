@@ -143,3 +143,14 @@ For now (v1), Heavy mode users should ALWAYS invoke `/critique-review` after `/c
 ## Next step
 
 `/critique` Step 4.5 (TRI-1 user-owned triage). Reconcile findings from both passes when setting dispositions per finding.
+
+## Pipeline position
+
+- **predecessor**: `/critique`
+- **successor**: `/critique`
+- **auto-advance**: true
+- **on-clean-completion**: once critique-review.md is written and the structural audit is clean, hand back to `/critique` Step 4.5 (TRI-1) so the user reconciles BOTH passes. The successor edge points to `/critique`; auto-advance carries control back to that skill, where the TRI-1 user-input gate then HALTs.
+- **user-input gates** (halt auto-advance — surface to user, resume only on explicit user action):
+  - (none on this skill's own clean path) — its non-clean / Builder-Critic-disagreement output is NOT auto-advanced past anything; it is reconciled AT `/critique` Step 4.5 TRI-1, the already-enumerated HALT.
+
+> Per PCA-1 (methodology-changelog.md v0.41.0). The `## Next step` section above is the human-readable companion; this block is the machine-actionable auto-advance directive. Manual invocation remains supported.

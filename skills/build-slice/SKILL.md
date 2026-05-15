@@ -102,6 +102,8 @@ The plan should be:
 
 Present the plan to the user. Wait for approval or revisions.
 
+> **PCA-1 gate-halt (v0.41.0)**: plan-mode approval is an enumerated user-input gate. DO NOT auto-advance into Step 4 execution — present the plan and HALT for explicit user sign-off, even when the pipeline is otherwise auto-advancing.
+
 If user requests changes: revise the plan, re-present.
 
 If the plan reveals the design is wrong: STOP. Tell the user: "Design says X. Code reality requires Y. Stop and revise design, or proceed with a deviation?"
@@ -127,6 +129,8 @@ When ~50% of plan is done, run the mid-slice smoke gate from mission brief on a 
 
 If smoke fails: STOP. Diagnose. Don't continue building on a broken base. Often the right move is to revise the plan.
 
+> **PCA-1 gate-halt (v0.41.0)**: a mid-slice smoke-gate failure is an enumerated user-input gate. DO NOT auto-advance — STOP, surface the failure + diagnosis to the user, and HALT. Auto-advance on a broken base is forbidden.
+
 ### Step 6: Pre-finish gate
 
 Before declaring slice done, ALL of these must be true:
@@ -143,6 +147,7 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **Branch workflow audit passes (BRANCH-1)** — see "Branch workflow audit" below
 - [ ] **UTF-8 stdout audit passes (UTF8-STDOUT-1)** — see "UTF-8 stdout audit" below
 - [ ] **Critique-review prerequisite audit passes (CRP-1)** — see "Critique-review prerequisite audit" below
+- [ ] **Pipeline-chain audit passes (PCA-1)** — see "Pipeline-chain audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
 
@@ -181,7 +186,7 @@ Refusal semantics:
 
 Exclusion list: `__init__.py` + leading-underscore helpers (e.g., `tools/_stdout.py`) — neither has `main()`; both are out of scope by structural convention. The PMI-1 audit's `_list_actual_tools` filter mirrors this exclusion to prevent `orphan-tool` false positives.
 
-Self-application: `tools/utf8_stdout_audit.py` itself conforms; the audit run on the post-slice-023 codebase returns `tools_scanned: 17, tools_with_main: 17, tools_clean: 17`.
+Self-application: `tools/utf8_stdout_audit.py` itself conforms; the audit run on the post-slice-027 codebase returns `tools_scanned: 20, tools_with_main: 20, tools_clean: 20` (slice-027 added `tools/pipeline_chain_audit.py`, which conforms — `_stdout.reconfigure_stdout_utf8()` is the first statement of its `main()`).
 
 #### Critique-review prerequisite audit (CRP-1)
 
@@ -194,6 +199,24 @@ $PY -m tools.critique_review_prerequisite_audit architecture/slices/slice-NNN-<n
 Refusal semantics: `mandatory-critique-review-absent` (Important, exit 1) — mode ∈ {STANDARD, HEAVY} AND `critic-required: true` AND `critique-review.md` absent AND no canonical `critique-review-skip` key; `escape-hatch-malformed` (Important, exit 1) — key present, value off-canonical; `usage-error` / `mode-unresolvable` (exit 2). CRP-1 is an **audit-enforced gate** (NON-`-D` per ADR-019; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1) — its programmatic gate is `tools/critique_review_prerequisite_audit.py`.
 
 Bootstrap (slice-026 only, per ADR-024): slice-026 authors CRP-1; at slice-026's Step 6 the audit IS run against slice-026's own folder and MUST exit 0 (self-application discharge — `/critique-review` having been run on slice-026).
+
+#### Pipeline-chain audit (PCA-1)
+
+Per **PCA-1** (`methodology-changelog.md` v0.41.0): every covered pipeline skill MUST carry a well-formed `## Pipeline position` block whose declared successor edge matches the canonical per-slice loop, and the terminal boundary (`reflect` + `commit-slice`) MUST be `auto-advance: false` so `/commit-slice` is never auto-invoked. Run:
+
+```bash
+$PY -m tools.pipeline_chain_audit
+```
+
+Refusal semantics:
+- `malformed-block` (Important, exit 1): a covered skill's `## Pipeline position` section is absent or a required field (`predecessor`/`successor`/`auto-advance`/`on-clean-completion`/`user-input gates`) is missing/unparseable.
+- `successor-mismatch` (Important, exit 1): a declared `successor:` ≠ the canonical chain successor.
+- `auto-advance-mismatch` (Important, exit 1): a declared `auto-advance:` ≠ canonical — including the terminal guarantee that `reflect` and `commit-slice` are `false`.
+- `usage-error` (exit 2): repo root unresolvable, `skills/` dir or a covered SKILL.md missing.
+
+PCA-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1) — its programmatic gate is `tools/pipeline_chain_audit.py`. The audit reads the flat `successor:` field for chain-shape only; the documented `/critique` post-TRI-1 → `/build-slice` hop and `/critique`→`/critique` BLOCKED self-loop live in `on-clean-completion` prose and are NOT flagged (per slice-027 /critique-review m-add-1).
+
+Bootstrap (slice-027 only, per [[ADR-025]]): slice-027 authors PCA-1; the `## Pipeline position` directive does not exist on disk during slice-027's own loop (the chain ran manually per the user's at-invocation directive). At slice-027's Step 6 the audit IS run against the repo and MUST exit 0 (self-application discharge — `/critique-review` having been run on slice-027). Every slice after 027 inherits a self-gating PCA-1.
 
 #### Test-first audit (TF-1)
 
@@ -423,3 +446,16 @@ Brief carries discipline. Plan mode carries groundedness. This avoids the "500-l
 ## Next step
 
 `/validate-slice` — reality check against real device / user / data.
+
+## Pipeline position
+
+- **predecessor**: `/critique` (post-TRI-1, on CLEAN/NEEDS-FIXES)
+- **successor**: `/validate-slice`
+- **auto-advance**: true
+- **on-clean-completion**: once the pre-finish gate fully passes (all ACs, must-not-defer, drift-check, all Step 6 audits incl. PCA-1) and build-log.md is written, invoke `/validate-slice` via the Skill tool without waiting for the user.
+- **user-input gates** (halt auto-advance — surface to user, resume only on explicit user action):
+  - Plan-mode approval (Step 3 / ExitPlanMode) — HALT for explicit user plan sign-off before any code edits.
+  - Mid-slice smoke-gate failure (Step 5) — HALT, STOP, diagnose; do NOT auto-advance on a broken base.
+  - Design-is-wrong mid-build — HALT and surface ("design says X, code says Y; revise or deviate?").
+
+> Per PCA-1 (methodology-changelog.md v0.41.0). The `## Next step` section above is the human-readable companion; this block is the machine-actionable auto-advance directive. Manual invocation remains supported.

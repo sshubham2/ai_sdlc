@@ -2295,3 +2295,100 @@ def test_v_0_40_0_crp_1_shippability_consumer_propagation():
         "tools.critique_review_prerequisite_audit consumer — SCPD-1 "
         "propagation incomplete"
     )
+
+
+# --- Slice-027 / PCA-1 v0.41.0 entry-pin + shippability propagation ---
+
+_V041 = "0.41.0"
+
+
+def test_v_0_41_0_pca_1_entry_present_in_repo_and_installed():
+    """v0.41.0 PCA-1 entry exists in both in-repo + installed
+    methodology-changelog.md, with the canonical rule ID + canonical
+    phrase + the NON-`-D` audit-enforced-gate naming-class conformance
+    prose.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /status or /slice. Also pins the
+    audit-enforced / NON-`-D` (per ADR-019) conformance so a future edit
+    cannot silently reintroduce a `-D` naming-class contradiction.
+
+    Rule reference: slice-027 AC #5 (methodology-changelog v0.41.0 entry).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V041}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V041} entry "
+            f"header — slice-027 PCA-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V041)
+        assert "PCA-1" in body, (
+            f"{surface_name} v{_V041} entry body missing canonical rule ID "
+            f"'PCA-1' — entry-pin broken at the rule-ID layer"
+        )
+        assert "Pipeline position" in body, (
+            f"{surface_name} v{_V041} entry body missing canonical phrase "
+            f"'Pipeline position' — entry-pin broken at the canonical-phrase "
+            f"layer"
+        )
+        assert "audit-enforced gate" in body and "NON-`-D`" in body, (
+            f"{surface_name} v{_V041} entry body missing the audit-enforced / "
+            f"NON-`-D` naming-class conformance prose (per ADR-025 / ADR-019) "
+            f"— a `-D` naming-class contradiction could silently reappear"
+        )
+
+
+def test_v_0_41_0_pca_1_shippability_consumer_propagation():
+    """architecture/shippability.md carries a PCA-1 row whose Command cell
+    references the PCA-1 audit module (RPCD-1 / SCPD-1 consumer-reference
+    propagation).
+
+    Defect class: a new audit gate whose consumer references do not
+    propagate into the shippability catalog can silently regress without
+    /validate-slice catching it. SCPD-1 requires the propagation.
+
+    Rule reference: slice-027 AC #5 (shippability consumer propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "PCA-1" in catalog, (
+        "architecture/shippability.md missing a PCA-1 row — SCPD-1 "
+        "consumer-reference propagation broken"
+    )
+    assert "pipeline_chain_audit" in catalog, (
+        "architecture/shippability.md PCA-1 row does not reference the "
+        "tools.pipeline_chain_audit consumer — SCPD-1 propagation incomplete"
+    )
+
+
+def test_adr_025_present_and_reversibility_cheap():
+    """ADR-025 file exists at architecture/decisions/ADR-025-*.md AND has
+    frontmatter `reversibility: cheap` + names PCA-1 + canonical phrase.
+
+    Defect class: ADR-025 lost / renamed / scope-shifted; PCA-1 has no
+    canonical decision record.
+
+    Rule reference: slice-027 (ADR-025).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-025-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-025 file at "
+        f"architecture/decisions/ADR-025-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "reversibility: cheap" in adr_content, (
+        f"ADR-025 ({adr_files[0].name}) missing `reversibility: cheap` "
+        f"frontmatter field"
+    )
+    assert "PCA-1" in adr_content, (
+        f"ADR-025 ({adr_files[0].name}) missing canonical rule ID 'PCA-1' "
+        f"in body"
+    )
+    assert "Pipeline position" in adr_content, (
+        f"ADR-025 ({adr_files[0].name}) missing canonical phrase "
+        f"'Pipeline position' in body"
+    )
