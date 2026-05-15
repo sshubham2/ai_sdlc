@@ -2044,3 +2044,124 @@ def test_adr_020_documents_three_mode_taxonomy():
             f"ADR-020 ({adr_files[0].name}) missing sub-mode anchor "
             f"{anchor!r} — partial supersession scope unclear"
         )
+
+
+# =============================================================================
+# slice-024 v0.38.0 FBCD-1 entry-pins + ADR-022 pin
+# =============================================================================
+# Per FBCD-1 codification (methodology-changelog.md v0.38.0). These
+# entry-pin functions follow the EPGD-1 N=11 stable convention (slice-024
+# ADDS-only; 0 of 17 prior _entry_present_in_repo_and_installed-family functions
+# touched). ADR-pin follows the convention N=10 stable (NOT a separate
+# tests/decisions/ file).
+#
+# Section header `# --- Slice-024 / FBCD-1 entry pinning ---` deferred to the
+# `# ===` border + description comment style established at slice-021/022/023
+# (empirical reality vs design.md's `# ---` hint per CLAUDE.md "code is truth").
+
+
+_V038 = "0.38.0"
+
+
+def test_v_0_38_0_fbcd_1_entry_present_in_repo_and_installed():
+    """v0.38.0 FBCD-1 entry exists in both in-repo + installed
+    methodology-changelog.md.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge, Claude
+    reads stale prose at /status or /slice. Enforced by reading both and
+    asserting both contain the v0.38.0 entry header AND the canonical phrase.
+
+    Rule reference: slice-024 AC #3 (methodology-changelog v0.38.0 entry).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V038}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V038} entry "
+            f"header — slice-024 FBCD-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V038)
+        assert "FBCD-1" in body, (
+            f"{surface_name} v{_V038} entry body missing canonical rule ID "
+            f"'FBCD-1' — entry-pin broken at the rule-ID layer"
+        )
+        assert "Fix-block-completeness discipline" in body, (
+            f"{surface_name} v{_V038} entry body missing canonical phrase "
+            f"'Fix-block-completeness discipline' — entry-pin broken at the "
+            f"canonical-phrase layer"
+        )
+
+
+def test_v_0_38_0_fbcd_1_names_both_sub_modes():
+    """v0.38.0 entry body names both sub-modes of FBCD-1:
+    (a) Original-draft cross-file consistency + (b) Post-ACCEPTED-FIXED
+    sibling-sweep.
+
+    Defect class: future slice strips a sub-mode reference; the 2-sub-mode
+    codification regresses at the documentation layer.
+
+    Rule reference: slice-024 AC #3.
+    """
+    in_repo = read_file("methodology-changelog.md")
+    body = _extract_version_body(in_repo, _V038)
+    sub_mode_anchors = (
+        "Original-draft cross-file consistency",
+        "Post-ACCEPTED-FIXED sibling-sweep",
+    )
+    for anchor in sub_mode_anchors:
+        assert anchor in body, (
+            f"v{_V038} entry body missing sub-mode anchor {anchor!r} — "
+            f"two-sub-mode codification incomplete in the changelog entry"
+        )
+
+
+def test_v_0_38_0_fbcd_1_cites_slice_020_021_022_023():
+    """v0.38.0 entry body cites all 4 cross-slice anchors strict-4-of-4:
+    slice-020 + slice-021 + slice-022 + slice-023.
+
+    Defect class: future slice strips a cross-slice anchor; the N=4-distinct-
+    slice evidence base regresses at the documentation layer.
+
+    Rule reference: slice-024 AC #3.
+    """
+    in_repo = read_file("methodology-changelog.md")
+    body = _extract_version_body(in_repo, _V038)
+    cross_slice_anchors = ("slice-020", "slice-021", "slice-022", "slice-023")
+    for anchor in cross_slice_anchors:
+        assert anchor in body, (
+            f"v{_V038} entry body missing cross-slice anchor {anchor!r} — "
+            f"strict-4-of-4 N=4-distinct-slice evidence base incomplete"
+        )
+
+
+def test_adr_022_exists_and_names_fbcd_1_canonical_phrase():
+    """ADR-022 file exists at architecture/decisions/ADR-022-*.md AND has
+    frontmatter `reversibility: cheap` + names FBCD-1 + canonical phrase.
+
+    Defect class: ADR-022 lost / renamed / scope-shifted; FBCD-1 has no
+    canonical decision record.
+
+    Rule reference: slice-024 AC #4 (ADR-022).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-022-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-022 file at "
+        f"architecture/decisions/ADR-022-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "reversibility: cheap" in adr_content, (
+        f"ADR-022 ({adr_files[0].name}) missing `reversibility: cheap` "
+        f"frontmatter field"
+    )
+    assert "FBCD-1" in adr_content, (
+        f"ADR-022 ({adr_files[0].name}) missing canonical rule ID 'FBCD-1' "
+        f"in body"
+    )
+    assert "Fix-block-completeness discipline" in adr_content, (
+        f"ADR-022 ({adr_files[0].name}) missing canonical phrase "
+        f"'Fix-block-completeness discipline' in body"
+    )
