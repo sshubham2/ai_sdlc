@@ -19,6 +19,7 @@ from pathlib import Path
 import yaml
 
 from tests.methodology.conftest import REPO_ROOT
+from tools import plugin_manifest_audit
 from tools.plugin_manifest_audit import run_audit
 
 
@@ -232,4 +233,64 @@ def test_plugin_yaml_lists_branch_workflow_audit():
     assert "tools/branch_workflow_audit.py" in tool_paths, (
         f"plugin.yaml `tools:` must enumerate `tools/branch_workflow_audit.py` "
         f"per slice-021 AC #5; current tools paths: {tool_paths!r}"
+    )
+
+
+def test_plugin_yaml_lists_utf8_stdout_audit():
+    """plugin.yaml `tools:` list must enumerate `utf8_stdout_audit` per slice-023 AC #5.
+
+    Defect class: a slice ships a new audit but forgets to add it to
+    plugin.yaml; PMI-1 orphan-tool finding fires + downstream marketplace
+    consumers see a tool missing from the manifest.
+    Rule reference: UTF8-STDOUT-1 (slice-023 AC #5).
+    """
+    plugin_yaml_text = (REPO_ROOT / "plugin.yaml").read_text(encoding="utf-8")
+    plugin_yaml_data = yaml.safe_load(plugin_yaml_text)
+    tools = plugin_yaml_data.get("tools", [])
+    tool_paths = [t.get("path") if isinstance(t, dict) else t for t in tools]
+    assert "tools/utf8_stdout_audit.py" in tool_paths, (
+        f"plugin.yaml `tools:` must enumerate `tools/utf8_stdout_audit.py` "
+        f"per slice-023 AC #5; current tools paths: {tool_paths!r}"
+    )
+    # And the rule field must be UTF8-STDOUT-1
+    for entry in tools:
+        if isinstance(entry, dict) and entry.get("path") == "tools/utf8_stdout_audit.py":
+            assert entry.get("rule") == "UTF8-STDOUT-1", (
+                f"plugin.yaml utf8_stdout_audit entry must carry rule: "
+                f"UTF8-STDOUT-1; got {entry.get('rule')!r}"
+            )
+            break
+
+
+def test_list_actual_tools_filters_leading_underscore_helpers(tmp_path: Path):
+    """Per B2 ACCEPTED-PENDING at slice-023: `_list_actual_tools` MUST filter
+    leading-underscore helper modules (e.g., `tools/_stdout.py`).
+
+    Two assertions per /critique-review B2 sub-recommendation:
+    (a) Real repo: `_stdout.py` post-slice-023 ship is NOT in the listing.
+    (b) Synthetic fixture: any `tools/_<helper>.py` is NOT in the listing.
+
+    Defect class: PMI-1 orphan-tool violation fires on legitimate helper
+    modules that don't (and shouldn't) appear in plugin.yaml.
+    Rule reference: UTF8-STDOUT-1 + B2 ACCEPTED-PENDING (slice-023).
+    """
+    # Assertion (a): real repo
+    actual_real = plugin_manifest_audit._list_actual_tools(REPO_ROOT)
+    assert "tools/_stdout.py" not in actual_real, (
+        f"`_stdout.py` must be filtered (leading-underscore helper); "
+        f"got listing including: {[t for t in actual_real if t.startswith('tools/_')]}"
+    )
+
+    # Assertion (b): synthetic fixture
+    tools_dir = tmp_path / "tools"
+    tools_dir.mkdir()
+    (tools_dir / "__init__.py").write_text("", encoding="utf-8")
+    (tools_dir / "_helper.py").write_text("# leading-underscore helper\n", encoding="utf-8")
+    (tools_dir / "real_audit.py").write_text("def main(): pass\n", encoding="utf-8")
+    actual_synth = plugin_manifest_audit._list_actual_tools(tmp_path)
+    assert "tools/_helper.py" not in actual_synth, (
+        f"Synthetic `_helper.py` must be filtered; got: {actual_synth}"
+    )
+    assert "tools/real_audit.py" in actual_synth, (
+        f"Non-underscore tool must be included; got: {actual_synth}"
     )

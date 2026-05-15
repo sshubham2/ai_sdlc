@@ -49,6 +49,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
+from tools import _stdout
 
 # Date this rule shipped. NFR-1 carry-over.
 _ETC_1_RELEASE_DATE: date = date(2026, 5, 6)
@@ -420,6 +421,7 @@ def _format_human(result: AuditResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="exploratory_charter_audit",
         description="ETC-1 charter-based exploratory testing audit",

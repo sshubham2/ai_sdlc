@@ -42,6 +42,7 @@ import json
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from tools import _stdout
 
 
 @dataclass(frozen=True)
@@ -212,6 +213,7 @@ def _format_human(result: AuditResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="critique_agent_drift_audit",
         description=(

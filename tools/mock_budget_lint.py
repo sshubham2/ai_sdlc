@@ -38,6 +38,7 @@ import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
+from tools import _stdout
 
 
 # External boundary module stems where mocking is allowed per TDD-2.
@@ -812,6 +813,7 @@ def format_human(violations: list[LintViolation]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="mock_budget_lint",
         description=(

@@ -127,6 +127,7 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **Build-checks audit passes (BC-1)** — see "Build-checks audit" below
 - [ ] **Test-first audit passes (TF-1)** — see "Test-first audit" below (only when `**Test-first**: true`)
 - [ ] **Branch workflow audit passes (BRANCH-1)** — see "Branch workflow audit" below
+- [ ] **UTF-8 stdout audit passes (UTF8-STDOUT-1)** — see "UTF-8 stdout audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
 
@@ -146,6 +147,26 @@ Refusal semantics:
 - `stale-slice-branch`: lingering `slice/*` branches detected from prior `--merge` conflict-recovery (warning class — surfaces but doesn't refuse).
 
 Default-branch resolution mirrors the `## Prerequisite check ### Branch state` sub-section logic.
+
+#### UTF-8 stdout audit (UTF8-STDOUT-1)
+
+Per **UTF8-STDOUT-1** (`methodology-changelog.md` v0.37.0): every `tools/*.py` module exposing `def main(argv: list[str] | None = None) -> int:` MUST call `_stdout.reconfigure_stdout_utf8()` (from the canonical helper at `tools/_stdout.py`) as the first executable statement of `main()`. This retires the recurring Windows cp1252 console encoding class (N=6 cumulative recurrence across slices 007 / 016 / 018 / 020 / 021 / 022).
+
+Run:
+
+```bash
+$PY -m tools.utf8_stdout_audit
+```
+
+Refusal semantics:
+- Any audit tool's `main()` whose first executable statement is not `_stdout.reconfigure_stdout_utf8()` → exit 1 + violation.
+- Any audit tool missing the canonical import `from tools import _stdout` → exit 1 + violation.
+- `tools/` directory missing at resolved root → exit 2 + stderr.
+- SyntaxError parsing any `tools/*.py` → exit 2 + stderr.
+
+Exclusion list: `__init__.py` + leading-underscore helpers (e.g., `tools/_stdout.py`) — neither has `main()`; both are out of scope by structural convention. The PMI-1 audit's `_list_actual_tools` filter mirrors this exclusion to prevent `orphan-tool` false positives.
+
+Self-application: `tools/utf8_stdout_audit.py` itself conforms; the audit run on the post-slice-023 codebase returns `tools_scanned: 17, tools_with_main: 17, tools_clean: 17`.
 
 #### Test-first audit (TF-1)
 

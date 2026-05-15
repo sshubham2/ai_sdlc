@@ -319,3 +319,24 @@ def test_install_audit_enumerates_branch_workflow_audit():
         f"`tools.branch_workflow_audit` must be in INST-1 _CANONICAL_TOOLS "
         f"per slice-021 AC #5; current list: {_CANONICAL_TOOLS!r}"
     )
+
+
+def test_install_audit_enumerates_utf8_stdout_audit():
+    """INST-1 canonical inventory `_CANONICAL_TOOLS` must enumerate the new
+    `tools.utf8_stdout_audit` per slice-023 AC #5.
+
+    Defect class: a slice ships a new audit but forgets to add it to
+    INST-1's canonical list; PMI-1 + INST-1 drift produces partial
+    installs where the audit is on disk but not validated as part of
+    the install.
+    Rule reference: INST-1 (slice-023 AC #5).
+    """
+    assert "tools.utf8_stdout_audit" in _CANONICAL_TOOLS, (
+        f"`tools.utf8_stdout_audit` must be in INST-1 _CANONICAL_TOOLS "
+        f"per slice-023 AC #5; current list: {_CANONICAL_TOOLS!r}"
+    )
+    # And leading-underscore helper modules MUST NOT be enumerated (B2 ACCEPTED-PENDING).
+    assert "tools._stdout" not in _CANONICAL_TOOLS, (
+        f"`tools._stdout` is a helper (no main()); MUST NOT be in _CANONICAL_TOOLS "
+        f"per B2 ACCEPTED-PENDING at slice-023; current list: {_CANONICAL_TOOLS!r}"
+    )

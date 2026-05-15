@@ -37,6 +37,7 @@ import json
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from tools import _stdout
 
 # --- Canonical inventory for AI SDLC v0.20.0 ---
 # Paired with plugin.yaml; drift between the two is a test failure.
@@ -62,9 +63,12 @@ _CANONICAL_METADATA: tuple[str, ...] = (
     "methodology-changelog.md", "ai-sdlc-VERSION",
 )
 
-# The 16 tool modules in v0.35.0 (14 audits + lint + install_audit itself).
+# The 17 tool modules in v0.37.0 (15 audits + lint + install_audit itself).
 # Slice-007 added tools.critique_agent_drift_audit (CAD-1 — Critic Agent Drift).
 # Slice-021 added tools.branch_workflow_audit (BRANCH-1 — branch-per-slice workflow).
+# Slice-023 added tools.utf8_stdout_audit (UTF8-STDOUT-1 — default UTF-8 stdout
+# in audit tools); tools._stdout is a helper module (no main()) excluded from
+# this canonical list by leading-underscore convention.
 _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.branch_workflow_audit",
     "tools.build_checks_audit",
@@ -79,6 +83,7 @@ _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.supersede_audit",
     "tools.test_first_audit",
     "tools.triage_audit",
+    "tools.utf8_stdout_audit",
     "tools.validate_slice_layers",
     "tools.walking_skeleton_audit",
     "tools.wiring_matrix_audit",
@@ -336,6 +341,7 @@ def _format_human(result: AuditResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="install_audit",
         description="INST-1 install parity audit (~/.claude/ vs canonical inventory)",

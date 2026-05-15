@@ -51,6 +51,7 @@ import re
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from tools import _stdout
 
 # Field-line patterns
 _SUPERSEDES_RE = re.compile(
@@ -304,6 +305,7 @@ def _format_human(result: AuditResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="supersede_audit",
         description="SUP-1 slice supersession audit",

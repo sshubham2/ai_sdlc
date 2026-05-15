@@ -63,6 +63,7 @@ import re
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from tools import _stdout
 
 # H2 item heading: "## TM-NN -- title" / "## REQ-NN -- title" / "## NFR-NN -- title"
 _ITEM_HEADING_RE = re.compile(
@@ -358,6 +359,7 @@ def _format_human(result: AuditResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="cross_spec_parity_audit",
         description="CSP-1 cross-spec parity audit (Heavy mode only)",
