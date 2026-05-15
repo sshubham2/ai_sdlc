@@ -344,3 +344,14 @@ In Heavy mode (where `components/storage-service.md` exists): also update that f
 ## Next step
 
 `/slice` — define the next cut, informed by this slice's discoveries and deferrals.
+
+## Pipeline position
+
+- **predecessor**: `/validate-slice`
+- **successor**: `/commit-slice`
+- **auto-advance**: false
+- **on-clean-completion**: TERMINAL-BEFORE-COMMIT. Once reflection.md is written and the slice is auto-archived, do NOT auto-invoke `/commit-slice` — the user always invokes it manually. Present a concise hand-off ("slice complete; run `/commit-slice` to generate the audit-grade commit"). The `/reflect`→`/slice` next-slice kickoff is out of scope (a deliberate user decision).
+- **user-input gates** (halt auto-advance — surface to user, resume only on explicit user action):
+  - Terminal stop — the chain ALWAYS halts here. `/commit-slice` is user-invoked by contract.
+
+> Per PCA-1 (methodology-changelog.md v0.41.0). The `## Next step` section above is the human-readable companion; this block is the machine-actionable auto-advance directive. This is the auto-advance terminus: `/commit-slice` is never auto-invoked under any path.

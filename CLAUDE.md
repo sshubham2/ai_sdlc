@@ -24,6 +24,7 @@ If the change is more than a typo / single-line tweak / comment / local-variable
 - **Tests-first for bug fixes.** Reproduce with a failing test before fixing (run `/repro`).
 - **Graphify before wide changes.** `$PY -m graphify reachable --from=<file> --graph graphify-out/graph.json` to see blast radius. `$PY -m graphify blast-radius --from=<file>` for AST-derived impact.
 - **Branch-per-slice.** Per **BRANCH-1** (`methodology-changelog.md` v0.35.0): every `/build-slice` runs on a `slice/NNN-<slice-name>` branch created at the `## Prerequisite check ### Branch state` sub-section; `/commit-slice --merge` no-ff merges back to the resolved default branch + safe-deletes the slice branch. Escape-hatch via canonical `BRANCH=skip — rationale: <text>` DEVIATION line in build-log.md Events. `tools/branch_workflow_audit.py` enforces at Step 6 pre-finish.
+- **Pipeline auto-advance.** Per **PCA-1** (`methodology-changelog.md` v0.41.0): each in-loop skill carries a machine-actionable `## Pipeline position` block and, on clean completion with no pending user-input gate, auto-invokes its declared successor — the loop runs `/slice`→`/reflect` autonomously and HARD-STOPS before `/commit-slice` (always user-invoked). Fail-closed: enumerated user-input gates (TRI-1 triage, BLOCKED critique, plan-mode approval, mid-slice smoke failure, validate FAIL/PARTIAL) HALT the chain. `tools/pipeline_chain_audit.py` enforces the chain wiring at Step 6 pre-finish.
 
 ## Self-hosting discipline (specific to this repo)
 

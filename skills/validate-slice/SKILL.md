@@ -69,6 +69,8 @@ For FAIL or PARTIAL, classify the cause:
 - **Spec gap**: spec incomplete, can't actually deliver → don't fix yet; `/reflect` formally captures it
 - **Reality surprise**: neither predicted (e.g., HEIC EXIF issue) → log immediately to risk-register, `/reflect`
 
+> **PCA-1 gate-halt (v0.41.0)**: any per-criterion **FAIL** OR any **PARTIAL** (per-criterion or aggregate `Result: PARTIAL`) is an enumerated user-input gate. DO NOT auto-advance to `/reflect` — surface the FAIL/PARTIAL + cause classification to the user and HALT. PARTIAL is a user-decides-remediation state with the same disposition as FAIL (neither a provable clean PASS nor an enumerated FAIL → explicit gate, not catch-all-covered). Auto-advance to `/reflect` is permitted only on aggregate `Result: PASS`.
+
 ### Step 4: Multi-instance validation (if applicable)
 
 For features involving:
@@ -279,3 +281,15 @@ In Heavy mode, validation produces a compliance-grade record:
 ## Next step
 
 `/reflect` — capture what reality taught you.
+
+## Pipeline position
+
+- **predecessor**: `/build-slice`
+- **successor**: `/reflect`
+- **auto-advance**: true
+- **on-clean-completion**: once every acceptance criterion is PASS with evidence (aggregate `Result: PASS`) and validation.md is written, invoke `/reflect` via the Skill tool without waiting for the user.
+- **user-input gates** (halt auto-advance — surface to user, resume only on explicit user action):
+  - Any per-criterion **FAIL** — HALT (user decides remediation / failure classification).
+  - Any **PARTIAL** (per-criterion or aggregate `Result: PARTIAL`; the outcome is 3-valued PASS|PARTIAL|FAIL) — HALT. PARTIAL is a user-decides-remediation state, same disposition as FAIL; it is neither a provable clean PASS nor an enumerated FAIL, so it is an explicit gate per must-not-defer #1 (not catch-all-covered).
+
+> Per PCA-1 (methodology-changelog.md v0.41.0). The `## Next step` section above is the human-readable companion; this block is the machine-actionable auto-advance directive. Manual invocation remains supported.
