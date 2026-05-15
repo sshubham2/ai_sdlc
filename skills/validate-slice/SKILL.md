@@ -197,8 +197,13 @@ Before deciding next action, verify no past slice was silently broken by this on
 
 1. Read `architecture/shippability.md` — the catalog of critical-path tests from every past slice
 2. If the file doesn't exist (first slice, catalog empty): skip this step; `/reflect` will create the catalog
-3. Run each entry's **Command** column — execute it from project root
-4. Record PASS / FAIL per entry
+3. **Pre-catalog gate (PTFCD-1 sub-mode (b), `methodology-changelog.md` v0.39.0)**: BEFORE executing any catalog command, run
+   ```
+   $PY -m tools.shippability_path_audit architecture/shippability.md
+   ```
+   This verifies every `tests/<...>.py` token in every row's `Command` cell resolves to a file that exists on disk. If it exits non-zero (a phantom test-file citation — cf. slice-024 `test_shippability_catalog.py`), STOP: report the single PTFCD-1 violation and fix the catalog row's path before running the catalog. Running the catalog with a phantom citation produces N confusing per-row "file not found" FAILs that mask real regressions; this gate surfaces it as ONE clear violation. Do not proceed to step 4 until this exits 0.
+4. Run each entry's **Command** column — execute it from project root
+5. Record PASS / FAIL per entry
 
 If any entry FAILS:
 - The current slice broke something a past slice established

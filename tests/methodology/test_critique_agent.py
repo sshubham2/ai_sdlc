@@ -112,12 +112,12 @@ def test_critique_dim_4_has_methodology_audit_conformance_sub_bullet():
     assert "Algorithm-path-conformance with pre-existing branches" in CRITIQUE
 
 
-def test_critique_dim_9_lists_ten_sub_clauses():
-    """Dim 9 (Cross-cutting conformance) must enumerate all 10 sub-clause titles.
+def test_critique_dim_9_lists_eleven_sub_clauses():
+    """Dim 9 (Cross-cutting conformance) must enumerate all 11 sub-clause titles.
 
     Defect class: a Dim 9 body that drops sub-clauses loses the unified-pattern surface
     (e.g., dropping runtime-environment leaves slice-001-class misses without a home).
-    The 10 sub-clauses are: 3 cross-references to Dim 1/4 surgical sub-bullets +
+    The 11 sub-clauses are: 3 cross-references to Dim 1/4 surgical sub-bullets +
     2 N=1 standalone sub-clauses (runtime-environment, language-version) +
     1 N=3 meta-level sub-clause (recursive self-application discipline; slice-011) +
     1 N=2 Edit-discipline sub-clause (entry-pin-vs-PMI-1-gate semantics conflation;
@@ -127,15 +127,17 @@ def test_critique_dim_9_lists_ten_sub_clauses():
     1 N=3 runtime-prerequisite-completeness sub-clause (runtime-prerequisite completeness
     on proposed fixes; slice-016) +
     1 N=10-cumulative-cross-instance / N=4-distinct-slice fix-block-completeness sub-clause
-    (fix-block-completeness discipline; slice-024).
+    (fix-block-completeness discipline; slice-024) +
+    1 N=2-distinct-slice phantom-test-file-citation sub-clause (phantom test-file
+    citation discipline; slice-025).
 
-    Supersedes `test_critique_dim_9_lists_nine_sub_clauses` per PMI-1 versioned-gate
+    Supersedes `test_critique_dim_9_lists_ten_sub_clauses` per PMI-1 versioned-gate
     supersession discipline applied at the structural-invariant level (slice-011 N=1
-    precedent + slice-013 N=2 + slice-015 N=3 + slice-016 N=4 + slice-024 N=5 stable —
-    no two structural-invariant tests coexist).
+    precedent + slice-013 N=2 + slice-015 N=3 + slice-016 N=4 + slice-024 N=5 +
+    slice-025 N=6 stable — no two structural-invariant tests coexist).
 
     Rule reference: META-2 + CCC-1 + RSAD-1 (slice-011) + EPGD-1 (slice-013) + SCPD-1
-    (slice-015) + RPCD-1 (slice-016) + FBCD-1 (slice-024).
+    (slice-015) + RPCD-1 (slice-016) + FBCD-1 (slice-024) + PTFCD-1 (slice-025).
     """
     assert "Methodology-audit conformance" in CRITIQUE
     assert "Tooling-doc-vs-implementation parity" in CRITIQUE
@@ -147,6 +149,7 @@ def test_critique_dim_9_lists_ten_sub_clauses():
     assert "Shippability-catalog consumer-reference propagation" in CRITIQUE
     assert "Runtime-prerequisite completeness on proposed fixes" in CRITIQUE
     assert "Fix-block-completeness discipline" in CRITIQUE
+    assert "Phantom test-file citation discipline" in CRITIQUE
 
 
 def test_critique_dim_9_recursive_self_application_sub_clause_present():
@@ -176,7 +179,7 @@ def test_critique_dim_9_recursive_self_application_location_pinned():
     Rule reference: META-2 + CCC-1 + RSAD-1.
     """
     start_anchor = "Language-version conformance"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Phantom test-file citation discipline"
     canonical = "Recursive self-application discipline"
     start_idx = CRITIQUE.find(start_anchor)
     assert start_idx != -1, f"start anchor {start_anchor!r} not found"
@@ -307,7 +310,7 @@ def test_critique_dim_9_entry_pin_vs_pmi_1_gate_location_pinned():
     Rule reference: META-2 + CCC-1 + EPGD-1.
     """
     start_anchor = "Recursive self-application discipline"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Phantom test-file citation discipline"
     canonical = "Entry-pin-vs-PMI-1-gate semantics conflation"
     start_idx = CRITIQUE.find(start_anchor)
     assert start_idx != -1, f"start anchor {start_anchor!r} not found"
@@ -495,7 +498,7 @@ def test_critique_dim_9_shippability_catalog_propagation_location_pinned():
     Rule reference: META-2 + CCC-1 + SCPD-1.
     """
     start_anchor = "Entry-pin-vs-PMI-1-gate semantics conflation"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Phantom test-file citation discipline"
     canonical = "Shippability-catalog consumer-reference propagation"
     start_idx = CRITIQUE.find(start_anchor)
     assert start_idx != -1, f"start anchor {start_anchor!r} not found"
@@ -677,7 +680,7 @@ def test_critique_dim_9_runtime_prerequisite_completeness_location_pinned():
     Rule reference: META-2 + CCC-1 + RPCD-1.
     """
     start_anchor = "Shippability-catalog consumer-reference propagation"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Phantom test-file citation discipline"
     canonical = "Runtime-prerequisite completeness on proposed fixes"
     start_idx = CRITIQUE.find(start_anchor)
     assert start_idx != -1, f"start anchor {start_anchor!r} not found"
@@ -859,12 +862,18 @@ def test_critique_dim_9_fix_block_completeness_location_pinned():
 
     Location pin: sub-clause title MUST appear BETWEEN start anchor
     `Runtime-prerequisite completeness on proposed fixes` (the PREVIOUS sub-clause
-    title — FBCD-1 follows RPCD-1) AND end anchor `### Bonus: weak graph edges`.
+    title — FBCD-1 follows RPCD-1) AND end anchor `Phantom test-file citation
+    discipline` (the NEXT sub-clause title — PTFCD-1 follows FBCD-1). The
+    end_anchor was tightened from `### Bonus: weak graph edges` to the PTFCD-1
+    title at slice-025 per the slice-018 RPCD-1 sibling-scoping discipline so
+    this FBCD-1 body window stays scoped to FBCD-1 only after PTFCD-1's
+    insertion between FBCD-1 and the Bonus H3.
 
-    Rule reference: META-2 + CCC-1 + FBCD-1 (slice-024 AC #1).
+    Rule reference: META-2 + CCC-1 + FBCD-1 (slice-024 AC #1) + slice-025
+    sibling-scoping tightening.
     """
     start_anchor = "Runtime-prerequisite completeness on proposed fixes"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Phantom test-file citation discipline"
     canonical = "Fix-block-completeness discipline"
     start_idx = CRITIQUE.find(start_anchor)
     assert start_idx != -1, f"start anchor {start_anchor!r} not found"
@@ -894,7 +903,7 @@ def test_critique_dim_9_fix_block_completeness_names_both_sub_modes():
     Rule reference: META-2 + CCC-1 + FBCD-1 (slice-024 AC #1).
     """
     start_anchor = "Fix-block-completeness discipline"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Phantom test-file citation discipline"
     start_idx = CRITIQUE.find(start_anchor)
     assert start_idx != -1, f"sub-clause anchor {start_anchor!r} not found"
     end_idx = CRITIQUE.find(end_anchor, start_idx)
@@ -933,7 +942,7 @@ def test_critique_dim_9_fix_block_completeness_paragraph_cites_slice_020_021_022
     Rule reference: META-2 + CCC-1 + FBCD-1 (slice-024 AC #1).
     """
     start_anchor = "Fix-block-completeness discipline"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Phantom test-file citation discipline"
     start_idx = CRITIQUE.find(start_anchor)
     end_idx = CRITIQUE.find(end_anchor, start_idx)
     body = CRITIQUE[start_idx:end_idx]
@@ -977,7 +986,7 @@ def test_critique_dim_9_fix_block_completeness_cites_substantive_discipline_anch
     N=5 stable post-slice-024 + Wiegers regression-guard coverage symmetry).
     """
     start_anchor = "Fix-block-completeness discipline"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Phantom test-file citation discipline"
     start_idx = CRITIQUE.find(start_anchor)
     end_idx = CRITIQUE.find(end_anchor, start_idx)
     body = CRITIQUE[start_idx:end_idx]
@@ -997,6 +1006,117 @@ def test_critique_dim_9_fix_block_completeness_cites_substantive_discipline_anch
     assert sub_count >= 3, (
         f"insufficient substantive-discipline anchors — need ≥3 of {substantive}, "
         f"got {sub_count} in 10th sub-clause body"
+    )
+
+
+def test_critique_dim_9_phantom_test_file_citation_sub_clause_present():
+    """The new 11th Dim 9 sub-clause must carry the canonical literal title.
+
+    Defect class: a Dim 9 body with the substring but not as a sub-clause
+    title would silently pass without encoding the discipline structurally.
+    Bare-substring pin per slice-016 RPCD-1 + slice-024 FBCD-1
+    `_sub_clause_present` precedent; the location-pin test enforces position.
+
+    Rule reference: META-2 + CCC-1 + PTFCD-1 (slice-025 AC #3).
+    """
+    assert "Phantom test-file citation discipline" in CRITIQUE
+
+
+def test_critique_dim_9_phantom_test_file_citation_location_pinned():
+    """The new 11th sub-clause must fall between FBCD-1 (10th sub-clause)
+    and the Bonus H3.
+
+    Defect class: a future drift moving PTFCD-1 out of Dim 9 (e.g., into the
+    `### Bonus` section) would silently pass substring-only pins; the
+    location-pin guard catches it. Per slice-016/024 `_location_pinned`
+    scoped-find precedent.
+
+    Location pin: sub-clause title MUST appear BETWEEN start anchor
+    `Fix-block-completeness discipline` (the PREVIOUS sub-clause title —
+    PTFCD-1 follows FBCD-1) AND end anchor `### Bonus: weak graph edges`.
+
+    Rule reference: META-2 + CCC-1 + PTFCD-1 (slice-025 AC #3).
+    """
+    start_anchor = "Fix-block-completeness discipline"
+    end_anchor = "### Bonus: weak graph edges"
+    canonical = "Phantom test-file citation discipline"
+    start_idx = CRITIQUE.find(start_anchor)
+    assert start_idx != -1, f"start anchor {start_anchor!r} not found"
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    assert end_idx != -1, f"end anchor {end_anchor!r} not found AFTER {start_anchor!r}"
+    canonical_idx = CRITIQUE.find(canonical, start_idx, end_idx)
+    assert canonical_idx != -1, (
+        f"{canonical!r} not found between {start_anchor!r} and {end_anchor!r} "
+        f"in agents/critique.md — sub-clause location drifted"
+    )
+
+
+def test_critique_dim_9_phantom_test_file_citation_names_both_sub_modes():
+    """11th sub-clause body must name BOTH sub-modes (a) + (b).
+
+    Defect class: a body naming only one sub-mode loses coverage of one
+    citation surface (sub-mode (a) TF-1-plan-path existence at /build-slice
+    Step 6 + sub-mode (b) shippability-Command-cell-path existence at
+    /validate-slice Step 5.5). Two-sub-mode pin per slice-024 FBCD-1
+    `_names_both_sub_modes` precedent.
+
+    Rule reference: META-2 + CCC-1 + PTFCD-1 (slice-025 AC #3).
+    """
+    start_anchor = "Phantom test-file citation discipline"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    assert start_idx != -1, f"sub-clause anchor {start_anchor!r} not found"
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    assert end_idx != -1, f"end anchor {end_anchor!r} not found AFTER sub-clause start"
+    body = CRITIQUE[start_idx:end_idx]
+    assert "TF-1-plan-path existence" in body, (
+        "11th sub-clause body missing sub-mode (a) anchor "
+        "'TF-1-plan-path existence' — two-sub-mode pin broken"
+    )
+    assert "shippability-Command-cell-path existence" in body, (
+        "11th sub-clause body missing sub-mode (b) anchor "
+        "'shippability-Command-cell-path existence' — two-sub-mode pin broken"
+    )
+
+
+def test_critique_dim_9_phantom_test_file_citation_paragraph_cites_slice_023_024():
+    """11th sub-clause body must cite BOTH cross-slice anchors + ≥3
+    substantive-discipline anchors.
+
+    Defect class: descriptive sub-class text drifts unpinned to abstract
+    framings without concrete traceability. Pinned at N=2-distinct-slice
+    evidence (slice-023 B4 + slice-024).
+
+    Cross-slice anchors (strict-2-of-2): ["slice-023", "slice-024"] — both
+    MUST be present (one per distinct slice in PTFCD-1's N=2 evidence base).
+
+    Substantive-discipline anchors (≥3-of-4): ["missing-test-path-file",
+    "shippability", "test_first_audit", "RPCD-1"]. Pin at ≥3-of-4 to leave
+    one degree of freedom for future refinement.
+
+    Rule reference: META-2 + CCC-1 + PTFCD-1 (slice-025 AC #3).
+    """
+    start_anchor = "Phantom test-file citation discipline"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    body = CRITIQUE[start_idx:end_idx]
+    cross_slice = ["slice-023", "slice-024"]
+    substantive = [
+        "missing-test-path-file",
+        "shippability",
+        "test_first_audit",
+        "RPCD-1",
+    ]
+    cs_count = sum(1 for anchor in cross_slice if anchor in body)
+    sub_count = sum(1 for anchor in substantive if anchor in body)
+    assert cs_count == 2, (
+        f"strict-two cross-slice anchor requirement — need ALL of {cross_slice}, "
+        f"got {cs_count} present in 11th sub-clause body"
+    )
+    assert sub_count >= 3, (
+        f"insufficient substantive-discipline anchors — need ≥3 of {substantive}, "
+        f"got {sub_count} in 11th sub-clause body"
     )
 
 
