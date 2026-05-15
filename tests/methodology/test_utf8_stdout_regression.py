@@ -176,6 +176,28 @@ def test_critique_review_audit_survives_cp1252_with_u2192():
     _assert_no_encoding_error(proc, "tools.critique_review_audit")
 
 
+def test_shippability_path_audit_survives_cp1252_with_u2192(tmp_path):
+    """shippability_path_audit takes a positional catalog path (slice-025).
+
+    Synthetic catalog with U+2192 / U+2014 in the Critical-path cell and a
+    real test-path token in the Command cell exercises the tool's
+    stdout-emitting path under cp1252.
+    """
+    catalog = tmp_path / "shippability.md"
+    catalog.write_text(
+        "# Shippability Catalog\n\n"
+        "| # | Slice | Critical path | Command | Runtime |\n"
+        "|---|-------|--------------|---------|---------|\n"
+        "| 1 | slice-x | arrow → and em-dash — in path | "
+        "python -m pytest tests/methodology/test_stdout_helper.py -q | <1s |\n",
+        encoding="utf-8",
+    )
+    proc = _run_under_cp1252(
+        [PY, "-m", "tools.shippability_path_audit", str(catalog)],
+    )
+    _assert_no_encoding_error(proc, "tools.shippability_path_audit")
+
+
 def test_every_audit_tool_survives_cp1252_stdout_with_u2192_input():
     """Roll-up assertion (per slice-023 AC #4 + shippability row 23 invocation
     target): every audit tool under tools/ with a main() must complete under
@@ -186,14 +208,15 @@ def test_every_audit_tool_survives_cp1252_stdout_with_u2192_input():
     parametrize already provides the per-tool granularity; this test exists
     so shippability row 23 has a single named target.
     """
-    # Sentinel: all 17 audit tools exist
+    # Sentinel: all 18 audit tools exist (17 post-slice-023 + 1 post-slice-025
+    # tools.shippability_path_audit per PTFCD-1 sub-mode (b)).
     tools_dir = REPO_ROOT / "tools"
     actual_audits = sorted(
         p.stem for p in tools_dir.glob("*.py")
         if not p.name.startswith("_") and p.name != "__init__.py"
     )
-    assert len(actual_audits) == 17, (
-        f"Expected 17 audit tools post-slice-023; got {len(actual_audits)}: {actual_audits}"
+    assert len(actual_audits) == 18, (
+        f"Expected 18 audit tools post-slice-025; got {len(actual_audits)}: {actual_audits}"
     )
     # The per-tool tests above provide the actual subprocess invocation
     # coverage. This is a structural roll-up assertion only.

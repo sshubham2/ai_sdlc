@@ -245,3 +245,124 @@ def test_mission_brief_template_documents_test_first():
     text = (REPO_ROOT / "templates" / "mission-brief.md").read_text(encoding="utf-8")
     assert "Test-first" in text
     assert "TF-1" in text
+
+
+# --- PTFCD-1: test-path-existence check (slice-025 AC #1) ---
+
+def _write_brief(tmp_path, rows: list[tuple[str, str, str, str, str]]) -> Path:
+    """Write a minimal test-first brief into tmp_path; `rows` are
+    (ac, test_type, test_path, test_function, status) tuples.
+    """
+    table = "\n".join(
+        f"| {ac} | {tt} | {tp} | {tf} | {st} |" for (ac, tt, tp, tf, st) in rows
+    )
+    brief = (
+        "# Slice 999: ptfcd fixture\n\n"
+        "**Test-first**: true\n\n"
+        "## Acceptance criteria\n\n"
+        "1. the thing\n\n"
+        "## Test-first plan\n\n"
+        "| AC | Test type | Test path | Test function | Status |\n"
+        "|----|-----------|-----------|---------------|--------|\n"
+        f"{table}\n\n"
+        "## Out of scope\n\n- nothing\n"
+    )
+    p = tmp_path / "mission-brief.md"
+    p.write_text(brief, encoding="utf-8")
+    return p
+
+
+def test_strict_pre_finish_flags_missing_test_path_file(tmp_path):
+    """A PASSING row citing a non-existent Test path is a
+    `missing-test-path-file` violation under --strict-pre-finish.
+
+    Defect class: the phantom-test-file-citation class (slice-023 B4 /
+    slice-024) — a PASSING row may not cite a file that does not exist.
+    Rule reference: PTFCD-1 (slice-025 AC #1).
+    """
+    brief = _write_brief(
+        tmp_path,
+        [("1", "unit", "tests/methodology/test_DOES_NOT_EXIST_xyz.py",
+          "test_x", "PASSING")],
+    )
+    result = audit_brief_file(brief, strict_pre_finish=True,
+                              skip_if_carry_over=False)
+    kinds = [v.kind for v in result.violations]
+    assert "missing-test-path-file" in kinds, (
+        f"expected missing-test-path-file under strict; got {kinds}"
+    )
+
+
+def test_non_strict_does_not_flag_pending_missing_file(tmp_path):
+    """Non-strict runs never emit `missing-test-path-file` — a PENDING
+    test-first row legitimately references a not-yet-created file.
+
+    Defect class: false-positive on mid-slice PENDING rows would make the
+    audit unusable during normal test-first development.
+    Rule reference: PTFCD-1 (slice-025 AC #1; must-not-defer false-positive
+    avoidance).
+    """
+    brief = _write_brief(
+        tmp_path,
+        [("1", "unit", "tests/methodology/test_not_yet_created.py",
+          "test_x", "PENDING")],
+    )
+    result = audit_brief_file(brief, strict_pre_finish=False,
+                              skip_if_carry_over=False)
+    kinds = [v.kind for v in result.violations]
+    assert "missing-test-path-file" not in kinds, (
+        f"non-strict run must not emit missing-test-path-file; got {kinds}"
+    )
+
+
+def test_existence_check_covers_non_pytest_rows(tmp_path):
+    """The existence check covers non-pytest rows (catalog-verification),
+    not just unit/integration pytest rows.
+
+    Defect class: slice-024's phantom citation was a non-pytest
+    (catalog-verification) row; a pytest-only check would have missed it.
+    Rule reference: PTFCD-1 (slice-025 AC #1).
+    """
+    brief = _write_brief(
+        tmp_path,
+        [("1", "catalog-verification",
+          "tests/methodology/test_phantom_catalog_xyz.py",
+          "covered by catalog command", "PASSING")],
+    )
+    result = audit_brief_file(brief, strict_pre_finish=True,
+                              skip_if_carry_over=False)
+    assert any(
+        v.kind == "missing-test-path-file" and v.ac == "1"
+        for v in result.violations
+    ), (
+        "non-pytest (catalog-verification) PASSING row with missing file "
+        f"must be flagged; got {[(v.kind, v.ac) for v in result.violations]}"
+    )
+
+
+def test_pending_row_missing_file_emits_exactly_one_violation(tmp_path):
+    """A still-PENDING row with a missing file under --strict-pre-finish
+    emits exactly ONE violation (non-passing-pre-finish), NOT a doubled
+    non-passing + missing-test-path-file pair.
+
+    Defect class (Critic M1): the existence loop iterates the same
+    `result.rows` as the non-passing loop; without the `row.status ==
+    "PASSING"` gate a PENDING missing-file row would be flagged twice.
+    Rule reference: PTFCD-1 (slice-025 AC #1; Critic M1 ACCEPTED-FIXED).
+    """
+    brief = _write_brief(
+        tmp_path,
+        [("1", "unit", "tests/methodology/test_pending_missing_xyz.py",
+          "test_x", "PENDING")],
+    )
+    result = audit_brief_file(brief, strict_pre_finish=True,
+                              skip_if_carry_over=False)
+    row_violations = [v for v in result.violations if v.ac == "1"]
+    assert len(row_violations) == 1, (
+        f"expected exactly one violation for the PENDING row, got "
+        f"{[(v.kind) for v in row_violations]}"
+    )
+    assert row_violations[0].kind == "non-passing-pre-finish", (
+        f"the single violation must be non-passing-pre-finish, not "
+        f"{row_violations[0].kind} — PASSING-gate broken (double-flag)"
+    )

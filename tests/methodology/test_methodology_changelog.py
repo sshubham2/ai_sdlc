@@ -2061,6 +2061,7 @@ def test_adr_020_documents_three_mode_taxonomy():
 
 
 _V038 = "0.38.0"
+_V039 = "0.39.0"
 
 
 def test_v_0_38_0_fbcd_1_entry_present_in_repo_and_installed():
@@ -2164,4 +2165,67 @@ def test_adr_022_exists_and_names_fbcd_1_canonical_phrase():
     assert "Fix-block-completeness discipline" in adr_content, (
         f"ADR-022 ({adr_files[0].name}) missing canonical phrase "
         f"'Fix-block-completeness discipline' in body"
+    )
+
+
+def test_v_0_39_0_ptfcd_1_entry_present_in_repo_and_installed():
+    """v0.39.0 PTFCD-1 entry exists in both in-repo + installed
+    methodology-changelog.md.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /status or /slice. Enforced by reading both
+    and asserting both contain the v0.39.0 entry header AND the canonical
+    rule ID AND the canonical phrase.
+
+    Rule reference: slice-025 AC #4 (methodology-changelog v0.39.0 entry).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V039}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V039} entry "
+            f"header — slice-025 PTFCD-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V039)
+        assert "PTFCD-1" in body, (
+            f"{surface_name} v{_V039} entry body missing canonical rule ID "
+            f"'PTFCD-1' — entry-pin broken at the rule-ID layer"
+        )
+        assert "Phantom test-file citation discipline" in body, (
+            f"{surface_name} v{_V039} entry body missing canonical phrase "
+            f"'Phantom test-file citation discipline' — entry-pin broken at "
+            f"the canonical-phrase layer"
+        )
+
+
+def test_adr_023_present_and_reversibility_cheap():
+    """ADR-023 file exists at architecture/decisions/ADR-023-*.md AND has
+    frontmatter `reversibility: cheap` + names PTFCD-1 + canonical phrase.
+
+    Defect class: ADR-023 lost / renamed / scope-shifted; PTFCD-1 has no
+    canonical decision record.
+
+    Rule reference: slice-025 AC #4 (ADR-023).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-023-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-023 file at "
+        f"architecture/decisions/ADR-023-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "reversibility: cheap" in adr_content, (
+        f"ADR-023 ({adr_files[0].name}) missing `reversibility: cheap` "
+        f"frontmatter field"
+    )
+    assert "PTFCD-1" in adr_content, (
+        f"ADR-023 ({adr_files[0].name}) missing canonical rule ID 'PTFCD-1' "
+        f"in body"
+    )
+    assert "Phantom test-file citation discipline" in adr_content, (
+        f"ADR-023 ({adr_files[0].name}) missing canonical phrase "
+        f"'Phantom test-file citation discipline' in body"
     )

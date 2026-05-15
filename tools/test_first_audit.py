@@ -9,6 +9,8 @@ Parses a slice's `mission-brief.md` and validates:
   - Each row's Status must be one of {PENDING, WRITTEN-FAILING, PASSING}
   - With --strict-pre-finish, any non-PASSING row is a violation
     (used at /build-slice Step 6)
+  - With --strict-pre-finish, any PASSING row whose Test path file does
+    not exist on disk is a violation (PTFCD-1; kind=missing-test-path-file)
 
 Per TF-1 (methodology-changelog.md v0.13.0). The rule's purpose: opt-in
 TDD discipline — when a slice declares test-first, every AC must map to
@@ -90,7 +92,8 @@ class TestFirstViolation:
     line: int
     ac: str           # may be "" for section-level errors
     kind: str         # "missing-section" | "invalid-status" | "ac-without-row" |
-                      # "format" | "non-passing-pre-finish" | "missing-cells"
+                      # "format" | "non-passing-pre-finish" | "missing-cells" |
+                      # "missing-test-path-file"
     severity: str     # "Important"
     message: str
 
@@ -217,6 +220,45 @@ def _normalize_ac_label(raw: str) -> str:
     s = raw.strip().lower()
     s = s.replace("ac", "").replace("#", "").replace(" ", "")
     return s
+
+
+def _find_repo_root(start: Path) -> Path:
+    """Walk up from `start` for a `.git` dir or `VERSION` file sentinel.
+
+    PTFCD-1: the existence check resolves a row's Test path repo-root-relative.
+    Falls back to the brief's grandparent..parent chain root if no sentinel is
+    found (never raises — a wrong root just yields a not-exists violation the
+    user can read and correct, which is the intended PTFCD-1 signal).
+    """
+    cur = start.resolve()
+    if cur.is_file():
+        cur = cur.parent
+    for cand in [cur, *cur.parents]:
+        if (cand / ".git").exists() or (cand / "VERSION").exists():
+            return cand
+    return start.resolve().parent
+
+
+def _resolve_test_path(test_path: str, repo_root: Path) -> Path | None:
+    """Resolve a TF-1 row Test path to an on-disk Path, or None to skip.
+
+    PTFCD-1 path-resolution rule: skip `_EMPTY_SENTINELS` (no path to check);
+    strip surrounding markdown backticks; split on `::` to drop a pytest
+    selector (defensive — the 5-column TF-1 schema keeps Test path / Test
+    function separate, but a Command-cell-style `path::fn` is handled too);
+    resolve repo-root-relative. Returns None when there is no path to verify.
+    """
+    raw = test_path.strip()
+    if raw.lower() in _EMPTY_SENTINELS:
+        return None
+    raw = raw.strip("`").strip()
+    raw = raw.split("::", 1)[0].strip()
+    if not raw or raw.lower() in _EMPTY_SENTINELS:
+        return None
+    candidate = Path(raw)
+    if not candidate.is_absolute():
+        candidate = repo_root / candidate
+    return candidate
 
 
 def audit_brief_file(
@@ -361,6 +403,31 @@ def audit_brief_file(
                         f"PASSING. Either complete the implementation or "
                         f"remove --strict-pre-finish (only used at "
                         f"/build-slice Step 6)."
+                    ),
+                ))
+
+        # PTFCD-1: every PASSING row's cited Test path must exist on disk.
+        # Gated on PASSING so a still-PENDING test-first row (whose file the
+        # slice itself creates later) is reported exactly once by the
+        # non-passing loop above — never doubled. Non-strict runs never reach
+        # here, so mid-slice PENDING rows never false-positive.
+        repo_root = _find_repo_root(brief_path)
+        for row in result.rows:
+            if row.status != "PASSING":
+                continue
+            resolved = _resolve_test_path(row.test_path, repo_root)
+            if resolved is None:
+                continue
+            if not resolved.exists():
+                result.violations.append(TestFirstViolation(
+                    path=str(brief_path), line=row.line, ac=row.ac,
+                    kind="missing-test-path-file", severity="Important",
+                    message=(
+                        f"row for AC#{row.ac} ({row.test_function}) is PASSING "
+                        f"but its Test path '{row.test_path}' resolves to "
+                        f"'{resolved}', which does not exist on disk. "
+                        f"PTFCD-1: a PASSING row may not cite a phantom "
+                        f"test file (cf. slice-023 B4 / slice-024)."
                     ),
                 ))
 
