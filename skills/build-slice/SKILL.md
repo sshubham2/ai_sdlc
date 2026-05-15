@@ -21,6 +21,20 @@ Runs after `/critique` blockers + majors are addressed. Output: working code + t
 - If `critique.md` shows BLOCKED: stop, tell user to address blockers first
 - If `critique.md` doesn't exist (Standard or Heavy mode): stop, run `/critique` first
 - **Run TPHD-1 pre-flight harmonization** (per `methodology-changelog.md` v0.32.0 sub-mode (c)): scan the mission-brief TF-1 plan table; for each row, verify (a) the Test path exists or will be created at the right path, (b) the Test function name will match what gets built. The /critique + /critique-review fix-prose may have changed test function names or AC row references without harmonizing the TF-1 plan in the same fix block (sub-modes (a) + (b) defend at fix-prose time; sub-mode (c) is the prerequisite-check defense-in-depth layer). Flag any drift to user for fix BEFORE Step 1 plan-mode entry. This closes the function-name-staleness audit gap that `tools/test_first_audit.py --strict-pre-finish` does not detect (status-only check per slice-017 /critique B1 ACCEPTED-FIXED).
+- **Run CRP-1 critique-review-prerequisite check** (per `methodology-changelog.md` v0.40.0): runs AFTER the `critique.md`-exists check above (there can be no `/critique-review` without a `/critique`). Invoke:
+
+  ```bash
+  $PY -m tools.critique_review_prerequisite_audit architecture/slices/slice-NNN-<name>
+  ```
+
+  Refusal semantics (exit 1 → STOP):
+  - `mandatory-critique-review-absent`: mode ∈ {STANDARD, HEAVY} AND `milestone.md` `critic-required: true` AND `critique-review.md` absent AND no canonical `critique-review-skip` frontmatter key.
+  - `escape-hatch-malformed`: `critique-review-skip` key present but value off-canonical (not `^skip — rationale: .+`).
+  - `usage-error` / `mode-unresolvable` (exit 2): slice folder / milestone.md missing, or mode unresolvable from `architecture/triage.md` frontmatter `mode:` → fallback `CLAUDE.md` `**Mode**:`.
+
+  On `mandatory-critique-review-absent`, STOP and tell the user verbatim: **"STOP: this slice has a mandatory `/critique-review` (DR-1) that has not been run. Run `/critique-review` for this slice before `/build-slice`. If the skip is deliberate, document it by adding `critique-review-skip: \"skip — rationale: <text>\"` to milestone.md frontmatter (per ADR-024)."** Do not enter Step 1 plan mode until the audit exits 0.
+
+  **Bootstrap exception (slice-026 only)**: per ADR-024, slice-026 is CRP-1 bootstrap-reference instance #1 — it authors this very sub-block, so this sub-block does not exist at slice-026's own prerequisite check and cannot self-gate that build. slice-026's self-application is discharged by `/critique-review` run on slice-026 + the audit run against slice-026's own folder at Step 6. Every slice after 026 inherits a self-gating CRP-1.
 
 ### Branch state
 
@@ -128,6 +142,7 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **Test-first audit passes (TF-1)** — see "Test-first audit" below (only when `**Test-first**: true`)
 - [ ] **Branch workflow audit passes (BRANCH-1)** — see "Branch workflow audit" below
 - [ ] **UTF-8 stdout audit passes (UTF8-STDOUT-1)** — see "UTF-8 stdout audit" below
+- [ ] **Critique-review prerequisite audit passes (CRP-1)** — see "Critique-review prerequisite audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
 
@@ -167,6 +182,18 @@ Refusal semantics:
 Exclusion list: `__init__.py` + leading-underscore helpers (e.g., `tools/_stdout.py`) — neither has `main()`; both are out of scope by structural convention. The PMI-1 audit's `_list_actual_tools` filter mirrors this exclusion to prevent `orphan-tool` false positives.
 
 Self-application: `tools/utf8_stdout_audit.py` itself conforms; the audit run on the post-slice-023 codebase returns `tools_scanned: 17, tools_with_main: 17, tools_clean: 17`.
+
+#### Critique-review prerequisite audit (CRP-1)
+
+Per **CRP-1** (`methodology-changelog.md` v0.40.0): the same audit invoked at the `## Prerequisite check` (above) is re-run at Step 6 pre-finish as a defense-in-depth layer — it catches `critique-review.md` deleted mid-build, or `critic-required` flipped `true` during a `/design-slice` scope expansion that post-dated the prerequisite check. It is idempotent and reads the Step-7b-preserved `critique-review-skip:` milestone.md frontmatter key (per ADR-024 the escape-hatch is a frontmatter key precisely so it survives Step 7b's continuous milestone.md rewrite). Run:
+
+```bash
+$PY -m tools.critique_review_prerequisite_audit architecture/slices/slice-NNN-<name>
+```
+
+Refusal semantics: `mandatory-critique-review-absent` (Important, exit 1) — mode ∈ {STANDARD, HEAVY} AND `critic-required: true` AND `critique-review.md` absent AND no canonical `critique-review-skip` key; `escape-hatch-malformed` (Important, exit 1) — key present, value off-canonical; `usage-error` / `mode-unresolvable` (exit 2). CRP-1 is an **audit-enforced gate** (NON-`-D` per ADR-019; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1) — its programmatic gate is `tools/critique_review_prerequisite_audit.py`.
+
+Bootstrap (slice-026 only, per ADR-024): slice-026 authors CRP-1; at slice-026's Step 6 the audit IS run against slice-026's own folder and MUST exit 0 (self-application discharge — `/critique-review` having been run on slice-026).
 
 #### Test-first audit (TF-1)
 
@@ -276,6 +303,8 @@ Updates during build:
 - After EACH task completes: update "Progress" counter (`- [ ] /build-slice — in progress: N/M tasks complete`), update "Current work" and "Files being edited", update "Next immediate step"
 - At mid-slice smoke gate: record pass/fail in "Current focus"
 - At pre-finish gate: check the build-slice box, set `next-action: run /validate-slice`
+
+**Preserve the CRP-1 escape-hatch key (per ADR-024).** If `milestone.md` frontmatter carries a `critique-review-skip:` key, the continuous rewrite MUST preserve it verbatim. It is a deliberate per-slice skip record the Step 6 CRP-1 defense-in-depth re-run reads; dropping it would false-refuse a legitimately escape-hatched build. Treat `critique-review-skip:` like `critic-required:` / `risk-tier:` — a frontmatter field that survives every rewrite, never a regenerated-from-template field.
 
 **Critical for session resume**: if session dies mid-build, `milestone.md` tells Claude (or the user) EXACTLY where to pick up: task number, files being edited, specific next step. Don't skimp on these fields.
 

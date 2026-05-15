@@ -63,17 +63,20 @@ _CANONICAL_METADATA: tuple[str, ...] = (
     "methodology-changelog.md", "ai-sdlc-VERSION",
 )
 
-# The 17 tool modules in v0.37.0 (15 audits + lint + install_audit itself).
+# The 19 tool modules post-slice-026 (17 audits + lint + install_audit itself).
 # Slice-007 added tools.critique_agent_drift_audit (CAD-1 — Critic Agent Drift).
 # Slice-021 added tools.branch_workflow_audit (BRANCH-1 — branch-per-slice workflow).
 # Slice-023 added tools.utf8_stdout_audit (UTF8-STDOUT-1 — default UTF-8 stdout
 # in audit tools); tools._stdout is a helper module (no main()) excluded from
 # this canonical list by leading-underscore convention.
+# Slice-026 added tools.critique_review_prerequisite_audit (CRP-1 — refuse
+# /build-slice on a skipped mandatory /critique-review).
 _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.branch_workflow_audit",
     "tools.build_checks_audit",
     "tools.critique_agent_drift_audit",
     "tools.critique_review_audit",
+    "tools.critique_review_prerequisite_audit",
     "tools.cross_spec_parity_audit",
     "tools.exploratory_charter_audit",
     "tools.install_audit",

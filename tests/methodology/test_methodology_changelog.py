@@ -2062,6 +2062,7 @@ def test_adr_020_documents_three_mode_taxonomy():
 
 _V038 = "0.38.0"
 _V039 = "0.39.0"
+_V040 = "0.40.0"
 
 
 def test_v_0_38_0_fbcd_1_entry_present_in_repo_and_installed():
@@ -2228,4 +2229,69 @@ def test_adr_023_present_and_reversibility_cheap():
     assert "Phantom test-file citation discipline" in adr_content, (
         f"ADR-023 ({adr_files[0].name}) missing canonical phrase "
         f"'Phantom test-file citation discipline' in body"
+    )
+
+
+# --- Slice-026 / CRP-1 v0.40.0 entry-pin + shippability propagation ---
+
+
+def test_v_0_40_0_crp_1_entry_present_in_repo_and_installed():
+    """v0.40.0 CRP-1 entry exists in both in-repo + installed
+    methodology-changelog.md, with the canonical rule ID + canonical phrase
+    + the NON-`-D` audit-enforced-gate naming-class conformance prose.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /status or /slice. Also pins the B1
+    correction (CRP-1 is audit-enforced, NON-`-D`, per ADR-019) so a future
+    edit cannot silently reintroduce a `-D` naming-class contradiction.
+
+    Rule reference: slice-026 AC #3 (methodology-changelog v0.40.0 entry).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V040}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V040} entry "
+            f"header — slice-026 CRP-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V040)
+        assert "CRP-1" in body, (
+            f"{surface_name} v{_V040} entry body missing canonical rule ID "
+            f"'CRP-1' — entry-pin broken at the rule-ID layer"
+        )
+        assert "Critique-review prerequisite check" in body, (
+            f"{surface_name} v{_V040} entry body missing canonical phrase "
+            f"'Critique-review prerequisite check' — entry-pin broken at the "
+            f"canonical-phrase layer"
+        )
+        assert "audit-enforced gate" in body and "NON-`-D`" in body, (
+            f"{surface_name} v{_V040} entry body missing the audit-enforced / "
+            f"NON-`-D` naming-class conformance prose (per /critique B1 + "
+            f"ADR-019) — a `-D` naming-class contradiction could silently "
+            f"reappear"
+        )
+
+
+def test_v_0_40_0_crp_1_shippability_consumer_propagation():
+    """architecture/shippability.md carries a CRP-1 row whose Command cell
+    references the CRP-1 audit module (RPCD-1 / SCPD-1 consumer-reference
+    propagation).
+
+    Defect class: a new audit gate whose consumer references do not
+    propagate into the shippability catalog can silently regress without
+    /validate-slice catching it. SCPD-1 requires the propagation.
+
+    Rule reference: slice-026 AC #4 (shippability consumer propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "CRP-1" in catalog, (
+        "architecture/shippability.md missing a CRP-1 row — SCPD-1 "
+        "consumer-reference propagation broken"
+    )
+    assert "critique_review_prerequisite_audit" in catalog, (
+        "architecture/shippability.md CRP-1 row does not reference the "
+        "tools.critique_review_prerequisite_audit consumer — SCPD-1 "
+        "propagation incomplete"
     )
