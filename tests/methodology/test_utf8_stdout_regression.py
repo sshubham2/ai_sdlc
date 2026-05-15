@@ -86,6 +86,7 @@ _POSITIONAL_SLICE_TOOLS = [
     "tools.triage_audit",
     "tools.cross_spec_parity_audit",
     "tools.supersede_audit",
+    "tools.critique_review_prerequisite_audit",
 ]
 
 # Tools with --root only
@@ -208,15 +209,19 @@ def test_every_audit_tool_survives_cp1252_stdout_with_u2192_input():
     parametrize already provides the per-tool granularity; this test exists
     so shippability row 23 has a single named target.
     """
-    # Sentinel: all 18 audit tools exist (17 post-slice-023 + 1 post-slice-025
-    # tools.shippability_path_audit per PTFCD-1 sub-mode (b)).
+    # Sentinel: all 19 audit tools exist (17 post-slice-023 + 1 post-slice-025
+    # tools.shippability_path_audit per PTFCD-1 sub-mode (b) + 1 post-slice-026
+    # tools.critique_review_prerequisite_audit per CRP-1). NOTE: this counter is
+    # the `tools/*.py` glob — independent of install_audit._CANONICAL_TOOLS
+    # (which counts the canonical tuple); both happen to move 18→19 this slice
+    # for different reasons. Do not collapse them into one counter.
     tools_dir = REPO_ROOT / "tools"
     actual_audits = sorted(
         p.stem for p in tools_dir.glob("*.py")
         if not p.name.startswith("_") and p.name != "__init__.py"
     )
-    assert len(actual_audits) == 18, (
-        f"Expected 18 audit tools post-slice-025; got {len(actual_audits)}: {actual_audits}"
+    assert len(actual_audits) == 19, (
+        f"Expected 19 audit tools post-slice-026; got {len(actual_audits)}: {actual_audits}"
     )
     # The per-tool tests above provide the actual subprocess invocation
     # coverage. This is a structural roll-up assertion only.

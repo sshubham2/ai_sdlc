@@ -18,6 +18,8 @@ updated: <YYYY-MM-DD>
 next-action: <specific command or "none (slice complete)">
 risk-tier: low | medium | high
 critic-required: true | false (derived from risk-tier + mission-brief scan)
+# OPTIONAL — omit entirely unless deliberately skipping a mandatory /critique-review:
+# critique-review-skip: "skip — rationale: <text>"
 ---
 
 # Milestone: slice-NNN <name>
@@ -60,6 +62,10 @@ If session resumes mid-slice, this section tells Claude where to pick up:
 ```
 
 ---
+
+## CRP-1 escape-hatch key (optional)
+
+`critique-review-skip:` is an **optional** frontmatter key (absent by default). It is the CRP-1 (`methodology-changelog.md` v0.40.0) documented-skip escape-hatch: when a slice deliberately skips a mandatory `/critique-review`, set the value to `skip — rationale: <text>` and `tools/critique_review_prerequisite_audit.py` accepts the build. A present-but-off-canonical value is a hard violation. Per ADR-024 the key lives here (not `build-log.md`) so the CRP-1 prerequisite gate can read it before `build-log.md` exists; `/build-slice` Step 7b MUST preserve this key verbatim across its continuous milestone.md rewrites (treat it like `critic-required:` / `risk-tier:`, never a regenerated field).
 
 ## How each skill updates it
 

@@ -120,3 +120,86 @@ def test_build_slice_skill_md_tphd_1_prerequisite_check_bullet_location_pinned()
         "(c) anchor (per /critique M2 ACCEPTED-FIXED: must live in "
         "Prerequisite check section, NOT a new Step 0)"
     )
+
+
+# --- Slice-026 / CRP-1 critique-review-prerequisite-check pins ---
+
+
+def test_build_slice_prereq_crp_1_refuses_on_absent_mandatory_critique_review():
+    """skills/build-slice/SKILL.md must carry the CRP-1 prerequisite sub-block
+    with the verbatim STOP routing message + the audit invocation, located
+    INSIDE `## Prerequisite check`, AFTER the `critique.md`-exists gate, and
+    BEFORE `### Branch state` (deterministic placement — stable mini-CAD
+    drift target per /critique M2 ACCEPTED-FIXED).
+
+    Defect class (the slice-025 gap CRP-1 closes): a mandatory
+    `/critique-review` (DR-1, Standard-mode + mandatory-Critic) skipped
+    silently because nothing structurally detects the skip before
+    `/build-slice`. Without this prose, every future /build-slice can
+    proceed past a skipped mandatory dual-review unnoticed.
+
+    Rule reference: CRP-1 (methodology-changelog.md v0.40.0); slice-026 AC #1.
+    """
+    prereq_pos = BUILD.find("## Prerequisite check")
+    your_task_pos = BUILD.find("## Your task")
+    branch_state_pos = BUILD.find("### Branch state")
+    assert prereq_pos != -1 and your_task_pos != -1 and branch_state_pos != -1
+
+    scoped = BUILD[prereq_pos:your_task_pos]
+
+    # CRP-1 bullet present, inside the Prerequisite check section.
+    assert "Run CRP-1 critique-review-prerequisite check" in scoped, (
+        "CRP-1 prerequisite bullet missing from '## Prerequisite check' "
+        "section — slice-025 silent-skip gap reopened"
+    )
+
+    # Audit invocation present.
+    assert (
+        "tools.critique_review_prerequisite_audit" in scoped
+    ), "CRP-1 sub-block missing the critique_review_prerequisite_audit invocation"
+
+    # Verbatim STOP routing message (load-bearing — pinned literally).
+    assert (
+        'STOP: this slice has a mandatory `/critique-review` (DR-1) that '
+        "has not been run. Run `/critique-review` for this slice before "
+        "`/build-slice`." in BUILD
+    ), "CRP-1 verbatim STOP routing message drifted or missing"
+
+    # Deterministic placement: CRP-1 bullet AFTER the critique.md-exists
+    # gate and BEFORE `### Branch state` (dependency: no critique-review
+    # without a critique).
+    crp_pos = BUILD.find("Run CRP-1 critique-review-prerequisite check")
+    critique_exists_pos = BUILD.find(
+        "If `critique.md` doesn't exist (Standard or Heavy mode)"
+    )
+    assert critique_exists_pos != -1
+    assert critique_exists_pos < crp_pos < branch_state_pos, (
+        "CRP-1 bullet must fall AFTER the `critique.md`-exists gate and "
+        "BEFORE `### Branch state` — placement drifted (per /critique M2: "
+        "deterministic post-L22/L23 placement for stable mini-CAD target)"
+    )
+
+    # NON-`-D` naming-class conformance (per ADR-019 / B1) — the SKILL.md
+    # prose must describe CRP-1 as an audit-enforced gate (the phrase lives
+    # in the Step 6 block, outside the Prerequisite-check scope), not a
+    # `-D` heuristic.
+    assert "CRP-1" in scoped
+    assert (
+        "audit-enforced gate" in BUILD
+        and "NON-`-D` per ADR-019" in BUILD
+    ), "CRP-1 NON-`-D` naming-class conformance prose missing or drifted"
+
+
+def test_build_slice_crp_1_step_7b_preserves_skip_key():
+    """Step 7b must instruct preserving the `critique-review-skip:` key.
+
+    Defect class (per /critique B2): build-slice Step 7b rewrites
+    milestone.md continuously; if the escape-hatch key is dropped, the
+    Step 6 CRP-1 defense-in-depth re-run false-refuses a legitimately
+    escape-hatched build.
+
+    Rule reference: CRP-1; slice-026 /critique B2; ADR-024.
+    """
+    assert "Preserve the CRP-1 escape-hatch key" in BUILD
+    assert "critique-review-skip:" in BUILD
+
