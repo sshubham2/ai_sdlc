@@ -70,6 +70,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
+from tools import _stdout
 
 # Date this rule shipped. Slices with mission-brief.md mtime BEFORE this date
 # are carry-over exempt automatically. NFR-1 pattern.
@@ -560,6 +561,7 @@ def _format_human(result: AuditResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="build_checks_audit",
         description="BC-1 build-checks audit — surface applicable rules at /build-slice",

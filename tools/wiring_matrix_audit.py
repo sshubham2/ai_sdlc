@@ -44,6 +44,7 @@ import sys
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from pathlib import Path
+from tools import _stdout
 
 # Date this rule shipped. Slices with mission-brief.md mtime BEFORE this date
 # are carry-over exempt automatically. NFR-1 pattern from GVM.
@@ -298,6 +299,7 @@ def _format_human(violations: list[WireViolation]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="wiring_matrix_audit",
         description="WIRE-1 wiring matrix audit — format validation v1",

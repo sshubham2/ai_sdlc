@@ -34,6 +34,36 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.37.0 — 2026-05-15
+
+**Default UTF-8 stdout in audit tools codified at `tools/_stdout.py` helper + `tools/utf8_stdout_audit.py` AST structural audit + one-line `_stdout.reconfigure_stdout_utf8()` invocation pattern as first executable statement of every `tools/*.py` `main()`** as **UTF8-STDOUT-1** — retires the Windows cp1252 console encoding class (N=6 cumulative recurrence across slices 007 / 016 / 018 / 020 / 021 / 022; aggregated lessons named `audit-tools-default-utf8-stdout` as HIGHEST-priority candidate at slice-022 ship; structurally overdue).
+
+Per slice-023 [[ADR-021]] (reversibility: cheap; supersedes: null — shell-side `$env:PYTHONIOENCODING="utf-8"` workaround was DEVIATION pattern, not ADR-codified discipline).
+
+Three surfaces (N-surface schema-pin shape):
+- **`tools/_stdout.py`** — shared helper module exposing `reconfigure_stdout_utf8()`. Idempotent. `errors="replace"` (not "strict") so out-of-band non-UTF-8 bytes degrade gracefully. No-op when streams lack `reconfigure` (test capture / StringIO). Per M6 + M-add-3 ACCEPTED-FIXED at slice-023: unconditionally reconfigures with both `encoding="utf-8"` AND `errors="replace"` (no encoding-only short-circuit) to guarantee post-call state regardless of prior caller's errors mode.
+- **`tools/utf8_stdout_audit.py`** — AST-based structural audit. For each `tools/*.py` (excluding `__init__.py` + leading-underscore helpers), parses module, finds top-level `def main`, identifies the first executable statement after any docstring, and refuses any module where that statement is not the canonical `_stdout.reconfigure_stdout_utf8()` call. Self-applies (its own `main()` conforms). Exit codes: 0 clean / 1 violation / 2 usage error. JSON output via `--json`.
+- **One-line invocation pattern at every audit tool's `main()`** — first executable statement (before `argparse.ArgumentParser`) is `_stdout.reconfigure_stdout_utf8()`. Canonical import form pinned `from tools import _stdout` (per M4 ACCEPTED-FIXED at slice-023 — `from . import _stdout` not accepted). 17 audit tools conform post-slice-023.
+
+The canonical phrase `UTF8-STDOUT-1` is pinned across N=3 surfaces: (1) `tools/_stdout.py` helper module docstring, (2) `tools/utf8_stdout_audit.py` audit module docstring, (3) in-repo `methodology-changelog.md` v0.37.0 entry (this file). **N-surface schema-pin shape ratchets to N=10 stable** with slice-023.
+
+**PMI-1 filter narrowing (NEW class at slice-023 — B2 ACCEPTED-PENDING)**: `tools/plugin_manifest_audit.py:_list_actual_tools` extended to filter `p.name.startswith("_")` in addition to `__init__.py`. Helper modules (e.g., `tools/_stdout.py`) are NOT enumerable as invocable tools, so they MUST NOT appear in `plugin.yaml` `tools:` list; the filter prevents PMI-1 from firing an `orphan-tool` violation on legitimate helpers. PMI-1 v1.1 retirement-proof invariant preserved (gate body unchanged; only discovery filter narrows).
+
+**Behavioural regression (AC #4)**: `tests/methodology/test_utf8_stdout_regression.py` invokes every audit tool via subprocess under `PYTHONIOENCODING=cp1252` + `PYTHONUTF8=0` (Windows-default-encoding simulation) with U+2192 fixture content. Per-tool argv strategy per M1 + M-add-2 ACCEPTED-FIXED reflects each tool's verified argparse contract (positional-slice-folder for 9 tools, `--root` for 2, `--claude-dir` for install_audit, positional-files for mock_budget_lint, `--slice` for validate_slice_layers, positional risk-register.md for risk_register_audit, `--repo-root` for critique audits). Assertion is `"UnicodeEncodeError" not in stderr and "UnicodeDecodeError" not in stderr` — NOT exit-code-0 (synthetic fixtures may legitimately return exit 1 on non-encoding violations).
+
+UTF8-STDOUT-1 self-application N=1 canonical-reference-instance at codification time — `tools/utf8_stdout_audit.py` itself conforms to UTF8-STDOUT-1; the audit run on the post-slice-023 codebase returns `tools_scanned: 17, tools_with_main: 17, tools_clean: 17`.
+
+### Added
+
+- **UTF8-STDOUT-1** (no `-D` suffix — runtime structural discipline, distinct from /critique-time -D family RSAD-1 / EPGD-1 / SCPD-1 / RPCD-1 / TPHD-1 / BFRD-1 + LAYER-EVID-1 / BRANCH-1 precedent)
+  3 surfaces (helper + audit + invocation pattern) + PMI-1 `_list_actual_tools` filter narrowing for leading-underscore helpers.
+  - **Rule reference**: ADR-021 (reversibility: cheap; supersedes: null)
+  - **Defect class**: Windows cp1252 console encoding crashes on audit-tool stdout when interpolated content contains non-cp1252 codepoints (U+2192 arrow at slice-022 D-5 / U+2014 em-dash em-dash is in cp1252 byte 0x97 but arrows + most U+2xxx geometric/box-drawing/CJK are not). N=6 cumulative recurrence across slices 007 / 016 / 018 / 020 / 021 / 022 documented in shippability rows 20/21/22 cumulative-count provenance trail.
+  - **Validation**: `tests/methodology/test_stdout_helper.py::*` (5 unit tests) + `tests/methodology/test_utf8_stdout_audit.py::*` (9 audit unit tests including self-audit + JSON shape + exit codes + output-contract invariant) + `tests/methodology/test_utf8_stdout_regression.py::*` (18 subprocess-based behavioural regression tests covering every audit tool under simulated cp1252) + `tests/methodology/test_plugin_manifest_audit.py::test_plugin_yaml_lists_utf8_stdout_audit` + `::test_list_actual_tools_filters_leading_underscore_helpers` (2-assertion: real `_stdout.py` filtered + synthetic `_helper.py` filtered) + `tests/methodology/test_install_audit.py::test_install_audit_enumerates_utf8_stdout_audit` + `tests/methodology/test_methodology_changelog.py::test_v_0_37_0_utf8_stdout_1_entry_present_in_repo_and_installed` + `::test_v_0_37_0_utf8_stdout_1_entry_names_all_three_surfaces` + `::test_v_0_37_0_utf8_stdout_1_entry_pins_canonical_invocation_pattern` + `::test_adr_021_present_and_reversibility_cheap`.
+  - **Limitations**: `sys.stdout` / `sys.stderr` only — NOT `sys.stdin`. `tools/*.py` only — NOT `tests/**/*.py` (pytest capture handles those) and NOT `graphify` (upstream package). Parent-process stdout only — NOT `subprocess.run` parent-side decoding (separate audit class; deferred). `logging` module's default `StreamHandler` routes through `sys.stderr` which IS covered; `FileHandler` with default encoding is NOT covered (separate fix at handler call site). Pre-Python-3.7 `sys.stdout.reconfigure()` not available — N/A on this repo (Python 3.13 shared interpreter per CLAUDE.md global).
+
+---
+
 ## v0.36.0 — 2026-05-15
 
 **3-mode PR-aware /commit-slice taxonomy codified at `skills/commit-slice/SKILL.md` Step 5 sub-steps 5a/5b/5c/5d + new `## When to use which mode` guidance section** — replaces slice-021's single-`--merge` post-/reflect cleanup with three mutually-exclusive mode flags covering solo-dev / PR-based / post-PR-merge cleanup workflows. No-flag invocation preserves slice-021 generate-only default.

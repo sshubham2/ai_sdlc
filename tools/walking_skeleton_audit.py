@@ -46,6 +46,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
+from tools import _stdout
 
 # Date this rule shipped. NFR-1 carry-over.
 _WS_1_RELEASE_DATE: date = date(2026, 5, 6)
@@ -395,6 +396,7 @@ def _format_human(result: AuditResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="walking_skeleton_audit",
         description="WS-1 walking-skeleton slice variant audit",

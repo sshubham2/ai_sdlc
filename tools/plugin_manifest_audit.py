@@ -45,6 +45,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 import yaml
+from tools import _stdout
 
 
 _REQUIRED_TOP_FIELDS: tuple[str, ...] = (
@@ -131,12 +132,20 @@ def _list_actual_agents(root: Path) -> list[str]:
 
 
 def _list_actual_tools(root: Path) -> list[str]:
+    """List invocable tools (excludes __init__.py + leading-underscore helpers).
+
+    Per UTF8-STDOUT-1 (slice-023 / B2 ACCEPTED-PENDING): leading-underscore
+    modules are helpers (no main(), not invoked as `$PY -m tools._X`), so
+    they MUST NOT appear in the plugin.yaml `tools:` list. The filter here
+    matches that convention so PMI-1 doesn't fire an `orphan-tool`
+    violation on `tools/_stdout.py` and similar helpers.
+    """
     tools_dir = root / "tools"
     if not tools_dir.exists():
         return []
     return sorted(
         f"tools/{p.name}" for p in tools_dir.glob("*.py")
-        if p.name != "__init__.py"
+        if p.name != "__init__.py" and not p.name.startswith("_")
     )
 
 
@@ -318,6 +327,7 @@ def _format_human(result: AuditResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="plugin_manifest_audit",
         description="PMI-1 plugin manifest vs filesystem parity audit",

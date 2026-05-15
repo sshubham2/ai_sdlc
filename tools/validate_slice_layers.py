@@ -66,6 +66,7 @@ import sys as _sys_module
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
+from tools import _stdout
 
 try:
     import tomllib  # Python 3.11+
@@ -500,6 +501,7 @@ def _format_human(result: LayersResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="validate_slice_layers",
         description="VAL-1 layered /validate-slice safety checks",

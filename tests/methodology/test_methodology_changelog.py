@@ -1900,6 +1900,118 @@ def test_adr_020_exists_and_supersedes_adr_019():
     )
 
 
+# =============================================================================
+# slice-023 v0.37.0 UTF8-STDOUT-1 entry-pins + ADR-021 pin
+# =============================================================================
+# Per UTF8-STDOUT-1 codification (methodology-changelog.md v0.37.0). These
+# entry-pin functions follow the EPGD-1 N=10 stable convention (slice-023
+# ADDS-only; 0 of prior entry-pin functions touched). ADR-pin follows the
+# convention N=9 stable (NOT a separate tests/decisions/ file).
+
+
+_V037 = "0.37.0"
+
+
+def test_v_0_37_0_utf8_stdout_1_entry_present_in_repo_and_installed():
+    """v0.37.0 UTF8-STDOUT-1 entry exists in both in-repo + installed
+    methodology-changelog.md.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge, Claude
+    reads stale prose at /status or /slice. Enforced by reading both and
+    asserting both contain the v0.37.0 entry header AND the canonical phrase.
+
+    Rule reference: slice-023 AC #5 (methodology-changelog v0.37.0 entry).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V037}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V037} entry "
+            f"header — slice-023 UTF8-STDOUT-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V037)
+        assert "UTF8-STDOUT-1" in body, (
+            f"{surface_name} v{_V037} entry body missing canonical rule ID "
+            f"'UTF8-STDOUT-1' — entry-pin broken at the rule-ID layer"
+        )
+
+
+def test_v_0_37_0_utf8_stdout_1_entry_names_all_three_surfaces():
+    """v0.37.0 entry body names all 3 surfaces of UTF8-STDOUT-1:
+    helper module + audit module + invocation pattern.
+
+    Defect class: future slice strips a surface reference; the N-surface
+    schema-pin shape regresses at the documentation layer.
+
+    Rule reference: slice-023 AC #5.
+    """
+    in_repo = read_file("methodology-changelog.md")
+    body = _extract_version_body(in_repo, _V037)
+    surface_anchors = (
+        "tools/_stdout.py",
+        "tools/utf8_stdout_audit.py",
+        "first executable statement",
+    )
+    for anchor in surface_anchors:
+        assert anchor in body, (
+            f"v{_V037} entry body missing surface anchor {anchor!r} — "
+            f"3-surface schema-pin is incomplete in the changelog entry"
+        )
+
+
+def test_v_0_37_0_utf8_stdout_1_entry_pins_canonical_invocation_pattern():
+    """v0.37.0 entry body pins the canonical invocation pattern — function
+    name `reconfigure_stdout_utf8` AND canonical import form
+    `from tools import _stdout`.
+
+    Defect class: future slice changes the canonical helper function name OR
+    import form without updating the codification surface; the prose pin
+    silently desyncs from code.
+
+    Rule reference: slice-023 AC #5 + M4 ACCEPTED-FIXED.
+    """
+    in_repo = read_file("methodology-changelog.md")
+    body = _extract_version_body(in_repo, _V037)
+    invocation_anchors = (
+        "reconfigure_stdout_utf8",
+        "from tools import _stdout",
+    )
+    for anchor in invocation_anchors:
+        assert anchor in body, (
+            f"v{_V037} entry body missing canonical invocation anchor "
+            f"{anchor!r} — invocation pattern pin broken"
+        )
+
+
+def test_adr_021_present_and_reversibility_cheap():
+    """ADR-021 file exists at architecture/decisions/ADR-021-*.md AND has
+    frontmatter `reversibility: cheap` + names UTF8-STDOUT-1.
+
+    Defect class: ADR-021 lost / renamed / scope-shifted; UTF8-STDOUT-1 has
+    no canonical decision record.
+
+    Rule reference: slice-023 AC #5 (ADR-021).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-021-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-021 file at "
+        f"architecture/decisions/ADR-021-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "reversibility: cheap" in adr_content, (
+        f"ADR-021 ({adr_files[0].name}) missing `reversibility: cheap` "
+        f"frontmatter field"
+    )
+    assert "UTF8-STDOUT-1" in adr_content, (
+        f"ADR-021 ({adr_files[0].name}) missing canonical rule ID "
+        f"'UTF8-STDOUT-1' in body"
+    )
+
+
 def test_adr_020_documents_three_mode_taxonomy():
     """ADR-020 body documents the 3-mode taxonomy (`--merge`, `--push`,
     `--sync-after-pr`) AND the partial supersession scope (sub-mode (b) only;

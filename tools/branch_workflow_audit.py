@@ -45,6 +45,7 @@ import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from tools import _stdout
 
 
 # Canonical regex for the `BRANCH=skip` escape-hatch line in build-log.md Events.
@@ -371,6 +372,7 @@ def audit(slice_folder: Path, repo_root: Path | None = None) -> AuditResult:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(description="BRANCH-1 audit: branch-per-slice workflow validation.")
     parser.add_argument("slice_folder", type=Path, help="Path to active slice folder.")
     parser.add_argument("--root", type=Path, default=None, help="Repo root (default: ancestor with .git).")

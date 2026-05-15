@@ -56,6 +56,7 @@ import re
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from tools import _stdout
 
 # H2 risk heading: "## R-1 — title" (em-dash separator, canonical) or
 # "## R-1 - title" (single hyphen, accepted alternate). Double-hyphen
@@ -368,6 +369,7 @@ def _format_human(result: AuditResult, view: list[Risk]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
         prog="risk_register_audit",
         description="RR-1 risk register audit + scoring",
