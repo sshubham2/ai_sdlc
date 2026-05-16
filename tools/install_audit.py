@@ -76,6 +76,7 @@ _CANONICAL_METADATA: tuple[str, ...] = (
 _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.branch_workflow_audit",
     "tools.build_checks_audit",
+    "tools.build_checks_integrity",
     "tools.critique_agent_drift_audit",
     "tools.critique_review_audit",
     "tools.critique_review_prerequisite_audit",

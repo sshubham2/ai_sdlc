@@ -12,7 +12,7 @@
 # both documentation and a target for the audit.
 
 name: ai-sdlc
-version: 0.43.0  # synced with VERSION file (PMI-1 audit enforces)
+version: 0.44.0  # synced with VERSION file (PMI-1 audit enforces)
 description: |
   Spec-driven SDLC for AI implementers. Hybrid of phase-driven rigor (for
   knowable domains) and slice-driven iteration (for unknowable ones).
@@ -90,6 +90,8 @@ tools:
     rule: BRANCH-1
   - path: tools/build_checks_audit.py
     rule: BC-1
+  - path: tools/build_checks_integrity.py
+    rule: BCI-1
   - path: tools/critique_agent_drift_audit.py
     rule: CAD-1
   - path: tools/critique_review_audit.py

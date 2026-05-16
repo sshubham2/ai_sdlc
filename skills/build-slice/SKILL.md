@@ -148,6 +148,7 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **UTF-8 stdout audit passes (UTF8-STDOUT-1)** — see "UTF-8 stdout audit" below
 - [ ] **Critique-review prerequisite audit passes (CRP-1)** — see "Critique-review prerequisite audit" below
 - [ ] **Pipeline-chain audit passes (PCA-1)** — see "Pipeline-chain audit" below
+- [ ] **Build-checks integrity audit passes (BCI-1)** — see "Build-checks integrity audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
 
@@ -217,6 +218,23 @@ Refusal semantics:
 PCA-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1) — its programmatic gate is `tools/pipeline_chain_audit.py`. The audit reads the flat `successor:` field for chain-shape only; the documented `/critique` post-TRI-1 → `/build-slice` hop and `/critique`→`/critique` BLOCKED self-loop live in `on-clean-completion` prose and are NOT flagged (per slice-027 /critique-review m-add-1).
 
 Bootstrap (slice-027 only, per [[ADR-025]]): slice-027 authors PCA-1; the `## Pipeline position` directive does not exist on disk during slice-027's own loop (the chain ran manually per the user's at-invocation directive). At slice-027's Step 6 the audit IS run against the repo and MUST exit 0 (self-application discharge — `/critique-review` having been run on slice-027). Every slice after 027 inherits a self-gating PCA-1.
+
+#### Build-checks integrity audit (BCI-1)
+
+Per **BCI-1** (`methodology-changelog.md` v0.44.0; slice-030A; [[ADR-028]] + [[ADR-029]]): `/reflect` Step 5b promotion is LLM-executed prose with no deterministic source (R-4 witnessed both `architecture/build-checks.md` + `~/.claude/build-checks.md` silently truncated to the last-promoted rule). The only sound control for a non-deterministic step is a deterministic downstream gate. BCI-1 asserts the live build-checks files match the **git-tracked** canonical fixtures (`tests/methodology/fixtures/build_checks/canonical_{project,global}_checks.md`) on **full per-rule structural identity** — `(rule_id, severity, applies_to, trigger_keywords, trigger_anchors, negative_anchors)` + non-empty `check` — NOT rule-ID-set-only (slice-030A meta-M-add-2: an ID-only check passes a coverage-degraded file, re-opening R-4). Run:
+
+```bash
+$PY -m tools.build_checks_integrity
+```
+
+Refusal semantics:
+- `drift` (exit 1, HALT): a present live file diverges from the canonical fixture — missing/extra rules, **empty present file**, or any structural-field mismatch — OR the project `architecture/build-checks.md` is absent. Message is attributed: *"LOCAL VAULT DRIFT — reconstruct from <fixture>; this is NOT a slice regression"* (retires the R-4 anti-pattern where a truncation read as a confusing slice regression).
+- `warn` (exit 0): `~/.claude/build-checks.md` **absent** (file does not exist) — the global file is untracked/environment-dependent; a machine that hasn't installed it must not HALT (slice-030A meta-M3). An *empty present* global file is `drift`/HALT, not WARN (empty != absent — R-4-global not silently reopened).
+- `usage` (exit 2): a canonical fixture (the tracked oracle) is missing/unreadable, emits its own parse violations, or repo root is unresolvable.
+
+BCI-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1) — its programmatic gate is `tools/build_checks_integrity.py`, wired non-opt-out here AND as a `/reflect` Step 5b fail-loud post-write instruction. (The shippability-catalog-row wiring is deferred to slice-030B per the user-approved split; 030A's two wiring points fully retire R-4's substance.)
+
+Bootstrap (slice-030A only): slice-030A authors BCI-1; at slice-030A's Step 6 the audit IS run against the repo and MUST exit 0 (self-application discharge — the live files were just reconstructed from the canonical fixtures). Every slice after 030A inherits a self-gating BCI-1.
 
 #### Test-first audit (TF-1)
 

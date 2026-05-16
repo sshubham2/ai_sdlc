@@ -2497,6 +2497,50 @@ def test_adr_026_present_and_reversibility_cheap():
     )
 
 
+# --- Slice-030A / v0.44.0 BCI-1 build-checks-integrity entry pin ---
+
+_V044 = "0.44.0"
+_BCI1_PHRASE = "full per-rule structural identity"
+
+
+def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
+    """v0.44.0 BCI-1 entry exists in both in-repo + installed
+    methodology-changelog.md, with the BCI-1 rule reference, the canonical
+    full-structural-identity phrase, and the deterministic-downstream-gate
+    framing (ADR-028 + ADR-029 lineage).
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /status or /slice. Pins that BCI-1 is a
+    minted audited rule (NOT rule-ID-set-only — meta-M-add-2) so a future
+    edit cannot silently weaken the invariant to an ID-set check.
+
+    Rule reference: BCI-1 (slice-030A; ADR-028 + ADR-029).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V044}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V044} entry "
+            f"header — slice-030A BCI-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V044)
+        assert "BCI-1" in body, (
+            f"{surface_name} v{_V044} entry body missing the 'BCI-1' rule "
+            f"reference — entry-pin broken at the rule-reference layer"
+        )
+        assert _BCI1_PHRASE in body, (
+            f"{surface_name} v{_V044} entry body missing canonical phrase "
+            f"{_BCI1_PHRASE!r} — a future edit could silently weaken BCI-1 "
+            f"to a rule-ID-set check (meta-M-add-2 regression)"
+        )
+        assert "ADR-028" in body and "ADR-029" in body, (
+            f"{surface_name} v{_V044} entry body missing the ADR-028/ADR-029 "
+            f"decision lineage"
+        )
+
+
 # --- Slice-029 / v0.43.0 /diagnose sequential-dispatch-default entry pin ---
 
 _V043 = "0.43.0"
