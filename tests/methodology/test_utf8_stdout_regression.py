@@ -96,6 +96,7 @@ _ROOT_ONLY_TOOLS = [
     "tools.plugin_manifest_audit",
     "tools.utf8_stdout_audit",
     "tools.pipeline_chain_audit",
+    "tools.build_checks_integrity",  # slice-030A / BCI-1 (--check-live/--json, no slice arg)
 ]
 
 

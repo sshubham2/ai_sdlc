@@ -379,6 +379,18 @@ def test_reflect_skill_references_bc_1():
 
 _GLOBAL_BUILD_CHECKS = Path.home() / ".claude" / "build-checks.md"
 
+# slice-030A / ADR-028: BC-1 logic/tuple/schema-pin tests assert against these
+# GIT-TRACKED canonical fixtures, NOT the gitignored live build-checks files.
+# The live files are byte-reconstructed FROM these fixtures; BCI-1
+# (tools/build_checks_integrity.py) is the always-running live↔fixture
+# divergence gate. The literal-constant tuples in the test bodies below are
+# the tracked oracle the fixtures are asserted *against* (fixture = subject,
+# literal = oracle) — closing the v2-B3 / meta-M-add-3 unguarded-oracle hole.
+# (Archive-backtest functions still read the live file + gitignored archive —
+#  their decoupling is deferred to slice-030B per the user-approved split.)
+_CANONICAL_PROJECT_FIXTURE = FIXTURES / "canonical_project_checks.md"
+_CANONICAL_GLOBAL_FIXTURE = FIXTURES / "canonical_global_checks.md"
+
 
 def test_slice_003_archive_backtest_no_bc_proj_2_or_global_1_applications():
     """Slice-003 archive folder must NOT trigger BC-PROJ-2 or BC-GLOBAL-1.
@@ -509,23 +521,19 @@ def test_build_checks_schema_documents_trigger_anchors_field_name():
     surface they change), and per Critic M3 (slice-005 — two surfaces,
     two pins).
     Rule reference: BC-1 (slice-005 AC #5 surface a).
+
+    slice-030A/ADR-028: asserts the GIT-TRACKED canonical fixtures (not the
+    gitignored live files) — the fixtures are always present, so the legacy
+    skip-if-global-absent guard is removed.
     """
-    project_text = (
-        REPO_ROOT / "architecture" / "build-checks.md"
-    ).read_text(encoding="utf-8")
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
     assert "Trigger anchors" in project_text, (
-        "architecture/build-checks.md schema description must mention the "
+        f"{_CANONICAL_PROJECT_FIXTURE} schema description must mention the "
         "literal `Trigger anchors` field name (case-sensitive)."
     )
-    if not _GLOBAL_BUILD_CHECKS.exists():
-        pytest.skip(
-            f"global build-checks file not present at {_GLOBAL_BUILD_CHECKS}; "
-            f"project pin is the canonical CI surface (slice-005 design "
-            f"acknowledged this CI gap per Critic m4)."
-        )
-    global_text = _GLOBAL_BUILD_CHECKS.read_text(encoding="utf-8")
+    global_text = _CANONICAL_GLOBAL_FIXTURE.read_text(encoding="utf-8")
     assert "Trigger anchors" in global_text, (
-        f"{_GLOBAL_BUILD_CHECKS} schema description must mention the "
+        f"{_CANONICAL_GLOBAL_FIXTURE} schema description must mention the "
         f"literal `Trigger anchors` field name (case-sensitive)."
     )
 
@@ -539,22 +547,17 @@ def test_build_checks_schema_documents_word_boundary_semantics():
     field name leaves the semantics phrase unprotected against doc refactor
     drift.
     Rule reference: BC-1 (slice-005 AC #5 surface b).
+
+    slice-030A/ADR-028: asserts the git-tracked canonical fixtures.
     """
-    project_text = (
-        REPO_ROOT / "architecture" / "build-checks.md"
-    ).read_text(encoding="utf-8")
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
     assert "word-boundary" in project_text, (
-        "architecture/build-checks.md schema description must mention the "
+        f"{_CANONICAL_PROJECT_FIXTURE} schema description must mention the "
         "literal `word-boundary` semantics phrase (kebab-case)."
     )
-    if not _GLOBAL_BUILD_CHECKS.exists():
-        pytest.skip(
-            f"global build-checks file not present at {_GLOBAL_BUILD_CHECKS}; "
-            f"project pin is the canonical CI surface."
-        )
-    global_text = _GLOBAL_BUILD_CHECKS.read_text(encoding="utf-8")
+    global_text = _CANONICAL_GLOBAL_FIXTURE.read_text(encoding="utf-8")
     assert "word-boundary" in global_text, (
-        f"{_GLOBAL_BUILD_CHECKS} schema description must mention the "
+        f"{_CANONICAL_GLOBAL_FIXTURE} schema description must mention the "
         f"literal `word-boundary` semantics phrase."
     )
 
@@ -570,56 +573,154 @@ def test_migrated_rules_have_expected_anchors():
     anchor TUPLES on the production rules themselves so a typo fails loud.
     Per Critic M1 — closes the migration-typo gap.
     Rule reference: BC-1 (slice-005 migration row).
+
+    slice-030A/ADR-028 + meta-M-add-2: asserts the GIT-TRACKED canonical
+    fixtures, and pins FULL structural identity — `applies_to` +
+    `trigger_keywords` in addition to `trigger_anchors` — so an
+    `applies_to`/`severity`/`keywords` mis-reconstruction (which the
+    archive-backtests can coincidentally pass, _rule_applies L413-431)
+    fails loud against this literal-constant oracle. The literal tuples
+    here ARE the tracked oracle; the fixture is the subject.
     """
     from tools.build_checks_audit import _parse_rules
 
-    project_path = REPO_ROOT / "architecture" / "build-checks.md"
-    project_text = project_path.read_text(encoding="utf-8")
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
     rules, violations = _parse_rules(
-        project_text, source="project", path=str(project_path)
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
     )
     by_id = {r.rule_id: r for r in rules}
 
-    assert "BC-PROJ-1" in by_id, "BC-PROJ-1 not parsed from project file"
-    assert by_id["BC-PROJ-1"].trigger_anchors == ("subagent", "fan-out"), (
-        f"BC-PROJ-1 anchors mismatch: got "
-        f"{by_id['BC-PROJ-1'].trigger_anchors!r}, "
-        f"expected ('subagent', 'fan-out')"
+    # --- BC-PROJ-1 full structural identity (literal-constant oracle) ---
+    assert "BC-PROJ-1" in by_id, "BC-PROJ-1 not parsed from project fixture"
+    p1 = by_id["BC-PROJ-1"]
+    assert p1.trigger_anchors == ("subagent", "fan-out"), (
+        f"BC-PROJ-1 anchors mismatch: got {p1.trigger_anchors!r}"
+    )
+    assert p1.applies_to == ("agents/**/*.md",), (
+        f"BC-PROJ-1 applies_to mismatch: got {p1.applies_to!r}, "
+        f"expected ('agents/**/*.md',)"
+    )
+    assert p1.trigger_keywords == (
+        "subagent", "fan-out", "agent", "parallel", "spawn", "orchestrate",
+    ), f"BC-PROJ-1 trigger_keywords mismatch: got {p1.trigger_keywords!r}"
+    assert p1.severity == "Important", (
+        f"BC-PROJ-1 severity mismatch: got {p1.severity!r}"
     )
 
-    assert "BC-PROJ-2" in by_id, "BC-PROJ-2 not parsed from project file"
-    assert by_id["BC-PROJ-2"].trigger_anchors == ("fence", "code-block", "llm"), (
-        f"BC-PROJ-2 anchors mismatch: got "
-        f"{by_id['BC-PROJ-2'].trigger_anchors!r}, "
-        f"expected ('fence', 'code-block', 'llm')"
+    # --- BC-PROJ-2 full structural identity ---
+    assert "BC-PROJ-2" in by_id, "BC-PROJ-2 not parsed from project fixture"
+    p2 = by_id["BC-PROJ-2"]
+    assert p2.trigger_anchors == ("fence", "code-block", "llm"), (
+        f"BC-PROJ-2 anchors mismatch: got {p2.trigger_anchors!r}"
+    )
+    assert p2.applies_to == ("skills/**/*.py", "tools/**/*.py"), (
+        f"BC-PROJ-2 applies_to mismatch: got {p2.applies_to!r}"
+    )
+    assert p2.trigger_keywords == (
+        "fence", "code-block", "llm", "parse", "structured-output",
+        "fenced", "output",
+    ), f"BC-PROJ-2 trigger_keywords mismatch: got {p2.trigger_keywords!r}"
+    assert p2.severity == "Important", (
+        f"BC-PROJ-2 severity mismatch: got {p2.severity!r}"
     )
 
-    # No anchor-not-in-keywords violations expected on the production file
-    bad = [
-        v for v in violations
-        if v.kind == "anchor-not-in-keywords"
-    ]
+    # No anchor-not-in-keywords violations expected on the canonical fixture
+    bad = [v for v in violations if v.kind == "anchor-not-in-keywords"]
     assert not bad, (
-        f"production project build-checks.md emits anchor-not-in-keywords "
+        f"canonical project fixture emits anchor-not-in-keywords "
         f"violations: {[(v.rule_id, v.message) for v in bad]}"
     )
 
-    if not _GLOBAL_BUILD_CHECKS.exists():
-        pytest.skip(
-            f"global build-checks file not present at {_GLOBAL_BUILD_CHECKS}; "
-            f"project pins are the canonical CI surface."
-        )
-    global_text = _GLOBAL_BUILD_CHECKS.read_text(encoding="utf-8")
-    global_rules, global_violations = _parse_rules(
-        global_text, source="global", path=str(_GLOBAL_BUILD_CHECKS)
+    # --- BC-GLOBAL-1 full structural identity (global fixture) ---
+    global_text = _CANONICAL_GLOBAL_FIXTURE.read_text(encoding="utf-8")
+    global_rules, _ = _parse_rules(
+        global_text, source="global", path=str(_CANONICAL_GLOBAL_FIXTURE)
     )
     global_by_id = {r.rule_id: r for r in global_rules}
-    assert "BC-GLOBAL-1" in global_by_id, "BC-GLOBAL-1 not parsed from global file"
-    expected_global_anchors = ("fence", "code-block", "llm", "structured-output")
-    assert global_by_id["BC-GLOBAL-1"].trigger_anchors == expected_global_anchors, (
-        f"BC-GLOBAL-1 anchors mismatch: got "
-        f"{global_by_id['BC-GLOBAL-1'].trigger_anchors!r}, "
-        f"expected {expected_global_anchors}"
+    assert "BC-GLOBAL-1" in global_by_id, "BC-GLOBAL-1 not parsed from global fixture"
+    g1 = global_by_id["BC-GLOBAL-1"]
+    assert g1.trigger_anchors == ("fence", "code-block", "llm", "structured-output"), (
+        f"BC-GLOBAL-1 anchors mismatch: got {g1.trigger_anchors!r}"
+    )
+    # meta-M2 anti-circularity pin: slice-005 DEVIATION-1 value `**`
+    # (NOT always:true — always:true short-circuits before the anchor
+    # final-filter; an always:true mis-reconstruction would coincidentally
+    # pass the archive-backtests via _rule_applies L413-414).
+    assert g1.applies_to == ("**",), (
+        f"BC-GLOBAL-1 applies_to mismatch: got {g1.applies_to!r}, "
+        f"expected ('**',) — the slice-005 DEVIATION-1 value"
+    )
+    assert g1.trigger_keywords == (
+        "parse", "fence", "code-block", "llm", "structured-output",
+        "fenced", "output",
+    ), f"BC-GLOBAL-1 trigger_keywords mismatch: got {g1.trigger_keywords!r}"
+    assert g1.severity == "Important", (
+        f"BC-GLOBAL-1 severity mismatch: got {g1.severity!r}"
+    )
+
+
+def test_bc_proj_3_and_bc_global_2_have_expected_structural_identity():
+    """BC-PROJ-3 (project fixture) + BC-GLOBAL-2 (global fixture) MUST parse
+    to their expected full structural identity.
+
+    Defect class (slice-030A v2-B3 / meta-M-add-3): BC-PROJ-3 + BC-GLOBAL-2
+    are the slice-028-promoted rules R-4's truncation *left behind*. They
+    were NEVER pinned by any literal-constant test (the migrated-rules tests
+    only cover BC-PROJ-1/2/BC-GLOBAL-1), so before this test the canonical
+    fixture's content for these two rules had NO tracked oracle — sourced
+    only from the suspect live file (a circular oracle). This test is that
+    missing tracked oracle: literal-constant structural-identity pins
+    authored from the surviving uncorrupted live bodies (best-recoverable;
+    see slice-030A design.md M3 + ADR-028). The fixture is the subject;
+    these literals are the oracle.
+
+    Rule reference: BC-1 (slice-030A AC #2 — all-5-rule literal oracle).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-3" in p_by_id, "BC-PROJ-3 not parsed from project fixture"
+    p3 = p_by_id["BC-PROJ-3"]
+    assert p3.severity == "Critical", f"BC-PROJ-3 severity: {p3.severity!r}"
+    assert p3.applies_to == ("always",), (
+        f"BC-PROJ-3 applies_to mismatch: got {p3.applies_to!r}, "
+        f"expected ('always',) — the always:true sentinel"
+    )
+    assert p3.trigger_keywords == (
+        "validate", "demo", "revert", "fixture", "mutate", "git checkout",
+        "git restore", "git stash", "scratch",
+    ), f"BC-PROJ-3 trigger_keywords mismatch: got {p3.trigger_keywords!r}"
+    assert p3.trigger_anchors == (), (
+        f"BC-PROJ-3 trigger_anchors: expected () got {p3.trigger_anchors!r}"
+    )
+    assert p3.negative_anchors == (), (
+        f"BC-PROJ-3 negative_anchors: expected () got {p3.negative_anchors!r}"
+    )
+
+    global_text = _CANONICAL_GLOBAL_FIXTURE.read_text(encoding="utf-8")
+    g_rules, _ = _parse_rules(
+        global_text, source="global", path=str(_CANONICAL_GLOBAL_FIXTURE)
+    )
+    g_by_id = {r.rule_id: r for r in g_rules}
+    assert "BC-GLOBAL-2" in g_by_id, "BC-GLOBAL-2 not parsed from global fixture"
+    g2 = g_by_id["BC-GLOBAL-2"]
+    assert g2.severity == "Critical", f"BC-GLOBAL-2 severity: {g2.severity!r}"
+    assert g2.applies_to == ("always",), (
+        f"BC-GLOBAL-2 applies_to mismatch: got {g2.applies_to!r}"
+    )
+    assert g2.trigger_keywords == (
+        "revert", "rollback", "scratch edit", "temporary change", "demo",
+        "restore", "git checkout", "git stash", "cleanup",
+    ), f"BC-GLOBAL-2 trigger_keywords mismatch: got {g2.trigger_keywords!r}"
+    assert g2.trigger_anchors == (), (
+        f"BC-GLOBAL-2 trigger_anchors: expected () got {g2.trigger_anchors!r}"
+    )
+    assert g2.negative_anchors == (), (
+        f"BC-GLOBAL-2 negative_anchors: expected () got {g2.negative_anchors!r}"
     )
 
 
@@ -890,22 +991,17 @@ def test_negative_anchors_schema_documents_field_name_in_both_files():
     pin discipline (slice-008 Critic M2 split into TWO substrings —
     field-name AND semantics).
     Rule reference: BC-1 v1.2 (slice-008 AC #5a; surface a — field-name).
+
+    slice-030A/ADR-028: asserts the git-tracked canonical fixtures.
     """
-    project_text = (
-        REPO_ROOT / "architecture" / "build-checks.md"
-    ).read_text(encoding="utf-8")
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
     assert "Negative anchors" in project_text, (
-        "architecture/build-checks.md schema description must mention the "
+        f"{_CANONICAL_PROJECT_FIXTURE} schema description must mention the "
         "literal `Negative anchors` field name (case-sensitive)."
     )
-    if not _GLOBAL_BUILD_CHECKS.exists():
-        pytest.skip(
-            f"global build-checks file not present at {_GLOBAL_BUILD_CHECKS}; "
-            f"project pin is the canonical CI surface."
-        )
-    global_text = _GLOBAL_BUILD_CHECKS.read_text(encoding="utf-8")
+    global_text = _CANONICAL_GLOBAL_FIXTURE.read_text(encoding="utf-8")
     assert "Negative anchors" in global_text, (
-        f"{_GLOBAL_BUILD_CHECKS} schema description must mention the "
+        f"{_CANONICAL_GLOBAL_FIXTURE} schema description must mention the "
         f"literal `Negative anchors` field name (case-sensitive)."
     )
 
@@ -924,22 +1020,17 @@ def test_negative_anchors_schema_documents_final_filter_semantics():
     Mirrors slice-005's `word-boundary` semantics-phrase pin (per
     slice-005 Critic M3).
     Rule reference: BC-1 v1.2 (slice-008 AC #5b; surface b — semantics).
+
+    slice-030A/ADR-028: asserts the git-tracked canonical fixtures.
     """
-    project_text = (
-        REPO_ROOT / "architecture" / "build-checks.md"
-    ).read_text(encoding="utf-8")
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
     assert "final filter" in project_text.lower(), (
-        "architecture/build-checks.md schema description must mention the "
+        f"{_CANONICAL_PROJECT_FIXTURE} schema description must mention the "
         "literal `final filter` semantics phrase (case-insensitive)."
     )
-    if not _GLOBAL_BUILD_CHECKS.exists():
-        pytest.skip(
-            f"global build-checks file not present at {_GLOBAL_BUILD_CHECKS}; "
-            f"project pin is the canonical CI surface."
-        )
-    global_text = _GLOBAL_BUILD_CHECKS.read_text(encoding="utf-8")
+    global_text = _CANONICAL_GLOBAL_FIXTURE.read_text(encoding="utf-8")
     assert "final filter" in global_text.lower(), (
-        f"{_GLOBAL_BUILD_CHECKS} schema description must mention the "
+        f"{_CANONICAL_GLOBAL_FIXTURE} schema description must mention the "
         f"literal `final filter` semantics phrase (case-insensitive)."
     )
 
@@ -1078,38 +1169,33 @@ def test_migrated_rules_have_expected_negative_anchors():
         "forward-sync",
     )
 
-    project_path = REPO_ROOT / "architecture" / "build-checks.md"
-    project_text = project_path.read_text(encoding="utf-8")
+    # slice-030A/ADR-028: assert the git-tracked canonical fixtures.
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
     rules, violations = _parse_rules(
-        project_text, source="project", path=str(project_path)
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
     )
     by_id = {r.rule_id: r for r in rules}
 
-    assert "BC-PROJ-1" in by_id, "BC-PROJ-1 not parsed from project file"
+    assert "BC-PROJ-1" in by_id, "BC-PROJ-1 not parsed from project fixture"
     assert by_id["BC-PROJ-1"].negative_anchors == expected_negative_anchors, (
         f"BC-PROJ-1 negative_anchors mismatch: got "
         f"{by_id['BC-PROJ-1'].negative_anchors!r}, "
         f"expected {expected_negative_anchors!r}"
     )
 
-    # No negative-anchor-overlaps-positive violations expected on production
+    # No negative-anchor-overlaps-positive violations expected on the fixture
     bad = [
         v for v in violations
         if v.kind == "negative-anchor-overlaps-positive"
     ]
     assert not bad, (
-        f"production project build-checks.md emits negative-anchor-overlaps-"
+        f"canonical project fixture emits negative-anchor-overlaps-"
         f"positive violations: {[(v.rule_id, v.message) for v in bad]}"
     )
 
-    if not _GLOBAL_BUILD_CHECKS.exists():
-        pytest.skip(
-            f"global build-checks file not present at {_GLOBAL_BUILD_CHECKS}; "
-            f"project pin is the canonical CI surface."
-        )
-    global_text = _GLOBAL_BUILD_CHECKS.read_text(encoding="utf-8")
+    global_text = _CANONICAL_GLOBAL_FIXTURE.read_text(encoding="utf-8")
     global_rules, global_violations = _parse_rules(
-        global_text, source="global", path=str(_GLOBAL_BUILD_CHECKS)
+        global_text, source="global", path=str(_CANONICAL_GLOBAL_FIXTURE)
     )
     global_by_id = {r.rule_id: r for r in global_rules}
     assert "BC-GLOBAL-1" in global_by_id, "BC-GLOBAL-1 not parsed"
@@ -1323,15 +1409,15 @@ def test_bc_proj_2_has_methodology_vocabulary_negative_anchors():
         "forward-sync",
     )
 
-    project_path = REPO_ROOT / "architecture" / "build-checks.md"
-    project_text = project_path.read_text(encoding="utf-8")
+    # slice-030A/ADR-028: assert the git-tracked canonical project fixture.
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
     rules, violations = _parse_rules(
-        project_text, source="project", path=str(project_path)
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
     )
     by_id = {r.rule_id: r for r in rules}
 
     assert "BC-PROJ-2" in by_id, (
-        "BC-PROJ-2 not parsed from architecture/build-checks.md"
+        "BC-PROJ-2 not parsed from canonical project fixture"
     )
     assert by_id["BC-PROJ-2"].negative_anchors == expected_negative_anchors, (
         f"BC-PROJ-2 negative_anchors mismatch: got "

@@ -205,6 +205,17 @@ If `architecture/build-checks.md` doesn't exist yet, create it with the canonica
 
 **Optional global promotion**: if the rule is generic enough to apply to **all projects** (not just this one), also offer to append it to `~/.claude/build-checks.md` with a `BC-GLOBAL-NNN` ID. Examples of globally generic rules: secrets in code, JWT signature verification, SQL injection prevention, file-upload size limits. Project-specific rules (e.g., "the `receipts` table requires `merchant_id`") stay project-only.
 
+> **BCI-1 fail-loud post-write step (mandatory when a rule was promoted)** — per **BCI-1** (`methodology-changelog.md` v0.44.0; slice-030A; [[ADR-028]] + [[ADR-029]]). This Step 5b is LLM-executed prose with no deterministic promotion function; R-4 witnessed a whole-file truncation where every prior rule + the schema preamble was silently lost. To make any such truncation/divergence loud immediately rather than ship silently:
+>
+> 1. After authoring the new rule, **also add the same rule to the git-tracked canonical fixture** — `tests/methodology/fixtures/build_checks/canonical_project_checks.md` (or `canonical_global_checks.md` for a `BC-GLOBAL-NNN`) — AND a literal-constant full-structural-identity pin in `tests/methodology/test_build_checks_audit.py` (the fixture is the subject; the literal constant is the tracked oracle — see ADR-028). The fixture, not the gitignored live file, is the source of truth.
+> 2. Reconstruct the live file from the fixture (byte-copy), then run:
+>
+>    ```bash
+>    $PY -m tools.build_checks_integrity
+>    ```
+>
+> 3. If it exits non-zero (`drift`/HALT): **STOP and report** — a prior rule, the schema preamble, or a structural field was lost/diverged. Do NOT proceed; reconstruct from the fixture. Exit 0 (incl. the global-absent WARN) is required before Step 5b is considered done. This is the deterministic downstream gate that retires R-4's silent-degradation class (the prose itself cannot be made defect-proof — ADR-029).
+
 If the user answers no, skip — promotion is opt-in and never auto-applied. Recurring patterns missed at this step still surface in lessons-learned.md and can be promoted in a later slice.
 
 ### Step 5.3: Add one entry to `architecture/shippability.md`
