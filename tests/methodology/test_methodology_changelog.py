@@ -2392,3 +2392,106 @@ def test_adr_025_present_and_reversibility_cheap():
         f"ADR-025 ({adr_files[0].name}) missing canonical phrase "
         f"'Pipeline position' in body"
     )
+
+
+# --- Slice-028 / UTF8-STDOUT-1 v1.1 v0.42.0 entry-pin + shippability propagation ---
+
+_V042 = "0.42.0"
+_UTF8_V11_PHRASE = "version-agnostic UTF-8 rollup sentinel"
+
+
+def test_v_0_42_0_utf8_stdout_1_v1_1_entry_present_in_repo_and_installed():
+    """v0.42.0 UTF8-STDOUT-1 v1.1 entry exists in both in-repo + installed
+    methodology-changelog.md, with the canonical rule ID + canonical phrase
+    + the rule-ID-lineage-preserved prose.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /status or /slice. Also pins the rule-ID
+    lineage (UTF8-STDOUT-1 v1.1, NOT a new rule ID — mirroring PMI-1 v1.x /
+    ADR-013) so a future edit cannot silently mint a spurious new rule ID.
+    UTF8-STDOUT-1 v1.1 is a rule-version evolution, not an audit-enforced
+    gate — this pin deliberately does NOT assert the NON-`-D` audit-gate
+    naming prose (that is CRP-1/PCA-1-class, not applicable here).
+
+    Rule reference: slice-028 AC #5 (methodology-changelog v0.42.0 entry).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V042}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V042} entry "
+            f"header — slice-028 UTF8-STDOUT-1 v1.1 entry was not added or "
+            f"was lost"
+        )
+        body = _extract_version_body(content, _V042)
+        assert "UTF8-STDOUT-1" in body, (
+            f"{surface_name} v{_V042} entry body missing canonical rule ID "
+            f"'UTF8-STDOUT-1' — entry-pin broken at the rule-ID layer"
+        )
+        assert _UTF8_V11_PHRASE in body, (
+            f"{surface_name} v{_V042} entry body missing canonical phrase "
+            f"{_UTF8_V11_PHRASE!r} — entry-pin broken at the canonical-phrase "
+            f"layer (N=3 surface schema-pin)"
+        )
+        assert "v1.1" in body and "NOT a new rule ID" in body, (
+            f"{surface_name} v{_V042} entry body missing the rule-ID-lineage "
+            f"prose ('v1.1' + 'NOT a new rule ID', per ADR-026 / ADR-013 "
+            f"precedent) — a spurious new rule ID could silently appear"
+        )
+
+
+def test_v_0_42_0_utf8_stdout_1_v1_1_shippability_consumer_propagation():
+    """architecture/shippability.md carries a slice-028 row referencing the
+    UTF8-STDOUT-1 v1.1 consumer (RPCD-1 / SCPD-1 consumer-reference
+    propagation).
+
+    Defect class: a rule-version evolution whose consumer references do not
+    propagate into the shippability catalog can silently regress without
+    /validate-slice catching it. SCPD-1 requires the propagation.
+
+    Rule reference: slice-028 AC #5 (shippability consumer propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "UTF8-STDOUT-1 v1.1" in catalog, (
+        "architecture/shippability.md missing a UTF8-STDOUT-1 v1.1 row — "
+        "SCPD-1 consumer-reference propagation broken"
+    )
+    assert "test_utf8_stdout_regression" in catalog, (
+        "architecture/shippability.md UTF8-STDOUT-1 v1.1 row does not "
+        "reference the tests/methodology/test_utf8_stdout_regression.py "
+        "consumer — SCPD-1 propagation incomplete"
+    )
+
+
+def test_adr_026_present_and_reversibility_cheap():
+    """ADR-026 file exists at architecture/decisions/ADR-026-*.md AND has
+    frontmatter `reversibility: cheap` + names UTF8-STDOUT-1 + canonical
+    phrase.
+
+    Defect class: ADR-026 lost / renamed / scope-shifted; UTF8-STDOUT-1
+    v1.1 has no canonical decision record.
+
+    Rule reference: slice-028 (ADR-026).
+    """
+    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    adr_files = list(decisions_dir.glob("ADR-026-*.md"))
+    assert len(adr_files) == 1, (
+        f"Expected exactly one ADR-026 file at "
+        f"architecture/decisions/ADR-026-*.md; found {len(adr_files)}: "
+        f"{[f.name for f in adr_files]!r}"
+    )
+    adr_content = adr_files[0].read_text(encoding="utf-8")
+    assert "reversibility: cheap" in adr_content, (
+        f"ADR-026 ({adr_files[0].name}) missing `reversibility: cheap` "
+        f"frontmatter field"
+    )
+    assert "UTF8-STDOUT-1" in adr_content, (
+        f"ADR-026 ({adr_files[0].name}) missing canonical rule ID "
+        f"'UTF8-STDOUT-1' in body"
+    )
+    assert _UTF8_V11_PHRASE in adr_content, (
+        f"ADR-026 ({adr_files[0].name}) missing canonical phrase "
+        f"{_UTF8_V11_PHRASE!r} in body"
+    )
