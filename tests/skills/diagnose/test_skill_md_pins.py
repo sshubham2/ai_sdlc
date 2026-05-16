@@ -397,3 +397,110 @@ def test_pass_templates_match_skill_md_step5_contract():
         f"Byte-equality fails: pass templates with NO match for canonical "
         f"string: {template_misses}. Edit them to match SKILL.md verbatim."
     )
+
+
+# --- Slice-029 / sequential-dispatch-default prose pins (ADR-027) ---
+#
+# These pin the four behaviors slice-029 introduces. They are NEW pins;
+# the slice-001/002/019 pins above (incl. CSP-1 byte-equality + the
+# LAYER-EVID-1 N=6 pin) are deliberately left unmodified — they are the
+# regression guard for the Step-5 rewrite. Rule reference: ADR-027
+# (no rule-ID minted — TRI-1 M2 option B / slice-002 prose-pin precedent).
+
+
+def test_skill_md_step5_dispatch_is_sequential_by_default():
+    """SKILL.md Step 5 makes one-Agent-call-per-message sequential the default.
+
+    Defect class: ADR-027 / slice-029 AC1 — the prior single-message
+    multi-Agent parallel batch triggered the R-1 / claude-code #57037
+    cascade. The default path MUST now be sequential; a future edit that
+    silently restores the parallel default re-exposes every default run.
+    """
+    text = _read(SKILL_MD)
+    assert "Step 5 — Dispatch the analysis passes (sequential by default" in text, (
+        "Step 5 heading must declare sequential-by-default dispatch"
+    )
+    lower = text.lower()
+    assert "one `agent` call per message, one at a time" in lower, (
+        "Step 5 must describe the sequential one-Agent-call-per-message loop"
+    )
+    assert "`$parallel` = 0" in lower or "$parallel = 0" in lower, (
+        "Step 5 must gate the default sequential path on $PARALLEL = 0"
+    )
+    # The R-1 / #57037 rationale must be present so the 'why' can't be lost.
+    assert "#57037" in text and "R-1" in text, (
+        "Step 5 must cite R-1 / claude-code #57037 as the sequential-default rationale"
+    )
+
+
+def test_skill_md_documents_parallel_optin():
+    """`--parallel` opt-in is documented in argument-hint AND Step 5.
+
+    Defect class: slice-029 AC2 — the fast path must remain reachable via
+    an explicit, discoverable opt-in. If argument-hint or the Step-5
+    opt-in branch is dropped, users lose the documented escape hatch.
+    """
+    text = _read(SKILL_MD)
+    # Frontmatter argument-hint region (between the two leading '---').
+    fm_end = text.find("---", 3)
+    frontmatter = text[:fm_end] if fm_end != -1 else text
+    assert "--parallel" in frontmatter and "argument-hint" in frontmatter, (
+        "frontmatter argument-hint must document the --parallel flag"
+    )
+    lower = text.lower()
+    assert "opt-in — parallel batch" in lower, (
+        "Step 5 must carry the explicit `--parallel` opt-in branch"
+    )
+    assert "/diagnose --parallel" in text, (
+        "Step 5/Step 1 must show the `/diagnose --parallel` invocation"
+    )
+
+
+def test_skill_md_step1_flag_strip_fail_safe():
+    """Step 1 strips flags before TARGET resolution and fail-safes unknown flags.
+
+    Defect class: slice-029 B3 + /critique-review M-add-1 — the prior
+    `TARGET="${1:-$PWD}"` made `/diagnose --parallel` resolve TARGET to
+    `--parallel` and abort. The 3-arm case must: consume `--parallel`,
+    WARN+IGNORE any other `--`-flag (never treat it as the path, so a
+    flag typo never aborts), and only take a non-flag token as the path.
+    """
+    text = _read(SKILL_MD)
+    step1 = text[text.find("## Step 1"):text.find("## Step 2")]
+    assert "--parallel)  PARALLEL=1" in step1, (
+        "Step 1 must consume --parallel via the case arm"
+    )
+    assert '--*)' in step1 and "unknown flag" in step1.lower(), (
+        "Step 1 must WARN+IGNORE unknown --flags (the --* case arm)"
+    )
+    assert 'TARGET="${ARGS[0]:-$PWD}"' in step1, (
+        "Step 1 must resolve TARGET from the flag-stripped ARGS residue"
+    )
+    assert "never treated as the path" in step1.lower(), (
+        "Step 1 must state an unknown flag is never treated as the path "
+        "(fail-safe — a flag typo never aborts)"
+    )
+
+
+def test_skill_md_step55_dispatch_aware_with_early_exit():
+    """Step 5.5 is dispatch-mode-aware and carries the sequential early-exit guard.
+
+    Defect class: slice-029 B1 + /critique-review confirm — the prior
+    'After the parallel batch completes' opening was false on the
+    sequential default; and an interrupted sequential loop leaves
+    un-spawned (not failed) passes. Step 5.5 must handle both: not assume
+    a parallel batch, and never silently skip to Step 6 with <10 passes.
+    """
+    text = _read(SKILL_MD)
+    s55 = text[text.find("### Step 5.5"):text.find("## Step 6")]
+    assert "sequentially by default" in s55.lower(), (
+        "Step 5.5 opening must be dispatch-mode-aware (not 'after the "
+        "parallel batch completes')"
+    )
+    assert "sequential early-exit" in s55.lower(), (
+        "Step 5.5 must carry the sequential early-exit silent-gap guard"
+    )
+    assert "never silently skip to step 6" in s55.lower(), (
+        "Step 5.5 early-exit guard must forbid skipping to Step 6 with "
+        "fewer than 10 passes attempted"
+    )

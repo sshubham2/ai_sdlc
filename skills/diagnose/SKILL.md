@@ -1,7 +1,7 @@
 ---
 name: diagnose
 description: Deep, owner-facing forensic analysis of a legacy or AI-assisted codebase. Reads code via graphify (entry points, reachability, communities, AST, semantic clusters) and produces a single self-contained interactive `diagnosis.html` covering inferred intent, current architecture with keep/modify/drop recommendations, code-level findings (dead code, duplicates, oversized functions, half-wired features, contradictory assumptions, layering violations, dead config, test gaps), and AI-bloat signatures specific to AI-assisted development (multiple impls of the same capability, modules added without integration, stale scaffolding, inconsistent patterns suggestive of session breaks). The HTML embeds findings as JSON and lets the repo owner fill `Confirmed` and `Notes` per finding in any browser; clicking "Save annotated HTML" downloads a copy with annotations baked in. The owner emails that file back; `/slice-candidates` extracts the embedded JSON to drive the backlog. NEVER modifies source files. Use when adopting / auditing / inheriting an existing repo and you want a comprehensive diagnostic deliverable for the repo owner. Trigger phrases — "/diagnose", "diagnose this codebase", "audit this repo", "deep analysis of legacy code", "forensic codebase review", "what's wrong with this codebase", "owner-facing audit".
-argument-hint: [path-to-repo — omit to use current working directory]
+argument-hint: [path-to-repo — omit to use current working directory] [--parallel — opt into the legacy single-message parallel batch dispatch (default is sequential; see Step 5)]
 ---
 
 # /diagnose — Deep Forensic Codebase Analysis
@@ -24,10 +24,23 @@ If `$1` was passed, use it. Otherwise use the current working directory.
 
 Verify it's a non-empty directory with code in it. If empty, abort with a clear message.
 
+`/diagnose` accepts an optional `--parallel` flag (position-independent) in addition to the optional repo path. Parse args **flag-strip-before-TARGET** so a flag-shaped token never becomes the path:
+
 ```bash
-TARGET="${1:-$PWD}"
+PARALLEL=0
+ARGS=()
+for a in "$@"; do
+  case "$a" in
+    --parallel)  PARALLEL=1 ;;
+    --*)         echo "WARNING: unknown flag '$a' ignored (running sequential default)" >&2 ;;
+    *)           ARGS+=("$a") ;;
+  esac
+done
+TARGET="${ARGS[0]:-$PWD}"
 OUT="$TARGET/diagnose-out"
 ```
+
+`$PARALLEL` (0 = sequential default, 1 = `--parallel` opt-in) is read at Step 5. Fail-safe semantics: `--parallel` sets the flag and is consumed; any **other** `--`-prefixed token is an unknown flag → a one-line warning is emitted and the token is **ignored, never treated as the path** (so a flag typo like `--paralll` never becomes `TARGET` and never aborts — `TARGET` falls back to `$PWD`, sequential). Only a *non-flag-shaped* token is taken as the repo path; if that path doesn't exist the pre-existing `cd "$TARGET"`-fails abort (a few lines below) fires exactly as it does today for any bad path — that is unchanged path-validation behavior, **not** a flag-induced abort. This shell runs under Git-Bash/MINGW on Windows (see the `case "$(uname -s)"` block in Step 3); Git-Bash ships bash ≥4.x so the `ARGS=()` array + `"$@"` iteration are portable.
 
 ### If you're invoking with an explicit path, cd to it first
 
@@ -111,13 +124,18 @@ If present, note it. `assemble.py` will:
 
 You don't process this manually — `assemble.py` handles it. Just ensure prior `diagnosis.html` is left in place.
 
-## Step 5 — Fan out the analysis passes (parallel)
+## Step 5 — Dispatch the analysis passes (sequential by default; --parallel opt-in)
 
 Per ADR-001 (slice-001-diagnose-orchestration-fix), each analysis subagent **does analysis only** — it returns three 4-backtick fenced blocks (`section`, `findings`, `summary`) in its result message. The subagent does NOT call Write, Bash, or python; it does NOT read out-of-cwd files. The main thread does all I/O via the `write_pass.py` helper after each subagent returns.
 
 This pattern is robust to subagent permission configurations (`general-purpose` subagents may have narrower allowlists than the parent thread) and eliminates the schema-mismatch + YAML-quoting failure modes that arose under the prior "subagent writes its own files" contract.
 
-**Parallel batch (run in a single message with multiple Agent tool calls).**
+**Dispatch mode is controlled by `$PARALLEL` (set in Step 1).**
+
+- **Default — sequential (`$PARALLEL` = 0).** Dispatch the 10 analysis passes **one `Agent` call per message, one at a time**: spawn pass N's Agent, wait for its result, run the "After each subagent returns" `write_pass.py` flow + 3-attempt cap for pass N, **then** spawn pass N+1. This is the default because dispatching multiple `Agent` tool calls in a single message triggers the parallel-spawn permission cascade-failure ([claude-code #57037](https://github.com/anthropics/claude-code/issues/57037)) tracked as `architecture/risk-register.md` R-1 — spawned subagents lose Read/Grep/Bash access and produce a degraded `diagnosis.html`. Sequential dispatch (one Agent call per message) defeats that cascade mode. Per ADR-027 (slice-029).
+- **Opt-in — parallel batch (`$PARALLEL` = 1, via `/diagnose --parallel`).** Run the 10 passes as a **single message with multiple `Agent` tool calls** (the legacy fan-out). Faster wall-clock, but re-exposes R-1 — the caller has chosen this explicitly. The per-pass contract, model routing, and the entire "After each subagent returns" writer flow are **identical** to the sequential default; only the dispatch shape (one message, N Agent calls) differs.
+
+Both modes use the same model-routing table, the same single subagent-contract subsection, and the same per-pass writer flow below — only *when* each `Agent` is spawned changes.
 
 Per **COST-1.1** (`methodology-changelog.md` v0.5.0), each pass is dispatched on a model matched to its cognitive shape — Sonnet for extraction-shaped passes (reachability + grep + classification), Opus for reasoning-shaped passes (synthesis + judgment + cross-module analysis). HTML assembly remains pure Python (no model). Step 6.5 narrator stays Opus.
 
@@ -167,7 +185,7 @@ Per `methodology-changelog.md` v0.33.0 (slice-019), the `03f-layering` pass suba
 
 ### After each subagent returns
 
-For each completed subagent (process them as they finish — order doesn't matter):
+For each completed subagent (in the sequential default, this runs immediately after that one pass's Agent returns and **before** the next pass is spawned; in `--parallel` mode, process them as they finish — order doesn't matter):
 
 1. Save the subagent's raw response text to `$OUT/.tmp/<pass-name>.raw` (create `.tmp/` if missing)
 2. Invoke the writer helper:
@@ -184,17 +202,19 @@ For each completed subagent (process them as they finish — order doesn't matte
 
 **Critical:** subagents must NOT read other passes' outputs and must NOT modify source files. The "do not call Write" rule is enforced by the contract above; the prose-pin tests (`tests/skills/diagnose/test_skill_md_pins.py`) protect against regression.
 
-Wait for all 10 to finish (and for `write_pass.py` to have run on each) before Step 6.
+Whether dispatched sequentially (default — each pass awaited and written before the next is spawned) or as a `--parallel` batch, all 10 passes MUST have returned AND had `write_pass.py` run on each before Step 6.
 
 ### Step 5.5 — Verify all expected output files exist
 
-After the parallel batch completes, check that every pass produced its three files. Use Glob:
+After all 10 passes have been dispatched and written (sequentially by default — each awaited+written before the next; or after the `--parallel` batch completes), check that every pass produced its three files. Use Glob:
 
 ```bash
 ls "$OUT/sections" "$OUT/findings" "$OUT/summary"
 ```
 
 Expected: 10 entries in each (pass 04 will add an 11th in Step 6). Also check `$OUT/.tmp/` for any `*.failed.raw` files — those are passes that exhausted the 3-attempt cap (Step 5) and shipped degraded. Note them for the user. For any missing file (i.e., the helper never wrote it because the cap wasn't reached but a prior validation/parse failure went unnoticed), report which pass(es) and re-spawn the affected pass once before proceeding. Do not proceed to Step 6 with gaps — silent gaps become silent omissions in the final report.
+
+**Sequential early-exit (default-mode silent-gap guard).** In the sequential default a pass is only spawned after the previous one was written, so if the dispatch loop did **not** reach all 10 (orchestrator interrupted, session death, manual stop), the un-reached passes are *missing* (never spawned) — distinct from *failed* (spawned, exhausted the 3-attempt cap, has a `.failed.raw`). The gap check above applies identically to both: any pass with no `sections/findings/summary` triple AND no `.failed.raw` is an un-spawned pass — re-spawn it (sequentially) before Step 6. **Never treat an interrupted-loop gap as "degraded and acceptable"; never silently skip to Step 6 with fewer than 10 passes attempted.**
 
 ## Step 6 — Cross-reference pass: 04-ai-bloat
 

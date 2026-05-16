@@ -2495,3 +2495,71 @@ def test_adr_026_present_and_reversibility_cheap():
         f"ADR-026 ({adr_files[0].name}) missing canonical phrase "
         f"{_UTF8_V11_PHRASE!r} in body"
     )
+
+
+# --- Slice-029 / v0.43.0 /diagnose sequential-dispatch-default entry pin ---
+
+_V043 = "0.43.0"
+_DSEQ_PHRASE = "sequential by default"
+
+
+def test_v_0_43_0_diagnose_sequential_dispatch_entry_present_in_repo_and_installed():
+    """v0.43.0 /diagnose sequential-dispatch entry exists in both in-repo +
+    installed methodology-changelog.md, with the canonical phrase, the
+    ADR-027 reference, AND the explicit no-rule-ID-lineage prose.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /status or /slice. Also pins that this is
+    a `### Changed` behavior entry with NO minted rule-ID (per /critique
+    M2 + /critique-review M2 re-scope, TRI-1 option B) so a future edit
+    cannot silently mint a spurious audited rule-ID — mirroring the
+    v0.42.0 'NOT a new rule ID' lineage guard.
+
+    Rule reference: ADR-027 (slice-029; deliberately no minted rule-ID).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V043}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V043} entry "
+            f"header — slice-029 sequential-dispatch entry was not added or "
+            f"was lost"
+        )
+        body = _extract_version_body(content, _V043)
+        assert "ADR-027" in body, (
+            f"{surface_name} v{_V043} entry body missing the 'ADR-027' "
+            f"reference — entry-pin broken at the decision-reference layer"
+        )
+        assert _DSEQ_PHRASE in body, (
+            f"{surface_name} v{_V043} entry body missing canonical phrase "
+            f"{_DSEQ_PHRASE!r} — entry-pin broken at the canonical-phrase layer"
+        )
+        assert "NO new rule-ID" in body or "no rule-ID" in body, (
+            f"{surface_name} v{_V043} entry body missing the no-rule-ID "
+            f"lineage prose (TRI-1 M2 option B) — a spurious audited rule ID "
+            f"could silently appear"
+        )
+
+
+def test_v_0_43_0_diagnose_sequential_dispatch_shippability_consumer_propagation():
+    """architecture/shippability.md carries a slice-029 row referencing the
+    sequential-dispatch prose-pin consumer (RPCD-1 / SCPD-1 consumer-
+    reference propagation).
+
+    Defect class: a behavior change whose consumer references do not
+    propagate into the shippability catalog can silently regress without
+    /validate-slice catching it. SCPD-1 requires the propagation.
+
+    Rule reference: slice-029 (shippability consumer propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "slice-029" in catalog, (
+        "architecture/shippability.md missing a slice-029 row — "
+        "RPCD-1 / SCPD-1 consumer-reference propagation not done"
+    )
+    assert "test_skill_md_pins.py" in catalog, (
+        "architecture/shippability.md slice-029 row must cite the "
+        "test_skill_md_pins.py prose-pin consumer command"
+    )
