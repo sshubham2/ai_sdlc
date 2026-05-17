@@ -1,0 +1,10 @@
+# EOL-DRIFT-1 (slice-033 / ADR-033): the byte-equality-guarded `.md` surface
+# is pinned to LF so Windows core.autocrlf=true checkouts do not re-acquire
+# the R-5 CRLF false-FAIL. The shared EOL-agnostic comparator
+# (tests/skill_drift_equality.py) is the environment-independent correctness
+# fix; this file is the durability layer + keeps `git status` clean.
+# Scope is deliberately narrow (the guarded surface only) — whole-vault
+# renormalization is explicitly out of slice-033 scope.
+skills/**/SKILL.md text eol=lf
+skills/diagnose/passes/*.md text eol=lf
+agents/*.md text eol=lf
