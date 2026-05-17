@@ -417,7 +417,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.json:
         out = result.to_dict()
-        out["view"] = [r.to_dict() for r in view]
+        # R-9 / ADR-036: the consumed `risks` key reflects --filter-status /
+        # --filter-band / --sort / --top. `summary` stays register-wide
+        # (to_dict computes it over all risks). No redundant `view` key —
+        # a single filtered list is the source of truth.
+        out["risks"] = [r.to_dict() for r in view]
         sys.stdout.write(json.dumps(out, indent=2) + "\n")
     else:
         sys.stdout.write(_format_human(result, view))
