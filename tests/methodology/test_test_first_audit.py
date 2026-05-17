@@ -20,6 +20,7 @@ from pathlib import Path
 from tests.methodology.conftest import REPO_ROOT
 from tools.test_first_audit import (
     _TF_1_RELEASE_DATE,
+    _format_human,
     _normalize_ac_label,
     audit_brief_file,
 )
@@ -366,3 +367,115 @@ def test_pending_row_missing_file_emits_exactly_one_violation(tmp_path):
         f"the single violation must be non-passing-pre-finish, not "
         f"{row_violations[0].kind} — PASSING-gate broken (double-flag)"
     )
+
+
+# --- R-7 / TFFL-1 (slice-034): field-line robustness ---
+
+def _brief_with_field_line(tmp_path: Path, field_line: str | None) -> Path:
+    """Write a minimal brief with a custom (or absent) `**Test-first**`
+    field line. `field_line=None` → the field is genuinely absent.
+    """
+    head = "# Slice 999: tffl-1 fixture\n\n"
+    fld = "" if field_line is None else f"{field_line}\n\n"
+    body = (
+        "## Acceptance criteria\n\n"
+        "1. the thing\n\n"
+        "## Out of scope\n\n- nothing\n"
+    )
+    p = tmp_path / "mission-brief.md"
+    p.write_text(head + fld + body, encoding="utf-8")
+    return p
+
+
+def test_absent_field_stays_default_off_clean(tmp_path: Path):
+    """AC2: a brief with NO `**Test-first**:` field stays legitimate
+    default-off — clean, not enabled, zero violations.
+
+    Defect class: the TFFL-1 malformed branch must NOT fire on genuine
+    absence (that is the legitimate opt-out — old briefs keep working).
+    Rule reference: TF-1 / TFFL-1 / R-7.
+    """
+    brief = _brief_with_field_line(tmp_path, None)
+    result = audit_brief_file(brief, skip_if_carry_over=False)
+    assert result.test_first_enabled is False
+    assert result.violations == []
+    assert "not enabled" in _format_human(result)
+
+
+def test_present_false_field_is_not_malformed(tmp_path: Path):
+    """AC2 / M2 invariant: `**Test-first**: false` SATISFIES the value
+    matcher → legitimate default-off, NOT a malformed violation.
+
+    Defect class: an implementation that narrowed the malformed branch's
+    value check to `true`-only would spuriously flag every disabled brief.
+    Rule reference: TF-1 / TFFL-1 / R-7 (critique M2).
+    """
+    brief = _brief_with_field_line(tmp_path, "**Test-first**: false")
+    result = audit_brief_file(brief, skip_if_carry_over=False)
+    assert result.test_first_enabled is False
+    assert result.violations == [], (
+        "`**Test-first**: false` is well-formed + disabled — must take "
+        "legitimate default-off, NOT the malformed branch (M2 invariant)"
+    )
+
+    # Annotated false must also stay clean (not malformed, not enabled).
+    brief2 = _brief_with_field_line(
+        tmp_path, "**Test-first**: false  (intentionally disabled here)"
+    )
+    result2 = audit_brief_file(brief2, skip_if_carry_over=False)
+    assert result2.test_first_enabled is False
+    assert result2.violations == []
+
+
+def test_present_but_malformed_field_is_loud_not_silent(tmp_path: Path):
+    """AC3: `**Test-first**: maybe` (present but unparseable) emits a loud
+    `malformed-test-first-field` violation — NEVER silent default-off.
+
+    Defect class: R-7 — a present-but-broken field silently default-offs
+    and bypasses the entire TF-1 gate on a genuinely test-first slice.
+    Rule reference: TF-1 / TFFL-1 / R-7.
+    """
+    brief = _brief_with_field_line(tmp_path, "**Test-first**: maybe")
+    result = audit_brief_file(brief, skip_if_carry_over=False)
+    kinds = [v.kind for v in result.violations]
+    assert "malformed-test-first-field" in kinds, (
+        f"present-but-unparseable field must be loud; got violations={kinds}"
+    )
+    human = _format_human(result)
+    assert "not enabled" not in human, (
+        "the silent 'not enabled' message must NOT mask a malformed field"
+    )
+    assert "malformed-test-first-field" in human
+
+    # Empty value is also malformed (present prefix, no value token).
+    brief_empty = _brief_with_field_line(tmp_path, "**Test-first**:")
+    res_empty = audit_brief_file(brief_empty, skip_if_carry_over=False)
+    assert "malformed-test-first-field" in [
+        v.kind for v in res_empty.violations
+    ]
+
+
+def test_malformed_suffix_value_is_loud_not_silent(tmp_path: Path):
+    """AC3 / M1: `**Test-first**: false-positive` / `true.` must NOT be
+    silently accepted as a valid boolean (the `\\b` over-match defect) —
+    they hit the loud malformed branch instead.
+
+    Defect class: the rejected `(true|false)\\b.*$` accepted `false-positive`
+    as `false` → silent default-off — a narrower R-7 self-violation.
+    Rule reference: TF-1 / TFFL-1 / R-7 (critique M1).
+    """
+    for bad in (
+        "**Test-first**: false-positive",
+        "**Test-first**: true.",
+        "**Test-first**: trueish",
+        "**Test-first**: false; see note",
+    ):
+        brief = _brief_with_field_line(tmp_path, bad)
+        result = audit_brief_file(brief, skip_if_carry_over=False)
+        assert result.test_first_enabled is False, (
+            f"{bad!r} must NOT be parsed as an enabling boolean"
+        )
+        assert "malformed-test-first-field" in [
+            v.kind for v in result.violations
+        ], f"{bad!r} must hit the loud malformed branch, not silent default-off"
+        assert "not enabled" not in _format_human(result)

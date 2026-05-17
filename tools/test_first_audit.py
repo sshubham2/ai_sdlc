@@ -50,9 +50,27 @@ from tools import _stdout
 # Date this rule shipped. NFR-1 carry-over.
 _TF_1_RELEASE_DATE: date = date(2026, 5, 6)
 
-# Field-line pattern: `**Test-first**: true`
+# Field-line value pattern: `**Test-first**: true` — optionally annotated.
+# Per R-7 / TFFL-1 (slice-034; ADR-034): the boolean MUST be a standalone
+# token (followed by whitespace, an opening `(` for the idiomatic
+# annotation, or end-of-line). NOT `(true|false)\b.*$` — `\b` matches
+# between `false` and `-`, so `false-positive`/`true.`/`false; note` would
+# be silently accepted as a valid boolean, re-introducing the R-7
+# silent-bypass through a malformed *suffix* value. `re.match` semantics:
+# the annotation remainder need not be consumed.
 _TEST_FIRST_FIELD_RE = re.compile(
-    r"^\*\*Test[-\s]?first\*\*\s*:\s*(true|false)\s*$",
+    r"^\*\*Test[-\s]?first\*\*\s*:\s*(true|false)(?=[\s(]|$)",
+    re.IGNORECASE,
+)
+
+# Value-agnostic "is the field syntactically present?" matcher (per R-7 /
+# TFFL-1 ADR-034 §2). Used ONLY to distinguish "field absent" (legitimate
+# default-off) from "field present but value unparseable" (loud
+# `malformed-test-first-field`). `**Test-first**: false` still SATISFIES
+# `_TEST_FIRST_FIELD_RE` (group=false) → legitimate default-off, NOT
+# malformed — the malformed branch consults the SAME value RE (M2 invariant).
+_TEST_FIRST_FIELD_PRESENT_RE = re.compile(
+    r"^\*\*Test[-\s]?first\*\*\s*:",
     re.IGNORECASE,
 )
 
@@ -142,6 +160,27 @@ def _detect_test_first_flag(text: str) -> bool:
         if m:
             return m.group(1).strip().lower() == "true"
     return False
+
+
+def _detect_malformed_test_first_field(text: str) -> tuple[int, str] | None:
+    """Per R-7 / TFFL-1 (slice-034; ADR-034): return (line_number, raw_value)
+    of the first line that LOOKS like the `**Test-first**:` field but whose
+    value is NOT a standalone `true|false` token (e.g. `maybe`, empty,
+    `false-positive`, `true.`), and where NO line carries a valid value.
+
+    Returns None when either (a) the field is genuinely absent (legitimate
+    default-off) or (b) some line DOES satisfy the value RE (incl.
+    `**Test-first**: false` — which is valid, so the field is well-formed
+    and disabled, NOT malformed; the M2 both-booleans invariant).
+    """
+    lines = text.splitlines()
+    if any(_TEST_FIRST_FIELD_RE.match(ln) for ln in lines):
+        return None  # a valid true|false value line exists — not malformed
+    for idx, ln in enumerate(lines, start=1):
+        if _TEST_FIRST_FIELD_PRESENT_RE.match(ln):
+            raw_value = ln.split(":", 1)[1].strip() if ":" in ln else ""
+            return (idx, raw_value)
+    return None  # field genuinely absent — legitimate default-off
 
 
 def _find_acs(text: str) -> list[str]:
@@ -286,7 +325,30 @@ def audit_brief_file(
     result.acs_in_brief = _find_acs(text)
 
     if not enabled:
-        return result  # default-off; nothing else to check
+        # Per R-7 / TFFL-1: distinguish "field absent" (legitimate
+        # default-off, clean) from "field present but value unparseable"
+        # (loud violation — NEVER silent default-off). The malformed branch
+        # runs AFTER the carry-over/missing-brief returns and AFTER
+        # enabled-detection, BEFORE the silent default-off return.
+        malformed = _detect_malformed_test_first_field(text)
+        if malformed is not None:
+            lineno, raw_value = malformed
+            result.violations.append(TestFirstViolation(
+                path=str(brief_path), line=lineno, ac="",
+                kind="malformed-test-first-field", severity="Important",
+                message=(
+                    f"the `**Test-first**` field is present at line {lineno} "
+                    f"but its value {raw_value!r} is not a standalone "
+                    f"`true` or `false` token. Per TFFL-1 (R-7), an "
+                    f"unparseable field MUST NOT silently default-off — it "
+                    f"would bypass the entire TF-1 gate on a slice that "
+                    f"meant to declare test-first. Accepted forms: "
+                    f"`**Test-first**: true` or `**Test-first**: false`, "
+                    f"optionally followed by whitespace + an annotation "
+                    f"(e.g. `**Test-first**: true  (per TF-1 — ...)`)."
+                ),
+            ))
+        return result  # default-off (now loud if a malformed field exists)
 
     # Test-first IS enabled — the section must exist
     found = _find_test_first_table_lines(text)
@@ -440,7 +502,11 @@ def _format_human(result: AuditResult) -> str:
             "Test-first audit: slice is carry-over exempt "
             "(mission-brief.md predates TF-1 release).\n"
         )
-    if not result.test_first_enabled:
+    if not result.test_first_enabled and not result.violations:
+        # Per R-7 / TFFL-1: the silent "not enabled" message is reached
+        # ONLY on genuine field absence. A `malformed-test-first-field`
+        # violation (field present but unparseable) must render loudly via
+        # the violations path below — never be masked by this short-circuit.
         return "Test-first audit: not enabled (`**Test-first**: true` absent).\n"
 
     if not result.violations:
