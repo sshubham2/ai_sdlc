@@ -115,3 +115,39 @@ def test_r_3_added_post_slice_019_with_graphify_symbol_conflation_class():
         f"(graphify symbol-resolution / phantom edges / conflation). Check "
         f"AC #5 wording match."
     )
+
+
+def test_r_4_subentry_charters_030c_and_stays_mitigating():
+    """R-4 must remain `mitigating` (NOT `retired`) after slice-031 ships,
+    with a sub-entry that charters slice-030C for the essential-coupling
+    reframe and carries M-add-1 forward.
+
+    Per slice-031 (split-label 030B) AC #5 + the user-ratified b-split: 030B
+    decouples ONLY the incidental class; the essential entry-pin reframe is
+    030C's chartered scope. Escalating R-4 to `retired` while the ~20 entry-
+    pin rows remain coupled would be the D-3 "silently weakened" failure.
+
+    Defect class: a future edit silently flipping R-4 to `retired` without
+    030C shipping would falsely assert the catalog is fully decoupled while
+    rows 7-30's essential entry-pins still read untracked
+    `~/.claude/methodology-changelog.md`.
+
+    Rule reference: slice-031 AC #5 (R-4 sub-entry per RR-1; SCMD-1).
+    """
+    register_path = REPO_ROOT / "architecture" / "risk-register.md"
+    result = audit_register(register_path)
+    by_id = {r.risk_id: r for r in result.risks}
+    assert "R-4" in by_id, "R-4 missing from risk-register parse"
+    assert by_id["R-4"].status == "mitigating", (
+        f"R-4 must stay 'mitigating' until slice-030C ships (incidental-only "
+        f"030B does NOT retire R-4); got {by_id['R-4'].status!r}"
+    )
+    text = register_path.read_text(encoding="utf-8")
+    assert "slice-030C" in text or "slice-030c" in text, (
+        "R-4 sub-entry must charter slice-030C for the essential-coupling "
+        "reframe (the R-4 -> retired path)"
+    )
+    assert "M-add-1" in text, (
+        "R-4 sub-entry must carry M-add-1 forward (DEFERRED at slice-031 "
+        "TRI-1, not closed by the b-split)"
+    )

@@ -143,13 +143,20 @@ def audit_catalog_file(catalog_path: Path) -> AuditResult:
         if _is_separator_row(line):
             continue
         cells = _parse_table_cells(line)
-        # Catalog schema: | # | Slice | Critical path | Command | Runtime |
-        if len(cells) < 5:
+        # Catalog schema (slice-031 / SCMD-1, ADR-031): the machine-stable
+        # command is the 6th column (index 5):
+        #   | # | Slice | Critical path | Command | Runtime | Machine-cmd |
+        # PTFCD-1 authoritatively reads `Machine-cmd`. If a data row is
+        # missing it (a SCMD-1 violation that the SCMD-1 pre-catalog gate
+        # surfaces), do NOT silently `continue` — that would also disable
+        # phantom-path detection for the row (B3). Fall back to the legacy
+        # Command cell (index 3) so PTFCD-1 coverage never silently drops.
+        if len(cells) < 4:
             continue
         row_num = cells[0]
         if row_num.lower() in {"#", ""} or not any(ch.isdigit() for ch in row_num):
             continue  # header or non-data row
-        command_cell = cells[3]
+        command_cell = cells[5] if len(cells) > 5 else cells[3]
         result.rows_scanned += 1
         for tok in _extract_test_tokens(command_cell):
             result.tokens_checked += 1

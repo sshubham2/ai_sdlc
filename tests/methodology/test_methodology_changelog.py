@@ -2501,6 +2501,8 @@ def test_adr_026_present_and_reversibility_cheap():
 
 _V044 = "0.44.0"
 _BCI1_PHRASE = "full per-rule structural identity"
+_V045 = "0.45.0"
+_SCMD1_PHRASE = "machine-stable command column"
 
 
 def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
@@ -2537,6 +2539,44 @@ def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
         )
         assert "ADR-028" in body and "ADR-029" in body, (
             f"{surface_name} v{_V044} entry body missing the ADR-028/ADR-029 "
+            f"decision lineage"
+        )
+
+
+def test_v_0_45_0_scmd_1_entry_present_in_repo_and_installed():
+    """v0.45.0 SCMD-1 entry exists in both in-repo + installed
+    methodology-changelog.md, with the SCMD-1 rule reference, the canonical
+    `machine-stable command column` phrase, and the ADR-030/ADR-031 lineage.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /status or /slice. (This NEW entry-pin is a
+    fresh essential-class member consistent with the existing pattern; the
+    *existing* entry-pin reframe is chartered to slice-030C — adding one more
+    in the established shape is normal propagation, classified essential by
+    SCMD-1 and NOT flagged.)
+
+    Rule reference: SCMD-1 (slice-031, split-label 030B; ADR-030 + ADR-031).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V045}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V045} entry "
+            f"header — slice-031 SCMD-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V045)
+        assert "SCMD-1" in body, (
+            f"{surface_name} v{_V045} entry body missing the 'SCMD-1' rule "
+            f"reference"
+        )
+        assert _SCMD1_PHRASE in body, (
+            f"{surface_name} v{_V045} entry body missing canonical phrase "
+            f"{_SCMD1_PHRASE!r}"
+        )
+        assert "ADR-030" in body and "ADR-031" in body, (
+            f"{surface_name} v{_V045} entry body missing the ADR-030/ADR-031 "
             f"decision lineage"
         )
 
