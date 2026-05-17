@@ -2513,6 +2513,10 @@ _QD1_PHRASE = "read-only, delegation-only codebase Q&A"
 _V047 = "0.47.0"
 _EOL_DRIFT1_PHRASE = "content-equal modulo line endings"
 
+# --- Slice-034 / v0.48.0 TFFL-1 TF-1-field-line-robustness entry pin ---
+_V048 = "0.48.0"
+_TFFL1_PHRASE = "**Test-first** field-line value must be a standalone boolean token"
+
 
 def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
     """v0.44.0 BCI-1 entry exists in both in-repo + installed
@@ -2678,6 +2682,52 @@ def test_v_0_47_0_eol_drift_1_entry_present_in_repo_and_installed():
         )
         assert "ADR-033" in body, (
             f"{surface_name} v{_V047} entry body missing the ADR-033 "
+            f"decision lineage"
+        )
+
+
+def test_v_0_48_0_tffl_1_entry_present_in_repo_and_installed():
+    """v0.48.0 TFFL-1 entry exists in both in-repo + installed
+    methodology-changelog.md, with the TFFL-1 rule reference, the canonical
+    `**Test-first** field-line value must be a standalone boolean token`
+    phrase, and the ADR-034 decision lineage.
+
+    RULE-ID-BEARING shape (mirrors test_v_0_45_0_scmd_1 / test_v_0_46_0_qd_1
+    / test_v_0_47_0_eol_drift_1, NOT the rule-ID-LESS test_v_0_43_0 shape):
+    TFFL-1 is a minted rule (slice-034) that refines TF-1 in place, so the
+    pin asserts the TFFL-1 token + canonical phrase + ADR-034, and MUST NOT
+    assert any 'no rule-ID' prose.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /status. The canonical-phrase assertion is
+    the anti-silent-weakening guard (a future edit cannot silently revert
+    TFFL-1 to the `\\b`-over-matching / silent-default-off behavior R-7
+    documents). Pin-fn name derives from the minted RULE-ID per the v0.46.0
+    `qd_1` / v0.47.0 `eol_drift_1` precedent (007–034 naming parity).
+
+    Rule reference: TFFL-1 (slice-034; ADR-034; refines TF-1, supersedes nothing).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V048}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V048} entry "
+            f"header — slice-034 TFFL-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V048)
+        assert "TFFL-1" in body, (
+            f"{surface_name} v{_V048} entry body missing the 'TFFL-1' rule "
+            f"reference — entry-pin broken at the rule-reference layer"
+        )
+        assert _TFFL1_PHRASE in body, (
+            f"{surface_name} v{_V048} entry body missing canonical phrase "
+            f"{_TFFL1_PHRASE!r} — a future edit could silently revert TFFL-1 "
+            f"to the R-7 silent-default-off behavior (anti-silent-weakening guard)"
+        )
+        assert "ADR-034" in body, (
+            f"{surface_name} v{_V048} entry body missing the ADR-034 "
             f"decision lineage"
         )
 
