@@ -7,9 +7,9 @@ Validates that the audit correctly:
 - Flags missing required fields, invalid values, duplicate IDs
 - Returns empty result for empty/missing files (no false alarms)
 - Optionally surfaces deprecation for legacy table format (--warn-legacy)
-- Sorts and filters for downstream /slice + /status consumption
+- Sorts and filters for downstream /slice + /pulse consumption
 
-Pins skill prose in /triage, /slice, /status referencing RR-1.
+Pins skill prose in /triage, /slice, /pulse referencing RR-1.
 
 Rule reference: RR-1.
 """
@@ -56,7 +56,7 @@ def test_band_high_for_score_6_9():
     """Score 6 and 9 -> high band (5 isn't reachable from 1-3 levels).
 
     Defect class: Without a clear high cutoff, the audit can't reliably
-    pull "the top N concerns" for /status / /slice.
+    pull "the top N concerns" for /pulse / /slice.
     Rule reference: RR-1.
     """
     assert _band_for_score(6) == "high"
@@ -69,7 +69,7 @@ def test_clean_register_parses_all_risks():
     """A valid register with 4 risks parses cleanly with computed scores.
 
     Defect class: A parser that mis-counts or skips risks would cause
-    /slice and /status to show wrong rankings.
+    /slice and /pulse to show wrong rankings.
     Rule reference: RR-1.
     """
     result = audit_register(FIXTURES / "clean_register.md")
@@ -96,7 +96,7 @@ def test_clean_register_parses_all_risks():
 def test_optional_fields_are_captured():
     """Reversibility, Mitigation, Discovered, Notes are parsed when present.
 
-    Defect class: Optional fields silently dropped means /status couldn't
+    Defect class: Optional fields silently dropped means /pulse couldn't
     surface mitigation status or discovery context.
     Rule reference: RR-1.
     """
@@ -209,7 +209,7 @@ def test_legacy_format_flagged_with_warn_legacy():
 def test_filter_status_open_excludes_retired():
     """filter_status='open' returns only open-status risks.
 
-    Defect class: /slice and /status need to ignore retired/accepted risks
+    Defect class: /slice and /pulse need to ignore retired/accepted risks
     when ranking; filter must work correctly.
     Rule reference: RR-1.
     """
@@ -237,7 +237,7 @@ def test_filter_band_high_returns_only_high():
 def test_sort_by_score_desc_then_id():
     """Sort by score (desc), then risk_id (asc) for ties.
 
-    Defect class: Inconsistent sort order means /status and /slice show
+    Defect class: Inconsistent sort order means /pulse and /slice show
     different "top risks" run-to-run, undermining trust in the ranking.
     Rule reference: RR-1.
     """
@@ -254,7 +254,7 @@ def test_sort_by_score_desc_then_id():
 def test_top_n_limits_output():
     """top=2 returns only the 2 highest-scored risks.
 
-    Defect class: /status surfacing all risks instead of top-N is noise.
+    Defect class: /pulse surfacing all risks instead of top-N is noise.
     Rule reference: RR-1.
     """
     result = audit_register(FIXTURES / "clean_register.md")
@@ -265,7 +265,7 @@ def test_top_n_limits_output():
 def test_summary_counts_by_band_and_status():
     """to_dict() summary aggregates band / status counts correctly.
 
-    Defect class: Wrong aggregates would mislead /status into reporting
+    Defect class: Wrong aggregates would mislead /pulse into reporting
     e.g. "5 high open" when only 1 is actually high+open.
     Rule reference: RR-1.
     """
@@ -285,7 +285,7 @@ def test_all_retired_register_has_zero_open_high():
     """If everything is retired/accepted, open_high_count is 0.
 
     Defect class: A register with no active concerns shouldn't surface
-    fake "top risks" — /status would mislead the user.
+    fake "top risks" — /pulse would mislead the user.
     Rule reference: RR-1.
     """
     result = audit_register(FIXTURES / "all_retired.md")
@@ -324,17 +324,17 @@ def test_slice_skill_references_rr_1():
     )
 
 
-def test_status_skill_references_rr_1():
-    """skills/status/SKILL.md must reference RR-1.
+def test_pulse_skill_references_rr_1():
+    """skills/pulse/SKILL.md must reference RR-1.
 
-    Defect class: /status not surfacing scored top-N undermines the daily
+    Defect class: /pulse not surfacing scored top-N undermines the daily
     risk-awareness signal RR-1 is meant to provide.
-    Rule reference: RR-1.
+    Rule reference: RR-1. Skill renamed `/status`→`/pulse` at slice-035 (SRCD-1).
     """
-    text = (REPO_ROOT / "skills" / "status" / "SKILL.md").read_text(encoding="utf-8")
-    assert "RR-1" in text, "no RR-1 reference in /status SKILL.md"
+    text = (REPO_ROOT / "skills" / "pulse" / "SKILL.md").read_text(encoding="utf-8")
+    assert "RR-1" in text, "no RR-1 reference in /pulse SKILL.md"
     assert "risk_register_audit" in text, (
-        "no risk_register_audit module reference in /status"
+        "no risk_register_audit module reference in /pulse"
     )
 
 

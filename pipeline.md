@@ -92,7 +92,7 @@ All 22 skills are drop-in Claude Code skills at `skills/<name>/SKILL.md` with pr
 | [/reduce](skills/reduce/SKILL.md) | all (mandatory every 5 slices in Heavy) | Complexity budget — force simplification if exceeded |
 | [/archive](skills/archive/SKILL.md) | all | Maintain `slices/_index.md` + `slices/archive/`. Auto-triggered by `/reflect` on slice completion; manual run (`--index-only`) to rebuild stale indexes. Convention: `slices/` = active only; all completed slices live in `slices/archive/`, found via `_index.md` lookup + `$PY -m graphify query` for deep semantic retrieval |
 | [/critic-calibrate](skills/critic-calibrate/SKILL.md) | all | Meta-skill: every 10-20 slices, analyze "Missed by Critic" patterns across recent reflections and propose targeted updates to `critique/SKILL.md`. Human reviews; never auto-applies. Closes the Critic feedback loop systematically |
-| [/status](skills/status/SKILL.md) | all | Orientation: compact macro-state summary (mode, active slice + stage, risk exposure, regression health, Critic calibration status, recommended next action). Use at session start, after time away, for handoff |
+| [/pulse](skills/pulse/SKILL.md) | all | Orientation: compact macro-state summary (mode, active slice + stage, risk exposure, regression health, Critic calibration status, recommended next action). Use at session start, after time away, for handoff |
 | [/repro](skills/repro/SKILL.md) | all | Bug-fix discipline: write failing test that reproduces the issue, confirm it fails, add to shippability.md BEFORE running `/slice` for the fix. Bug can't silently return once fixed |
 | [/commit-slice](skills/commit-slice/SKILL.md) | all | Generate audit-grade commit message from slice artifacts (mission-brief + build-log + validation + ADRs). Conventional-commit format; Heavy mode adds sign-off + compliance lines. Optional `--merge` (per BRANCH-1) commits to current slice branch + no-ff merges back to default branch + safe-deletes slice branch |
 
@@ -117,7 +117,7 @@ architecture/
   slices/                    # THE CORE
     _index.md                # THE lookup: active list + recent-10 + aggregated lessons + pointer to archive catalog
     slice-NNN-<name>/        # ACTIVE slices only (no reflection.md yet)
-      milestone.md           # Rolling state file (updated by every skill); /status reads this first
+      milestone.md           # Rolling state file (updated by every skill); /pulse reads this first
       mission-brief.md       # Per-slice intent + ACs + risk-tier + critic-required + gates
       design.md              # Just-enough — references code locations, doesn't duplicate them
       critique.md            # Critic's review + Builder's responses (may be "skipped" for low-risk slices)

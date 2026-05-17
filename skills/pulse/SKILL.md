@@ -1,11 +1,11 @@
 ---
-name: status
-description: "Scan the AI SDLC vault and produce a compact 'macro state' summary — mode, active slice stage + next action, risk exposure, regression health, Critic calibration status, top aggregated lessons, recommended next skill. Use at session start to orient quickly, when returning to a project after time away, when handing off, or any time you want a single-command project pulse. Replaces 5-6 individual file reads with one structured summary. Trigger phrases: '/status', 'project status', 'where are we?', 'pulse', 'macro state', 'vault scan'."
+name: pulse
+description: "Scan the AI SDLC vault and produce a compact 'macro state' summary — mode, active slice stage + next action, risk exposure, regression health, Critic calibration status, top aggregated lessons, recommended next skill. Use at session start to orient quickly, when returning to a project after time away, when handing off, or any time you want a single-command project pulse. Replaces 5-6 individual file reads with one structured summary. Renamed from /status (slice-035, SRCD-1) to avoid colliding with the Claude Code built-in /status command. Trigger phrases: '/pulse', 'where are we?', 'pulse', 'macro state', 'vault scan'."
 user_invokable: true
 argument-hint: [--brief | --full]
 ---
 
-# /status — Project Pulse / Macro State
+# /pulse — Project Pulse / Macro State
 
 You scan the AI SDLC vault and produce a compact structured summary. Designed to replace the "reading 5-6 vault files to orient" problem with one call.
 
@@ -20,9 +20,9 @@ Independent of modes. Read-only — never modifies vault files.
 
 ## Argument modes
 
-- `/status` — default balanced summary (~60 lines)
-- `/status --brief` — one-screen summary (~20 lines) for quick glance
-- `/status --full` — comprehensive view (~150 lines) including deferred items, recent reflections digest
+- `/pulse` — default balanced summary (~60 lines)
+- `/pulse --brief` — one-screen summary (~20 lines) for quick glance
+- `/pulse --full` — comprehensive view (~150 lines) including deferred items, recent reflections digest
 
 ## Prerequisite check
 
@@ -101,7 +101,7 @@ Per **COST-1** (cost-optimized model selection — `methodology-changelog.md` v0
 - Hand the agent the template for the requested mode (see below) and ask it to fill.
 - The agent returns the summary text. Main thread prints it.
 
-**Why Haiku**: `/status` is read-only summarization of structured state. No reasoning, no synthesis — just rendering. Haiku does this in a fraction of Opus's time and cost.
+**Why Haiku**: `/pulse` is read-only summarization of structured state. No reasoning, no synthesis — just rendering. Haiku does this in a fraction of Opus's time and cost.
 
 Output format (default, balanced) — **the dispatched agent fills this**:
 
@@ -184,7 +184,7 @@ Queued-after candidates (from recent Discovered + Deferred):
 2. OCR confidence threshold tuning (deferred from slice-023)
 ```
 
-### Step 4: Brief mode (`/status --brief`)
+### Step 4: Brief mode (`/pulse --brief`)
 
 Compress to one-screen summary (~20 lines):
 
@@ -201,7 +201,7 @@ Drift: clean
 Recent lessons: image EXIF, multi-device validation, auth fix-slices
 ```
 
-### Step 5: Full mode (`/status --full`)
+### Step 5: Full mode (`/pulse --full`)
 
 Balanced view, plus:
 - All active HIGH risks detailed
@@ -222,7 +222,7 @@ Length: ~150 lines. Use when doing a deep orientation.
 - In `--brief` mode, no tables — terse one-liners.
 - Token budget target: `--brief` <500 tokens; default <2k; `--full` <5k.
 
-## What /status is NOT
+## What /pulse is NOT
 
 - Not a status-tracking system. Nothing is persisted by this skill — it just reads and summarizes.
 - Not a report generator for stakeholders.
@@ -230,8 +230,8 @@ Length: ~150 lines. Use when doing a deep orientation.
 
 ## Anti-patterns
 
-- **Running /status during a slice to "check progress"**: you already have the context in plan mode. Use /status for ORIENTATION, not constant-checking.
-- **Ignoring /status flags**: if /status shows ⚠️ for overdue critic-calibrate and you run 5 more slices without addressing it, the Critic keeps missing the same categories. The flags exist for a reason.
+- **Running /pulse during a slice to "check progress"**: you already have the context in plan mode. Use /pulse for ORIENTATION, not constant-checking.
+- **Ignoring /pulse flags**: if /pulse shows ⚠️ for overdue critic-calibrate and you run 5 more slices without addressing it, the Critic keeps missing the same categories. The flags exist for a reason.
 
 ## Principle alignment
 
@@ -241,4 +241,4 @@ Length: ~150 lines. Use when doing a deep orientation.
 
 ## Next step
 
-Whatever the "Recommended next action" line says. `/status` is an orientation tool; it hands off to real work skills.
+Whatever the "Recommended next action" line says. `/pulse` is an orientation tool; it hands off to real work skills.

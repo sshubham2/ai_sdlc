@@ -1,6 +1,6 @@
 """Verify cost-optimized model dispatch (COST-1) in the three Haiku-suitable skills.
 
-Per COST-1 (methodology-changelog.md v0.4.0), /commit-slice, /status, and
+Per COST-1 (methodology-changelog.md v0.4.0), /commit-slice, /pulse, and
 /archive (index regeneration) explicitly dispatch their template-filling
 or rendering work to a Haiku subagent rather than running entirely on the
 main thread's model.
@@ -22,7 +22,7 @@ from tests.methodology.conftest import REPO_ROOT
 # Skills with COST-1 Haiku dispatch directives
 COST_1_SKILLS = [
     "skills/commit-slice/SKILL.md",
-    "skills/status/SKILL.md",
+    "skills/pulse/SKILL.md",
     "skills/archive/SKILL.md",
 ]
 

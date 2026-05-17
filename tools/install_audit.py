@@ -46,7 +46,7 @@ _CANONICAL_SKILLS: tuple[str, ...] = (
     "adopt", "archive", "build-slice", "commit-slice", "critic-calibrate",
     "critique", "critique-review", "design-slice", "diagnose", "discover",
     "drift-check", "heavy-architect", "query-design", "reduce", "reflect",
-    "repro", "risk-spike", "slice", "slice-candidates", "status",
+    "repro", "risk-spike", "slice", "slice-candidates", "pulse",
     "supersede-slice",
     "sync", "triage", "user-test", "validate-slice",
 )
@@ -263,7 +263,7 @@ def _check_tool_modules(
 
     When strict=True (the default), every module in _CANONICAL_TOOLS must
     import. When strict=False, importability is best-effort: failures are
-    silently ignored (used by /status to surface a soft warning rather
+    silently ignored (used by /pulse to surface a soft warning rather
     than a hard fail).
     """
     importable: list[str] = []

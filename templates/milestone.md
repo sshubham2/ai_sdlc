@@ -2,7 +2,7 @@
 
 Per-slice rolling state file. Lives at `architecture/slices/slice-NNN-<name>/milestone.md`.
 
-> **Note**: This template is the canonical shape. Each skill (`/slice`, `/design-slice`, `/critique`, `/build-slice`, `/validate-slice`, `/reflect`) updates this file at the end of its work. `/status` reads it as the primary source for active-slice state (faster + more robust than deriving stage from file existence).
+> **Note**: This template is the canonical shape. Each skill (`/slice`, `/design-slice`, `/critique`, `/build-slice`, `/validate-slice`, `/reflect`) updates this file at the end of its work. `/pulse` reads it as the primary source for active-slice state (faster + more robust than deriving stage from file existence).
 
 Purpose: survive session death, context clear, model confusion. Any session resume = read `milestone.md` + continue.
 
@@ -76,9 +76,9 @@ If session resumes mid-slice, this section tells Claude where to pick up:
 - **`/validate-slice`**: stage → `validate`, result recorded; next → `/reflect` (or "fix regression first" if shippability caught one)
 - **`/reflect`**: stage → `complete`, next → `none (slice complete)`; immediately after, `/archive` moves folder (milestone.md goes with it)
 
-## How /status uses it
+## How /pulse uses it
 
-`/status` reads `milestone.md` as the primary source for active-slice state:
+`/pulse` reads `milestone.md` as the primary source for active-slice state:
 - Stage: from frontmatter (explicit, not derived)
 - Next action: from `next-action` field (explicit)
 - Progress: from the checkbox list

@@ -311,7 +311,7 @@ ul.compact li strong { color: var(--text); }
     <li><strong>Thin vault</strong> — only what code can't carry: decisions, risks, slice memory. Components / contracts / schemas / test plans / screens live in code. Cure for spec rot at the root.</li>
     <li><strong>Project <code>CLAUDE.md</code> auto-generated</strong> — small (~20 lines), with the hard rule ("before editing code beyond trivial, check for active slice; if none, ASK"). Keeps Claude on the pipeline across sessions.</li>
     <li><strong>Graphify always-on</strong> — multi-modal knowledge graph (code + docs + papers + videos). PreToolUse hook nudges Claude toward <code>GRAPH_REPORT.md</code> before Glob/Grep; skills query the graph for reachability/blast-radius/path instead of re-scanning files.</li>
-    <li><strong><code>milestone.md</code> per slice</strong> — rolling state file (stage, next-action, on-resume data). Survives session death and context clears; <code>/status</code> reads it as primary source.</li>
+    <li><strong><code>milestone.md</code> per slice</strong> — rolling state file (stage, next-action, on-resume data). Survives session death and context clears; <code>/pulse</code> reads it as primary source.</li>
     <li><strong>Honest Heavy mode</strong> — <code>/heavy-architect</code> produces only human-authored files (threat model, NFRs, requirements). Code-derived views (components / contracts / schemas) are regenerated on-demand by <code>/sync</code> before audits. Thin Vault preserved in all modes.</li>
   </ul>
 
@@ -569,9 +569,9 @@ ul.compact li strong { color: var(--text); }
   <h3 id="skills-utility">Utilities</h3>
   <div class="skills-grid">
     <article class="skill">
-      <h4>/status <span class="mode-tag">all</span></h4>
+      <h4>/pulse <span class="mode-tag">all</span></h4>
       <p>Compact macro-state summary — mode, active slice stage + next action (read from <code>milestone.md</code>), risk exposure, regression health, Critic calibration status, top aggregated lessons, recommended next skill. <code>--brief</code> ~20 lines, default ~60, <code>--full</code> ~150. Read-only, never modifies. If the active slice is in <code>build</code> stage, also reads the tail of <code>build-log.md</code> Events — durable next-action signal that survives <code>milestone.md</code> staleness.</p>
-      <p class="triggers">Triggers: /status, "where are we?", "pulse"</p>
+      <p class="triggers">Triggers: /pulse, "where are we?", "pulse"</p>
     </article>
     <article class="skill">
       <h4>/repro <span class="mode-tag">all</span></h4>
@@ -628,7 +628,7 @@ ul.compact li strong { color: var(--text); }
   slices/                    # THE CORE
     _index.md                # the lookup: active list + recent-10 + aggregated lessons + pointer to archive catalog
     slice-NNN-&lt;name&gt;/        # ACTIVE slices only (no reflection.md yet)
-      milestone.md           # rolling state file (updated by every skill); /status reads this first
+      milestone.md           # rolling state file (updated by every skill); /pulse reads this first
       mission-brief.md       # per-slice intent + ACs + risk-tier + critic-required + gates
       design.md              # just-enough — references code locations, doesn't duplicate them
       critique.md            # Critic's review + Builder's responses (may be "skipped" for low-risk slices)
@@ -697,7 +697,7 @@ graphify-out/                # query cache — multi-modal knowledge graph
   </table>
 
   <h3>Slice folder shape</h3>
-  <p>Every active slice folder contains a sequence of artifacts produced by the loop. <code>milestone.md</code> is the rolling state file updated by every skill; <code>/status</code> reads it as the primary source.</p>
+  <p>Every active slice folder contains a sequence of artifacts produced by the loop. <code>milestone.md</code> is the rolling state file updated by every skill; <code>/pulse</code> reads it as the primary source.</p>
 </section>
 
 <!-- ============== GRAPHIFY ============== -->
@@ -957,7 +957,7 @@ Lesson added: in invitation/sharing slices, always think about the re-invite cas
       <tr><td>Starting fresh (greenfield)</td><td><code>/triage</code></td></tr>
       <tr><td>Adopting into existing codebase (brownfield)</td><td><code>/adopt</code></td></tr>
       <tr><td>Re-scoping an existing project</td><td><code>/triage --re-triage</code></td></tr>
-      <tr><td>Session start / orientation</td><td><code>/status</code></td></tr>
+      <tr><td>Session start / orientation</td><td><code>/pulse</code></td></tr>
       <tr><td>Fixing a non-trivial bug</td><td><code>/repro</code> → <code>/slice</code> → ...</td></tr>
       <tr><td>Generating an audit-grade commit after a slice</td><td><code>/commit-slice</code></td></tr>
       <tr><td>Worried about a third-party API</td><td><code>/risk-spike</code></td></tr>
@@ -969,7 +969,7 @@ Lesson added: in invitation/sharing slices, always think about the re-invite cas
       <tr><td>Critic keeps missing the same kind of issue</td><td><code>/critic-calibrate</code></td></tr>
       <tr><td>Heavy mode periodic deep reconciliation</td><td><code>/sync</code></td></tr>
       <tr><td>Compliance requirement just emerged</td><td><code>/triage --re-triage</code> → mode upgrade to Heavy → <code>/heavy-architect</code></td></tr>
-      <tr><td>My session died mid-slice — where am I?</td><td><code>/status</code> reads <code>milestone.md</code>; "On resume" tells you exactly where to pick up</td></tr>
+      <tr><td>My session died mid-slice — where am I?</td><td><code>/pulse</code> reads <code>milestone.md</code>; "On resume" tells you exactly where to pick up</td></tr>
     </tbody>
   </table>
 </section>

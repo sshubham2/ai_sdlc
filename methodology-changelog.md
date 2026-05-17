@@ -8,11 +8,11 @@ This file tracks behavior-changing rules in the AI SDLC pipeline. Each entry car
 
 Typo and formatting edits don't qualify; behavior changes do. New skills, new gates, modified pre-finish checks, changed prompt structures for named subagents — these qualify. Doc clarifications that don't change behavior do not.
 
-## How `/status` uses this file
+## How `/pulse` uses this file
 
-This file is also installed at `~/.claude/methodology-changelog.md` so `/status` can surface the most recent dated entry as a Methodology section, regardless of which project the user is in.
+This file is also installed at `~/.claude/methodology-changelog.md` so `/pulse` can surface the most recent dated entry as a Methodology section, regardless of which project the user is in.
 
-When the file is missing (e.g., older install before this feature shipped), `/status` gracefully skips the Methodology section and optionally hints that re-running the install would surface methodology metadata.
+When the file is missing (e.g., older install before this feature shipped), `/pulse` gracefully skips the Methodology section and optionally hints that re-running the install would surface methodology metadata.
 
 ## Format per entry
 
@@ -33,6 +33,18 @@ When the file is missing (e.g., older install before this feature shipped), `/st
 Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for cross-reference from SKILL.md prose and from later changelog entries that supersede or refine.
 
 ---
+
+## v0.49.0 — 2026-05-17
+
+**SRCD-1: a user-invocable skill name MUST NOT collide with a Claude Code built-in command name; collisions are resolved by a clean rename with no backward-compat alias, propagated atomically across the manifest, install canon, tests, vault and cross-docs (slice-035; ADR-035).** The AI SDLC pipeline shipped a skill `name: status` whose trigger `/status` shadowed the Claude Code built-in `/status` command, making the project-pulse skill ambiguously invocable for every user. The skill was renamed to `pulse` (its own pre-existing conceptual name — `skills/pulse/SKILL.md` titles itself "Project Pulse / Macro State" and `pulse` was already a declared trigger), the colliding `'/status'` + `'project status'` triggers dropped. The rename crossed PMI-1 (plugin manifest), INST-1 (install canon), CSP-1 (cross-spec parity) and the methodology test suite; the load-bearing discipline is that **a skill-rename is not a string-replace — executable filesystem-path binds (`(REPO_ROOT/"skills"/"<name>"/...).read_text()`, COST-1 path-list constants, test-module filenames + `test_<name>_*` function names) hard-fail the suite on a directory-only rename and must be enumerated separately from prose `/<name>` references**; the slice-035 design taxonomy (Bucket A executable binds / Bucket B prose / Bucket C frozen-or-unrelated) plus a mandated post-edit inventory grep (Bucket A must be empty) is the structural backstop, per the slice-022 self-violation law (a methodology slice about completing a rename inventory will itself ship an incomplete inventory unless a real-artifact grep, not Critic reasoning, is the primary catch — landed: the first Critic + meta-Critic together surfaced 14 findings, 5 of them executable-bind / installed-side misclassifications). No backward-compat `/status` alias is created — an alias would re-introduce the exact collision being resolved. Frozen-as-history exclusions (NOT rewritten — rewriting falsifies a historical record): the ADR-030 verbatim backtest corpus and `architecture/lessons-learned.md:414`. `agents/critique.md` is NOT touched — it has no `/status` *skill* reference (its only `/status` substring is inside the FBCD-1 list "NEW symbol/status/anchor"), so CAD-1 is N/A this slice. **SRCD-1 is a NEW minted rule-ID; it supersedes nothing.** 4-part PMI-1 atomic bump 0.48.0→0.49.0 (`VERSION` + `~/.claude/ai-sdlc-VERSION` + `plugin.yaml.version` + this file forward-synced to `~/.claude/methodology-changelog.md`); no tool added/removed, one skill renamed in-place → PMI-1/INST-1/CSP-1 lockstep only.
+
+### Added
+
+- **SRCD-1 — Skill-Rename Collision-resolution Discipline**
+  A user-invocable skill name MUST NOT collide with a Claude Code built-in command name. Resolve a collision by a clean rename (no backward-compat alias — an alias re-introduces the collision), propagated atomically across `plugin.yaml`, `tools/install_audit.py` canonical list, the referencing test modules (executable path binds + prose, classified per the Bucket A/B/C taxonomy), vault docs and cross-docs, with a `methodology-changelog.md` entry + 4-part PMI-1 atomic bump and a forward-synced installed copy. A post-edit inventory grep MUST show zero surviving old-name executable binds.
+  - **Rule reference**: SRCD-1 (slice-035; ADR-035; new minted rule, supersedes nothing)
+  - **Defect class**: a user-invocable skill name silently shadowed by a Claude Code built-in command (ambiguous invocation); and the secondary class — a skill rename propagated as a prose string-replace that misses executable filesystem-path binds, hard-failing the methodology suite at pre-finish
+  - **Validation**: `tests/methodology/test_methodology_changelog.py::test_v_0_49_0_srcd_1_entry_present_in_repo_and_installed` (catalogued shippability #35) + `tests/methodology/test_pulse_cadence_enforcement.py` + `tests/methodology/test_skill_model_dispatch.py` + `tests/methodology/test_risk_register_audit.py::test_pulse_skill_references_rr_1` + PMI-1 / INST-1 / CSP-1 audits green + post-edit inventory grep (Bucket A empty)
 
 ## v0.48.0 — 2026-05-17
 
@@ -1362,7 +1374,7 @@ Adds two improvements: per-pass model assignment for `/diagnose` (COST-1 extensi
   Adds explicit four-state cadence categorization to `skills/status/SKILL.md` Step 2: **within window** (0-9 slices), **approaching** (10-14), ⚠️ **recommended** (15-20), ⚠️⚠️ **overdue** (>20). When state is overdue, the calibration flag surfaces as the top line of "Recommended next action" in Step 3 output, overriding other suggestions until calibration runs. The check honors the deferred-first-run rule: empty calibration log + <10 archived slices = no warning, just "first calibration deferred until 10 slices accumulate".
   - **Rule reference**: CAL-1
   - **Defect class**: The "every 10-20 slices" cadence in `/critic-calibrate` was advisory; the previous `/status` had a single `If >15 slices: ⚠️ suggest running` line buried in metrics. Without explicit cadence enforcement, projects let calibration slip past 25, 30, 50 slices — at which point Critic calibration drift has accumulated and missed-pattern data is too noisy to mine effectively. The single-emoji warning was easy to miss; the double-emoji overdue escalation + override of next-action recommendations makes it actionable.
-  - **Validation**: `tests/methodology/test_status_cadence_enforcement.py` verifies the SKILL.md prose contains the four cadence categories (within / approaching / recommended / overdue), the literal threshold numbers (10-20), the deferred-first-run language, override semantics for the overdue state, the double-emoji escalation pattern (⚠️⚠️), and a `CAL-1` rule reference.
+  - **Validation**: `tests/methodology/test_pulse_cadence_enforcement.py` (renamed from `test_status_cadence_enforcement.py` at slice-035 / SRCD-1) verifies the SKILL.md prose contains the four cadence categories (within / approaching / recommended / overdue), the literal threshold numbers (10-20), the deferred-first-run language, override semantics for the overdue state, the double-emoji escalation pattern (⚠️⚠️), and a `CAL-1` rule reference.
 
 ---
 

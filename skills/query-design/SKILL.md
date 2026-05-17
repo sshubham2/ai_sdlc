@@ -1,6 +1,6 @@
 ---
 name: query-design
-description: "Read-only, truthful conversation about the EXISTING codebase. Answers questions about how the code/vault/methodology actually works — grounded strictly in repo reads (Read / Grep / graphify), never ungrounded recall. Changes NOTHING: no source edits, no vault writes, no candidate files. When a question surfaces a real requirement or defect, OFFERS (never forces) a declinable handoff to /slice. Use to interrogate the codebase before committing to work, to understand a subsystem, or to sanity-check an assumption. Trigger phrases: '/query-design', 'query the design', 'ask about the codebase', 'how does X work in this repo', 'explain this subsystem', 'is my assumption about X correct'. Distinct from /discover (greenfield, vault-writing), /diagnose (heavyweight HTML deliverable), /status (one-shot pulse), /slice-candidates (needs the diagnose round-trip)."
+description: "Read-only, truthful conversation about the EXISTING codebase. Answers questions about how the code/vault/methodology actually works — grounded strictly in repo reads (Read / Grep / graphify), never ungrounded recall. Changes NOTHING: no source edits, no vault writes, no candidate files. When a question surfaces a real requirement or defect, OFFERS (never forces) a declinable handoff to /slice. Use to interrogate the codebase before committing to work, to understand a subsystem, or to sanity-check an assumption. Trigger phrases: '/query-design', 'query the design', 'ask about the codebase', 'how does X work in this repo', 'explain this subsystem', 'is my assumption about X correct'. Distinct from /discover (greenfield, vault-writing), /diagnose (heavyweight HTML deliverable), /pulse (one-shot pulse), /slice-candidates (needs the diagnose round-trip)."
 user_invokable: true
 argument-hint: "[<question about the codebase>]"
 ---
@@ -9,7 +9,7 @@ argument-hint: "[<question about the codebase>]"
 
 You hold a truthful, grounded conversation about the **existing** codebase. This skill is **read-only, delegation-only codebase Q&A**: it explains what the code, vault, and methodology actually do — and changes nothing.
 
-This is the niche no other skill fills: `/discover` is greenfield and writes the vault; `/diagnose` is a heavyweight non-conversational HTML deliverable; `/status` is a one-shot pulse; `/slice-candidates` needs the `/diagnose` round-trip. `/query-design` is the lightweight "ask me anything about this code, I'll touch nothing, and only hand off if you want."
+This is the niche no other skill fills: `/discover` is greenfield and writes the vault; `/diagnose` is a heavyweight non-conversational HTML deliverable; `/pulse` is a one-shot pulse; `/slice-candidates` needs the `/diagnose` round-trip. `/query-design` is the lightweight "ask me anything about this code, I'll touch nothing, and only hand off if you want."
 
 ## Where this fits
 
@@ -64,9 +64,9 @@ The handoff is always the user's decision. You surface and offer; you never auto
 
 - Not `/discover` — that is greenfield concept/user exploration and **writes** the vault.
 - Not `/diagnose` — that produces a heavyweight forensic `diagnosis.html` deliverable, non-conversational.
-- Not `/status` — that is a one-shot macro-state pulse, not an interactive Q&A.
+- Not `/pulse` — that is a one-shot macro-state pulse, not an interactive Q&A.
 - Not `/slice-candidates` — that converts an annotated `diagnosis.html` into `backlog.md`; `/query-design` produces no artifact.
-- Not a pipeline stage — no `## Pipeline position` block, no auto-advance, no successor. It is an out-of-loop exploratory entrypoint (peer to `/status`, `/diagnose`, `/reduce`, `/drift-check`).
+- Not a pipeline stage — no `## Pipeline position` block, no auto-advance, no successor. It is an out-of-loop exploratory entrypoint (peer to `/pulse`, `/diagnose`, `/reduce`, `/drift-check`).
 
 ## Critical rules
 

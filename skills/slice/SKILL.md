@@ -262,7 +262,7 @@ Slice defined. Mission brief written. Ready for design.
 - [reflection.md](reflection.md) — pending
 ```
 
-Subsequent skills (`/design-slice`, `/critique`, `/build-slice`, `/validate-slice`, `/reflect`) update this file as they complete their phase. `/status` reads it as the primary source of active-slice state.
+Subsequent skills (`/design-slice`, `/critique`, `/build-slice`, `/validate-slice`, `/reflect`) update this file as they complete their phase. `/pulse` reads it as the primary source of active-slice state.
 
 ## Mission brief template
 

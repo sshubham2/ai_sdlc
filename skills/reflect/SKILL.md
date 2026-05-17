@@ -86,7 +86,7 @@ Per **TRI-1** (`methodology-changelog.md` v0.11.0), the calibration vocabulary n
 - **NOT-YET**: DEFERRED or ESCALATED; can't score yet — re-score in the future slice that addresses it
 - **MISSED by Critic**: surfaced during build/validate, was NOT in the Critic's findings at all. The Critic's prompt may need a new dimension or sharpened heuristic
 
-**Why this matters**: every 10-20 slices, `/critic-calibrate` reads these calibration entries across recent reflections. Patterns of MISSED feed Critic prompt updates. Patterns of OVERRIDE-MISJUDGED feed both Critic prompt updates AND a user-side awareness signal — the same person who was wrong twice on a similar override should see the pattern surface in `/status` or `/critic-calibrate` output. Specific entries produce specific improvements: "Critic didn't flag EXIF orientation on iPhone HEIC uploads" beats "Critic missed something."
+**Why this matters**: every 10-20 slices, `/critic-calibrate` reads these calibration entries across recent reflections. Patterns of MISSED feed Critic prompt updates. Patterns of OVERRIDE-MISJUDGED feed both Critic prompt updates AND a user-side awareness signal — the same person who was wrong twice on a similar override should see the pattern surface in `/pulse` or `/critic-calibrate` output. Specific entries produce specific improvements: "Critic didn't flag EXIF orientation on iPhone HEIC uploads" beats "Critic missed something."
 
 This data accumulates over time and informs Critic prompt tuning + user-judgement awareness across projects.
 
