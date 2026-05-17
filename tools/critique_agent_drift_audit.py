@@ -1,7 +1,8 @@
 """Critique-agent in-repo↔installed content-drift audit (CAD-1).
 
 Validates that the in-repo `agents/critique.md` and the installed
-`~/.claude/agents/critique.md` carry byte-equal content (sha256 match).
+`~/.claude/agents/critique.md` carry content-equal content — EOL-agnostic
+per slice-033 EOL-DRIFT-1 / ADR-033 (normalized-sha256 match).
 
 Per CAD-1 (methodology-changelog.md v0.22.0). The rule's purpose:
 - Slice-006 (CCC-1) discovered that every `/critic-calibrate` ACCEPTED
@@ -15,7 +16,8 @@ Per CAD-1 (methodology-changelog.md v0.22.0). The rule's purpose:
 - Slice-007 closes the loop with a hybrid prevention + detection: the
   skill prose at `skills/critic-calibrate/SKILL.md:107-114` is updated
   to name in-repo as canonical with manual forward-sync (prevention);
-  this audit verifies sha256 byte-equality post-edit (detection).
+  this audit verifies EOL-normalized sha256 content-equality post-edit
+  (detection; EOL-agnostic per slice-033 EOL-DRIFT-1).
 
 The audit is intentionally narrow: it covers `agents/critique.md` only.
 INST-2 (general content-equality across all installed files) was rejected
@@ -29,7 +31,7 @@ Usage:
     python -m tools.critique_agent_drift_audit --json
 
 Exit codes:
-    0  clean — in-repo and installed agents/critique.md byte-equal
+    0  clean — in-repo and installed agents/critique.md content-equal (EOL-agnostic)
     1  content-drift — sha256 differs; output names both paths and hashes
     2  path-missing — either file doesn't exist
        OR usage-error — argparse error / sanity-check refusal
@@ -85,9 +87,19 @@ class AuditResult:
 
 
 def _sha256_of(path: Path) -> str:
-    """Compute sha256 hex digest of a file's bytes."""
+    """Compute sha256 hex digest of a file's content, CRLF normalized to LF.
+
+    Per slice-033 EOL-DRIFT-1 / ADR-033: CAD-1 compares content **modulo
+    line endings**. CRLF<->LF is semantically invisible to the stale-runtime-
+    prose defect class CAD-1 exists to catch; a raw-byte compare only produces
+    false positives on Windows core.autocrlf=true (R-5). Genuine (non-EOL)
+    content divergence still changes the digest, so exit 1 still fires on a
+    real forward-sync miss (exit-code contract 0/1/2 unchanged; the existing
+    test_drift_detection_fires_on_artificial_byte_flip + CLI exit-code-matrix
+    tests are the must-not-mask-real-drift proof).
+    """
     h = hashlib.sha256()
-    h.update(path.read_bytes())
+    h.update(path.read_bytes().replace(b"\r\n", b"\n"))
     return h.hexdigest()
 
 
@@ -199,7 +211,7 @@ def run_audit(repo_root: Path, claude_dir: Path) -> AuditResult:
 def _format_human(result: AuditResult) -> str:
     if not result.violations:
         return (
-            f"CAD-1: clean - agents/critique.md byte-equal across in-repo "
+            f"CAD-1: clean - agents/critique.md content-equal (EOL-agnostic) across in-repo "
             f"({result.in_repo_path}) and installed ({result.installed_path}); "
             f"sha256: {result.in_repo_sha256[:16]}...\n"
         )

@@ -30,10 +30,10 @@ If the change is more than a typo / single-line tweak / comment / local-variable
 
 This pipeline develops itself, so any methodology rule must be exercisable on this codebase:
 
-- **CAD-1 (Critic-agent content-equality)**: `agents/critique.md` in-repo MUST be byte-equal to installed `~/.claude/agents/critique.md`. Run `$PY -m tools.critique_agent_drift_audit --repo-root .` before commits that touch the Critic agent.
+- **CAD-1 (Critic-agent content-equality)**: `agents/critique.md` in-repo MUST be content-equal modulo line endings to installed `~/.claude/agents/critique.md` (EOL-agnostic per ADR-033 / EOL-DRIFT-1 — CRLF↔LF is not drift; genuine content divergence still is). Run `$PY -m tools.critique_agent_drift_audit --repo-root .` before commits that touch the Critic agent.
 - **PMI-1 (plugin manifest audit)**: `plugin.yaml` MUST enumerate every skill/agent/tool that exists on disk and vice-versa; `version` field MUST match `VERSION`. Run `$PY -m tools.plugin_manifest_audit` before commits.
 - **INST-1 (install audit)**: the canonical skill/agent/template lists in `tools/install_audit.py` MUST match `plugin.yaml`. Drift in either is a hard violation.
-- **Mini-CAD for `slice` skill**: `skills/slice/SKILL.md` in-repo MUST be byte-equal to installed copy (`tests/methodology/test_slice_skill_drift.py`).
+- **Mini-CAD for `slice` skill**: `skills/slice/SKILL.md` in-repo MUST be content-equal modulo line endings to installed copy (EOL-agnostic per ADR-033 / EOL-DRIFT-1) (`tests/methodology/test_slice_skill_drift.py`).
 - **Builder ↔ Critic separation**: `/critique` and `/critique-review` are mandatory in Standard mode (default heuristic — see slice-010). Skipping requires a documented rationale in `risk-tier`.
 
 ## Vault discipline

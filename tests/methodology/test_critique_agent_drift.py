@@ -249,3 +249,37 @@ def test_critique_agent_drift_audit_clean_at_slice_021_ship():
         f"stdout: {result.stdout}\n"
         f"stderr: {result.stderr}"
     )
+
+
+# --- Slice-033 / EOL-DRIFT-1: CAD-1 is EOL-agnostic (AC2 complement) ---
+
+
+def test_cad1_audit_treats_crlf_and_lf_identical_content_as_clean(
+    tmp_path: Path,
+):
+    """CAD-1 audit reports CLEAN (exit 0) when in-repo is CRLF and installed
+    is LF but the content is identical after line-ending normalization.
+
+    Per slice-033 EOL-DRIFT-1 / ADR-033: this is the EOL-only COMPLEMENT to
+    `test_drift_detection_fires_on_artificial_byte_flip` (which proves
+    genuine `# v1`/`# v2` divergence still exit 1 — the must-not-mask-real-
+    drift proof, AC2(b)). Together they pin both halves of the invariant:
+    CRLF<->LF is not drift; genuine content divergence still is.
+
+    Defect class (R-5): Windows core.autocrlf=true checks out
+    agents/critique.md CRLF while the installed copy is LF; the pre-slice-033
+    raw-byte `_sha256_of` false-FAILed (exit 1) on byte-identical content.
+
+    Rule reference: EOL-DRIFT-1 (slice-033; ADR-033).
+    """
+    body = b"# critique agent\n\nDimension 1: assumptions.\nDimension 2: edges.\n"
+    repo = _seed_repo_root(tmp_path / "repo", body.replace(b"\n", b"\r\n"))  # CRLF
+    claude = _seed_claude_dir(tmp_path / "claude", body)  # LF
+
+    result = _run_audit(repo, claude)
+    assert result.returncode == 0, (
+        f"CAD-1 must be EOL-agnostic (EOL-DRIFT-1): CRLF in-repo vs LF "
+        f"installed with identical normalized content is NOT drift, expected "
+        f"exit 0 but got {result.returncode}.\n"
+        f"stdout: {result.stdout}\nstderr: {result.stderr}"
+    )

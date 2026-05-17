@@ -2509,6 +2509,10 @@ _V046 = "0.46.0"
 # site (i) is this changelog body, site (ii) is skills/query-design/SKILL.md).
 _QD1_PHRASE = "read-only, delegation-only codebase Q&A"
 
+# --- Slice-033 / v0.47.0 EOL-DRIFT-1 .md-drift-guards-EOL-agnostic entry pin ---
+_V047 = "0.47.0"
+_EOL_DRIFT1_PHRASE = "content-equal modulo line endings"
+
 
 def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
     """v0.44.0 BCI-1 entry exists in both in-repo + installed
@@ -2628,6 +2632,52 @@ def test_v_0_46_0_qd_1_entry_present_in_repo_and_installed():
         )
         assert "ADR-032" in body, (
             f"{surface_name} v{_V046} entry body missing the ADR-032 "
+            f"decision lineage"
+        )
+
+
+def test_v_0_47_0_eol_drift_1_entry_present_in_repo_and_installed():
+    """v0.47.0 EOL-DRIFT-1 entry exists in both in-repo + installed
+    methodology-changelog.md, with the EOL-DRIFT-1 rule reference, the
+    canonical `content-equal modulo line endings` phrase, and the ADR-033
+    decision lineage.
+
+    RULE-ID-BEARING shape (mirrors test_v_0_44_0_bci_1 / test_v_0_45_0_scmd_1
+    / test_v_0_46_0_qd_1, NOT the rule-ID-LESS test_v_0_43_0 shape):
+    EOL-DRIFT-1 is a minted audited rule (slice-033), so the pin asserts the
+    EOL-DRIFT-1 token + canonical phrase + ADR-033, and MUST NOT assert any
+    'no rule-ID' prose.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /status. The canonical-phrase assertion is
+    the anti-silent-weakening guard (bci_1 meta-M-add-2 rationale applied to
+    EOL-DRIFT-1): a future edit cannot silently revert EOL-DRIFT-1 to a
+    raw-byte rule. (m-add-1 fix: pin-fn name derives from the minted RULE-ID
+    per the v0.46.0 `qd_1` precedent, restoring 007–032 naming parity.)
+
+    Rule reference: EOL-DRIFT-1 (slice-033; ADR-033).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V047}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V047} entry "
+            f"header — slice-033 EOL-DRIFT-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V047)
+        assert "EOL-DRIFT-1" in body, (
+            f"{surface_name} v{_V047} entry body missing the 'EOL-DRIFT-1' "
+            f"rule reference — entry-pin broken at the rule-reference layer"
+        )
+        assert _EOL_DRIFT1_PHRASE in body, (
+            f"{surface_name} v{_V047} entry body missing canonical phrase "
+            f"{_EOL_DRIFT1_PHRASE!r} — a future edit could silently revert "
+            f"EOL-DRIFT-1 to a raw-byte rule (anti-silent-weakening guard)"
+        )
+        assert "ADR-033" in body, (
+            f"{surface_name} v{_V047} entry body missing the ADR-033 "
             f"decision lineage"
         )
 
