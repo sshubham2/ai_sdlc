@@ -45,8 +45,9 @@ from tools import _stdout
 _CANONICAL_SKILLS: tuple[str, ...] = (
     "adopt", "archive", "build-slice", "commit-slice", "critic-calibrate",
     "critique", "critique-review", "design-slice", "diagnose", "discover",
-    "drift-check", "heavy-architect", "reduce", "reflect", "repro",
-    "risk-spike", "slice", "slice-candidates", "status", "supersede-slice",
+    "drift-check", "heavy-architect", "query-design", "reduce", "reflect",
+    "repro", "risk-spike", "slice", "slice-candidates", "status",
+    "supersede-slice",
     "sync", "triage", "user-test", "validate-slice",
 )
 

@@ -16,7 +16,7 @@ That's it. You take it from there.
 ## What you're installing
 
 The AI SDLC pipeline (methodology v0.20.0):
-- **24 drop-in skills** — copied to `~/.claude/skills/`
+- **Drop-in skills** — copied to `~/.claude/skills/`
 - **5 named subagents** — copied to `~/.claude/agents/`
 - **4 templates** — copied to `~/.claude/templates/`
 - **13 executable methodology tools** (audits, linters, validators) — installed as the `ai-sdlc-tools` Python package via `pip install`, so `$PY -m tools.<name>` resolves from `~/.claude/.venv/`
@@ -182,7 +182,7 @@ test -f "$HOME/.claude/methodology-changelog.md" && test -f "$HOME/.claude/ai-sd
 
 All eight must say `OK`. If any `FAIL`: stop, show the user, do not claim success.
 
-The `install-parity` line runs the **INST-1** install audit (`tools/install_audit.py`) — it cross-checks `~/.claude/` against the canonical inventory (24 skills, 5 agents, 4 templates, methodology files, 13 tool modules importable). This catches partial installs (e.g., new skill in source but not yet copied; tools package upgraded but skill copy stale).
+The `install-parity` line runs the **INST-1** install audit (`tools/install_audit.py`) — it cross-checks `~/.claude/` against the full canonical inventory of skills, agents, templates, methodology files, and importable tool modules. This catches partial installs (e.g., new skill in source but not yet copied; tools package upgraded but skill copy stale).
 
 ## Step 5: Hand off
 
@@ -215,7 +215,7 @@ After the install completes successfully, the AI SDLC source folder is no longer
 - Keep multiple copies on different machines without re-syncing
 
 Everything the runtime needs lives under:
-- `~/.claude/skills/` — markdown skill files (24)
+- `~/.claude/skills/` — markdown skill files
 - `~/.claude/agents/` — markdown agent files (5)
 - `~/.claude/templates/` — markdown templates (4)
 - `~/.claude/methodology-changelog.md`, `~/.claude/ai-sdlc-VERSION` — runtime metadata

@@ -2503,6 +2503,11 @@ _V044 = "0.44.0"
 _BCI1_PHRASE = "full per-rule structural identity"
 _V045 = "0.45.0"
 _SCMD1_PHRASE = "machine-stable command column"
+_V046 = "0.46.0"
+# MUST stay byte-identical to `_QD1_PHRASE` in
+# tests/methodology/test_query_design_skill.py (M-add-v2-1, 2-site pin —
+# site (i) is this changelog body, site (ii) is skills/query-design/SKILL.md).
+_QD1_PHRASE = "read-only, delegation-only codebase Q&A"
 
 
 def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
@@ -2577,6 +2582,52 @@ def test_v_0_45_0_scmd_1_entry_present_in_repo_and_installed():
         )
         assert "ADR-030" in body and "ADR-031" in body, (
             f"{surface_name} v{_V045} entry body missing the ADR-030/ADR-031 "
+            f"decision lineage"
+        )
+
+
+def test_v_0_46_0_qd_1_entry_present_in_repo_and_installed():
+    """v0.46.0 QD-1 entry exists in both in-repo + installed
+    methodology-changelog.md, with the QD-1 rule reference, the canonical
+    `read-only, delegation-only codebase Q&A` phrase, and the ADR-032
+    decision lineage.
+
+    RULE-ID-BEARING shape (mirrors test_v_0_44_0_bci_1 / test_v_0_45_0_scmd_1,
+    NOT the rule-ID-LESS test_v_0_43_0 shape): QD-1 is a minted audited rule
+    (slice-032), so the pin asserts the QD-1 token + canonical phrase +
+    ADR-032, and MUST NOT assert any 'no rule-ID' prose.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /status or /query-design. The canonical
+    phrase assertion is the anti-silent-weakening guard (bci_1 meta-M-add-2
+    rationale applied to QD-1): a future edit cannot silently erode QD-1 to
+    a non-read-only rule. This is site (i) of the 2-site canonical-phrase
+    pin (site (ii) = skills/query-design/SKILL.md via
+    test_query_design_skill.py::test_qd1_canonical_phrase_pinned_in_skill_md).
+
+    Rule reference: QD-1 (slice-032; ADR-032).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V046}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V046} entry "
+            f"header — slice-032 QD-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V046)
+        assert "QD-1" in body, (
+            f"{surface_name} v{_V046} entry body missing the 'QD-1' rule "
+            f"reference — entry-pin broken at the rule-reference layer"
+        )
+        assert _QD1_PHRASE in body, (
+            f"{surface_name} v{_V046} entry body missing canonical phrase "
+            f"{_QD1_PHRASE!r} — a future edit could silently erode QD-1 to a "
+            f"non-read-only rule (anti-silent-weakening guard)"
+        )
+        assert "ADR-032" in body, (
+            f"{surface_name} v{_V046} entry body missing the ADR-032 "
             f"decision lineage"
         )
 

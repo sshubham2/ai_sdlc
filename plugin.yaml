@@ -12,7 +12,7 @@
 # both documentation and a target for the audit.
 
 name: ai-sdlc
-version: 0.45.0  # synced with VERSION file (PMI-1 audit enforces)
+version: 0.46.0  # synced with VERSION file (PMI-1 audit enforces)
 description: |
   Spec-driven SDLC for AI implementers. Hybrid of phase-driven rigor (for
   knowable domains) and slice-driven iteration (for unknowable ones).
@@ -48,6 +48,8 @@ skills:
     description: Vault vs code drift detection (pre-commit ready)
   - id: heavy-architect
     description: Heavy mode only — upfront comprehensive vault
+  - id: query-design
+    description: Read-only, delegation-only codebase Q&A; grounded in repo reads, offers declinable /slice handoff (ADR-032)
   - id: reduce
     description: Complexity budget enforcer
   - id: reflect
