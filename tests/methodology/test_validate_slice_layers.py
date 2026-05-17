@@ -39,6 +39,12 @@ from tools.validate_slice_layers import (
 
 
 FIXTURES = REPO_ROOT / "tests" / "methodology" / "fixtures" / "validate_layers"
+# slice-031 (SCMD-1 / ADR-030): the slice-002 replay reads a git-tracked
+# verbatim corpus folder, NOT the gitignored `architecture/slices/archive/`
+# (incidental-decoupling — no false-PCA-1-HALT on a clean checkout).
+_ARCHIVE_BACKTEST_CORPUS = (
+    REPO_ROOT / "tests" / "methodology" / "fixtures" / "archive_backtest_corpus"
+)
 
 
 # --- Unit tests for parser helpers ---
@@ -604,15 +610,17 @@ def test_slice_002_archive_replay_zero_findings_with_allowlist(
     from tools.validate_slice_layers import main
 
     slice_002_archive = (
-        REPO_ROOT / "architecture" / "slices" / "archive"
+        _ARCHIVE_BACKTEST_CORPUS
         / "slice-002-fix-diagnose-contract-and-cwd-mismatch"
     )
-    if not slice_002_archive.exists():
-        pytest.skip(
-            "slice-002 archive folder not present; replay test skipped "
-            "(this codepath is the AC #3 cardinal check — investigate "
-            "if seen on master)."
-        )
+    # Decoupled (slice-031 / M4): the corpus folder is git-tracked, so this
+    # is a hard assertion — NEVER a vacuous `pytest.skip` (a skip-when-absent
+    # would make the AC #3 cardinal replay silently non-executing on a clean
+    # checkout — the exact false-green this slice eliminates).
+    assert slice_002_archive.is_dir(), (
+        f"tracked replay corpus folder missing: {slice_002_archive} "
+        f"(SCMD-1/ADR-030 corpus must include slice-002)"
+    )
 
     changed_files = [
         REPO_ROOT / "tests" / "methodology" / "test_validate_slice_layers.py",

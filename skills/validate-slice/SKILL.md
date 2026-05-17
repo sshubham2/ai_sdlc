@@ -199,12 +199,18 @@ Before deciding next action, verify no past slice was silently broken by this on
 
 1. Read `architecture/shippability.md` — the catalog of critical-path tests from every past slice
 2. If the file doesn't exist (first slice, catalog empty): skip this step; `/reflect` will create the catalog
-3. **Pre-catalog gate (PTFCD-1 sub-mode (b), `methodology-changelog.md` v0.39.0)**: BEFORE executing any catalog command, run
+3. **Pre-catalog gates (run BOTH before executing any catalog command)**:
+   a. **SCMD-1 (`methodology-changelog.md` v0.45.0; slice-031 / ADR-031)** — non-opt-out:
+   ```
+   $PY -m tools.shippability_decoupling_audit architecture/shippability.md
+   ```
+   Verifies every row carries a prose-free **Machine-cmd** (6th) column and that no catalog-cited test transitively reads gitignored/untracked *incidental* state (archive corpus / live build-checks / `~/.claude/build-checks.md`). If it exits non-zero, STOP: fix the row before running the catalog (a prose/missing Machine-cmd or a re-introduced incidental coupling would make the catalog environment-fragile — the R-4 false-PCA-1-HALT class).
+   b. **PTFCD-1 sub-mode (b) (`methodology-changelog.md` v0.39.0)**:
    ```
    $PY -m tools.shippability_path_audit architecture/shippability.md
    ```
-   This verifies every `tests/<...>.py` token in every row's `Command` cell resolves to a file that exists on disk. If it exits non-zero (a phantom test-file citation — cf. slice-024 `test_shippability_catalog.py`), STOP: report the single PTFCD-1 violation and fix the catalog row's path before running the catalog. Running the catalog with a phantom citation produces N confusing per-row "file not found" FAILs that mask real regressions; this gate surfaces it as ONE clear violation. Do not proceed to step 4 until this exits 0.
-4. Run each entry's **Command** column — execute it from project root
+   Verifies every `tests/<...>.py` token in every row's **Machine-cmd** cell resolves to a file that exists on disk. If it exits non-zero (a phantom test-file citation — cf. slice-024 `test_shippability_catalog.py`), STOP: report the single PTFCD-1 violation and fix the catalog row's path before running the catalog. Running the catalog with a phantom citation produces N confusing per-row "file not found" FAILs that mask real regressions; this gate surfaces it as ONE clear violation. Do not proceed to step 4 until BOTH gates exit 0.
+4. Run each entry's **Machine-cmd** column — the machine-stable command (prose-free, deterministically `;`-split + interpreter-anchored; SCMD-1-enforced so the ad-hoc runner never shell-execs a narrative cell) — execute it from project root
 5. Record PASS / FAIL per entry
 
 If any entry FAILS:
@@ -219,7 +225,7 @@ Shippability catalog run: 14 tests, 13 PASS, 1 FAIL
 
 FAILED:
   #3 slice-008-enable-sync: "2-device sync converges within 10s"
-    Command: `bash tests/multi-device/sync_converge.sh`
+    Machine-cmd: `<interp> -m pytest tests/multi-device/test_sync_converge.py -q`
     Output: timeout after 30s (expected <10s)
     Likely cause: this slice's async refactor changed delivery guarantees
 

@@ -203,6 +203,27 @@ def test_shippability_path_audit_survives_cp1252_with_u2192(tmp_path):
     _assert_no_encoding_error(proc, "tools.shippability_path_audit")
 
 
+def test_shippability_decoupling_audit_survives_cp1252_with_u2192(tmp_path):
+    """shippability_decoupling_audit takes a positional catalog path
+    (slice-031, SCMD-1). A synthetic catalog with U+2192 / U+2014 in the
+    Critical-path cell + a missing Machine-cmd column drives the tool's
+    stdout-emitting violation path under cp1252 (UTF8-STDOUT-1 covered set —
+    auto-discovered by the version-agnostic rollup sentinel)."""
+    catalog = tmp_path / "shippability.md"
+    catalog.write_text(
+        "# Shippability Catalog\n\n"
+        "| # | Slice | Critical path | Command | Runtime |\n"
+        "|---|-------|--------------|---------|---------|\n"
+        "| 1 | slice-x | arrow → and em-dash — in path | "
+        "python -m pytest tests/methodology/test_stdout_helper.py -q | <1s |\n",
+        encoding="utf-8",
+    )
+    proc = _run_under_cp1252(
+        [PY, "-m", "tools.shippability_decoupling_audit", str(catalog)],
+    )
+    _assert_no_encoding_error(proc, "tools.shippability_decoupling_audit")
+
+
 # ---------------------------------------------------------------------------
 # UTF8-STDOUT-1 v1.1 — version-agnostic UTF-8 rollup sentinel
 # (slice-028; ADR-026; mirrors the slice-014 / ADR-013 PMI-1 v1.0 -> v1.1

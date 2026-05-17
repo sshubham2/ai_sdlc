@@ -377,7 +377,6 @@ def test_reflect_skill_references_bc_1():
 # matching (was bare substring) and supports an optional Trigger anchors:
 # field per rule. Tests below cover ACs #1-#5 + the M1/M2 promoted rows.
 
-_GLOBAL_BUILD_CHECKS = Path.home() / ".claude" / "build-checks.md"
 
 # slice-030A / ADR-028: BC-1 logic/tuple/schema-pin tests assert against these
 # GIT-TRACKED canonical fixtures, NOT the gitignored live build-checks files.
@@ -386,10 +385,19 @@ _GLOBAL_BUILD_CHECKS = Path.home() / ".claude" / "build-checks.md"
 # divergence gate. The literal-constant tuples in the test bodies below are
 # the tracked oracle the fixtures are asserted *against* (fixture = subject,
 # literal = oracle) — closing the v2-B3 / meta-M-add-3 unguarded-oracle hole.
-# (Archive-backtest functions still read the live file + gitignored archive —
-#  their decoupling is deferred to slice-030B per the user-approved split.)
+# slice-031 (split-label 030B; SCMD-1 / ADR-030 / ADR-031): the archive-
+# backtests are now DECOUPLED — they read the git-tracked canonical fixtures
+# (BCI-1 guarantees live ≡ fixture) and a git-tracked verbatim archived-slice
+# mini-corpus (ADR-030; membership = the SCMD-1 runtime derivation, NOT a
+# hand list — incl. slice-001/002). No `_GLOBAL_BUILD_CHECKS` / live-vault /
+# gitignored-archive read remains in any catalog-cited backtest.
 _CANONICAL_PROJECT_FIXTURE = FIXTURES / "canonical_project_checks.md"
 _CANONICAL_GLOBAL_FIXTURE = FIXTURES / "canonical_global_checks.md"
+# ADR-030 verbatim corpus accessor (allowlisted in shippability_decoupling_
+# audit._ALLOWLIST_SYMBOLS; rooted at REPO_ROOT → SCMD-1 classifies `clean`).
+_ARCHIVE_BACKTEST_CORPUS = (
+    REPO_ROOT / "tests" / "methodology" / "fixtures" / "archive_backtest_corpus"
+)
 
 
 def test_slice_003_archive_backtest_no_bc_proj_2_or_global_1_applications():
@@ -406,10 +414,10 @@ def test_slice_003_archive_backtest_no_bc_proj_2_or_global_1_applications():
     Rule reference: BC-1 (slice-005 AC #1).
     """
     result = audit_slice(
-        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        slice_folder=_ARCHIVE_BACKTEST_CORPUS
         / "slice-003-add-val-1-imports-allowlist",
-        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
-        global_checks=_GLOBAL_BUILD_CHECKS,
+        project_checks=_CANONICAL_PROJECT_FIXTURE,
+        global_checks=_CANONICAL_GLOBAL_FIXTURE,
         skip_if_carry_over=False,
     )
     applicable_ids = {r.rule_id for r in result.applicable}
@@ -423,16 +431,13 @@ def test_slice_003_archive_backtest_no_bc_proj_2_or_global_1_applications():
         f"BC-PROJ-2 should appear in skipped (rule was parsed but didn't fire). "
         f"Got skipped: {skipped_ids}"
     )
-    if _GLOBAL_BUILD_CHECKS.exists():
-        assert "BC-GLOBAL-1" not in applicable_ids, (
-            f"BC-GLOBAL-1 should NOT apply to slice-003 archive. "
-            f"Got applicable: {applicable_ids}"
-        )
-        assert "BC-GLOBAL-1" in skipped_ids, (
-            f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
-        )
-
-
+    assert "BC-GLOBAL-1" not in applicable_ids, (
+        f"BC-GLOBAL-1 should NOT apply to slice-003 archive. "
+        f"Got applicable: {applicable_ids}"
+    )
+    assert "BC-GLOBAL-1" in skipped_ids, (
+        f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
+    )
 def test_slice_004_archive_backtest_no_bc_proj_2_or_global_1_applications():
     """Slice-004 archive folder must NOT trigger BC-PROJ-2 or BC-GLOBAL-1.
 
@@ -445,10 +450,10 @@ def test_slice_004_archive_backtest_no_bc_proj_2_or_global_1_applications():
     Rule reference: BC-1 (slice-005 AC #2).
     """
     result = audit_slice(
-        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        slice_folder=_ARCHIVE_BACKTEST_CORPUS
         / "slice-004-fix-rr1-audit-docstring-or-regex",
-        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
-        global_checks=_GLOBAL_BUILD_CHECKS,
+        project_checks=_CANONICAL_PROJECT_FIXTURE,
+        global_checks=_CANONICAL_GLOBAL_FIXTURE,
         skip_if_carry_over=False,
     )
     applicable_ids = {r.rule_id for r in result.applicable}
@@ -462,16 +467,13 @@ def test_slice_004_archive_backtest_no_bc_proj_2_or_global_1_applications():
         f"BC-PROJ-2 should appear in skipped (rule was parsed but didn't fire). "
         f"Got skipped: {skipped_ids}"
     )
-    if _GLOBAL_BUILD_CHECKS.exists():
-        assert "BC-GLOBAL-1" not in applicable_ids, (
-            f"BC-GLOBAL-1 should NOT apply to slice-004 archive. "
-            f"Got applicable: {applicable_ids}"
-        )
-        assert "BC-GLOBAL-1" in skipped_ids, (
-            f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
-        )
-
-
+    assert "BC-GLOBAL-1" not in applicable_ids, (
+        f"BC-GLOBAL-1 should NOT apply to slice-004 archive. "
+        f"Got applicable: {applicable_ids}"
+    )
+    assert "BC-GLOBAL-1" in skipped_ids, (
+        f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
+    )
 def test_legitimate_llm_fence_brief_still_triggers_bc_proj_2_and_global_1(
     tmp_path: Path,
 ):
@@ -494,8 +496,8 @@ def test_legitimate_llm_fence_brief_still_triggers_bc_proj_2_and_global_1(
     )
     result = audit_slice(
         slice_folder=slice_folder,
-        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
-        global_checks=_GLOBAL_BUILD_CHECKS,
+        project_checks=_CANONICAL_PROJECT_FIXTURE,
+        global_checks=_CANONICAL_GLOBAL_FIXTURE,
         skip_if_carry_over=False,
     )
     applicable_ids = {r.rule_id for r in result.applicable}
@@ -504,13 +506,10 @@ def test_legitimate_llm_fence_brief_still_triggers_bc_proj_2_and_global_1(
         f"BC-PROJ-2 must apply to a brief that legitimately discusses "
         f"LLM-fence parsing. Got applicable: {applicable_ids}"
     )
-    if _GLOBAL_BUILD_CHECKS.exists():
-        assert "BC-GLOBAL-1" in applicable_ids, (
-            f"BC-GLOBAL-1 must apply to a brief that legitimately discusses "
-            f"LLM-fence parsing. Got applicable: {applicable_ids}"
-        )
-
-
+    assert "BC-GLOBAL-1" in applicable_ids, (
+        f"BC-GLOBAL-1 must apply to a brief that legitimately discusses "
+        f"LLM-fence parsing. Got applicable: {applicable_ids}"
+    )
 def test_build_checks_schema_documents_trigger_anchors_field_name():
     """Schema description prose in BOTH project + global build-checks files
     must mention the literal `Trigger anchors` field name.
@@ -724,6 +723,45 @@ def test_bc_proj_3_and_bc_global_2_have_expected_structural_identity():
     )
 
 
+def test_bc_proj_4_has_expected_structural_identity():
+    """BC-PROJ-4 (slice-031 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity. The canonical fixture is the subject;
+    these literal constants are the git-tracked oracle (ADR-028; fixture =
+    subject, literal = oracle). BCI-1 separately asserts the gitignored live
+    `architecture/build-checks.md` matches the fixture structurally.
+
+    Defect class: a /reflect Step-5b promotion that silently truncated or
+    mis-authored BC-PROJ-4's structural fields would degrade BC-1 coverage
+    with no loud signal (R-4 class). This literal pin + BCI-1 close that.
+
+    Rule reference: BC-1 (slice-031 /reflect Step 5b; user-approved promotion).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-4" in p_by_id, "BC-PROJ-4 not parsed from project fixture"
+    p4 = p_by_id["BC-PROJ-4"]
+    assert p4.severity == "Important", f"BC-PROJ-4 severity: {p4.severity!r}"
+    assert p4.applies_to == ("tools/**/*.py", "skills/**/*.md"), (
+        f"BC-PROJ-4 applies_to mismatch: got {p4.applies_to!r}"
+    )
+    assert p4.trigger_keywords == (
+        "audit", "gate", "regex", "field-line", "branch", "methodology",
+        "prerequisite", "pre-finish", "skill", "classifier", "ast",
+    ), f"BC-PROJ-4 trigger_keywords mismatch: got {p4.trigger_keywords!r}"
+    assert p4.trigger_anchors == (), (
+        f"BC-PROJ-4 trigger_anchors: expected () got {p4.trigger_anchors!r}"
+    )
+    assert p4.negative_anchors == (), (
+        f"BC-PROJ-4 negative_anchors: expected () got {p4.negative_anchors!r}"
+    )
+    assert p4.check and p4.check.strip(), "BC-PROJ-4 check must be non-empty"
+
+
 def test_anchor_not_in_keywords_yields_violation(tmp_path: Path):
     """A rule with anchors that aren't in trigger_keywords emits a violation.
 
@@ -821,10 +859,10 @@ def test_slice_005_archive_no_longer_fires_proj1_or_global1():
     Rule reference: BC-1 v1.2 (slice-008 AC #1).
     """
     result = audit_slice(
-        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        slice_folder=_ARCHIVE_BACKTEST_CORPUS
         / "slice-005-add-bc-1-keyword-precision",
-        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
-        global_checks=_GLOBAL_BUILD_CHECKS,
+        project_checks=_CANONICAL_PROJECT_FIXTURE,
+        global_checks=_CANONICAL_GLOBAL_FIXTURE,
         changed_files=_SLICE_005_CHANGED_FILES,
         skip_if_carry_over=False,
     )
@@ -839,16 +877,13 @@ def test_slice_005_archive_no_longer_fires_proj1_or_global1():
         f"BC-PROJ-1 should appear in skipped (rule was applicable but "
         f"final-filter suppressed). Got skipped: {skipped_ids}"
     )
-    if _GLOBAL_BUILD_CHECKS.exists():
-        assert "BC-GLOBAL-1" not in applicable_ids, (
-            f"BC-GLOBAL-1 should NOT apply to slice-005 archive. "
-            f"Got applicable: {applicable_ids}"
-        )
-        assert "BC-GLOBAL-1" in skipped_ids, (
-            f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
-        )
-
-
+    assert "BC-GLOBAL-1" not in applicable_ids, (
+        f"BC-GLOBAL-1 should NOT apply to slice-005 archive. "
+        f"Got applicable: {applicable_ids}"
+    )
+    assert "BC-GLOBAL-1" in skipped_ids, (
+        f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
+    )
 def test_slice_006_archive_no_longer_fires_proj1_or_global1():
     """Slice-006 archive must NOT trigger BC-PROJ-1 or BC-GLOBAL-1.
 
@@ -860,10 +895,10 @@ def test_slice_006_archive_no_longer_fires_proj1_or_global1():
     Rule reference: BC-1 v1.2 (slice-008 AC #2).
     """
     result = audit_slice(
-        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        slice_folder=_ARCHIVE_BACKTEST_CORPUS
         / "slice-006-update-critic-with-cross-cutting-conformance-dimension",
-        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
-        global_checks=_GLOBAL_BUILD_CHECKS,
+        project_checks=_CANONICAL_PROJECT_FIXTURE,
+        global_checks=_CANONICAL_GLOBAL_FIXTURE,
         changed_files=_SLICE_006_CHANGED_FILES,
         skip_if_carry_over=False,
     )
@@ -877,16 +912,13 @@ def test_slice_006_archive_no_longer_fires_proj1_or_global1():
     assert "BC-PROJ-1" in skipped_ids, (
         f"BC-PROJ-1 should appear in skipped. Got skipped: {skipped_ids}"
     )
-    if _GLOBAL_BUILD_CHECKS.exists():
-        assert "BC-GLOBAL-1" not in applicable_ids, (
-            f"BC-GLOBAL-1 should NOT apply to slice-006 archive. "
-            f"Got applicable: {applicable_ids}"
-        )
-        assert "BC-GLOBAL-1" in skipped_ids, (
-            f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
-        )
-
-
+    assert "BC-GLOBAL-1" not in applicable_ids, (
+        f"BC-GLOBAL-1 should NOT apply to slice-006 archive. "
+        f"Got applicable: {applicable_ids}"
+    )
+    assert "BC-GLOBAL-1" in skipped_ids, (
+        f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
+    )
 def test_slice_007_archive_no_longer_fires_proj1_or_global1():
     """Slice-007 archive must NOT trigger BC-PROJ-1 or BC-GLOBAL-1.
 
@@ -899,10 +931,10 @@ def test_slice_007_archive_no_longer_fires_proj1_or_global1():
     Rule reference: BC-1 v1.2 (slice-008 AC #3).
     """
     result = audit_slice(
-        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        slice_folder=_ARCHIVE_BACKTEST_CORPUS
         / "slice-007-add-critique-agent-content-equality-audit",
-        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
-        global_checks=_GLOBAL_BUILD_CHECKS,
+        project_checks=_CANONICAL_PROJECT_FIXTURE,
+        global_checks=_CANONICAL_GLOBAL_FIXTURE,
         changed_files=_SLICE_007_CHANGED_FILES,
         skip_if_carry_over=False,
     )
@@ -916,16 +948,13 @@ def test_slice_007_archive_no_longer_fires_proj1_or_global1():
     assert "BC-PROJ-1" in skipped_ids, (
         f"BC-PROJ-1 should appear in skipped. Got skipped: {skipped_ids}"
     )
-    if _GLOBAL_BUILD_CHECKS.exists():
-        assert "BC-GLOBAL-1" not in applicable_ids, (
-            f"BC-GLOBAL-1 should NOT apply to slice-007 archive. "
-            f"Got applicable: {applicable_ids}"
-        )
-        assert "BC-GLOBAL-1" in skipped_ids, (
-            f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
-        )
-
-
+    assert "BC-GLOBAL-1" not in applicable_ids, (
+        f"BC-GLOBAL-1 should NOT apply to slice-007 archive. "
+        f"Got applicable: {applicable_ids}"
+    )
+    assert "BC-GLOBAL-1" in skipped_ids, (
+        f"BC-GLOBAL-1 should appear in skipped. Got skipped: {skipped_ids}"
+    )
 def test_slice_001_archive_still_fires_legitimate_rules():
     """Slice-001 archive (canonical legitimate fence-parsing + subagent-
     fan-out slice) MUST continue to fire BC-PROJ-1 AND at least one of
@@ -946,7 +975,7 @@ def test_slice_001_archive_still_fires_legitimate_rules():
     # Pre-fix genuineness: read negative_anchors as part of validation;
     # AttributeError pre-fix on missing field demonstrates non-coincidental
     # PENDING -> WRITTEN-FAILING transition.
-    project_path = REPO_ROOT / "architecture" / "build-checks.md"
+    project_path = _CANONICAL_PROJECT_FIXTURE
     project_text = project_path.read_text(encoding="utf-8")
     rules, _ = _parse_rules(
         project_text, source="project", path=str(project_path)
@@ -957,10 +986,10 @@ def test_slice_001_archive_still_fires_legitimate_rules():
     _ = by_id["BC-PROJ-1"].negative_anchors
 
     result = audit_slice(
-        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        slice_folder=_ARCHIVE_BACKTEST_CORPUS
         / "slice-001-diagnose-orchestration-fix",
-        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
-        global_checks=_GLOBAL_BUILD_CHECKS,
+        project_checks=_CANONICAL_PROJECT_FIXTURE,
+        global_checks=_CANONICAL_GLOBAL_FIXTURE,
         changed_files=_SLICE_001_CHANGED_FILES,
         skip_if_carry_over=False,
     )
@@ -971,17 +1000,10 @@ def test_slice_001_archive_still_fires_legitimate_rules():
         f"Got applicable: {applicable_ids}"
     )
     fence_rules = applicable_ids & {"BC-PROJ-2", "BC-GLOBAL-1"}
-    if _GLOBAL_BUILD_CHECKS.exists():
-        assert fence_rules, (
-            f"At least one of BC-PROJ-2 / BC-GLOBAL-1 MUST apply to slice-001 "
-            f"(legitimate fence-parsing). Got applicable: {applicable_ids}"
-        )
-    else:
-        assert "BC-PROJ-2" in applicable_ids, (
-            f"BC-PROJ-2 MUST apply to slice-001. Got applicable: {applicable_ids}"
-        )
-
-
+    assert fence_rules, (
+        f"At least one of BC-PROJ-2 / BC-GLOBAL-1 MUST apply to slice-001 "
+        f"(legitimate fence-parsing). Got applicable: {applicable_ids}"
+    )
 def test_negative_anchors_schema_documents_field_name_in_both_files():
     """Schema description prose in BOTH project + global build-checks files
     must mention the literal `Negative anchors` field name (case-sensitive).
@@ -1249,10 +1271,10 @@ def test_slice_005_archive_no_longer_fires_proj2():
     Rule reference: BC-1 v1.3 (slice-012 AC #1).
     """
     result = audit_slice(
-        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        slice_folder=_ARCHIVE_BACKTEST_CORPUS
         / "slice-005-add-bc-1-keyword-precision",
-        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
-        global_checks=_GLOBAL_BUILD_CHECKS,
+        project_checks=_CANONICAL_PROJECT_FIXTURE,
+        global_checks=_CANONICAL_GLOBAL_FIXTURE,
         changed_files=_SLICE_005_CHANGED_FILES,
         skip_if_carry_over=False,
     )
@@ -1290,10 +1312,10 @@ def test_slice_011_archive_no_longer_fires_proj2():
     Rule reference: BC-1 v1.3 (slice-012 AC #2).
     """
     result = audit_slice(
-        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        slice_folder=_ARCHIVE_BACKTEST_CORPUS
         / "slice-011-promote-recursive-self-application-discipline-to-critique-skill-prose",
-        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
-        global_checks=_GLOBAL_BUILD_CHECKS,
+        project_checks=_CANONICAL_PROJECT_FIXTURE,
+        global_checks=_CANONICAL_GLOBAL_FIXTURE,
         changed_files=_SLICE_011_CHANGED_FILES,
         skip_if_carry_over=False,
     )
@@ -1338,7 +1360,7 @@ def test_slice_001_archive_still_fires_proj2():
     # the field as part of validation. Post-migration, BC-PROJ-2 has the
     # 9-token tuple populated; pre-migration, it parses to () which then
     # fails the assertion `BC-PROJ-2 in applicable` below for slice-001.
-    project_path = REPO_ROOT / "architecture" / "build-checks.md"
+    project_path = _CANONICAL_PROJECT_FIXTURE
     project_text = project_path.read_text(encoding="utf-8")
     rules, _ = _parse_rules(
         project_text, source="project", path=str(project_path)
@@ -1348,10 +1370,10 @@ def test_slice_001_archive_still_fires_proj2():
     _ = by_id["BC-PROJ-2"].negative_anchors  # field-read assertion (slice-008 pattern)
 
     result = audit_slice(
-        slice_folder=REPO_ROOT / "architecture" / "slices" / "archive"
+        slice_folder=_ARCHIVE_BACKTEST_CORPUS
         / "slice-001-diagnose-orchestration-fix",
-        project_checks=REPO_ROOT / "architecture" / "build-checks.md",
-        global_checks=_GLOBAL_BUILD_CHECKS,
+        project_checks=_CANONICAL_PROJECT_FIXTURE,
+        global_checks=_CANONICAL_GLOBAL_FIXTURE,
         changed_files=_SLICE_001_CHANGED_FILES,
         skip_if_carry_over=False,
     )
