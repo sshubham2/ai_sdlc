@@ -112,12 +112,12 @@ def test_critique_dim_4_has_methodology_audit_conformance_sub_bullet():
     assert "Algorithm-path-conformance with pre-existing branches" in CRITIQUE
 
 
-def test_critique_dim_9_lists_eleven_sub_clauses():
-    """Dim 9 (Cross-cutting conformance) must enumerate all 11 sub-clause titles.
+def test_critique_dim_9_lists_twelve_sub_clauses():
+    """Dim 9 (Cross-cutting conformance) must enumerate all 12 sub-clause titles.
 
     Defect class: a Dim 9 body that drops sub-clauses loses the unified-pattern surface
     (e.g., dropping runtime-environment leaves slice-001-class misses without a home).
-    The 11 sub-clauses are: 3 cross-references to Dim 1/4 surgical sub-bullets +
+    The 12 sub-clauses are: 3 cross-references to Dim 1/4 surgical sub-bullets +
     2 N=1 standalone sub-clauses (runtime-environment, language-version) +
     1 N=3 meta-level sub-clause (recursive self-application discipline; slice-011) +
     1 N=2 Edit-discipline sub-clause (entry-pin-vs-PMI-1-gate semantics conflation;
@@ -129,15 +129,18 @@ def test_critique_dim_9_lists_eleven_sub_clauses():
     1 N=10-cumulative-cross-instance / N=4-distinct-slice fix-block-completeness sub-clause
     (fix-block-completeness discipline; slice-024) +
     1 N=2-distinct-slice phantom-test-file-citation sub-clause (phantom test-file
-    citation discipline; slice-025).
+    citation discipline; slice-025) +
+    1 N=3-MISS+N=1-CATCH audit-parse-rule-empirical-execution sub-clause
+    (audit-parse-rule empirical-execution discipline; slice-039 APED-1).
 
-    Supersedes `test_critique_dim_9_lists_ten_sub_clauses` per PMI-1 versioned-gate
+    Supersedes `test_critique_dim_9_lists_eleven_sub_clauses` per PMI-1 versioned-gate
     supersession discipline applied at the structural-invariant level (slice-011 N=1
     precedent + slice-013 N=2 + slice-015 N=3 + slice-016 N=4 + slice-024 N=5 +
-    slice-025 N=6 stable — no two structural-invariant tests coexist).
+    slice-025 N=6 + slice-039 N=7 stable — no two structural-invariant tests coexist).
 
     Rule reference: META-2 + CCC-1 + RSAD-1 (slice-011) + EPGD-1 (slice-013) + SCPD-1
-    (slice-015) + RPCD-1 (slice-016) + FBCD-1 (slice-024) + PTFCD-1 (slice-025).
+    (slice-015) + RPCD-1 (slice-016) + FBCD-1 (slice-024) + PTFCD-1 (slice-025) +
+    APED-1 (slice-039).
     """
     assert "Methodology-audit conformance" in CRITIQUE
     assert "Tooling-doc-vs-implementation parity" in CRITIQUE
@@ -150,6 +153,7 @@ def test_critique_dim_9_lists_eleven_sub_clauses():
     assert "Runtime-prerequisite completeness on proposed fixes" in CRITIQUE
     assert "Fix-block-completeness discipline" in CRITIQUE
     assert "Phantom test-file citation discipline" in CRITIQUE
+    assert "Audit-parse-rule empirical-execution discipline" in CRITIQUE
 
 
 def test_critique_dim_9_recursive_self_application_sub_clause_present():
@@ -1023,22 +1027,31 @@ def test_critique_dim_9_phantom_test_file_citation_sub_clause_present():
 
 
 def test_critique_dim_9_phantom_test_file_citation_location_pinned():
-    """The new 11th sub-clause must fall between FBCD-1 (10th sub-clause)
-    and the Bonus H3.
+    """The 11th sub-clause (PTFCD-1/PTFFD-1) must fall between FBCD-1 (10th
+    sub-clause) and the APED-1 (12th) sub-clause.
 
     Defect class: a future drift moving PTFCD-1 out of Dim 9 (e.g., into the
     `### Bonus` section) would silently pass substring-only pins; the
     location-pin guard catches it. Per slice-016/024 `_location_pinned`
     scoped-find precedent.
 
+    Per slice-039 RPCD-1 sibling-scoping: end_anchor tightened from
+    `### Bonus: weak graph edges` → `Audit-parse-rule empirical-execution
+    discipline` (the new 12th sub-clause title APED-1 now sits between
+    PTFCD-1/PTFFD-1 and the Bonus H3) so the scoped-find bound remains tight
+    to ONLY the 11th sub-clause — mirrors the slice-013/015/024 end_anchor
+    tighten convention applied at every prior Dim 9 sub-clause append.
+
     Location pin: sub-clause title MUST appear BETWEEN start anchor
     `Fix-block-completeness discipline` (the PREVIOUS sub-clause title —
-    PTFCD-1 follows FBCD-1) AND end anchor `### Bonus: weak graph edges`.
+    PTFCD-1 follows FBCD-1) AND end anchor `Audit-parse-rule empirical-execution
+    discipline`.
 
-    Rule reference: META-2 + CCC-1 + PTFCD-1 (slice-025 AC #3).
+    Rule reference: META-2 + CCC-1 + PTFCD-1 (slice-025 AC #3) + APED-1
+    (slice-039 RPCD-1 end_anchor tighten).
     """
     start_anchor = "Fix-block-completeness discipline"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Audit-parse-rule empirical-execution discipline"
     canonical = "Phantom test-file citation discipline"
     start_idx = CRITIQUE.find(start_anchor)
     assert start_idx != -1, f"start anchor {start_anchor!r} not found"
@@ -1063,7 +1076,7 @@ def test_critique_dim_9_phantom_test_file_citation_names_both_sub_modes():
     Rule reference: META-2 + CCC-1 + PTFCD-1 (slice-025 AC #3).
     """
     start_anchor = "Phantom test-file citation discipline"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Audit-parse-rule empirical-execution discipline"
     start_idx = CRITIQUE.find(start_anchor)
     assert start_idx != -1, f"sub-clause anchor {start_anchor!r} not found"
     end_idx = CRITIQUE.find(end_anchor, start_idx)
@@ -1097,7 +1110,7 @@ def test_critique_dim_9_phantom_test_file_citation_paragraph_cites_slice_023_024
     Rule reference: META-2 + CCC-1 + PTFCD-1 (slice-025 AC #3).
     """
     start_anchor = "Phantom test-file citation discipline"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Audit-parse-rule empirical-execution discipline"
     start_idx = CRITIQUE.find(start_anchor)
     end_idx = CRITIQUE.find(end_anchor, start_idx)
     body = CRITIQUE[start_idx:end_idx]
@@ -1133,7 +1146,7 @@ def test_critique_dim_9_phantom_citation_function_level_layer_present():
     Rule reference: META-2 + CCC-1 + PTFFD-1 (slice-037 AC4; ADR-038).
     """
     start_anchor = "Phantom test-file citation discipline"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Audit-parse-rule empirical-execution discipline"
     start_idx = CRITIQUE.find(start_anchor)
     assert start_idx != -1, f"start anchor {start_anchor!r} not found"
     end_idx = CRITIQUE.find(end_anchor, start_idx)
@@ -1167,7 +1180,7 @@ def test_critique_dim_9_phantom_citation_names_ptffd_1_rule_id():
     Rule reference: META-2 + CCC-1 + PTFFD-1 (slice-037 AC4; ADR-038).
     """
     start_anchor = "Phantom test-file citation discipline"
-    end_anchor = "### Bonus: weak graph edges"
+    end_anchor = "Audit-parse-rule empirical-execution discipline"
     start_idx = CRITIQUE.find(start_anchor)
     end_idx = CRITIQUE.find(end_anchor, start_idx)
     body = CRITIQUE[start_idx:end_idx]
@@ -1182,6 +1195,254 @@ def test_critique_dim_9_phantom_citation_names_ptffd_1_rule_id():
     # -D-suffix calibration trail advanced N=8 → N=9.
     assert "PTFCD-1 + PTFFD-1" in body, (
         "-D-suffix convention trail must list PTFFD-1 after PTFCD-1 (N=9)"
+    )
+
+
+# --- Slice-039 / APED-1 (Dim 9 #12) + MEPD-1 (Dim 7) content-pins ---
+# Per slice-037 meta-Critic M-add-1: a content-bearing deliverable needs a
+# CONTENT pin, not a CAD-1 byte-equality/forward-sync pin (which is a
+# tautological green — passes whether or not the clause prose exists, as long
+# as in-repo == installed). These pins FAIL if the load-bearing prose is
+# absent or silently weakened.
+
+
+def test_critique_dim_9_audit_parse_rule_empirical_execution_sub_clause_present():
+    """APED-1 (slice-039): Dim 9's 12th sub-clause must carry the canonical
+    literal title.
+
+    Defect class: a Dim 9 body with the substring but not as a sub-clause
+    title would silently pass without encoding the discipline structurally.
+    Bare-substring pin per slice-025 `_sub_clause_present` precedent; the
+    location-pin test enforces position.
+
+    Rule reference: META-2 + CCC-1 + APED-1 (slice-039; 2026-05-17
+    /critic-calibrate Proposal 1).
+    """
+    assert "Audit-parse-rule empirical-execution discipline" in CRITIQUE
+
+
+def test_critique_dim_9_audit_parse_rule_empirical_execution_location_pinned():
+    """APED-1 must fall between PTFCD-1/PTFFD-1 (11th sub-clause) and the
+    Bonus H3 — it is the new LAST Dim 9 sub-clause (#12).
+
+    Defect class: a future drift moving APED-1 out of Dim 9 (e.g., into the
+    `### Bonus` section or Dim 8) would silently pass substring-only pins;
+    the location-pin guard catches it. Per slice-016/024/025
+    `_location_pinned` scoped-find precedent.
+
+    Location pin: title MUST appear BETWEEN start anchor `Phantom test-file
+    citation discipline` (the PREVIOUS sub-clause — APED-1 follows
+    PTFCD-1/PTFFD-1) AND end anchor `### Bonus: weak graph edges`.
+
+    Rule reference: META-2 + CCC-1 + APED-1 (slice-039).
+    """
+    start_anchor = "Phantom test-file citation discipline"
+    end_anchor = "### Bonus: weak graph edges"
+    canonical = "Audit-parse-rule empirical-execution discipline"
+    start_idx = CRITIQUE.find(start_anchor)
+    assert start_idx != -1, f"start anchor {start_anchor!r} not found"
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    assert end_idx != -1, f"end anchor {end_anchor!r} not found AFTER {start_anchor!r}"
+    canonical_idx = CRITIQUE.find(canonical, start_idx, end_idx)
+    assert canonical_idx != -1, (
+        f"{canonical!r} not found between {start_anchor!r} and {end_anchor!r} "
+        f"in agents/critique.md — APED-1 sub-clause location drifted"
+    )
+
+
+def test_critique_dim_9_audit_parse_rule_empirical_execution_names_aped_1_rule_id():
+    """APED-1 sub-clause must name the minted `APED-1` rule-ID and advance
+    the -D-suffix calibration trail N=9 → N=10 (per ADR-040: a new minted
+    `-D` rule, NOT a `vN.N` label — the `-D` suffix denotes the
+    /critique-time prose-heuristic class).
+
+    Defect class: a future edit silently relabelling APED-1 as a `vN.N`
+    refinement would re-introduce the B3/ADR-038-class `-D`-vs-`vN.N`
+    convention violation; this pin is the anti-silent-relabel guard.
+
+    Rule reference: META-2 + CCC-1 + APED-1 (slice-039; ADR-040).
+    """
+    start_anchor = "Audit-parse-rule empirical-execution discipline"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    body = CRITIQUE[start_idx:end_idx]
+    assert "APED-1" in body, "minted rule-ID APED-1 absent from sub-clause body"
+    assert "PTFCD-1 + PTFFD-1 + APED-1" in body, (
+        "-D-suffix convention trail must list APED-1 after PTFFD-1 (N=10) — "
+        "the -D calibration-trail continuity pin"
+    )
+
+
+def test_critique_dim_9_audit_parse_rule_empirical_execution_cites_evidence_anchors():
+    """APED-1 sub-clause body must cite its N=3-MISS + N=1-CATCH evidence
+    base (slice-030A/031/033 MISSES + slice-034 CATCH).
+
+    Defect class: descriptive sub-class text drifts unpinned to abstract
+    framings without concrete traceability — readers lose the path back to
+    the empirical evidence base. Pinned at the exact calibration-log
+    evidence (critic-calibration-log.md 2026-05-17 run, Proposal 1).
+
+    Rule reference: META-2 + CCC-1 + APED-1 (slice-039).
+    """
+    start_anchor = "Audit-parse-rule empirical-execution discipline"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    body = CRITIQUE[start_idx:end_idx]
+    miss_anchors = ["slice-030A", "slice-031", "slice-033"]
+    for anchor in miss_anchors:
+        assert anchor in body, (
+            f"APED-1 sub-clause must cite the MISS anchor {anchor} "
+            f"(N=3 first-Critic-miss evidence base)"
+        )
+    assert "slice-034" in body, (
+        "APED-1 sub-clause must cite slice-034 (the N=1 empirical-execution "
+        "CATCH counter-example that proved the class IS Critic-reachable)"
+    )
+
+
+def test_critique_dim_9_audit_parse_rule_empirical_execution_pins_behavioral_obligation():
+    """APED-1's load-bearing behavioral verbs must be present (Critic M1 /
+    slice-037 M-add-1 anti-tautology law applied symmetrically).
+
+    Defect class: the title/location/rule-ID/evidence pins all stay GREEN
+    under a silent weakening of the actual obligation (e.g. `MUST
+    Bash-execute` → `should reason about`). This pin asserts the
+    behavioral verbs themselves so a weakened clause FAILS.
+
+    Rule reference: META-2 + CCC-1 + APED-1 (slice-039; first-Critic M1).
+    """
+    start_anchor = "Audit-parse-rule empirical-execution discipline"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    body = CRITIQUE[start_idx:end_idx]
+    assert "Bash-execute" in body, (
+        "APED-1 obligation verb 'Bash-execute' absent — the discipline was "
+        "silently weakened from execute to reason (anti-tautology guard)"
+    )
+    assert "Blocker" in body, (
+        "APED-1 must require a Blocker on observed silent-disable/false-FAIL/"
+        "over-match — severity obligation silently dropped"
+    )
+    assert "executed, not reasoned" in body, (
+        "APED-1 must require the finding state the battery was "
+        "'executed, not reasoned' — the core anti-reasoning obligation"
+    )
+    # ≥2 adversarial-battery member tokens must survive (the battery is the
+    # operative content — a body that drops the battery is reason-only).
+    battery = ["trailing-annotation", "substring-collision", "empty / absent", "CRLF"]
+    present = sum(1 for tok in battery if tok in body)
+    assert present >= 2, (
+        f"APED-1 adversarial battery under-specified — need ≥2 of {battery}, "
+        f"got {present} (the battery is the load-bearing operative content)"
+    )
+
+
+def test_critique_dim_7_methodology_surface_entry_pin_sub_bullet_present():
+    """MEPD-1 (slice-039): Dim 7 must carry the canonical sub-bullet title.
+
+    Defect class: a Dim 7 body with the substring but not as a structured
+    sub-bullet would silently pass without encoding the checklist pass.
+    Bare-substring pin; the location-pin test enforces position.
+
+    Rule reference: META-2 + CCC-1 + MEPD-1 (slice-039; 2026-05-17
+    /critic-calibrate Proposal 2).
+    """
+    assert "Methodology-surface RULE-ID + entry-pin obligation" in CRITIQUE
+
+
+def test_critique_dim_7_methodology_surface_entry_pin_location_pinned():
+    """MEPD-1 must fall between the Dim 7 header and the Dim 8 header — it is
+    a Dim 7 ('Drift from vault') sub-bullet, NOT a Dim 9 sub-clause (ADR-040:
+    the first deliberately non-Dim-9 `-D` rule).
+
+    Defect class: a future drift moving MEPD-1 into Dim 9 (or the Bonus)
+    would silently pass substring-only pins AND contradict ADR-040's
+    dimensional-home decision; the location-pin guard catches it.
+
+    Location pin: title MUST appear BETWEEN start anchor `### 7. Drift from
+    vault` AND end anchor `### 8. Web-known issues`.
+
+    Rule reference: META-2 + CCC-1 + MEPD-1 (slice-039; ADR-040).
+    """
+    start_anchor = "### 7. Drift from vault"
+    end_anchor = "### 8. Web-known issues"
+    canonical = "Methodology-surface RULE-ID + entry-pin obligation"
+    start_idx = CRITIQUE.find(start_anchor)
+    assert start_idx != -1, f"start anchor {start_anchor!r} not found"
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    assert end_idx != -1, f"end anchor {end_anchor!r} not found AFTER {start_anchor!r}"
+    canonical_idx = CRITIQUE.find(canonical, start_idx, end_idx)
+    assert canonical_idx != -1, (
+        f"{canonical!r} not found between {start_anchor!r} and {end_anchor!r} "
+        f"in agents/critique.md — MEPD-1 is not a Dim 7 sub-bullet (ADR-040 "
+        f"dimensional-home decision violated, or sub-bullet location drifted)"
+    )
+
+
+def test_critique_dim_7_methodology_surface_entry_pin_names_mepd_1_rule_id():
+    """MEPD-1 sub-bullet must name the minted `MEPD-1` rule-ID (per ADR-040:
+    a new minted `-D` rule homed in Dim 7 — the `-D` suffix denotes the
+    behavioral class, NOT Dim-9 membership).
+
+    Defect class: a future edit silently dropping the rule-ID or relabelling
+    it `vN.N` would re-introduce the `-D`-vs-`vN.N` convention violation;
+    this pin is the anti-silent-relabel guard.
+
+    Rule reference: META-2 + CCC-1 + MEPD-1 (slice-039; ADR-040).
+    """
+    start_anchor = "### 7. Drift from vault"
+    end_anchor = "### 8. Web-known issues"
+    start_idx = CRITIQUE.find(start_anchor)
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    body = CRITIQUE[start_idx:end_idx]
+    assert "MEPD-1" in body, "minted rule-ID MEPD-1 absent from Dim 7 sub-bullet"
+
+
+def test_critique_dim_7_methodology_surface_entry_pin_names_both_clauses():
+    """MEPD-1's behavioral-content pin (slice-037 M-add-1 law): the sub-bullet
+    must carry BOTH obligation halves — (a) the rule path AND (b) the
+    documented-why-none path WITH the not-Builder-asserted-precedent guard.
+
+    Defect class: a body that keeps the title/rule-ID but silently drops
+    either obligation half (especially the (b) 'confirm the precedent
+    against the enforcing artifact, never the claim' guard — the slice-032
+    m1 false-precedent rubber-stamp the proposal exists to close) tautology-
+    passes the title/rule-ID pins. This pin FAILS on a weakened obligation.
+
+    Rule reference: META-2 + CCC-1 + MEPD-1 (slice-039; first-Critic M1
+    symmetric anti-tautology pin; calibration-log 2026-05-17 Proposal 2).
+    """
+    start_anchor = "### 7. Drift from vault"
+    end_anchor = "### 8. Web-known issues"
+    start_idx = CRITIQUE.find(start_anchor)
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    body = CRITIQUE[start_idx:end_idx]
+    # (a) rule-path half: the entry-pin function-name shape + 4-part PMI-1.
+    assert "test_v_0_NN_0_" in body, (
+        "MEPD-1 (a) rule-path half missing the "
+        "`test_v_0_NN_0_<rule>_entry_present_in_repo_and_installed` entry-pin "
+        "obligation — the rule-path branch was silently weakened"
+    )
+    assert "4-part PMI-1 bump" in body, (
+        "MEPD-1 (a) rule-path half missing the atomic 4-part PMI-1 bump "
+        "obligation (the slice-035 B-add-1 installed-side blind spot)"
+    )
+    # (b) documented-why-none half + the not-Builder-asserted-precedent guard.
+    assert "verified against the actual" in body, (
+        "MEPD-1 (b) half missing the 'verified against the actual "
+        "test_methodology_changelog.py enforcing assertion' obligation"
+    )
+    assert "MUST NOT rest on a Builder-asserted" in body, (
+        "MEPD-1 (b) half missing the not-Builder-asserted-precedent guard "
+        "(the slice-032 m1 false-precedent rubber-stamp this proposal closes)"
+    )
+    assert "slice-032" in body and "slice-034" in body, (
+        "MEPD-1 sub-bullet must cite both evidence anchors: slice-032 "
+        "DEVIATION-1 (auto-blessed no entry) + slice-034 M-add-1 "
+        "(first-Critic miss the DR-1 meta-Critic had to catch)"
     )
 
 

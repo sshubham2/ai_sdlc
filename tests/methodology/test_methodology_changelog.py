@@ -3024,3 +3024,176 @@ def test_v_0_51_0_srsc_1_shippability_consumer_propagation():
         "test_shippability_runner_segment_contract.py consumer — SCPD-1 "
         "propagation incomplete"
     )
+
+
+# --- Slice-039 / v0.52.0 APED-1 + MEPD-1 entry pin + SCPD-1 propagation ---
+
+_V052 = "0.52.0"
+# Canonical anti-silent-weakening phrases (slice-037 M-add-1 law): if a future
+# edit silently weakens the obligation, _extract_version_body loses the phrase
+# and the entry-pin FAILs (not a tautological byte-equality green).
+_APED1_PHRASE = "Bash-execute a changed audit parse-rule against an adversarial battery"
+_MEPD1_PHRASE = "verified against the actual `tests/methodology/test_methodology_changelog.py`"
+
+
+def test_v_0_52_0_aped_1_entry_present_in_repo_and_installed():
+    """v0.52.0 APED-1 entry exists in BOTH in-repo + installed
+    methodology-changelog.md, with the APED-1 rule reference, the canonical
+    anti-silent-weakening phrase, the ADR-040 + ADR-041 lineage, and the
+    'supersedes nothing' clause.
+
+    NEW minted `-D` RULE-ID shape (mirrors test_v_0_50_0_ptffd_1): APED-1 is
+    a new minted `-D` rule (slice-039) that refines nothing and supersedes
+    nothing — the pin asserts the APED-1 token + canonical phrase + ADR-040
+    + 'supersedes nothing', and MUST NOT assert any `vN.N` label (ADR-040:
+    the `vN.N` label is reserved for the NON-`-D` audit-gate naming class).
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /pulse. The canonical-phrase assertion is
+    the anti-silent-weakening guard (a future edit cannot silently revert
+    APED-1's Bash-execute obligation to reason-only).
+
+    Rule reference: APED-1 (slice-039; ADR-040 + ADR-041; refines nothing,
+    supersedes nothing; 2026-05-17 /critic-calibrate Proposal 1).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V052}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V052} entry "
+            f"header — slice-039 APED-1/MEPD-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V052)
+        assert "APED-1" in body, (
+            f"{surface_name} v{_V052} entry body missing the 'APED-1' rule "
+            f"reference — entry-pin broken at the rule-reference layer"
+        )
+        assert _APED1_PHRASE in body, (
+            f"{surface_name} v{_V052} entry body missing canonical phrase "
+            f"{_APED1_PHRASE!r} — a future edit could silently weaken APED-1 "
+            f"from Bash-execute to reason-only (anti-silent-weakening guard)"
+        )
+        assert "ADR-040" in body, (
+            f"{surface_name} v{_V052} entry body missing the ADR-040 "
+            f"decision lineage (the -D-vs-vN.N + behavioral-class decision)"
+        )
+        assert "supersedes nothing" in body, (
+            f"{surface_name} v{_V052} entry must state APED-1 supersedes "
+            f"nothing (new minted -D rule — lineage clean)"
+        )
+
+
+def test_v_0_52_0_mepd_1_entry_present_in_repo_and_installed():
+    """v0.52.0 MEPD-1 entry exists in BOTH in-repo + installed
+    methodology-changelog.md, with the MEPD-1 rule reference, the canonical
+    anti-silent-weakening phrase (the (b)-branch verified-against-artifact
+    obligation), the ADR-040 lineage, and the 'supersedes nothing' clause.
+
+    NEW minted `-D` RULE-ID shape — MEPD-1 is the FIRST deliberately
+    non-Dim-9 `-D` rule (ADR-040: the `-D` suffix denotes the behavioral
+    class "/critique-time prose-heuristic discipline", NOT Dim-9 membership).
+
+    Defect class: bidirectional pin + the canonical-phrase assertion is the
+    anti-silent-weakening guard — a future edit cannot silently drop the
+    (b)-branch "verified against the actual enforcing assertion" obligation
+    (which would re-open the slice-032 m1 false-precedent rubber-stamp).
+
+    Rule reference: MEPD-1 (slice-039; ADR-040 + ADR-041; first non-Dim-9
+    `-D` rule, refines nothing, supersedes nothing; 2026-05-17
+    /critic-calibrate Proposal 2).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V052}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V052} entry "
+            f"header — slice-039 APED-1/MEPD-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V052)
+        assert "MEPD-1" in body, (
+            f"{surface_name} v{_V052} entry body missing the 'MEPD-1' rule "
+            f"reference — entry-pin broken at the rule-reference layer"
+        )
+        assert _MEPD1_PHRASE in body, (
+            f"{surface_name} v{_V052} entry body missing canonical phrase "
+            f"{_MEPD1_PHRASE!r} — a future edit could silently drop the "
+            f"(b)-branch verified-against-artifact obligation"
+        )
+        assert "ADR-040" in body, (
+            f"{surface_name} v{_V052} entry body missing the ADR-040 "
+            f"decision lineage (first non-Dim-9 `-D` rule decision)"
+        )
+        assert "supersedes nothing" in body, (
+            f"{surface_name} v{_V052} entry must state MEPD-1 supersedes "
+            f"nothing (new minted -D rule — lineage clean)"
+        )
+
+
+def test_v_0_52_0_critique_proposals_shippability_consumer_propagation():
+    """architecture/shippability.md (i) has ZERO surviving
+    `::test_critique_dim_9_lists_eleven_sub_clauses` SELECTOR tokens, (ii)
+    carries `::test_critique_dim_9_lists_twelve_sub_clauses` in all 14 LIVE
+    selector positions, (iii) PRESERVES the frozen line-34 slice-025
+    `_lists_ten → _lists_eleven` historical-narrative occurrence UNCHANGED,
+    and (iv) carries a v0.52.0 APED-1/MEPD-1 catalog row.
+
+    DR-1 meta-Critic M-add-1 reformulation (supersedes the original Critic-m2
+    `"_lists_eleven_sub_clauses" not in catalog` formulation, which was a
+    GUARANTEED false-FAIL on the legitimately-preserved line-34 frozen
+    narrative): the selector-prefix `::test_critique_dim_9_` is the
+    discriminator between a LIVE pytest selector token (rename target) and
+    the frozen backticked prose narrative (a bare backticked
+    _lists_eleven_sub_clauses with NO ::test_critique_dim_9_ prefix)
+    (slice-025's own ten→eleven supersession record — preserving it is the
+    same frozen-history class as the changelog:266 v0.39.0 occurrence).
+
+    Defect class: a structural-invariant supersession whose consumer
+    references don't propagate (SCPD-1) silently regresses at /validate-slice;
+    AND a blanket substring rename corrupts the frozen slice-025 history
+    (M-add-1). Both are pinned here.
+
+    Rule reference: SCPD-1 (slice-015) + APED-1/MEPD-1 (slice-039 AC5;
+    DR-1 M-add-1 selector-token discriminator).
+    """
+    catalog = read_file("architecture/shippability.md")
+    LIVE_OLD = "::test_critique_dim_9_lists_eleven_sub_clauses"
+    LIVE_NEW = "::test_critique_dim_9_lists_twelve_sub_clauses"
+    FROZEN = "`_lists_ten_sub_clauses` -> `_lists_eleven_sub_clauses`"
+    # (i) zero surviving LIVE old selector tokens.
+    assert LIVE_OLD not in catalog, (
+        f"architecture/shippability.md still carries a LIVE "
+        f"{LIVE_OLD!r} selector token — SCPD-1 propagation incomplete "
+        f"(the `_lists_eleven`→`_lists_twelve` rename did not reach every "
+        f"live pytest selector)"
+    )
+    # (ii) propagation floor: ≥14 LIVE new selector tokens (the 7 propagated
+    # rows 6/11/13/15/16/24/25 = 6 rows × 2 + line-34 row × 2 = 14, the
+    # mechanically-verified M-add-1 map). It is `>= 14` not `== 14` because
+    # row 39 (this slice's own SCPD-1 consumer-propagation row) legitimately
+    # re-cites the superseded `_lists_twelve` count test in its validation
+    # battery (Command + Machine-cmd cells = +2). Assertion (i) — zero
+    # surviving LIVE *old* selector tokens — is the load-bearing
+    # propagation-complete guarantee; this floor guards under-propagation.
+    n_new = catalog.count(LIVE_NEW)
+    assert n_new >= 14, (
+        f"expected ≥14 LIVE {LIVE_NEW!r} selector tokens "
+        f"(7 propagated rows: 6 rows × 2 + line-34 row × 2 = 14 floor; "
+        f"+2 for row 39's own battery), found {n_new} — SCPD-1 "
+        f"propagation incomplete (M-add-1 mechanical map under-propagated)"
+    )
+    # (iii) the frozen line-34 slice-025 historical narrative is PRESERVED.
+    assert FROZEN in catalog, (
+        f"the frozen line-34 slice-025 {FROZEN!r} historical-narrative "
+        f"occurrence was renamed — this CORRUPTS slice-025's own ten→eleven "
+        f"supersession record (DR-1 M-add-1 frozen-history preservation)"
+    )
+    # (iv) the new v0.52.0 APED-1/MEPD-1 catalog row exists.
+    assert "APED-1" in catalog and "MEPD-1" in catalog, (
+        "architecture/shippability.md missing the v0.52.0 APED-1/MEPD-1 "
+        "catalog row — SCPD-1 consumer-reference propagation for the two "
+        "new rules incomplete"
+    )
