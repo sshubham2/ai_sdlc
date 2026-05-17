@@ -16,11 +16,14 @@ Rule reference: RR-1.
 from pathlib import Path
 
 from tests.methodology.conftest import REPO_ROOT
+import json
+
 from tools.risk_register_audit import (
     _RISK_HEADING_RE,
     _band_for_score,
     audit_register,
     filter_and_sort,
+    main,
 )
 
 
@@ -218,6 +221,160 @@ def test_filter_status_open_excludes_retired():
     statuses = {r.status for r in view}
     assert statuses == {"open"}, (
         f"expected only open status, got {statuses}"
+    )
+
+
+def test_repro_r9_json_filter_status_open_excludes_retired_in_consumed_risks(capsys):
+    """REPRO (R-9): `--filter-status open --json` must not surface retired risks
+    in the list downstream consumers read.
+
+    Bug: in `main()` JSON mode, `out = result.to_dict()` emits the FULL
+    unfiltered risk list under `out["risks"]`; the status/band/top filter is
+    only applied to `out["view"]`. /pulse and /slice (and the RR-1 usage
+    documented in their SKILL.md) consume `d["risks"]`, so retired risks
+    leak into the "open" view used for slice-candidate ranking.
+
+    Expected: with `--filter-status open`, the risk list a consumer reads
+    contains zero `retired`-status risks.
+    Actual (pre-fix): `out["risks"]` includes R3 (Status: retired) from
+    clean_register.md because the filter never touches `out["risks"]`.
+
+    Reproduces the live observation: `--filter-status open` against the real
+    architecture/risk-register.md returned retired R-5/R-7 in JSON output.
+
+    Fix slice: slice-036-fix-rr1-audit-status-filter.
+    Rule reference: R-9 / RR-1.
+    """
+    rc = main([
+        str(FIXTURES / "clean_register.md"),
+        "--json",
+        "--filter-status", "open",
+    ])
+    assert rc == 0, f"clean register should have no violations, rc={rc}"
+
+    out = json.loads(capsys.readouterr().out)
+    consumed = out["risks"]
+    leaked = sorted(
+        r["risk_id"] for r in consumed if r["status"] != "open"
+    )
+    assert leaked == [], (
+        "JSON consumers read out['risks'] for the --filter-status open view; "
+        f"non-open risks leaked: {leaked} "
+        "(clean_register.md R3 is Status: retired)"
+    )
+
+
+# --- Slice-036 / R-9: --json consumed `risks` key honours filter/sort/top ---
+
+def _json_risks(capsys, *argv):
+    """Invoke main() and return (rc, parsed_out, risk_ids)."""
+    rc = main(list(argv))
+    out = json.loads(capsys.readouterr().out)
+    return rc, out, [r["risk_id"] for r in out["risks"]]
+
+
+def test_json_filter_band_and_top_applied_to_consumed_risks_fixture(capsys):
+    """AC2 (R-9 / ADR-036): --json `risks` reflects --filter-band and --top.
+
+    Stable fixture oracle (clean_register.md, scores verified via
+    _band_for_score): R1 open high×high=9 (high band), R2 mitigating
+    med×med=4 (medium), R3 retired low×high=3 (MEDIUM, not high), R4 open
+    low×low=1 (low). --filter-band high -> {R1} only; --top 2 --sort score
+    -> [R1, R2] (9, 4 desc). Pre-fix out["risks"] was unfiltered (all 4).
+    Rule reference: R-9 / RR-1.
+    """
+    fx = str(FIXTURES / "clean_register.md")
+
+    rc, out, ids = _json_risks(capsys, fx, "--json", "--filter-band", "high")
+    assert rc == 0
+    assert "view" not in out, "redundant `view` key must be removed (ADR-036)"
+    assert ids == ["R1"], f"--filter-band high should yield only R1, got {ids}"
+
+    rc, out, ids = _json_risks(capsys, fx, "--json", "--top", "2", "--sort", "score")
+    assert rc == 0
+    assert ids == ["R1", "R2"], f"--top 2 --sort score should be [R1,R2], got {ids}"
+
+
+def test_json_filter_status_open_excludes_non_open_real_register_invariant(capsys):
+    """AC2 (R-9): against the real register, --filter-status open yields
+    ONLY open risks in the consumed list.
+
+    Scoped to the INVARIANT only (zero non-open) — never a count/ordering
+    that mutates as risks are added/retired (slice-004 real-file scoping
+    discipline). Pre-fix R-5/R-7 (retired) leaked here.
+    Rule reference: R-9 / RR-1.
+    """
+    real = str(REPO_ROOT / "architecture" / "risk-register.md")
+    rc, out, _ = _json_risks(capsys, real, "--json", "--filter-status", "open")
+    assert rc == 0, f"real register should have no violations, rc={rc}"
+    leaked = sorted(
+        r["risk_id"] for r in out["risks"] if r["status"] != "open"
+    )
+    assert leaked == [], f"non-open risks leaked into consumed list: {leaked}"
+    assert "view" not in out
+
+
+def test_json_consumed_risks_contract_pinned_against_unfiltered_regression(capsys):
+    """AC4 (R-9 / ADR-036): a filter MUST strictly reduce the consumed
+    `risks` list vs the unfiltered invocation — guards silent
+    re-introduction of an unfiltered consumed key.
+    Rule reference: R-9 / RR-1.
+    """
+    fx = str(FIXTURES / "clean_register.md")
+
+    _, out_all, ids_all = _json_risks(capsys, fx, "--json")
+    assert set(ids_all) == {"R1", "R2", "R3", "R4"}, ids_all
+
+    _, out_open, ids_open = _json_risks(capsys, fx, "--json", "--filter-status", "open")
+    assert set(ids_open) < set(ids_all), (
+        "filtered consumed list must be a strict subset of unfiltered "
+        f"(got filtered={ids_open}, all={ids_all}) — R-9 regression"
+    )
+    assert {"R3"}.isdisjoint(ids_open), "retired R3 must not be in --filter-status open"
+    assert "view" not in out_all and "view" not in out_open
+
+
+def test_json_no_flag_invocation_consumed_risks_is_score_desc_then_id(capsys):
+    """AC4 (per Critic M1): with NO filter flags, --json `risks` is
+    (-score, risk_id) ordered — pins the ADR-036-documented
+    register-order -> score-desc behaviour change so it cannot silently
+    revert. Fixture order: R1(9), R2(4), R3(3), R4(1).
+    Rule reference: R-9 / RR-1.
+    """
+    _, out, ids = _json_risks(capsys, str(FIXTURES / "clean_register.md"), "--json")
+    expected = [
+        r["risk_id"]
+        for r in sorted(out["risks"], key=lambda r: (-r["score"], r["risk_id"]))
+    ]
+    assert ids == expected, f"no-flag consumed order not score-desc-then-id: {ids}"
+    assert ids == ["R1", "R2", "R3", "R4"], ids
+
+
+def test_skill_consumers_pin_rr1_filter_invocation_and_exclusion_prose():
+    """AC4 (per meta-Critic M-add-1): the durable prose-pin.
+
+    The pre-existing test_pulse_skill_references_rr_1 /
+    test_slice_skill_references_rr_1 assert only the bare
+    "RR-1"/"risk_register_audit" substrings — they do NOT pin the
+    --filter-status flag or the exclusion/sorted prose this slice's
+    "code-conformance-to-doc" thesis depends on. Pin it here so a future
+    SKILL.md edit cannot silently un-spec the code.
+    Rule reference: R-9 / RR-1.
+    """
+    slice_md = (REPO_ROOT / "skills" / "slice" / "SKILL.md").read_text(encoding="utf-8")
+    pulse_md = (REPO_ROOT / "skills" / "pulse" / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "--filter-status open" in slice_md, (
+        "/slice SKILL.md must document --filter-status open (RR-1 consumed contract)"
+    )
+    assert "Retired / accepted risks are excluded automatically" in slice_md, (
+        "/slice SKILL.md must document the exclusion prose the fix conforms to"
+    )
+    assert "--filter-status open" in pulse_md, (
+        "/pulse SKILL.md must document --filter-status open (RR-1 consumed contract)"
+    )
+    assert "scored, sorted" in pulse_md, (
+        "/pulse SKILL.md must document the scored, sorted output prose"
     )
 
 
