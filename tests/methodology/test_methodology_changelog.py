@@ -2528,6 +2528,11 @@ _PTFFD1_PHRASE = (
     "otherwise-present test file"
 )
 
+# --- Slice-038 / v0.51.0 SRSC-1 pinned-shippability-runner entry pin ---
+_V051 = "0.51.0"
+_SRSC1_PHRASE = "do NOT hand-roll the execution loop"
+_SRSC1_REUSE_PHRASE = "reuses SCMD-1 _segments()"
+
 
 def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
     """v0.44.0 BCI-1 entry exists in both in-repo + installed
@@ -2936,5 +2941,86 @@ def test_v_0_50_0_ptffd_1_shippability_consumer_propagation():
     assert "test_ptffd1_shippability_path_audit.py" in catalog, (
         "architecture/shippability.md PTFFD-1 row does not reference the "
         "test_ptffd1_shippability_path_audit.py consumer — SCPD-1 "
+        "propagation incomplete"
+    )
+
+
+# --- Slice-038 / v0.51.0 SRSC-1 entry pin + shippability propagation ---
+
+
+def test_v_0_51_0_srsc_1_entry_present_in_repo_and_installed():
+    """v0.51.0 SRSC-1 entry exists in BOTH in-repo + installed
+    methodology-changelog.md, with the SRSC-1 rule reference, the canonical
+    anti-silent-weakening phrases, the ADR-039 decision lineage, and the
+    'supersedes nothing' clause.
+
+    NON-`-D` RULE-ID-bearing shape (mirrors test_v_0_50_0_ptffd_1): SRSC-1 is
+    a NEW non-`-D` `vN.N` audit/runner-gate-class rule (slice-038) that does
+    NOT refine SCMD-1 and supersedes nothing — the pin asserts the SRSC-1
+    token + canonical phrases + ADR-039 + 'supersedes nothing'.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /pulse. The canonical-phrase assertions are
+    the anti-silent-weakening guard: a future edit cannot silently revert
+    SRSC-1 to a prose-only ('hand-rolled loop is fine') or re-derived
+    ('the runner reimplements the split-strip') form — re-opening the R-8
+    false-FAIL class.
+
+    Rule reference: SRSC-1 (slice-038; ADR-039; new non-`-D` `vN.N` rule,
+    does NOT refine SCMD-1, supersedes nothing).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V051}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V051} entry "
+            f"header — slice-038 SRSC-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V051)
+        assert "SRSC-1" in body, (
+            f"{surface_name} v{_V051} entry body missing the 'SRSC-1' rule "
+            f"reference — entry-pin broken at the rule-reference layer"
+        )
+        assert _SRSC1_PHRASE in body, (
+            f"{surface_name} v{_V051} entry body missing canonical phrase "
+            f"{_SRSC1_PHRASE!r} — a future edit could silently revert SRSC-1 "
+            f"to a prose-only hand-rolled loop (anti-silent-weakening guard)"
+        )
+        assert _SRSC1_REUSE_PHRASE in body, (
+            f"{surface_name} v{_V051} entry body missing canonical phrase "
+            f"{_SRSC1_REUSE_PHRASE!r} — a future edit could silently let the "
+            f"runner re-derive the split-strip (CSP-1 divergence guard)"
+        )
+        assert "ADR-039" in body, (
+            f"{surface_name} v{_V051} entry body missing the ADR-039 "
+            f"decision lineage"
+        )
+        assert "supersedes nothing" in body, (
+            f"{surface_name} v{_V051} entry must state SRSC-1 supersedes "
+            f"nothing (new non-`-D` rule, does NOT refine SCMD-1)"
+        )
+
+
+def test_v_0_51_0_srsc_1_shippability_consumer_propagation():
+    """architecture/shippability.md carries an SRSC-1 row whose Machine-cmd
+    references the runner-segment-contract consumer test (RPCD-1 / SCPD-1
+    consumer-reference propagation).
+
+    Defect class: a new audit/runner rule whose consumer references do not
+    propagate into the shippability catalog can silently regress without
+    /validate-slice catching it. SCPD-1 requires the propagation.
+
+    Rule reference: slice-038 AC4 (shippability consumer propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "SRSC-1" in catalog, (
+        "architecture/shippability.md missing an SRSC-1 row — SCPD-1 "
+        "consumer-reference propagation broken"
+    )
+    assert "test_shippability_runner_segment_contract.py" in catalog, (
+        "architecture/shippability.md SRSC-1 row does not reference the "
+        "test_shippability_runner_segment_contract.py consumer — SCPD-1 "
         "propagation incomplete"
     )
