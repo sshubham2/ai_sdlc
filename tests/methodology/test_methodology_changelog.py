@@ -2521,6 +2521,13 @@ _TFFL1_PHRASE = "**Test-first** field-line value must be a standalone boolean to
 _V049 = "0.49.0"
 _SRCD1_PHRASE = "skill name MUST NOT collide with a Claude Code built-in command name"
 
+# --- Slice-037 / v0.50.0 PTFFD-1 phantom-test-function-citation entry pin ---
+_V050 = "0.50.0"
+_PTFFD1_PHRASE = (
+    "the cited test FUNCTION (not only the FILE) must exist in an "
+    "otherwise-present test file"
+)
+
 
 def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
     """v0.44.0 BCI-1 entry exists in both in-repo + installed
@@ -2848,4 +2855,86 @@ def test_v_0_43_0_diagnose_sequential_dispatch_shippability_consumer_propagation
     assert "test_skill_md_pins.py" in catalog, (
         "architecture/shippability.md slice-029 row must cite the "
         "test_skill_md_pins.py prose-pin consumer command"
+    )
+
+
+# --- Slice-037 / v0.50.0 PTFFD-1 entry pin + shippability propagation ---
+
+
+def test_v_0_50_0_ptffd_1_entry_present_in_repo_and_installed():
+    """v0.50.0 PTFFD-1 entry exists in BOTH in-repo + installed
+    methodology-changelog.md, with the PTFFD-1 rule reference, the
+    canonical anti-silent-weakening phrase, and the ADR-037 + ADR-038
+    decision lineage.
+
+    RULE-ID-BEARING shape (mirrors test_v_0_48_0_tffl_1): PTFFD-1 is a
+    minted `-D` rule (slice-037) that refines PTFCD-1 in place, supersedes
+    nothing — the pin asserts the PTFFD-1 token + canonical phrase +
+    ADR-038, and MUST NOT assert any `PTFCD-1 v1.1` version label (B3 /
+    ADR-038: the `vN.N` label is reserved for the NON-`-D` audit-gate
+    naming class).
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /pulse. The canonical-phrase assertion is
+    the anti-silent-weakening guard (a future edit cannot silently revert
+    PTFFD-1 to FILE-level-only — re-opening the slice-025/026/027
+    function-level blind spot).
+
+    Rule reference: PTFFD-1 (slice-037; ADR-037 + ADR-038; refines
+    PTFCD-1 in place, supersedes nothing).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V050}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V050} entry "
+            f"header — slice-037 PTFFD-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V050)
+        assert "PTFFD-1" in body, (
+            f"{surface_name} v{_V050} entry body missing the 'PTFFD-1' rule "
+            f"reference — entry-pin broken at the rule-reference layer"
+        )
+        assert _PTFFD1_PHRASE in body, (
+            f"{surface_name} v{_V050} entry body missing canonical phrase "
+            f"{_PTFFD1_PHRASE!r} — a future edit could silently revert "
+            f"PTFFD-1 to FILE-level-only (anti-silent-weakening guard)"
+        )
+        assert "ADR-038" in body, (
+            f"{surface_name} v{_V050} entry body missing the ADR-038 "
+            f"decision lineage (the -D-vs-vN.N rule-ID decision)"
+        )
+        assert "supersedes nothing" in body, (
+            f"{surface_name} v{_V050} entry must state PTFFD-1 supersedes "
+            f"nothing (refines PTFCD-1 in place — lineage preserved)"
+        )
+
+
+def test_v_0_50_0_ptffd_1_shippability_consumer_propagation():
+    """architecture/shippability.md carries a PTFFD-1 row whose Machine-cmd
+    references the function-level consumer tests (RPCD-1 / SCPD-1
+    consumer-reference propagation).
+
+    Defect class: a new audit rule whose consumer references do not
+    propagate into the shippability catalog can silently regress without
+    /validate-slice catching it. SCPD-1 requires the propagation.
+
+    Rule reference: slice-037 AC5 (shippability consumer propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "PTFFD-1" in catalog, (
+        "architecture/shippability.md missing a PTFFD-1 row — SCPD-1 "
+        "consumer-reference propagation broken"
+    )
+    assert "test_ptffd1_test_first_audit.py" in catalog, (
+        "architecture/shippability.md PTFFD-1 row does not reference the "
+        "test_ptffd1_test_first_audit.py consumer — SCPD-1 propagation "
+        "incomplete"
+    )
+    assert "test_ptffd1_shippability_path_audit.py" in catalog, (
+        "architecture/shippability.md PTFFD-1 row does not reference the "
+        "test_ptffd1_shippability_path_audit.py consumer — SCPD-1 "
+        "propagation incomplete"
     )

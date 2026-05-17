@@ -43,7 +43,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from tools import _stdout
+from tools import _pyfn, _stdout
 
 # `tests/<...>.py` token (repo-relative test path). Backticks/quotes are
 # stripped per-token before this is applied to the post-`pytest` segment.
@@ -56,6 +56,11 @@ class PhantomCitation:
     token: str         # the offending test-path token as written
     resolved: str      # the absolute path that was tried
     line: int          # 1-based line in shippability.md
+    # PTFFD-1 (slice-037): "missing-test-file" (pre-existing FILE-level
+    # PTFCD-1 behavior — default, m1 legacy-direction pinned) |
+    # "missing-test-function" (NEW function-level layer). Additive field;
+    # `to_dict()` retains every prior key (additive-superset contract).
+    kind: str = "missing-test-file"
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -66,12 +71,16 @@ class AuditResult:
     rows_scanned: int = 0
     tokens_checked: int = 0
     violations: list[PhantomCitation] = field(default_factory=list)
+    # PTFFD-1 (slice-037; ADR-037 M2): visible skip-notes for tokens whose
+    # cited file could not be AST-parsed — NO violation, but not silent.
+    skip_notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
             "rows_scanned": self.rows_scanned,
             "tokens_checked": self.tokens_checked,
             "violations": [v.to_dict() for v in self.violations],
+            "skip_notes": list(self.skip_notes),
             "summary": {
                 "violation_count": len(self.violations),
             },
@@ -109,24 +118,37 @@ def _is_separator_row(line: str) -> bool:
     return True
 
 
-def _extract_test_tokens(command_cell: str) -> list[str]:
-    """Return `tests/<...>.py` tokens that appear AFTER the `pytest` keyword.
+# A pytest `::`-selector immediately following a matched test path, e.g.
+# `::TestClass::test_method` or `::test_fn[case]`. Bounded by whitespace /
+# backtick / quote (the SCMD-1 Machine-cmd cell delimiters).
+_SELECTOR_RE = re.compile(r"""\A(::[^\s`"']+)""")
 
-    M2: scope to post-`pytest` segment so the interpreter path and `-m
-    pytest` prefix are never mistaken for test paths. Each match is
-    backtick/quote-stripped and `::`-split before being returned.
+
+def _extract_test_tokens(command_cell: str) -> list[tuple[str, str | None]]:
+    """Return `(file_token, raw_selector|None)` pairs after the `pytest` kw.
+
+    M2 (PTFCD-1): scope to the post-`pytest` segment so the interpreter path
+    and `-m pytest` prefix are never mistaken for test paths. PTFFD-1
+    (slice-037): the `::`-selector that PTFCD-1 discarded is now CAPTURED (not
+    split away) so the function-level layer can verify the cited test
+    function exists. The file token itself is still backtick/quote-stripped
+    and `::`-free (the `_TEST_PATH_RE` `\\.py` anchor already excludes the
+    selector from the match; the selector is read from the trailing segment).
     """
     idx = command_cell.find("pytest")
     if idx == -1:
         return []
     segment = command_cell[idx + len("pytest"):]
-    tokens: list[str] = []
+    pairs: list[tuple[str, str | None]] = []
     for m in _TEST_PATH_RE.finditer(segment):
         tok = m.group(0).strip("`").strip().strip('"').strip("'")
         tok = tok.split("::", 1)[0].strip()
-        if tok:
-            tokens.append(tok)
-    return tokens
+        if not tok:
+            continue
+        sel_match = _SELECTOR_RE.match(segment[m.end():])
+        selector = sel_match.group(1) if sel_match else None
+        pairs.append((tok, selector))
+    return pairs
 
 
 def audit_catalog_file(catalog_path: Path) -> AuditResult:
@@ -158,7 +180,7 @@ def audit_catalog_file(catalog_path: Path) -> AuditResult:
             continue  # header or non-data row
         command_cell = cells[5] if len(cells) > 5 else cells[3]
         result.rows_scanned += 1
-        for tok in _extract_test_tokens(command_cell):
+        for tok, selector in _extract_test_tokens(command_cell):
             result.tokens_checked += 1
             candidate = Path(tok)
             if not candidate.is_absolute():
@@ -169,27 +191,76 @@ def audit_catalog_file(catalog_path: Path) -> AuditResult:
                     token=tok,
                     resolved=str(candidate),
                     line=i,
+                    kind="missing-test-file",
                 ))
+                continue
+
+            # PTFFD-1 (slice-037; ADR-038): FILE exists — if the citation
+            # carries a `::`-selector, additionally verify the cited test
+            # FUNCTION (terminal `::`-segment, `[param-id]` stripped) exists.
+            if selector is None:
+                continue
+            fn_name = _pyfn.selector_terminal_name(selector)
+            if fn_name is None:
+                continue  # no checkable terminal name → FILE-level-only
+            verdict = _pyfn.function_defined_in_file(candidate, fn_name)
+            if verdict is False:
+                result.violations.append(PhantomCitation(
+                    row=row_num,
+                    token=f"{tok}{selector}",
+                    resolved=str(candidate),
+                    line=i,
+                    kind="missing-test-function",
+                ))
+            elif verdict is None:
+                result.skip_notes.append(
+                    f"shippability.md:{i} row {row_num}: function-check "
+                    f"skipped (file unparseable) for '{fn_name}' in "
+                    f"'{candidate}'."
+                )
     return result
 
 
 def _format_human(result: AuditResult) -> str:
+    # PTFFD-1 (slice-037; ADR-037 M2): unparseable cited files are skipped
+    # WITH a visible note — never silent. Rendered on clean + violation paths.
+    skip_block = ""
+    if result.skip_notes:
+        skip_block = (
+            f"\n{len(result.skip_notes)} function-check skip-note(s) "
+            f"(PTFFD-1; no violation — ADR-037 skip-with-note):\n"
+            + "".join(f"  - {n}\n" for n in result.skip_notes)
+        )
+
     if not result.violations:
         return (
-            f"Shippability path audit (PTFCD-1): clean. "
+            f"Shippability path audit (PTFCD-1/PTFFD-1): clean. "
             f"{result.rows_scanned} row(s), "
-            f"{result.tokens_checked} test-path token(s) — all exist.\n"
+            f"{result.tokens_checked} test-path token(s) — all files and "
+            f"cited functions exist.\n"
+            + skip_block
         )
     out = [
-        f"{len(result.violations)} phantom test-path citation(s) in "
-        f"shippability.md (PTFCD-1 sub-mode (b)):\n\n"
+        f"{len(result.violations)} phantom test-path/function citation(s) "
+        f"in shippability.md (PTFCD-1/PTFFD-1 sub-mode (b)):\n\n"
     ]
     for v in result.violations:
+        if v.kind == "missing-test-function":
+            detail = (
+                f"resolves to existing file '{v.resolved}', but the cited "
+                f"test function does not exist in it (PTFFD-1)."
+            )
+        else:
+            detail = (
+                f"resolves to '{v.resolved}', which does not exist on disk "
+                f"(PTFCD-1)."
+            )
         out.append(
-            f"  [Important] shippability.md:{v.line} row {v.row} — "
-            f"token '{v.token}'\n"
-            f"    resolves to '{v.resolved}', which does not exist on disk.\n\n"
+            f"  [Important] shippability.md:{v.line} row {v.row} "
+            f"({v.kind}) — token '{v.token}'\n"
+            f"    {detail}\n\n"
         )
+    out.append(skip_block)
     return "".join(out)
 
 
