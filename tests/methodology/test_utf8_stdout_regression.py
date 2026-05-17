@@ -224,6 +224,33 @@ def test_shippability_decoupling_audit_survives_cp1252_with_u2192(tmp_path):
     _assert_no_encoding_error(proc, "tools.shippability_decoupling_audit")
 
 
+def test_shippability_runner_survives_cp1252_with_u2192(tmp_path):
+    """shippability_runner takes a positional catalog path (slice-038,
+    SRSC-1). Same shape as its two siblings shippability_path_audit /
+    shippability_decoupling_audit -- a catalog-path tool, NOT a slice-folder
+    tool, so it is deliberately NOT in _POSITIONAL_SLICE_TOOLS (that
+    parametrize list passes a slice fixture dir); covered_set is fed via this
+    bespoke test's _assert_no_encoding_error literal (mechanism (ii), per
+    ADR-026). A synthetic 2-segment catalog with U+2192 / U+2014 in the
+    Critical-path cell + a real test-path Machine-cmd drives the runner's
+    stdout-emitting path under cp1252 (UTF8-STDOUT-1 covered set)."""
+    catalog = tmp_path / "shippability.md"
+    catalog.write_text(
+        "# Shippability Catalog\n\n"
+        "| # | Slice | Critical path | Command | Runtime | Machine-cmd |\n"
+        "|---|-------|--------------|---------|---------|-------------|\n"
+        "| 1 | slice-x | arrow → and em-dash — in path | "
+        "python -m pytest tests/methodology/test_stdout_helper.py -q | <1s | "
+        "`python -m pytest tests/methodology/test_stdout_helper.py -q` ; "
+        "`python -m pytest tests/methodology/test_stdout_helper.py -q` |\n",
+        encoding="utf-8",
+    )
+    proc = _run_under_cp1252(
+        [PY, "-m", "tools.shippability_runner", str(catalog)],
+    )
+    _assert_no_encoding_error(proc, "tools.shippability_runner")
+
+
 # ---------------------------------------------------------------------------
 # UTF8-STDOUT-1 v1.1 — version-agnostic UTF-8 rollup sentinel
 # (slice-028; ADR-026; mirrors the slice-014 / ADR-013 PMI-1 v1.0 -> v1.1

@@ -210,8 +210,14 @@ Before deciding next action, verify no past slice was silently broken by this on
    $PY -m tools.shippability_path_audit architecture/shippability.md
    ```
    Verifies every `tests/<...>.py` token in every row's **Machine-cmd** cell resolves to a file that exists on disk. If it exits non-zero (a phantom test-file citation — cf. slice-024 `test_shippability_catalog.py`), STOP: report the single PTFCD-1 violation and fix the catalog row's path before running the catalog. Running the catalog with a phantom citation produces N confusing per-row "file not found" FAILs that mask real regressions; this gate surfaces it as ONE clear violation. Do not proceed to step 4 until BOTH gates exit 0.
-4. Run each entry's **Machine-cmd** column — the machine-stable command (prose-free, deterministically `;`-split + interpreter-anchored; SCMD-1-enforced so the ad-hoc runner never shell-execs a narrative cell) — execute it from project root
-5. Record PASS / FAIL per entry
+4. Run the catalog via the **canonical pinned runner** — **do NOT hand-roll the execution loop** (per **SRSC-1**, `methodology-changelog.md` v0.51.0; slice-038 / [[ADR-039]]):
+
+   ```
+   $PY -m tools.shippability_runner architecture/shippability.md
+   ```
+
+   The runner reads each data row's prose-free **Machine-cmd** cell, splits on ` ; ` and **strips backticks + whitespace PER segment** — it **reuses SCMD-1 `_segments()`** (`tools.shippability_decoupling_audit`), it does NOT re-derive the split/strip. It then executes each interpreter-anchored segment from project root and reports PASS / FAIL per row (exit `0` all-PASS / `1` ≥1 FAIL / `2` usage error). This pins the R-8 false-FAIL class shut: a naive ad-hoc outer-fence-only strip mangles segment 2 of the lone multi-segment row (#28) into a leading-backtick `argv[0]` → `WinError 2` (recurred N=2: slice-032, slice-033, **despite** this step's prior prose). Prose binds nothing executable; the invoked runner does. Do NOT re-implement the `;`-split / backtick-strip in prose or an ad-hoc loop.
+5. Record PASS / FAIL per entry (the runner emits this; do not re-derive it)
 
 If any entry FAILS:
 - The current slice broke something a past slice established
