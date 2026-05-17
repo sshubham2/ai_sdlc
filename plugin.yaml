@@ -12,7 +12,7 @@
 # both documentation and a target for the audit.
 
 name: ai-sdlc
-version: 0.48.0  # synced with VERSION file (PMI-1 audit enforces)
+version: 0.49.0  # synced with VERSION file (PMI-1 audit enforces)
 description: |
   Spec-driven SDLC for AI implementers. Hybrid of phase-driven rigor (for
   knowable domains) and slice-driven iteration (for unknowable ones).
@@ -62,8 +62,8 @@ skills:
     description: Define next thinnest valuable cut
   - id: slice-candidates
     description: Reads annotated diagnosis.html → backlog of dependency-ordered candidates
-  - id: status
-    description: Macro state summary — mode, active slice, risks, regression health
+  - id: pulse
+    description: Macro state summary — mode, active slice, risks, regression health (renamed from /status, SRCD-1)
   - id: supersede-slice
     description: Cleanly retire a shipped slice when reality contradicts its design (SUP-1)
   - id: sync

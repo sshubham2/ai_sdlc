@@ -76,7 +76,7 @@ Sub-second structural queries against a pre-built graph instead of re-scanning f
 | Starting fresh (greenfield) | `/triage` |
 | Adopting into existing codebase (brownfield) | `/adopt` |
 | Re-scoping an existing project | `/triage --re-triage` |
-| Session start / orientation / returning after time away | `/status` |
+| Session start / orientation / returning after time away | `/pulse` |
 | Fixing a non-trivial bug | `/repro` → `/slice` → ... |
 | Generating an audit-grade commit after a slice | `/commit-slice` |
 | Mapping concept + users + tech | `/discover` |
@@ -735,10 +735,10 @@ The auto-generated `./CLAUDE.md` (project root, ~20 lines) is supposed to catch 
 → `/validate-slice` runs the **shippability catalog** at pre-finish — every past slice contributes ONE critical-path test (added by `/reflect`). If any fail, the current slice silently broke past work; fix or explicitly defer. Catches regressions without needing a full CI pipeline.
 
 ### "I just started a session on an existing project and I'm lost"
-→ `/status`. One command, ~60-line summary: mode, active slice + stage + next action, risk exposure, regression health, Critic calibration status, top 5 aggregated lessons. Reads `architecture/slices/<active>/milestone.md` for explicit stage + next-action instead of deriving from file existence.
+→ `/pulse`. One command, ~60-line summary: mode, active slice + stage + next action, risk exposure, regression health, Critic calibration status, top 5 aggregated lessons. Reads `architecture/slices/<active>/milestone.md` for explicit stage + next-action instead of deriving from file existence.
 
 ### "My session died mid-slice — where am I?"
-→ `/status` reads `milestone.md` (rolling state file updated by every skill). The "On resume" section tells Claude exactly where to pick up: last completed action, current work, files being edited, specific next immediate step. Designed to survive session death + context clears.
+→ `/pulse` reads `milestone.md` (rolling state file updated by every skill). The "On resume" section tells Claude exactly where to pick up: last completed action, current work, files being edited, specific next immediate step. Designed to survive session death + context clears.
 
 ### "This slice is just a CSS tweak — do I need /critique?"
 → If `/slice` marked the slice tier as `low` AND nothing in the slice touches auth / contracts / data model / multi-device / external integrations: `/critique` skips with a message and updates `milestone.md`. No ceremony for trivial work. Override with `/critique --force` if you want it anyway. Medium/high tier always runs Critic. Heavy mode always runs regardless of tier.

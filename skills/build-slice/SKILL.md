@@ -374,7 +374,7 @@ Updates during build:
 
 Keep entries to one line each. Detailed evidence (full command output, stack traces, screenshot paths) goes in the Summary section at slice end. The events section is the trace; the summary is the report.
 
-`/status` reads the tail of this section on resume to reconstruct recent activity — durable next-action signal that survives `milestone.md` staleness.
+`/pulse` reads the tail of this section on resume to reconstruct recent activity — durable next-action signal that survives `milestone.md` staleness.
 
 ### Step 8: Write `architecture/slices/slice-NNN-<name>/build-log.md`
 

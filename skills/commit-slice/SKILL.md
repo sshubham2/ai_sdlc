@@ -328,14 +328,14 @@ Reproduction test added: tests/bugs/test_receipt_upload_heic_timeout.py
 ## Next step
 
 - Message shown → user commits (or skill commits + merges + safe-deletes with `--merge`)
-- After commit: next slice begins via `/slice` (or `/status` to re-orient)
+- After commit: next slice begins via `/slice` (or `/pulse` to re-orient)
 
 ## Pipeline position
 
 - **predecessor**: `/reflect` (user-invoked hand-off — NOT an auto-advance edge)
 - **successor**: `/slice`
 - **auto-advance**: false
-- **on-clean-completion**: out of the auto-advance loop entirely. `/commit-slice` is always user-invoked and is never an auto-advance target of any skill. After it completes, the next slice begins when the user invokes `/slice` (or `/status` to re-orient) — never auto-triggered.
+- **on-clean-completion**: out of the auto-advance loop entirely. `/commit-slice` is always user-invoked and is never an auto-advance target of any skill. After it completes, the next slice begins when the user invokes `/slice` (or `/pulse` to re-orient) — never auto-triggered.
 - **user-input gates** (halt auto-advance — surface to user, resume only on explicit user action):
   - Always user-invoked — no auto-advance into or out of this skill by contract.
 

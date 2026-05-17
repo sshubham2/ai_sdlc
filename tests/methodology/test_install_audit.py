@@ -155,8 +155,8 @@ def test_missing_template_flagged(tmp_path: Path):
 def test_missing_metadata_flagged(tmp_path: Path):
     """methodology-changelog.md or ai-sdlc-VERSION missing is flagged.
 
-    Defect class: /status reads these for the version pulse; absence
-    causes /status to render incomplete output.
+    Defect class: /pulse reads these for the version pulse; absence
+    causes /pulse to render incomplete output.
     Rule reference: INST-1.
     """
     claude = _seed_claude_dir(

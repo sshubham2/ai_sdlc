@@ -143,7 +143,7 @@ cp "$AI_SDLC_DIR/VERSION" ~/.claude/ai-sdlc-VERSION
 
 Report counts: `N skills, M agents, K templates, methodology v<cat ~/.claude/ai-sdlc-VERSION>`.
 
-Do NOT copy other root MDs (`README.md`, `pipeline.md`, `principles.md`, `tutorial.md`, `graphify-integration.md`, `INSTALL.md`, `plugin.yaml`, `pyproject.toml`) or `tutorial-site/` — those are project-source artifacts, not installed runtime files. The exceptions are `methodology-changelog.md` and `VERSION` (above) — those are runtime artifacts `/status` reads. Skills and agents must be self-contained; the templates are the only auxiliary markdown artifacts they reference. The executable tools (`tools/`) install via pip in Step 3g, NOT via cp.
+Do NOT copy other root MDs (`README.md`, `pipeline.md`, `principles.md`, `tutorial.md`, `graphify-integration.md`, `INSTALL.md`, `plugin.yaml`, `pyproject.toml`) or `tutorial-site/` — those are project-source artifacts, not installed runtime files. The exceptions are `methodology-changelog.md` and `VERSION` (above) — those are runtime artifacts `/pulse` reads. Skills and agents must be self-contained; the templates are the only auxiliary markdown artifacts they reference. The executable tools (`tools/`) install via pip in Step 3g, NOT via cp.
 
 ### 3g: Install ai-sdlc-tools as a pip package
 

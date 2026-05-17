@@ -86,7 +86,7 @@ def test_version_file_is_semver():
     """VERSION must contain a semver-shaped string.
 
     Defect class: Non-semver versions (e.g., "next" or "latest") break
-    /status surfacing and downstream tooling that parses the file.
+    /pulse surfacing and downstream tooling that parses the file.
     Rule reference: META-1.
     """
     version = read_file("VERSION").strip()
@@ -108,7 +108,7 @@ def test_changelog_has_at_least_one_dated_entry():
 def test_version_matches_most_recent_changelog_entry():
     """VERSION must match the most-recent changelog entry's version.
 
-    Defect class: Drift between VERSION and changelog headers means /status
+    Defect class: Drift between VERSION and changelog headers means /pulse
     surfaces stale info. The match is the canonical truth check.
     Rule reference: META-1.
     """
@@ -447,7 +447,7 @@ def test_v_0_28_0_epgd_1_entry_present_in_repo_and_installed():
     Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
     entry exists only in-repo and the forward-sync was forgotten, every
     future read of the installed methodology-changelog reads stale
-    methodology (no EPGD-1 discipline visible to /status).
+    methodology (no EPGD-1 discipline visible to /pulse).
 
     Substantive canonical phrase pinned per slice-011 RSAD-1 3-surface
     schema-pin precedent (N=2 instances stable at slice-013: RSAD-1 +
@@ -514,7 +514,7 @@ def test_v_0_29_0_pmi_1_v1_1_entry_present_in_repo_and_installed():
     Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
     entry exists only in-repo and the forward-sync was forgotten, every
     future read of the installed methodology-changelog reads stale
-    methodology (no PMI-1 v1.1 refactor visible to /status).
+    methodology (no PMI-1 v1.1 refactor visible to /pulse).
 
     Substantive canonical phrase pinned per slice-011 RSAD-1 + slice-013
     EPGD-1 3-surface schema-pin precedent (N=2 instances stable at
@@ -579,7 +579,7 @@ def test_v_0_29_0_entry_names_supersession_pattern_retired():
     introduced _at_0_22_0; slices 008-013 superseded sequentially). At
     slice-014 the pattern is retired: future slices' version bumps do NOT
     supersede the gate function. The v0.29.0 changelog entry MUST annotate
-    this termination explicitly so future readers + /status + /critique
+    this termination explicitly so future readers + /pulse + /critique
     + /critic-calibrate distinguish "this is the LAST slice in the pattern"
     from "this is yet another supersession slice".
 
@@ -824,7 +824,7 @@ def test_v_0_30_0_scpd_1_entry_present_in_repo_and_installed():
     Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
     entry exists only in-repo and the forward-sync was forgotten, every
     future read of the installed methodology-changelog reads stale
-    methodology (no SCPD-1 codification visible to /status).
+    methodology (no SCPD-1 codification visible to /pulse).
 
     Substantive canonical phrase pinned per slice-011 RSAD-1 + slice-013
     EPGD-1 + slice-014 PMI-1 v1.1 3-surface schema-pin precedent
@@ -921,7 +921,7 @@ def test_v_0_31_0_rpcd_1_entry_present_in_repo_and_installed():
     Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
     entry exists only in-repo and the forward-sync was forgotten, every
     future read of the installed methodology-changelog reads stale
-    methodology (no RPCD-1 codification visible to /status).
+    methodology (no RPCD-1 codification visible to /pulse).
 
     Substantive canonical phrase pinned per slice-011 RSAD-1 + slice-013
     EPGD-1 + slice-014 PMI-1 v1.1 + slice-015 SCPD-1 3-surface schema-pin
@@ -1143,7 +1143,7 @@ def test_v_0_32_0_tphd_1_entry_present_in_repo_and_installed():
     Defect class (per slice-006 B1 + slice-007 CAD-1, generalized): if the
     entry exists only in-repo and the forward-sync was forgotten, every
     future read of the installed methodology-changelog reads stale
-    methodology (no TPHD-1 codification visible to /status).
+    methodology (no TPHD-1 codification visible to /pulse).
 
     Substantive canonical phrase pinned per slice-011 RSAD-1 + slice-013
     EPGD-1 + slice-014 PMI-1 v1.1 + slice-015 SCPD-1 + slice-016 RPCD-1
@@ -1351,7 +1351,7 @@ def test_v_0_33_0_layer_evid_1_entry_present_in_repo_and_installed():
 
     Defect class (per slice-019 /critique B1 + AC #3): forgotten
     forward-sync after in-repo edit leaves installed methodology-changelog
-    stale; /critic-calibrate + /status surfacing references stale data;
+    stale; /critic-calibrate + /pulse surfacing references stale data;
     audit-trail across N-surface schema-pin is broken.
 
     Rule reference: LAYER-EVID-1 (slice-019 AC #3); 3-surface schema-pin
@@ -1565,7 +1565,7 @@ def test_v_0_34_0_bfrd_1_entry_present_in_repo_and_installed():
     changelog.md with bidirectional sha256 byte-equality (CAD-1 invariant).
 
     Defect class: if the in-repo and installed copies diverge, Claude reads
-    stale prose at /status or /slice invocation. Bidirectional pin enforced
+    stale prose at /pulse or /slice invocation. Bidirectional pin enforced
     by reading both files and asserting both contain the v0.34.0 entry
     header.
     Rule reference: BFRD-1 (slice-020 AC #1).
@@ -1714,7 +1714,7 @@ def test_v_0_35_0_branch_1_entry_present_in_repo_and_installed():
     changelog.md.
 
     Defect class: if the in-repo and installed copies diverge, Claude reads
-    stale prose at /status or /slice invocation. Bidirectional pin enforced
+    stale prose at /pulse or /slice invocation. Bidirectional pin enforced
     by reading both files and asserting both contain the v0.35.0 entry
     header AND the BRANCH-1 rule ID.
 
@@ -1810,7 +1810,7 @@ def test_v_0_36_0_pr_aware_commit_slice_entry_present_in_repo_and_installed():
     methodology-changelog.md.
 
     Defect class: bidirectional pin — if in-repo and installed diverge, Claude
-    reads stale prose at /status or /slice. Enforced by reading both and
+    reads stale prose at /pulse or /slice. Enforced by reading both and
     asserting both contain the v0.36.0 entry header AND the canonical phrase.
 
     Rule reference: slice-022 AC #5 (methodology-changelog v0.36.0 entry).
@@ -1917,7 +1917,7 @@ def test_v_0_37_0_utf8_stdout_1_entry_present_in_repo_and_installed():
     methodology-changelog.md.
 
     Defect class: bidirectional pin — if in-repo and installed diverge, Claude
-    reads stale prose at /status or /slice. Enforced by reading both and
+    reads stale prose at /pulse or /slice. Enforced by reading both and
     asserting both contain the v0.37.0 entry header AND the canonical phrase.
 
     Rule reference: slice-023 AC #5 (methodology-changelog v0.37.0 entry).
@@ -2070,7 +2070,7 @@ def test_v_0_38_0_fbcd_1_entry_present_in_repo_and_installed():
     methodology-changelog.md.
 
     Defect class: bidirectional pin — if in-repo and installed diverge, Claude
-    reads stale prose at /status or /slice. Enforced by reading both and
+    reads stale prose at /pulse or /slice. Enforced by reading both and
     asserting both contain the v0.38.0 entry header AND the canonical phrase.
 
     Rule reference: slice-024 AC #3 (methodology-changelog v0.38.0 entry).
@@ -2174,7 +2174,7 @@ def test_v_0_39_0_ptfcd_1_entry_present_in_repo_and_installed():
     methodology-changelog.md.
 
     Defect class: bidirectional pin — if in-repo and installed diverge,
-    Claude reads stale prose at /status or /slice. Enforced by reading both
+    Claude reads stale prose at /pulse or /slice. Enforced by reading both
     and asserting both contain the v0.39.0 entry header AND the canonical
     rule ID AND the canonical phrase.
 
@@ -2241,7 +2241,7 @@ def test_v_0_40_0_crp_1_entry_present_in_repo_and_installed():
     + the NON-`-D` audit-enforced-gate naming-class conformance prose.
 
     Defect class: bidirectional pin — if in-repo and installed diverge,
-    Claude reads stale prose at /status or /slice. Also pins the B1
+    Claude reads stale prose at /pulse or /slice. Also pins the B1
     correction (CRP-1 is audit-enforced, NON-`-D`, per ADR-019) so a future
     edit cannot silently reintroduce a `-D` naming-class contradiction.
 
@@ -2309,7 +2309,7 @@ def test_v_0_41_0_pca_1_entry_present_in_repo_and_installed():
     prose.
 
     Defect class: bidirectional pin — if in-repo and installed diverge,
-    Claude reads stale prose at /status or /slice. Also pins the
+    Claude reads stale prose at /pulse or /slice. Also pins the
     audit-enforced / NON-`-D` (per ADR-019) conformance so a future edit
     cannot silently reintroduce a `-D` naming-class contradiction.
 
@@ -2406,7 +2406,7 @@ def test_v_0_42_0_utf8_stdout_1_v1_1_entry_present_in_repo_and_installed():
     + the rule-ID-lineage-preserved prose.
 
     Defect class: bidirectional pin — if in-repo and installed diverge,
-    Claude reads stale prose at /status or /slice. Also pins the rule-ID
+    Claude reads stale prose at /pulse or /slice. Also pins the rule-ID
     lineage (UTF8-STDOUT-1 v1.1, NOT a new rule ID — mirroring PMI-1 v1.x /
     ADR-013) so a future edit cannot silently mint a spurious new rule ID.
     UTF8-STDOUT-1 v1.1 is a rule-version evolution, not an audit-enforced
@@ -2517,6 +2517,10 @@ _EOL_DRIFT1_PHRASE = "content-equal modulo line endings"
 _V048 = "0.48.0"
 _TFFL1_PHRASE = "**Test-first** field-line value must be a standalone boolean token"
 
+# --- Slice-035 / v0.49.0 SRCD-1 skill-rename-collision-discipline entry pin ---
+_V049 = "0.49.0"
+_SRCD1_PHRASE = "skill name MUST NOT collide with a Claude Code built-in command name"
+
 
 def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
     """v0.44.0 BCI-1 entry exists in both in-repo + installed
@@ -2525,7 +2529,7 @@ def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
     framing (ADR-028 + ADR-029 lineage).
 
     Defect class: bidirectional pin — if in-repo and installed diverge,
-    Claude reads stale prose at /status or /slice. Pins that BCI-1 is a
+    Claude reads stale prose at /pulse or /slice. Pins that BCI-1 is a
     minted audited rule (NOT rule-ID-set-only — meta-M-add-2) so a future
     edit cannot silently weaken the invariant to an ID-set check.
 
@@ -2562,7 +2566,7 @@ def test_v_0_45_0_scmd_1_entry_present_in_repo_and_installed():
     `machine-stable command column` phrase, and the ADR-030/ADR-031 lineage.
 
     Defect class: bidirectional pin — if in-repo and installed diverge,
-    Claude reads stale prose at /status or /slice. (This NEW entry-pin is a
+    Claude reads stale prose at /pulse or /slice. (This NEW entry-pin is a
     fresh essential-class member consistent with the existing pattern; the
     *existing* entry-pin reframe is chartered to slice-030C — adding one more
     in the established shape is normal propagation, classified essential by
@@ -2606,7 +2610,7 @@ def test_v_0_46_0_qd_1_entry_present_in_repo_and_installed():
     ADR-032, and MUST NOT assert any 'no rule-ID' prose.
 
     Defect class: bidirectional pin — if in-repo and installed diverge,
-    Claude reads stale prose at /status or /query-design. The canonical
+    Claude reads stale prose at /pulse or /query-design. The canonical
     phrase assertion is the anti-silent-weakening guard (bci_1 meta-M-add-2
     rationale applied to QD-1): a future edit cannot silently erode QD-1 to
     a non-read-only rule. This is site (i) of the 2-site canonical-phrase
@@ -2653,7 +2657,7 @@ def test_v_0_47_0_eol_drift_1_entry_present_in_repo_and_installed():
     'no rule-ID' prose.
 
     Defect class: bidirectional pin — if in-repo and installed diverge,
-    Claude reads stale prose at /status. The canonical-phrase assertion is
+    Claude reads stale prose at /pulse. The canonical-phrase assertion is
     the anti-silent-weakening guard (bci_1 meta-M-add-2 rationale applied to
     EOL-DRIFT-1): a future edit cannot silently revert EOL-DRIFT-1 to a
     raw-byte rule. (m-add-1 fix: pin-fn name derives from the minted RULE-ID
@@ -2686,6 +2690,53 @@ def test_v_0_47_0_eol_drift_1_entry_present_in_repo_and_installed():
         )
 
 
+def test_v_0_49_0_srcd_1_entry_present_in_repo_and_installed():
+    """v0.49.0 SRCD-1 entry exists in both in-repo + installed
+    methodology-changelog.md, with the SRCD-1 rule reference, the canonical
+    `skill name MUST NOT collide with a Claude Code built-in command name`
+    phrase, and the ADR-035 decision lineage.
+
+    RULE-ID-BEARING shape (mirrors test_v_0_45_0_scmd_1 / test_v_0_46_0_qd_1
+    / test_v_0_47_0_eol_drift_1 / test_v_0_48_0_tffl_1, NOT the rule-ID-LESS
+    test_v_0_43_0 shape): SRCD-1 is a new minted rule (slice-035) that
+    supersedes nothing, so the pin asserts the SRCD-1 token + canonical
+    phrase + ADR-035, and MUST NOT assert any 'no rule-ID' prose.
+
+    Defect class: bidirectional pin — if in-repo and installed diverge,
+    Claude reads stale prose at /pulse. The canonical-phrase assertion is
+    the anti-silent-weakening guard (a future edit cannot silently dilute
+    SRCD-1 to a soft "try not to collide" suggestion). Pin-fn name derives
+    from the minted RULE-ID per the v0.46.0 `qd_1` / v0.47.0 `eol_drift_1` /
+    v0.48.0 `tffl_1` precedent (007–035 naming parity).
+
+    Rule reference: SRCD-1 (slice-035; ADR-035; new minted rule, supersedes
+    nothing).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
+        encoding="utf-8"
+    )
+    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+        assert f"## v{_V049}" in content, (
+            f"{surface_name} methodology-changelog.md missing v{_V049} entry "
+            f"header — slice-035 SRCD-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, _V049)
+        assert "SRCD-1" in body, (
+            f"{surface_name} v{_V049} entry body missing the 'SRCD-1' rule "
+            f"reference — entry-pin broken at the rule-reference layer"
+        )
+        assert _SRCD1_PHRASE in body, (
+            f"{surface_name} v{_V049} entry body missing canonical phrase "
+            f"{_SRCD1_PHRASE!r} — a future edit could silently dilute SRCD-1 "
+            f"to a soft suggestion (anti-silent-weakening guard)"
+        )
+        assert "ADR-035" in body, (
+            f"{surface_name} v{_V049} entry body missing the ADR-035 "
+            f"decision lineage"
+        )
+
+
 def test_v_0_48_0_tffl_1_entry_present_in_repo_and_installed():
     """v0.48.0 TFFL-1 entry exists in both in-repo + installed
     methodology-changelog.md, with the TFFL-1 rule reference, the canonical
@@ -2699,7 +2750,7 @@ def test_v_0_48_0_tffl_1_entry_present_in_repo_and_installed():
     assert any 'no rule-ID' prose.
 
     Defect class: bidirectional pin — if in-repo and installed diverge,
-    Claude reads stale prose at /status. The canonical-phrase assertion is
+    Claude reads stale prose at /pulse. The canonical-phrase assertion is
     the anti-silent-weakening guard (a future edit cannot silently revert
     TFFL-1 to the `\\b`-over-matching / silent-default-off behavior R-7
     documents). Pin-fn name derives from the minted RULE-ID per the v0.46.0
@@ -2744,7 +2795,7 @@ def test_v_0_43_0_diagnose_sequential_dispatch_entry_present_in_repo_and_install
     ADR-027 reference, AND the explicit no-rule-ID-lineage prose.
 
     Defect class: bidirectional pin — if in-repo and installed diverge,
-    Claude reads stale prose at /status or /slice. Also pins that this is
+    Claude reads stale prose at /pulse or /slice. Also pins that this is
     a `### Changed` behavior entry with NO minted rule-ID (per /critique
     M2 + /critique-review M2 re-scope, TRI-1 option B) so a future edit
     cannot silently mint a spurious audited rule-ID — mirroring the

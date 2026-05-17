@@ -158,7 +158,7 @@ You'll run: <ordered list of skill invocations for this mode>
 ## Initial risk register
 (mirrored in risk-register.md)
 
-Per **RR-1** (`methodology-changelog.md` v0.12.0), risks are H2-structured with explicit Likelihood and Impact so the audit (`tools/risk_register_audit.py`) can score them and `/slice` / `/status` can sort by score. The legacy `| ID | Risk | Reversibility | Spike? |` table is retired for new projects.
+Per **RR-1** (`methodology-changelog.md` v0.12.0), risks are H2-structured with explicit Likelihood and Impact so the audit (`tools/risk_register_audit.py`) can score them and `/slice` / `/pulse` can sort by score. The legacy `| ID | Risk | Reversibility | Spike? |` table is retired for new projects.
 
 For each risk discovered during triage, write an entry to both `triage.md` (initial snapshot, won't be re-edited) and `architecture/risk-register.md` (running log; updated by `/reflect` and `/risk-spike`).
 

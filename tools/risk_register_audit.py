@@ -6,12 +6,12 @@ Parses `architecture/risk-register.md` in the H2-structured format and:
   - Detects duplicate risk IDs
   - Computes Score = Likelihood * Impact (low=1, medium=2, high=3 -> 1..9)
   - Computes Band (1-2 low, 3-4 medium, 6-9 high)
-  - Sorts and filters for downstream consumers (/slice, /status)
+  - Sorts and filters for downstream consumers (/slice, /pulse)
 
 Per RR-1 (methodology-changelog.md v0.12.0). The rule's purpose: turn the
 risk register from freeform prose into ranked, sortable data so /slice can
 make risk-first slice ordering mechanical (top-N open high-band risks
-become candidates) and /status can surface the top-N concerns without a
+become candidates) and /pulse can surface the top-N concerns without a
 human re-classifying every entry each time.
 
 Format (H2-structured, matching BC-1 / TRI-1 conventions):
@@ -305,7 +305,7 @@ def audit_register(
                 "risk-register.md uses the legacy `| R1 | ... |` table "
                 "format. RR-1 (v0.12.0) introduced an H2-structured format "
                 "with Likelihood/Impact/Status fields. Migrate to enable "
-                "scoring + sorted output for /slice + /status."
+                "scoring + sorted output for /slice + /pulse."
             ),
         ))
         return result
