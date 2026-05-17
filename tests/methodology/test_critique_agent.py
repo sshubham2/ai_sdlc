@@ -1120,6 +1120,71 @@ def test_critique_dim_9_phantom_test_file_citation_paragraph_cites_slice_023_024
     )
 
 
+def test_critique_dim_9_phantom_citation_function_level_layer_present():
+    """PTFFD-1 (slice-037): Dim 9's phantom-citation sub-clause must carry
+    the function-level layer — a CONTENT pin, not byte-equality (M-add-1:
+    the CAD-1 byte-equality test is a tautological green for AC4; it passes
+    even if this layer is absent, as long as in-repo == installed).
+
+    Defect class: AC4's deliverable (the Dim 9 function-level refinement)
+    ships unverified if only byte-equality gates it. Bare-substring +
+    location-pin per the slice-025 `_sub_clause_present` precedent.
+
+    Rule reference: META-2 + CCC-1 + PTFFD-1 (slice-037 AC4; ADR-038).
+    """
+    start_anchor = "Phantom test-file citation discipline"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    assert start_idx != -1, f"start anchor {start_anchor!r} not found"
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    assert end_idx != -1, f"end anchor not found AFTER {start_anchor!r}"
+    body = CRITIQUE[start_idx:end_idx]
+    assert "Function-level layer (PTFFD-1, slice-037" in body, (
+        "Dim 9 phantom-citation sub-clause is missing the PTFFD-1 "
+        "function-level layer — AC4 deliverable not encoded"
+    )
+    assert "missing-test-function" in body, (
+        "function-level layer must name the `missing-test-function` "
+        "violation kind both audits emit"
+    )
+    # The N=3 function-level evidence base must be cited.
+    for anchor in ("slice-025", "slice-026", "slice-027"):
+        assert anchor in body, (
+            f"function-level layer must cite {anchor} (N=3-distinct-slice "
+            f"Critic-stack blind-spot evidence)"
+        )
+
+
+def test_critique_dim_9_phantom_citation_names_ptffd_1_rule_id():
+    """PTFFD-1 (slice-037): the sub-clause must name the minted `PTFFD-1`
+    rule-ID AND state it refines PTFCD-1 in place / supersedes nothing
+    (the B3 / ADR-038 convention decision — NOT a `PTFCD-1 v1.1` label).
+
+    Defect class: a future edit silently relabelling PTFFD-1 as a
+    `vN.N` refinement would re-introduce the B3 `-D`-vs-`vN.N`
+    convention violation; this pin is the anti-silent-relabel guard.
+
+    Rule reference: META-2 + CCC-1 + PTFFD-1 (slice-037 AC4; ADR-038).
+    """
+    start_anchor = "Phantom test-file citation discipline"
+    end_anchor = "### Bonus: weak graph edges"
+    start_idx = CRITIQUE.find(start_anchor)
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    body = CRITIQUE[start_idx:end_idx]
+    assert "PTFFD-1" in body, "minted rule-ID PTFFD-1 absent from sub-clause"
+    assert "refines PTFCD-1 in place" in body, (
+        "sub-clause must state PTFFD-1 refines PTFCD-1 in place "
+        "(ADR-038 in-place-mint decision)"
+    )
+    assert "supersedes nothing" in body, (
+        "sub-clause must state PTFFD-1 supersedes nothing (lineage preserved)"
+    )
+    # -D-suffix calibration trail advanced N=8 → N=9.
+    assert "PTFCD-1 + PTFFD-1" in body, (
+        "-D-suffix convention trail must list PTFFD-1 after PTFCD-1 (N=9)"
+    )
+
+
 def test_critique_dim_9_cross_references_resolve():
     """Dim 9's 'see Dimension N sub-bullet' pointers must resolve to actual sub-bullet text.
 

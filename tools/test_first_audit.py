@@ -45,7 +45,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
-from tools import _stdout
+from tools import _pyfn, _stdout
 
 # Date this rule shipped. NFR-1 carry-over.
 _TF_1_RELEASE_DATE: date = date(2026, 5, 6)
@@ -111,7 +111,7 @@ class TestFirstViolation:
     ac: str           # may be "" for section-level errors
     kind: str         # "missing-section" | "invalid-status" | "ac-without-row" |
                       # "format" | "non-passing-pre-finish" | "missing-cells" |
-                      # "missing-test-path-file"
+                      # "missing-test-path-file" | "missing-test-function"
     severity: str     # "Important"
     message: str
 
@@ -126,6 +126,10 @@ class AuditResult:
     rows: list[TestFirstRow] = field(default_factory=list)
     violations: list[TestFirstViolation] = field(default_factory=list)
     carry_over_exempt: bool = False
+    # PTFFD-1 (slice-037): visible skip-notes for rows whose cited test file
+    # could not be AST-parsed (ADR-037 skip-with-note — NO violation, but the
+    # skip is rendered, not silent). Additive to the --json contract.
+    skip_notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -134,6 +138,7 @@ class AuditResult:
             "rows": [r.to_dict() for r in self.rows],
             "violations": [v.to_dict() for v in self.violations],
             "carry_over_exempt": self.carry_over_exempt,
+            "skip_notes": list(self.skip_notes),
             "summary": {
                 "row_count": len(self.rows),
                 "by_status": {
@@ -492,6 +497,48 @@ def audit_brief_file(
                         f"test file (cf. slice-023 B4 / slice-024)."
                     ),
                 ))
+                continue
+
+            # PTFFD-1 (slice-037; ADR-038): the FILE exists — additionally
+            # verify the cited test FUNCTION exists. Name resolution
+            # precedence (M3): function-column-first; when the function
+            # column is not a checkable identifier, fall back to the
+            # `test_path` `::`-tail (so a `path::fn`-in-path-column +
+            # empty-function-column row cannot escape). When BOTH carry
+            # checkable-but-different names the function column wins and the
+            # path-column selector is not separately validated (m-add-2 —
+            # the Test function column is the authoritative TF-1 field).
+            fn_name: str | None = None
+            if _pyfn.is_checkable_function_name(row.test_function):
+                fn_name = _pyfn.selector_terminal_name(row.test_function)
+            if fn_name is None:
+                fn_name = _pyfn.selector_terminal_name(row.test_path)
+            if fn_name is None:
+                continue  # no checkable function name → FILE-level-only
+
+            verdict = _pyfn.function_defined_in_file(resolved, fn_name)
+            if verdict is False:
+                result.violations.append(TestFirstViolation(
+                    path=str(brief_path), line=row.line, ac=row.ac,
+                    kind="missing-test-function", severity="Important",
+                    message=(
+                        f"row for AC#{row.ac} is PASSING and its Test path "
+                        f"'{row.test_path}' resolves to an existing file "
+                        f"'{resolved}', but no test function "
+                        f"'{fn_name}' is defined in it. PTFFD-1: a PASSING "
+                        f"row may not cite a phantom test function "
+                        f"(cf. slice-025 AC3 / slice-026 AC5 / slice-027 B1)."
+                    ),
+                ))
+            elif verdict is None:
+                # ADR-037 skip-with-note: file unparseable / not Python /
+                # unreadable → NO violation, but the skip is rendered
+                # (not silent — Option 3 genuinely rejected, M2).
+                result.skip_notes.append(
+                    f"AC#{row.ac} ({brief_path}:{row.line}): "
+                    f"function-check skipped (file unparseable) for "
+                    f"'{fn_name}' in '{resolved}'."
+                )
 
     return result
 
@@ -509,6 +556,17 @@ def _format_human(result: AuditResult) -> str:
         # the violations path below — never be masked by this short-circuit.
         return "Test-first audit: not enabled (`**Test-first**: true` absent).\n"
 
+    # PTFFD-1 (slice-037; ADR-037 M2): unparseable cited test files are
+    # skipped WITH a visible note so the skip is never silent. Rendered on
+    # both the clean and the violations path.
+    skip_block = ""
+    if result.skip_notes:
+        skip_block = (
+            f"\n{len(result.skip_notes)} function-check skip-note(s) "
+            f"(PTFFD-1; no violation — ADR-037 skip-with-note):\n"
+            + "".join(f"  - {n}\n" for n in result.skip_notes)
+        )
+
     if not result.violations:
         by_status = {
             s: sum(1 for r in result.rows if r.status == s)
@@ -519,6 +577,7 @@ def _format_human(result: AuditResult) -> str:
             f"PASSING={by_status['PASSING']}, "
             f"WRITTEN-FAILING={by_status['WRITTEN-FAILING']}, "
             f"PENDING={by_status['PENDING']}.\n"
+            + skip_block
         )
 
     out: list[str] = [f"{len(result.violations)} test-first violation(s):\n\n"]
@@ -528,6 +587,7 @@ def _format_human(result: AuditResult) -> str:
             f"{f'AC#{v.ac}' if v.ac else ''}\n"
             f"    {v.message}\n\n"
         )
+    out.append(skip_block)
     return "".join(out)
 
 
