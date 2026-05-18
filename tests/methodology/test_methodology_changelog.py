@@ -146,7 +146,7 @@ def test_each_changelog_entry_carries_rule_reference():
 
 # --- Slice-007 / CAD-1 entry pinning (AC #4) ---
 
-def test_v_0_22_0_cad_1_entry_present_in_repo_and_installed():
+def test_v_0_22_0_cad_1_entry_present_in_repo():
     """methodology-changelog v0.22.0 / CAD-1 entry must exist in BOTH the
     in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
@@ -168,7 +168,7 @@ def test_v_0_22_0_cad_1_entry_present_in_repo_and_installed():
 
 # --- Slice-008 / BC-1 v1.2 entry pinning ---
 
-def test_v_0_23_0_bc_1_v_1_2_entry_present_in_repo_and_installed():
+def test_v_0_23_0_bc_1_v_1_2_entry_present_in_repo():
     """methodology-changelog v0.23.0 / BC-1 v1.2 entry must exist in BOTH the
     in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
@@ -193,7 +193,7 @@ def test_v_0_23_0_bc_1_v_1_2_entry_present_in_repo_and_installed():
 
 # --- Slice-009 / CCC-1 v1.1 entry pinning ---
 
-def test_v_0_24_0_ccc_1_v_1_1_entry_present_in_repo_and_installed():
+def test_v_0_24_0_ccc_1_v_1_1_entry_present_in_repo():
     """methodology-changelog v0.24.0 / CCC-1 v1.1 entry must exist in BOTH the
     in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
@@ -226,7 +226,7 @@ def test_v_0_24_0_ccc_1_v_1_1_entry_present_in_repo_and_installed():
 
 # --- Slice-010 / MCT-1 entry pinning (re-added at slice-011 validation: entry pins persist across version supersessions; only PMI-1 version-gate test supersedes) ---
 
-def test_v_0_25_0_mct_1_entry_present_in_repo_and_installed():
+def test_v_0_25_0_mct_1_entry_present_in_repo():
     """methodology-changelog v0.25.0 / MCT-1 entry must exist in BOTH the
     in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
@@ -256,7 +256,7 @@ def test_v_0_25_0_mct_1_entry_present_in_repo_and_installed():
 
 # --- Slice-011 / RSAD-1 entry pinning ---
 
-def test_v_0_26_0_rsad_1_entry_present_in_repo_and_installed():
+def test_v_0_26_0_rsad_1_entry_present_in_repo():
     """methodology-changelog v0.26.0 / RSAD-1 entry must exist in BOTH the
     in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
@@ -292,7 +292,7 @@ def test_v_0_26_0_rsad_1_entry_present_in_repo_and_installed():
 
 # --- Slice-012 / BC-PROJ-2 entry pinning ---
 
-def test_v_0_27_0_bc_proj_2_entry_present_in_repo_and_installed():
+def test_v_0_27_0_bc_proj_2_entry_present_in_repo():
     """methodology-changelog v0.27.0 / BC-PROJ-2 entry must exist in BOTH
     the in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
@@ -340,7 +340,7 @@ def test_v_0_27_0_bc_proj_2_entry_present_in_repo_and_installed():
 
 # --- Slice-013 / EPGD-1 entry pinning ---
 
-def test_v_0_28_0_epgd_1_entry_present_in_repo_and_installed():
+def test_v_0_28_0_epgd_1_entry_present_in_repo():
     """methodology-changelog v0.28.0 / EPGD-1 entry must exist in BOTH
     the in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
@@ -389,7 +389,7 @@ def test_v_0_28_0_epgd_1_entry_present_in_repo_and_installed():
 
 # --- Slice-014 / PMI-1 v1.1 entry pinning ---
 
-def test_v_0_29_0_pmi_1_v1_1_entry_present_in_repo_and_installed():
+def test_v_0_29_0_pmi_1_v1_1_entry_present_in_repo():
     """methodology-changelog v0.29.0 / PMI-1 v1.1 entry must exist in BOTH
     the in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
@@ -672,7 +672,7 @@ def test_adr_013_exists_and_names_pmi_1_refactor_canonical_phrase():
 
 # --- Slice-015 / SCPD-1 entry pinning ---
 
-def test_v_0_30_0_scpd_1_entry_present_in_repo_and_installed():
+def test_v_0_30_0_scpd_1_entry_present_in_repo():
     """methodology-changelog v0.30.0 / SCPD-1 entry must exist in BOTH
     the in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
@@ -751,7 +751,7 @@ def test_adr_014_exists_and_names_scpd_1_canonical_phrase():
 
 # --- Slice-016 / RPCD-1 entry pinning ---
 
-def test_v_0_31_0_rpcd_1_entry_present_in_repo_and_installed():
+def test_v_0_31_0_rpcd_1_entry_present_in_repo():
     """methodology-changelog v0.31.0 / RPCD-1 entry must exist in BOTH
     the in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
@@ -799,7 +799,7 @@ def test_v_0_31_0_rpcd_1_entry_present_in_repo_and_installed():
     )
 
 
-def test_v_0_31_0_rpcd_1_entry_names_three_sub_modes_in_repo_and_installed():
+def test_v_0_31_0_rpcd_1_entry_names_three_sub_modes_in_repo():
     """methodology-changelog v0.31.0 / RPCD-1 entry must name ALL THREE
     sub-modes (a)/(b)/(c) bidirectionally, scoped strictly to the v0.31.0
     entry body (NOT global file substring).
@@ -953,7 +953,7 @@ def test_adr_015_exists_and_names_rpcd_1_canonical_phrase():
 
 # --- Slice-017 / TPHD-1 entry pinning ---
 
-def test_v_0_32_0_tphd_1_entry_present_in_repo_and_installed():
+def test_v_0_32_0_tphd_1_entry_present_in_repo():
     """methodology-changelog v0.32.0 / TPHD-1 entry must exist in BOTH the
     in-repo file AND the installed `~/.claude/methodology-changelog.md`.
 
@@ -1002,7 +1002,7 @@ def test_v_0_32_0_tphd_1_entry_present_in_repo_and_installed():
     )
 
 
-def test_v_0_32_0_tphd_1_entry_names_three_sub_modes_in_repo_and_installed():
+def test_v_0_32_0_tphd_1_entry_names_three_sub_modes_in_repo():
     """methodology-changelog v0.32.0 / TPHD-1 entry must name ALL THREE
     sub-modes (a)/(b)/(c) bidirectionally, scoped strictly to the v0.32.0
     entry body (NOT global file substring).
@@ -1138,7 +1138,7 @@ def test_adr_016_exists_and_names_tphd_1_canonical_phrase():
 # --- Slice-019 / LAYER-EVID-1 entry pinning ---
 
 
-def test_v_0_33_0_layer_evid_1_entry_present_in_repo_and_installed():
+def test_v_0_33_0_layer_evid_1_entry_present_in_repo():
     """methodology-changelog v0.33.0 / LAYER-EVID-1 entry MUST be present in
     both in-repo and installed copies of methodology-changelog.md,
     bidirectionally sha256 byte-equal at slice-019 ship hash (N=14 -> N=15
@@ -1339,7 +1339,7 @@ def test_adr_017_exists_and_names_layer_evid_1_canonical_phrase():
 _V034 = "0.34.0"
 
 
-def test_v_0_34_0_bfrd_1_entry_present_in_repo_and_installed():
+def test_v_0_34_0_bfrd_1_entry_present_in_repo():
     """v0.34.0 BFRD-1 entry exists in both in-repo + installed methodology-
     changelog.md with bidirectional sha256 byte-equality (CAD-1 invariant).
 
@@ -1485,7 +1485,7 @@ def test_adr_018_exists_and_names_bfrd_1_canonical_phrase():
 _V035 = "0.35.0"
 
 
-def test_v_0_35_0_branch_1_entry_present_in_repo_and_installed():
+def test_v_0_35_0_branch_1_entry_present_in_repo():
     """v0.35.0 BRANCH-1 entry exists in both in-repo + installed methodology-
     changelog.md.
 
@@ -1509,7 +1509,7 @@ def test_v_0_35_0_branch_1_entry_present_in_repo_and_installed():
         )
 
 
-def test_v_0_35_0_branch_1_entry_names_three_sub_modes_in_repo_and_installed():
+def test_v_0_35_0_branch_1_entry_names_three_sub_modes_in_repo():
     """v0.35.0 entry body names ALL three BRANCH-1 sub-modes — (a) build-time
     branch-create, (b) commit-time `--merge` flow, (c) audit-time pre-finish
     refusal.
@@ -1578,7 +1578,7 @@ def test_adr_019_branch_per_slice_workflow_exists_and_links_to_branch_1():
 _V036 = "0.36.0"
 
 
-def test_v_0_36_0_pr_aware_commit_slice_entry_present_in_repo_and_installed():
+def test_v_0_36_0_pr_aware_commit_slice_entry_present_in_repo():
     """v0.36.0 PR-aware /commit-slice entry exists in both in-repo + installed
     methodology-changelog.md.
 
@@ -1603,7 +1603,7 @@ def test_v_0_36_0_pr_aware_commit_slice_entry_present_in_repo_and_installed():
         )
 
 
-def test_v_0_36_0_entry_names_three_modes_in_repo_and_installed():
+def test_v_0_36_0_entry_names_three_modes_in_repo():
     """v0.36.0 entry body names all 3 modes (`--merge`, `--push`,
     `--sync-after-pr`) AND the partial supersession scope (ADR-020 supersedes
     ADR-019 sub-mode (b) only; sub-modes (a) + (c) unchanged).
@@ -1682,7 +1682,7 @@ def test_adr_020_exists_and_supersedes_adr_019():
 _V037 = "0.37.0"
 
 
-def test_v_0_37_0_utf8_stdout_1_entry_present_in_repo_and_installed():
+def test_v_0_37_0_utf8_stdout_1_entry_present_in_repo():
     """v0.37.0 UTF8-STDOUT-1 entry exists in both in-repo + installed
     methodology-changelog.md.
 
@@ -1818,7 +1818,7 @@ def test_adr_020_documents_three_mode_taxonomy():
 # =============================================================================
 # Per FBCD-1 codification (methodology-changelog.md v0.38.0). These
 # entry-pin functions follow the EPGD-1 N=11 stable convention (slice-024
-# ADDS-only; 0 of 17 prior _entry_present_in_repo_and_installed-family functions
+# ADDS-only; 0 of 17 prior _entry_present_in_repo-family functions
 # touched). ADR-pin follows the convention N=10 stable (NOT a separate
 # tests/decisions/ file).
 #
@@ -1832,7 +1832,7 @@ _V039 = "0.39.0"
 _V040 = "0.40.0"
 
 
-def test_v_0_38_0_fbcd_1_entry_present_in_repo_and_installed():
+def test_v_0_38_0_fbcd_1_entry_present_in_repo():
     """v0.38.0 FBCD-1 entry exists in both in-repo + installed
     methodology-changelog.md.
 
@@ -1933,7 +1933,7 @@ def test_adr_022_exists_and_names_fbcd_1_canonical_phrase():
     )
 
 
-def test_v_0_39_0_ptfcd_1_entry_present_in_repo_and_installed():
+def test_v_0_39_0_ptfcd_1_entry_present_in_repo():
     """v0.39.0 PTFCD-1 entry exists in both in-repo + installed
     methodology-changelog.md.
 
@@ -1996,7 +1996,7 @@ def test_adr_023_present_and_reversibility_cheap():
 # --- Slice-026 / CRP-1 v0.40.0 entry-pin + shippability propagation ---
 
 
-def test_v_0_40_0_crp_1_entry_present_in_repo_and_installed():
+def test_v_0_40_0_crp_1_entry_present_in_repo():
     """v0.40.0 CRP-1 entry exists in both in-repo + installed
     methodology-changelog.md, with the canonical rule ID + canonical phrase
     + the NON-`-D` audit-enforced-gate naming-class conformance prose.
@@ -2060,7 +2060,7 @@ def test_v_0_40_0_crp_1_shippability_consumer_propagation():
 _V041 = "0.41.0"
 
 
-def test_v_0_41_0_pca_1_entry_present_in_repo_and_installed():
+def test_v_0_41_0_pca_1_entry_present_in_repo():
     """v0.41.0 PCA-1 entry exists in both in-repo + installed
     methodology-changelog.md, with the canonical rule ID + canonical
     phrase + the NON-`-D` audit-enforced-gate naming-class conformance
@@ -2155,7 +2155,7 @@ _V042 = "0.42.0"
 _UTF8_V11_PHRASE = "version-agnostic UTF-8 rollup sentinel"
 
 
-def test_v_0_42_0_utf8_stdout_1_v1_1_entry_present_in_repo_and_installed():
+def test_v_0_42_0_utf8_stdout_1_v1_1_entry_present_in_repo():
     """v0.42.0 UTF8-STDOUT-1 v1.1 entry exists in both in-repo + installed
     methodology-changelog.md, with the canonical rule ID + canonical phrase
     + the rule-ID-lineage-preserved prose.
@@ -2286,7 +2286,7 @@ _SRSC1_PHRASE = "do NOT hand-roll the execution loop"
 _SRSC1_REUSE_PHRASE = "reuses SCMD-1 _segments()"
 
 
-def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
+def test_v_0_44_0_bci_1_entry_present_in_repo():
     """v0.44.0 BCI-1 entry exists in both in-repo + installed
     methodology-changelog.md, with the BCI-1 rule reference, the canonical
     full-structural-identity phrase, and the deterministic-downstream-gate
@@ -2321,7 +2321,7 @@ def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
         )
 
 
-def test_v_0_45_0_scmd_1_entry_present_in_repo_and_installed():
+def test_v_0_45_0_scmd_1_entry_present_in_repo():
     """v0.45.0 SCMD-1 entry exists in both in-repo + installed
     methodology-changelog.md, with the SCMD-1 rule reference, the canonical
     `machine-stable command column` phrase, and the ADR-030/ADR-031 lineage.
@@ -2356,7 +2356,7 @@ def test_v_0_45_0_scmd_1_entry_present_in_repo_and_installed():
         )
 
 
-def test_v_0_46_0_qd_1_entry_present_in_repo_and_installed():
+def test_v_0_46_0_qd_1_entry_present_in_repo():
     """v0.46.0 QD-1 entry exists in both in-repo + installed
     methodology-changelog.md, with the QD-1 rule reference, the canonical
     `read-only, delegation-only codebase Q&A` phrase, and the ADR-032
@@ -2399,7 +2399,7 @@ def test_v_0_46_0_qd_1_entry_present_in_repo_and_installed():
         )
 
 
-def test_v_0_47_0_eol_drift_1_entry_present_in_repo_and_installed():
+def test_v_0_47_0_eol_drift_1_entry_present_in_repo():
     """v0.47.0 EOL-DRIFT-1 entry exists in both in-repo + installed
     methodology-changelog.md, with the EOL-DRIFT-1 rule reference, the
     canonical `content-equal modulo line endings` phrase, and the ADR-033
@@ -2442,7 +2442,7 @@ def test_v_0_47_0_eol_drift_1_entry_present_in_repo_and_installed():
         )
 
 
-def test_v_0_49_0_srcd_1_entry_present_in_repo_and_installed():
+def test_v_0_49_0_srcd_1_entry_present_in_repo():
     """v0.49.0 SRCD-1 entry exists in both in-repo + installed
     methodology-changelog.md, with the SRCD-1 rule reference, the canonical
     `skill name MUST NOT collide with a Claude Code built-in command name`
@@ -2486,7 +2486,7 @@ def test_v_0_49_0_srcd_1_entry_present_in_repo_and_installed():
         )
 
 
-def test_v_0_48_0_tffl_1_entry_present_in_repo_and_installed():
+def test_v_0_48_0_tffl_1_entry_present_in_repo():
     """v0.48.0 TFFL-1 entry exists in both in-repo + installed
     methodology-changelog.md, with the TFFL-1 rule reference, the canonical
     `**Test-first** field-line value must be a standalone boolean token`
@@ -2535,7 +2535,7 @@ _V043 = "0.43.0"
 _DSEQ_PHRASE = "sequential by default"
 
 
-def test_v_0_43_0_diagnose_sequential_dispatch_entry_present_in_repo_and_installed():
+def test_v_0_43_0_diagnose_sequential_dispatch_entry_present_in_repo():
     """v0.43.0 /diagnose sequential-dispatch entry exists in both in-repo +
     installed methodology-changelog.md, with the canonical phrase, the
     ADR-027 reference, AND the explicit no-rule-ID-lineage prose.
@@ -2597,7 +2597,7 @@ def test_v_0_43_0_diagnose_sequential_dispatch_shippability_consumer_propagation
 # --- Slice-037 / v0.50.0 PTFFD-1 entry pin + shippability propagation ---
 
 
-def test_v_0_50_0_ptffd_1_entry_present_in_repo_and_installed():
+def test_v_0_50_0_ptffd_1_entry_present_in_repo():
     """v0.50.0 PTFFD-1 entry exists in BOTH in-repo + installed
     methodology-changelog.md, with the PTFFD-1 rule reference, the
     canonical anti-silent-weakening phrase, and the ADR-037 + ADR-038
@@ -2676,7 +2676,7 @@ def test_v_0_50_0_ptffd_1_shippability_consumer_propagation():
 # --- Slice-038 / v0.51.0 SRSC-1 entry pin + shippability propagation ---
 
 
-def test_v_0_51_0_srsc_1_entry_present_in_repo_and_installed():
+def test_v_0_51_0_srsc_1_entry_present_in_repo():
     """v0.51.0 SRSC-1 entry exists in BOTH in-repo + installed
     methodology-changelog.md, with the SRSC-1 rule reference, the canonical
     anti-silent-weakening phrases, the ADR-039 decision lineage, and the
@@ -2761,7 +2761,7 @@ _APED1_PHRASE = "Bash-execute a changed audit parse-rule against an adversarial 
 _MEPD1_PHRASE = "verified against the actual `tests/methodology/test_methodology_changelog.py`"
 
 
-def test_v_0_52_0_aped_1_entry_present_in_repo_and_installed():
+def test_v_0_52_0_aped_1_entry_present_in_repo():
     """v0.52.0 APED-1 entry exists in BOTH in-repo + installed
     methodology-changelog.md, with the APED-1 rule reference, the canonical
     anti-silent-weakening phrase, the ADR-040 + ADR-041 lineage, and the
@@ -2807,7 +2807,7 @@ def test_v_0_52_0_aped_1_entry_present_in_repo_and_installed():
         )
 
 
-def test_v_0_52_0_mepd_1_entry_present_in_repo_and_installed():
+def test_v_0_52_0_mepd_1_entry_present_in_repo():
     """v0.52.0 MEPD-1 entry exists in BOTH in-repo + installed
     methodology-changelog.md, with the MEPD-1 rule reference, the canonical
     anti-silent-weakening phrase (the (b)-branch verified-against-artifact
@@ -2918,7 +2918,7 @@ def test_v_0_52_0_critique_proposals_shippability_consumer_propagation():
     )
 
 
-def test_v_0_53_0_mcfs_1_entry_present_in_repo_and_installed():
+def test_v_0_53_0_mcfs_1_entry_present_in_repo():
     """methodology-changelog v0.53.0 / MCFS-1 entry-pin.
 
     **In-repo-only body (M3 / slice-041, split-lineage label "030C")**: per
@@ -2933,10 +2933,12 @@ def test_v_0_53_0_mcfs_1_entry_present_in_repo_and_installed():
     forward-sync of THIS very entry is covered by MCFS-1's whole-file
     content-equality gate, not by a per-version installed read here.
 
-    The name keeps the existing `_entry_present_in_repo_and_installed`
-    convention (TRI-1 scope-cut: no rename this slice — the chartered
-    follow-up identifier-truth slice realigns all such names uniformly,
-    including this one; the over-claim is slice-035 decided-not-discovered).
+    The name was realigned by slice-042 — the chartered follow-up
+    identifier-truth slice that slice-041's TRI-1 scope-cut deferred this
+    rename to. The over-claiming `_and_installed` suffix was dropped so the
+    name asserts exactly what the body checks: in-repo presence only.
+    ADR-044 holds the canonical pre-rename→post-rename mapping; ADR-045 the
+    live-vs-frozen boundary that kept shipped history intact.
 
     Defect class: the v0.53.0 MCFS-1 entry silently lost / never added →
     R-4-retirement provenance + the MCFS-1 rule reference unrecoverable from

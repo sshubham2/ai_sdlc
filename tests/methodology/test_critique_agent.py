@@ -1423,7 +1423,7 @@ def test_critique_dim_7_methodology_surface_entry_pin_names_both_clauses():
     # (a) rule-path half: the entry-pin function-name shape + 4-part PMI-1.
     assert "test_v_0_NN_0_" in body, (
         "MEPD-1 (a) rule-path half missing the "
-        "`test_v_0_NN_0_<rule>_entry_present_in_repo_and_installed` entry-pin "
+        "`test_v_0_NN_0_<rule>_entry_present_in_repo` entry-pin "
         "obligation — the rule-path branch was silently weakened"
     )
     assert "4-part PMI-1 bump" in body, (

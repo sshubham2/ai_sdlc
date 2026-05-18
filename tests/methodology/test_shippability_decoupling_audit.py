@@ -54,7 +54,7 @@ def test_cited_fn_set_derived_from_all_rows_not_enumerated(tmp_path: Path):
         _row(1, f"`<interp> -m pytest {_BC_MODULE}::"
                 f"test_slice_001_archive_still_fires_legitimate_rules -q`"),
         _row(2, f"`<interp> -m pytest {_CHANGELOG_MODULE}::"
-                f"test_v_0_22_0_cad_1_entry_present_in_repo_and_installed -q`"),
+                f"test_v_0_22_0_cad_1_entry_present_in_repo -q`"),
     ])
     result = audit(cat, repo_root=REPO_ROOT)
     assert result.rows_scanned == 2

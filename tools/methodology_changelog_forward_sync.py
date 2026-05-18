@@ -55,7 +55,7 @@ compensating guard cannot itself become the relocated essential coupling.
 Its regression suite `tests/methodology/test_methodology_changelog_forward_sync.py`
 reads the installed copy and is therefore intentionally NOT shippability-
 cited (m-add-2): only the in-repo-only-body entry-pin
-`test_v_0_53_0_mcfs_1_entry_present_in_repo_and_installed` carries the
+`test_v_0_53_0_mcfs_1_entry_present_in_repo` carries the
 catalog row.
 
 Usage:

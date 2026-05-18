@@ -13,7 +13,7 @@ catalog row for it would make it an unregistered `essential` cited fn ⇒
 `essential-unregistered` exit 1 self-violation. The MCFS-1 tool's WIRE-1
 consumer-test obligation is discharged by this suite existing and passing,
 not by cataloging it; only the in-repo-only-body entry-pin
-`test_v_0_53_0_mcfs_1_entry_present_in_repo_and_installed` carries the row.
+`test_v_0_53_0_mcfs_1_entry_present_in_repo` carries the row.
 """
 from __future__ import annotations
 
