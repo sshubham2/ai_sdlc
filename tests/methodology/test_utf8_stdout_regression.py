@@ -97,6 +97,7 @@ _ROOT_ONLY_TOOLS = [
     "tools.utf8_stdout_audit",
     "tools.pipeline_chain_audit",
     "tools.build_checks_integrity",  # slice-030A / BCI-1 (--check-live/--json, no slice arg)
+    "tools.methodology_changelog_forward_sync",  # slice-041 / MCFS-1 (--check/--json/--root, no slice arg)
 ]
 
 

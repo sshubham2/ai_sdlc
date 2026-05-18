@@ -96,6 +96,27 @@ _ESSENTIAL_SHAPES: tuple[tuple[str, ...], ...] = (
     (".claude", "methodology-changelog.md"),
 )
 
+# MCFS-1 / ADR-043 (slice-041, split-lineage label "030C"): the closed-world
+# **registered intentional-installed allowlist**. A cited fn classified
+# `essential` whose qualified `<test_path>::<fn>` selector is IN this set is
+# *accounted-for* (registered, not flagged); one NOT in it is a VIOLATION
+# (`essential-unregistered`, exit 1). Post-slice-041 the in-
+# `test_methodology_changelog.py` per-version essential reads are decoupled
+# (read-leg dropped; forward-sync re-homed onto the non-catalog MCFS-1 gate),
+# leaving exactly ONE genuinely-intentional essential reader: the slice-019
+# LAYER-EVID-1 N=6-surface byte-equality pin, whose installed-methodology-
+# changelog read is a deliberate cross-surface forward-sync assertion (NOT
+# incidental coupling). It is the R-4 charter's literal "the read REGISTERED
+# not ABSENT". Membership keys MUST be the exact audit-emitted file-path-
+# qualified `::`-selector (a typo silently fails-open — pinned by
+# test_registered_key_resolves_against_real_catalog). DO NOT add entries
+# without an ADR + per-entry rationale: this allowlist must not become a
+# silent escape hatch (ADR-043).
+_REGISTERED_INSTALLED_READERS: frozenset[str] = frozenset({
+    "tests/skills/diagnose/test_skill_md_pins.py::"
+    "test_textual_evidence_rule_byte_equal_across_n_3_surfaces",
+})
+
 # Tracked-fixture-producing symbols an incidental-decoupled fn MAY reach
 # (concrete membership — v2-M2; asserted by test_allowlist_membership_is_exactly).
 _ALLOWLIST_SYMBOLS = frozenset({
@@ -112,7 +133,7 @@ _RESOLVE_THROUGH = frozenset({"REPO_ROOT", "read_file", "FIXTURES", "Path"})
 @dataclass(frozen=True)
 class Violation:
     kind: str          # "missing-machine-cmd" | "prose-segment" |
-                        # "incidental-coupling"
+                        # "incidental-coupling" | "essential-unregistered"
     row: str           # catalog row number (or "-" for fn-level)
     detail: str
     line: int = 0
@@ -127,7 +148,12 @@ class AuditResult:
     rows_scanned: int = 0
     cited_fns: int = 0
     incidental: list[str] = field(default_factory=list)
+    # `essential` retained as the back-compat union (registered ∪
+    # unregistered) so existing consumers keep working; ADR-043 adds the
+    # split below.
     essential: list[str] = field(default_factory=list)
+    essential_registered: list[str] = field(default_factory=list)
+    essential_unregistered: list[str] = field(default_factory=list)
     clean: list[str] = field(default_factory=list)
     derived_archive_folders: set[str] = field(default_factory=set)
     violations: list[Violation] = field(default_factory=list)
@@ -138,6 +164,8 @@ class AuditResult:
             "cited_fns": self.cited_fns,
             "incidental": sorted(self.incidental),
             "essential": sorted(self.essential),
+            "essential_registered": sorted(self.essential_registered),
+            "essential_unregistered": sorted(self.essential_unregistered),
             "clean": sorted(self.clean),
             "derived_archive_folders": sorted(self.derived_archive_folders),
             "violations": [v.to_dict() for v in self.violations],
@@ -479,7 +507,24 @@ def audit(catalog_path: Path, repo_root: Path | None = None) -> AuditResult:
                         f"~/.claude/build-checks.md) — must be decoupled to "
                         f"a tracked byte-faithful input", line))
                 elif cls == "essential":
-                    result.essential.append(qual)  # recognized, NOT flagged
+                    # ADR-043 closed-world: registered ⇒ accounted-for;
+                    # unregistered ⇒ VIOLATION (relocation-proof — a future
+                    # essential cited fn not deliberately registered HALTs).
+                    result.essential.append(qual)  # back-compat union
+                    if qual in _REGISTERED_INSTALLED_READERS:
+                        result.essential_registered.append(qual)
+                    else:
+                        result.essential_unregistered.append(qual)
+                        result.violations.append(Violation(
+                            "essential-unregistered", row,
+                            f"{qual} reaches ~/.claude/methodology-changelog.md "
+                            f"(essential) but is NOT in "
+                            f"_REGISTERED_INSTALLED_READERS — decouple it (drop "
+                            f"the installed read-leg; forward-sync is re-homed "
+                            f"onto the non-catalog MCFS-1 gate), OR — only if "
+                            f"genuinely intentional like the slice-019 "
+                            f"LAYER-EVID-1 pin — register it with an ADR + "
+                            f"rationale", line))
                 else:
                     result.clean.append(qual)
     return result
@@ -490,7 +535,8 @@ def _format_human(r: AuditResult) -> str:
         return (
             f"SCMD-1 audit: clean. {r.rows_scanned} row(s); "
             f"{r.cited_fns} cited fn(s) — incidental={len(r.incidental)} "
-            f"essential={len(r.essential)} (recognized, 030C) "
+            f"essential_registered={len(r.essential_registered)} "
+            f"essential_unregistered={len(r.essential_unregistered)} "
             f"clean={len(r.clean)}.\n")
     out = [f"{len(r.violations)} SCMD-1 violation(s):\n\n"]
     for v in r.violations:

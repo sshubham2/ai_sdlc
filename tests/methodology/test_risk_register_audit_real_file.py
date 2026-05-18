@@ -117,37 +117,41 @@ def test_r_3_added_post_slice_019_with_graphify_symbol_conflation_class():
     )
 
 
-def test_r_4_subentry_charters_030c_and_stays_mitigating():
-    """R-4 must remain `mitigating` (NOT `retired`) after slice-031 ships,
-    with a sub-entry that charters slice-030C for the essential-coupling
-    reframe and carries M-add-1 forward.
+def test_r_4_retired_by_slice_041_030c_completes_the_split():
+    """R-4 MUST be `retired` after slice-041 (split-lineage label "030C")
+    ships — the essential-coupling reframe that completes the slice-030
+    split (030A substance → 030B incidental → 030C essential).
 
-    Per slice-031 (split-label 030B) AC #5 + the user-ratified b-split: 030B
-    decouples ONLY the incidental class; the essential entry-pin reframe is
-    030C's chartered scope. Escalating R-4 to `retired` while the ~20 entry-
-    pin rows remain coupled would be the D-3 "silently weakened" failure.
+    Realigned in slice-041's own fix block (slice-039 same-fix-block
+    discipline): the predecessor pin asserted "R-4 stays mitigating until
+    030C ships" — slice-041 IS 030C, so R-4 retirement is this slice's
+    deliverable; a pin still asserting `mitigating` would FAIL the slice
+    that legitimately retires the risk. The non-regression invariant flips
+    accordingly.
 
-    Defect class: a future edit silently flipping R-4 to `retired` without
-    030C shipping would falsely assert the catalog is fully decoupled while
-    rows 7-30's essential entry-pins still read untracked
-    `~/.claude/methodology-changelog.md`.
+    Defect class: a future edit silently flipping R-4 back to `mitigating`
+    / dropping the `**Retired**: slice-041` provenance / losing the
+    030A→030B→030C lineage would falsely re-open a fully-discharged risk
+    (the essential reads ARE decoupled + the cross-module pin registered).
 
-    Rule reference: slice-031 AC #5 (R-4 sub-entry per RR-1; SCMD-1).
+    Rule reference: slice-041 R-4 escalation (RR-1; MCFS-1 / ADR-042 +
+    ADR-043; supersedes the slice-031-era `_stays_mitigating` pin).
     """
     register_path = REPO_ROOT / "architecture" / "risk-register.md"
     result = audit_register(register_path)
     by_id = {r.risk_id: r for r in result.risks}
     assert "R-4" in by_id, "R-4 missing from risk-register parse"
-    assert by_id["R-4"].status == "mitigating", (
-        f"R-4 must stay 'mitigating' until slice-030C ships (incidental-only "
-        f"030B does NOT retire R-4); got {by_id['R-4'].status!r}"
+    assert by_id["R-4"].status == "retired", (
+        f"R-4 must be 'retired' after slice-041 (030C) ships — the "
+        f"essential-coupling reframe is complete; got "
+        f"{by_id['R-4'].status!r}"
     )
     text = register_path.read_text(encoding="utf-8")
-    assert "slice-030C" in text or "slice-030c" in text, (
-        "R-4 sub-entry must charter slice-030C for the essential-coupling "
-        "reframe (the R-4 -> retired path)"
+    assert "**Retired**: slice-041" in text, (
+        "R-4 must carry a `**Retired**: slice-041 …` provenance line"
     )
-    assert "M-add-1" in text, (
-        "R-4 sub-entry must carry M-add-1 forward (DEFERRED at slice-031 "
-        "TRI-1, not closed by the b-split)"
-    )
+    for tok in ("030A", "030B", "030C"):
+        assert tok in text, (
+            f"R-4 entry must record the {tok} split lineage (030A substance "
+            f"→ 030B incidental → 030C essential)"
+        )

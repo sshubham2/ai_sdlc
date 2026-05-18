@@ -218,6 +218,18 @@ If `architecture/build-checks.md` doesn't exist yet, create it with the canonica
 
 If the user answers no, skip — promotion is opt-in and never auto-applied. Recurring patterns missed at this step still surface in lessons-learned.md and can be promoted in a later slice.
 
+### Step 5b-fs: Methodology-changelog forward-sync gate (MCFS-1)
+
+Per **MCFS-1** (`methodology-changelog.md` v0.53.0; slice-041, split-lineage label "030C"; [[ADR-042]] + [[ADR-043]]): a deterministic downstream gate asserting in-repo `methodology-changelog.md` is content-equal **modulo line endings** to the installed `~/.claude/methodology-changelog.md`. slice-041 re-homed the ~33 per-version `test_v_0_NN_0_*` essential reads that half-asserted this invariant onto this single whole-file gate.
+
+> **This is a SEPARATE, UNGATED step — explicitly NOT folded into Step 5b** (m1 / DR-1). Step 5b (build-checks promotion) is rule-promotion-gated ("promotion is opt-in"); the methodology-changelog forward-sync must fire on **any slice that bumped the methodology-changelog version**, independent of whether a build-checks rule was promoted. Folding it into the rule-promotion-gated Step 5b would silently disable the gate on a version-bumping-but-no-rule-promoted slice (the R-7/slice-022 silent-disable class). Run it whenever this slice edited `methodology-changelog.md` (PMI-1 4-part bump):
+>
+> ```bash
+> $PY -m tools.methodology_changelog_forward_sync
+> ```
+>
+> If it exits non-zero (`drift`/HALT): **STOP and report** — the in-repo → `~/.claude/` forward-sync was forgotten or diverged. Re-run the PMI-1 forward-sync (byte-copy in-repo → installed) and re-run until exit 0 (incl. the installed-absent WARN, also exit 0). This is the deterministic downstream control that retires R-4's essential-class residual (the per-version installed reads are decoupled; ADR-042). MCFS-1 is also wired non-opt-out at `/build-slice` Step 6 (likewise ungated) — the two ungated points are complementary, neither gated on rule promotion.
+
 ### Step 5.3: Add one entry to `architecture/shippability.md`
 
 Every completed slice contributes ONE critical-path test to the shippability catalog. Future `/validate-slice` runs execute the full catalog to catch regressions.

@@ -84,6 +84,7 @@ _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.cross_spec_parity_audit",
     "tools.exploratory_charter_audit",
     "tools.install_audit",
+    "tools.methodology_changelog_forward_sync",
     "tools.mock_budget_lint",
     "tools.pipeline_chain_audit",
     "tools.plugin_manifest_audit",
