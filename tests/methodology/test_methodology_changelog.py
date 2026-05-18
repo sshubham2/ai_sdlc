@@ -3090,3 +3090,53 @@ def test_v_0_54_0_stp_1_shippability_consumer_propagation():
         "reference — consumer-reference propagation broken at the rule-ID "
         "layer"
     )
+
+
+# --- Slice-046 / BFRD-1 conditional-confirm-then-auto-invoke entry pinning ---
+
+def test_v_0_55_0_bfrd_1_reclassification_entry_present_in_repo():
+    """methodology-changelog v0.55.0 / BFRD-1-reclassification entry-pin.
+
+    **In-repo-only body** (slice-041 M3 discipline): reads ONLY the
+    git-tracked in-repo entry via `read_file` (no `Path.home()`), so
+    `shippability_decoupling_audit.classify_fn` classifies it `clean`.
+    The installed↔in-repo forward-sync of THIS entry is covered by
+    MCFS-1's whole-file gate.
+
+    Defect class: the v0.55.0 entry silently lost / never added → the
+    BFRD-1 reclassification (STOP-route → conditional confirm-then-auto-
+    invoke), its ADR-048 partial-supersession lineage, and the
+    no-new-rule treatment become unrecoverable from the changelog.
+
+    Rule reference: BFRD-1 (slice-046; ADR-048 partial-supersedes
+    ADR-018 STOP-route decision; refines BFRD-1 terminal action, mints
+    no new rule).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.55.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.55.0 entry header — "
+        "slice-046 BFRD-1-reclassification entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.55.0")
+    assert "conditional confirm-then-auto-invoke" in body, (
+        "v0.55.0 entry body missing the canonical phrase "
+        "'conditional confirm-then-auto-invoke' — the slice-046 "
+        "reclassification's discriminating literal (N=3 surface schema-pin: "
+        "SKILL.md Step 3c + this entry + ADR-048)"
+    )
+    assert "BFRD-1" in body, (
+        "v0.55.0 entry body missing the 'BFRD-1' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-048" in body and "partial-supersedes ADR-018" in body, (
+        "v0.55.0 entry body must record the ADR-048 partial-supersession "
+        "of ADR-018's STOP-route decision (lineage)"
+    )
+    assert "refines BFRD-1 terminal action, mints no new rule" in body, (
+        "v0.55.0 entry must state the no-new-rule treatment (refinement "
+        "of BFRD-1's terminal action per the ADR-038/ADR-047 convention)"
+    )
+    assert "Rule reference" in body, (
+        "v0.55.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )

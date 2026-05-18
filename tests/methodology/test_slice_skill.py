@@ -435,3 +435,76 @@ def test_slice_skill_md_bfrd_1_verification_mechanism_present():
         "verification-mechanism bullet per design.md Step 3c content "
         "structure item 4."
     )
+
+
+# --- Slice-046 / BFRD-1 conditional confirm-then-auto-invoke reclassification ---
+#
+# Per ADR-048 (partial-supersedes ADR-018 STOP-route decision; refines BFRD-1
+# terminal action, mints no new rule; methodology-changelog v0.55.0): the
+# Step 3c "STOP-and-route behavior" sub-block is reclassified from an
+# unconditional user hand-off ("run /repro yourself, then re-invoke /slice")
+# into a conditional confirm-then-auto-invoke /repro edge (PCA-1 v0.41.0
+# auto-advance alignment + the 2026-05-19 user directive).
+#
+# This is a CONTENT pin, not a byte-equality/forward-sync pin (the mini-CAD
+# `test_slice_skill_drift.py` would pass whether or not the content change
+# exists — tautological for content per the slice-025/045 lesson). Authored
+# test-first per the slice-043/045 genuine-contrast discipline: it FAILs on
+# the unmodified file (positive literal absent + negative literal present)
+# and PASSes only after the Step 3c reclassification lands — the FAIL->PASS
+# transition is the non-tautology AC1 evidence.
+#
+# STP-1 Sub-form A (slice-044 / ADR-047): the positive `in` pin is governed
+# (its literal is the deliverable, present by construction); the negative
+# `not in` pin is an `ast.NotIn` node and is EXCLUDED from Sub-form A
+# (ADR-047 §"Introduced residuals" B1 / DR-1 B-add-1). Zero pre-existing
+# test realignment — the 3 prior BFRD-1 positive-pin literals + the section
+# anchors are preserved verbatim by the reclassification.
+
+
+def test_slice_skill_md_bfrd_1_conditional_confirm_then_auto_invoke_reclassified():
+    """AC #1: Step 3c's terminal action is the conditional
+    confirm-then-auto-invoke /repro edge, NOT the old unconditional
+    "re-invoke `/slice`" user hand-off.
+
+    Positive pin: the canonical phrase `conditional confirm-then-auto-invoke`
+    appears within the Step 3c section bounds (the new sub-block's
+    discriminating literal — grep-verified absent from the unmodified file,
+    so it genuinely FAILs pre-edit).
+
+    Negative pin: the exact literal `` re-invoke `/slice` `` (verbatim from
+    the pre-slice-046 unconditional-hand-off blockquote at
+    `skills/slice/SKILL.md:155` — "Then re-invoke `/slice` and cite the
+    failing-test path under `Dependencies`.") is ABSENT from the Step 3c
+    section. This substring is unique to the unconditional hand-off; the
+    reclassified flow has `/slice` itself auto-invoke `/repro` and continue
+    (it never instructs the user to re-invoke `/slice`). Present in the
+    unmodified file, so the negative assertion genuinely FAILs pre-edit and
+    flips to PASS only after the hand-off blockquote is removed.
+
+    Defect class: a future slice silently reverts Step 3c to the
+    unconditional STOP/hand-off (re-introducing the PCA-1-violating
+    mechanical punt), or rewrites the new flow without the canonical phrase.
+    Either flips this content guard at /validate-slice.
+
+    Rule reference: BFRD-1 (slice-046; ADR-048 partial-supersedes ADR-018
+    STOP-route decision; refines BFRD-1 terminal action, mints no new rule).
+    """
+    section = _step3c_section(SLICE)
+
+    assert "conditional confirm-then-auto-invoke" in section, (
+        "skills/slice/SKILL.md Step 3c section is missing canonical phrase "
+        "'conditional confirm-then-auto-invoke' — the slice-046 BFRD-1 "
+        "reclassification was reverted or the new sub-block lost its "
+        "discriminating literal. Re-apply per design.md 'New Step 3c flow' "
+        "+ ADR-048."
+    )
+
+    assert "re-invoke `/slice`" not in section, (
+        "skills/slice/SKILL.md Step 3c section still contains the literal "
+        "'re-invoke `/slice`' — the old unconditional STOP-and-route "
+        "hand-off blockquote was NOT removed by the slice-046 "
+        "reclassification (ADR-048 partial-supersedes ADR-018's STOP-route "
+        "decision; the new flow has /slice auto-invoke /repro and continue, "
+        "never instructing the user to re-invoke /slice)."
+    )
