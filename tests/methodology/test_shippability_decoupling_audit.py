@@ -19,6 +19,7 @@ from tests.methodology.conftest import REPO_ROOT
 from tools import shippability_decoupling_audit as scmd
 from tools.shippability_decoupling_audit import (
     _ALLOWLIST_SYMBOLS,
+    _REGISTERED_INSTALLED_READERS,
     _RESOLVE_THROUGH,
     audit,
     classify_fn,
@@ -120,19 +121,89 @@ def test_clean_fn_reaching_only_allowlisted_symbol_is_clean(tmp_path: Path):
 
 
 # --------------------------------------------------------------------------- #
-# essential entry-pin fns are RECOGNIZED and NOT flagged (030C domain)         #
+# ADR-043 (slice-041/030C): essential class = closed-world REGISTERED          #
+# intentional-installed allowlist. UNREGISTERED essential ⇒ VIOLATION;         #
+# REGISTERED essential ⇒ accounted-for (not flagged). Supersedes the           #
+# pre-041 "recognized-and-never-flagged" passive semantics.                    #
 # --------------------------------------------------------------------------- #
-def test_essential_entry_pin_fn_recognized_not_flagged(tmp_path: Path):
+def test_unregistered_essential_fn_is_flagged_closed_world(tmp_path: Path):
+    """An essential cited fn NOT in `_REGISTERED_INSTALLED_READERS` is now a
+    hard `essential-unregistered` violation (exit 1) — the relocation-proof
+    closed-world rule. (Pre-041 this was silently tolerated; ADR-043 inverts
+    the default.)
+
+    Self-contained (slice-041): cannot cite a real
+    `test_methodology_changelog.py` fn — slice-041 decoupled them all (they
+    now classify `clean`). A synthetic installed-changelog reader under a
+    tmp repo-root is the deterministic, decouple-independent fixture.
+    """
+    (tmp_path / "tests").mkdir()
+    mod = tmp_path / "tests" / "test_unreg_fixture.py"
+    mod.write_text(
+        "from pathlib import Path\n"
+        "def test_reads_installed_changelog():\n"
+        '    p = Path.home() / ".claude" / "methodology-changelog.md"\n'
+        "    assert p.read_text()\n",
+        encoding="utf-8",
+    )
     cat = _synthetic_catalog(tmp_path, [
-        _row(1, f"`<interp> -m pytest {_CHANGELOG_MODULE}::"
-                f"test_v_0_22_0_cad_1_entry_present_in_repo_and_installed -q`"),
+        _row(1, "`<interp> -m pytest tests/test_unreg_fixture.py::"
+                "test_reads_installed_changelog -q`"),
+    ])
+    result = audit(cat, repo_root=tmp_path)
+    assert result.essential, "installed-changelog reader must classify essential"
+    assert result.essential_unregistered, (
+        "an unregistered essential cited fn must populate "
+        "essential_unregistered"
+    )
+    assert not result.essential_registered, (
+        "the synthetic fn is NOT in _REGISTERED_INSTALLED_READERS"
+    )
+    assert any(v.kind == "essential-unregistered" for v in result.violations), (
+        "an unregistered essential cited fn must be FLAGGED (closed-world; "
+        "ADR-043 — supersedes the pre-041 never-flagged passive semantics)"
+    )
+
+
+def test_registered_essential_pin_is_accounted_for_not_flagged(tmp_path: Path):
+    """The slice-019 LAYER-EVID-1 cross-module pin IS in the registered
+    allowlist ⇒ accounted-for (essential_registered, NOT a violation). This
+    is the R-4 charter's literal "the read REGISTERED not ABSENT"."""
+    cat = _synthetic_catalog(tmp_path, [
+        _row(1, "`<interp> -m pytest tests/skills/diagnose/"
+                "test_skill_md_pins.py::"
+                "test_textual_evidence_rule_byte_equal_across_n_3_surfaces "
+                "-q`"),
     ])
     result = audit(cat, repo_root=REPO_ROOT)
-    assert result.essential, "entry-pin fn must be classified essential"
-    assert not any(v.kind == "incidental-coupling" for v in result.violations), (
-        "essential entry-pin reads of ~/.claude/methodology-changelog.md must "
-        "NOT be flagged here (chartered to 030C per the R-4 sub-entry)"
+    assert result.essential_registered, (
+        "the registered cross-module pin must populate essential_registered"
     )
+    assert not result.essential_unregistered, (
+        "a registered essential reader must NOT be flagged unregistered"
+    )
+    assert not any(
+        v.kind == "essential-unregistered" for v in result.violations
+    ), "a registered essential reader must not produce a violation"
+
+
+def test_registered_key_resolves_against_real_catalog():
+    """V3 (DR-1 fail-open guard): each `_REGISTERED_INSTALLED_READERS` key
+    MUST be the exact audit-emitted file-path-qualified `::`-selector — a
+    typo'd key would silently fail-open (the registered fn would re-classify
+    unregistered ⇒ exit 1, OR a never-matching key would mask a real
+    relocation). Pin: every registered key, run through the audit over the
+    REAL catalog, lands in essential_registered (resolves + classifies
+    essential + is recognized as registered)."""
+    result = audit(REPO_ROOT / "architecture" / "shippability.md")
+    registered_seen = set(result.essential_registered)
+    for key in _REGISTERED_INSTALLED_READERS:
+        assert key in registered_seen, (
+            f"registered key {key!r} did NOT resolve to an "
+            f"essential_registered fn over the real catalog — key form "
+            f"mismatch (must equal the audit-emitted <test_path>::<fn> "
+            f"selector); silent fail-open risk"
+        )
 
 
 # --------------------------------------------------------------------------- #

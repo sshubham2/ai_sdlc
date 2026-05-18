@@ -165,19 +165,6 @@ def test_v_0_22_0_cad_1_entry_present_in_repo_and_installed():
         "in-repo methodology-changelog.md missing CAD-1 rule reference"
     )
 
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.22.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.22.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "CAD-1" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing CAD-1 rule reference"
-    )
-
 
 # --- Slice-008 / BC-1 v1.2 entry pinning ---
 
@@ -201,22 +188,6 @@ def test_v_0_23_0_bc_1_v_1_2_entry_present_in_repo_and_installed():
     )
     assert "Negative anchors" in in_repo, (
         "in-repo methodology-changelog.md missing Negative anchors field doc"
-    )
-
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.23.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.23.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "BC-1 v1.2" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing BC-1 v1.2 rule reference"
-    )
-    assert "Negative anchors" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing Negative anchors field doc"
     )
 
 
@@ -252,23 +223,6 @@ def test_v_0_24_0_ccc_1_v_1_1_entry_present_in_repo_and_installed():
         "'design.md mechanical tables' (per Critic M3 N-surface pin discipline)"
     )
 
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.24.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.24.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "CCC-1 v1.1" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing CCC-1 v1.1 rule reference"
-    )
-    assert "design.md mechanical tables" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing substantive canonical phrase "
-        "'design.md mechanical tables' (per Critic M3 N-surface pin discipline)"
-    )
-
 
 # --- Slice-010 / MCT-1 entry pinning (re-added at slice-011 validation: entry pins persist across version supersessions; only PMI-1 version-gate test supersedes) ---
 
@@ -297,24 +251,6 @@ def test_v_0_25_0_mct_1_entry_present_in_repo_and_installed():
     assert "In-house methodology surfaces" in in_repo, (
         "in-repo methodology-changelog.md missing substantive canonical phrase "
         "'In-house methodology surfaces' (per slice-010 N-surface pin discipline)"
-    )
-
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.25.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.25.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "MCT-1" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing MCT-1 rule reference"
-    )
-    assert "In-house methodology surfaces" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing substantive "
-        "canonical phrase 'In-house methodology surfaces' (per slice-010 "
-        "N-surface pin discipline)"
     )
 
 
@@ -351,24 +287,6 @@ def test_v_0_26_0_rsad_1_entry_present_in_repo_and_installed():
     assert "Recursive self-application discipline" in in_repo, (
         "in-repo methodology-changelog.md missing substantive canonical phrase "
         "'Recursive self-application discipline' (per slice-011 N-surface pin discipline)"
-    )
-
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.26.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.26.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "RSAD-1" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing RSAD-1 rule reference"
-    )
-    assert "Recursive self-application discipline" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing substantive "
-        "canonical phrase 'Recursive self-application discipline' (per slice-011 "
-        "N-surface pin discipline)"
     )
 
 
@@ -417,24 +335,6 @@ def test_v_0_27_0_bc_proj_2_entry_present_in_repo_and_installed():
         "in-repo methodology-changelog.md missing substantive canonical phrase "
         "'BC-PROJ-2 negative-anchor migration' (per /critique m1 ACCEPTED-FIXED "
         "N-surface schema-pin discipline; slice-012 ratchets N=3 -> N=4)"
-    )
-
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.27.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.27.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "BC-PROJ-2" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing BC-PROJ-2 rule reference"
-    )
-    assert "BC-PROJ-2 negative-anchor migration" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing substantive "
-        "canonical phrase 'BC-PROJ-2 negative-anchor migration' (per /critique "
-        "m1 ACCEPTED-FIXED N-surface pin discipline)"
     )
 
 
@@ -486,24 +386,6 @@ def test_v_0_28_0_epgd_1_entry_present_in_repo_and_installed():
         "3-surface schema-pin precedent; N=2 instances stable at slice-013)"
     )
 
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.28.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.28.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "EPGD-1" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing EPGD-1 rule reference"
-    )
-    assert "Entry-pin-vs-PMI-1-gate semantics conflation" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing substantive "
-        "canonical phrase 'Entry-pin-vs-PMI-1-gate semantics conflation' "
-        "(per slice-011 RSAD-1 3-surface schema-pin precedent)"
-    )
-
 
 # --- Slice-014 / PMI-1 v1.1 entry pinning ---
 
@@ -550,24 +432,6 @@ def test_v_0_29_0_pmi_1_v1_1_entry_present_in_repo_and_installed():
         "3-surface schema-pin precedent; slice-014 ratchets N=2 -> N=3 instances stable)"
     )
 
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.29.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.29.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "PMI-1 v1.1" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing PMI-1 v1.1 rule reference"
-    )
-    assert "version-agnostic PMI-1 cleanliness gate" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing substantive "
-        "canonical phrase 'version-agnostic PMI-1 cleanliness gate' "
-        "(per slice-013 EPGD-1 3-surface schema-pin precedent)"
-    )
-
 
 def test_v_0_29_0_entry_names_supersession_pattern_retired():
     """methodology-changelog v0.29.0 entry MUST contain the canonical phrase
@@ -597,15 +461,6 @@ def test_v_0_29_0_entry_names_supersession_pattern_retired():
         "phrase 'supersession pattern retired at slice-014' — annotation "
         "of N=6 PMI-1 versioned-gate supersession counter termination is "
         "missing"
-    )
-
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "supersession pattern retired at slice-014" in installed, (
-        "installed ~/.claude/methodology-changelog.md v0.29.0 entry missing "
-        "canonical phrase 'supersession pattern retired at slice-014' — "
-        "forward-sync after in-repo edit forgot the supersession-retirement "
-        "annotation"
     )
 
 
@@ -861,24 +716,6 @@ def test_v_0_30_0_scpd_1_entry_present_in_repo_and_installed():
         "instances stable)"
     )
 
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.30.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.30.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "SCPD-1" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing SCPD-1 rule reference"
-    )
-    assert "Shippability-catalog consumer-reference propagation" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing substantive "
-        "canonical phrase 'Shippability-catalog consumer-reference propagation' "
-        "(per slice-013 EPGD-1 3-surface schema-pin precedent)"
-    )
-
 
 # --- ADR-014 pin (slice-015) ---
 
@@ -961,24 +798,6 @@ def test_v_0_31_0_rpcd_1_entry_present_in_repo_and_installed():
         "instances stable)"
     )
 
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.31.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.31.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "RPCD-1" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing RPCD-1 rule reference"
-    )
-    assert "Runtime-prerequisite completeness on proposed fixes" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing substantive "
-        "canonical phrase 'Runtime-prerequisite completeness on proposed fixes' "
-        "(per slice-015 SCPD-1 3-surface schema-pin precedent)"
-    )
-
 
 def test_v_0_31_0_rpcd_1_entry_names_three_sub_modes_in_repo_and_installed():
     """methodology-changelog v0.31.0 / RPCD-1 entry must name ALL THREE
@@ -1013,10 +832,8 @@ def test_v_0_31_0_rpcd_1_entry_names_three_sub_modes_in_repo_and_installed():
     slice-018 (test-scoping discipline restoration).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    installed = installed_path.read_text(encoding="utf-8")
 
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         # Surface-context-aware pre-validation per /critique-review m-add-1
         # ACCEPTED-FIXED (preserves slice-017 L1088-1090 diagnostic pattern):
         # assert lives at call site so error message can interpolate
@@ -1184,24 +1001,6 @@ def test_v_0_32_0_tphd_1_entry_present_in_repo_and_installed():
         "schema-pin precedent; slice-017 ratchets N=5 -> N=6 instances stable)"
     )
 
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.32.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.32.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "TPHD-1" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing TPHD-1 rule reference"
-    )
-    assert "TF-1 plan harmonization discipline" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing substantive "
-        "canonical phrase 'TF-1 plan harmonization discipline' (per slice-016 "
-        "RPCD-1 3-surface schema-pin precedent)"
-    )
-
 
 def test_v_0_32_0_tphd_1_entry_names_three_sub_modes_in_repo_and_installed():
     """methodology-changelog v0.32.0 / TPHD-1 entry must name ALL THREE
@@ -1229,10 +1028,8 @@ def test_v_0_32_0_tphd_1_entry_names_three_sub_modes_in_repo_and_installed():
     slice-016 RPCD-1 (a)/(b)/(c) precedent with scoping correction).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    installed = installed_path.read_text(encoding="utf-8")
 
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         # Scope strictly to v0.32.0 entry body
         v032_start = content.find("## v0.32.0")
         v031_start = content.find("## v0.31.0", v032_start)
@@ -1287,10 +1084,8 @@ def test_v_0_32_0_tphd_1_entry_names_slice_016_cross_slice_anchor():
     adapted to N=1 single-anchor).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    installed = installed_path.read_text(encoding="utf-8")
 
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         # Find the v0.32.0 entry body
         v032_start = content.find("## v0.32.0")
         v031_start = content.find("## v0.31.0", v032_start)
@@ -1366,20 +1161,6 @@ def test_v_0_33_0_layer_evid_1_entry_present_in_repo_and_installed():
         "in-repo methodology-changelog.md missing LAYER-EVID-1 rule reference"
     )
 
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    assert installed_path.exists(), (
-        f"installed methodology-changelog.md missing at {installed_path}"
-    )
-    installed = installed_path.read_text(encoding="utf-8")
-    assert "## v0.33.0" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing v0.33.0 entry — "
-        "forward-sync after in-repo edit was forgotten"
-    )
-    assert "LAYER-EVID-1" in installed, (
-        "installed ~/.claude/methodology-changelog.md missing LAYER-EVID-1 "
-        "rule reference"
-    )
-
 
 def test_v_0_33_0_layer_evid_1_entry_names_textual_import_evidence_canonical_phrase():
     """methodology-changelog v0.33.0 / LAYER-EVID-1 entry body MUST contain
@@ -1402,10 +1183,8 @@ def test_v_0_33_0_layer_evid_1_entry_names_textual_import_evidence_canonical_phr
     methodology-changelog v0.33.0 entry).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed_path = Path.home() / ".claude" / "methodology-changelog.md"
-    installed = installed_path.read_text(encoding="utf-8")
 
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         # Surface-context-aware pre-validation per /critique-review m-add-1
         # ACCEPTED-FIXED (preserves slice-017 L1088-1090 diagnostic pattern):
         # assert lives at call site so error message can interpolate
@@ -1571,10 +1350,7 @@ def test_v_0_34_0_bfrd_1_entry_present_in_repo_and_installed():
     Rule reference: BFRD-1 (slice-020 AC #1).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V034}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V034} entry "
             f"header — slice-020 BFRD-1 entry was not added or was lost; "
@@ -1721,10 +1497,7 @@ def test_v_0_35_0_branch_1_entry_present_in_repo_and_installed():
     Rule reference: BRANCH-1 (slice-021 AC #5).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V035}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V035} entry "
             f"header — slice-021 BRANCH-1 entry was not added or was lost"
@@ -1816,10 +1589,7 @@ def test_v_0_36_0_pr_aware_commit_slice_entry_present_in_repo_and_installed():
     Rule reference: slice-022 AC #5 (methodology-changelog v0.36.0 entry).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V036}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V036} entry "
             f"header — slice-022 PR-aware /commit-slice entry was not added or "
@@ -1923,10 +1693,7 @@ def test_v_0_37_0_utf8_stdout_1_entry_present_in_repo_and_installed():
     Rule reference: slice-023 AC #5 (methodology-changelog v0.37.0 entry).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V037}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V037} entry "
             f"header — slice-023 UTF8-STDOUT-1 entry was not added or was lost"
@@ -2076,10 +1843,7 @@ def test_v_0_38_0_fbcd_1_entry_present_in_repo_and_installed():
     Rule reference: slice-024 AC #3 (methodology-changelog v0.38.0 entry).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V038}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V038} entry "
             f"header — slice-024 FBCD-1 entry was not added or was lost"
@@ -2181,10 +1945,7 @@ def test_v_0_39_0_ptfcd_1_entry_present_in_repo_and_installed():
     Rule reference: slice-025 AC #4 (methodology-changelog v0.39.0 entry).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V039}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V039} entry "
             f"header — slice-025 PTFCD-1 entry was not added or was lost"
@@ -2248,10 +2009,7 @@ def test_v_0_40_0_crp_1_entry_present_in_repo_and_installed():
     Rule reference: slice-026 AC #3 (methodology-changelog v0.40.0 entry).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V040}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V040} entry "
             f"header — slice-026 CRP-1 entry was not added or was lost"
@@ -2316,10 +2074,7 @@ def test_v_0_41_0_pca_1_entry_present_in_repo_and_installed():
     Rule reference: slice-027 AC #5 (methodology-changelog v0.41.0 entry).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V041}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V041} entry "
             f"header — slice-027 PCA-1 entry was not added or was lost"
@@ -2416,10 +2171,7 @@ def test_v_0_42_0_utf8_stdout_1_v1_1_entry_present_in_repo_and_installed():
     Rule reference: slice-028 AC #5 (methodology-changelog v0.42.0 entry).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V042}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V042} entry "
             f"header — slice-028 UTF8-STDOUT-1 v1.1 entry was not added or "
@@ -2548,10 +2300,7 @@ def test_v_0_44_0_bci_1_entry_present_in_repo_and_installed():
     Rule reference: BCI-1 (slice-030A; ADR-028 + ADR-029).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V044}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V044} entry "
             f"header — slice-030A BCI-1 entry was not added or was lost"
@@ -2587,10 +2336,7 @@ def test_v_0_45_0_scmd_1_entry_present_in_repo_and_installed():
     Rule reference: SCMD-1 (slice-031, split-label 030B; ADR-030 + ADR-031).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V045}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V045} entry "
             f"header — slice-031 SCMD-1 entry was not added or was lost"
@@ -2632,10 +2378,7 @@ def test_v_0_46_0_qd_1_entry_present_in_repo_and_installed():
     Rule reference: QD-1 (slice-032; ADR-032).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V046}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V046} entry "
             f"header — slice-032 QD-1 entry was not added or was lost"
@@ -2678,10 +2421,7 @@ def test_v_0_47_0_eol_drift_1_entry_present_in_repo_and_installed():
     Rule reference: EOL-DRIFT-1 (slice-033; ADR-033).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V047}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V047} entry "
             f"header — slice-033 EOL-DRIFT-1 entry was not added or was lost"
@@ -2725,10 +2465,7 @@ def test_v_0_49_0_srcd_1_entry_present_in_repo_and_installed():
     nothing).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V049}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V049} entry "
             f"header — slice-035 SRCD-1 entry was not added or was lost"
@@ -2771,10 +2508,7 @@ def test_v_0_48_0_tffl_1_entry_present_in_repo_and_installed():
     Rule reference: TFFL-1 (slice-034; ADR-034; refines TF-1, supersedes nothing).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V048}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V048} entry "
             f"header — slice-034 TFFL-1 entry was not added or was lost"
@@ -2816,10 +2550,7 @@ def test_v_0_43_0_diagnose_sequential_dispatch_entry_present_in_repo_and_install
     Rule reference: ADR-027 (slice-029; deliberately no minted rule-ID).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V043}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V043} entry "
             f"header — slice-029 sequential-dispatch entry was not added or "
@@ -2889,10 +2620,7 @@ def test_v_0_50_0_ptffd_1_entry_present_in_repo_and_installed():
     PTFCD-1 in place, supersedes nothing).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V050}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V050} entry "
             f"header — slice-037 PTFFD-1 entry was not added or was lost"
@@ -2970,10 +2698,7 @@ def test_v_0_51_0_srsc_1_entry_present_in_repo_and_installed():
     does NOT refine SCMD-1, supersedes nothing).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V051}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V051} entry "
             f"header — slice-038 SRSC-1 entry was not added or was lost"
@@ -3057,10 +2782,7 @@ def test_v_0_52_0_aped_1_entry_present_in_repo_and_installed():
     supersedes nothing; 2026-05-17 /critic-calibrate Proposal 1).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V052}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V052} entry "
             f"header — slice-039 APED-1/MEPD-1 entry was not added or was lost"
@@ -3105,10 +2827,7 @@ def test_v_0_52_0_mepd_1_entry_present_in_repo_and_installed():
     /critic-calibrate Proposal 2).
     """
     in_repo = read_file("methodology-changelog.md")
-    installed = (Path.home() / ".claude" / "methodology-changelog.md").read_text(
-        encoding="utf-8"
-    )
-    for surface_name, content in [("in-repo", in_repo), ("installed", installed)]:
+    for surface_name, content in [("in-repo", in_repo)]:
         assert f"## v{_V052}" in content, (
             f"{surface_name} methodology-changelog.md missing v{_V052} entry "
             f"header — slice-039 APED-1/MEPD-1 entry was not added or was lost"
@@ -3196,4 +2915,105 @@ def test_v_0_52_0_critique_proposals_shippability_consumer_propagation():
         "architecture/shippability.md missing the v0.52.0 APED-1/MEPD-1 "
         "catalog row — SCPD-1 consumer-reference propagation for the two "
         "new rules incomplete"
+    )
+
+
+def test_v_0_53_0_mcfs_1_entry_present_in_repo_and_installed():
+    """methodology-changelog v0.53.0 / MCFS-1 entry-pin.
+
+    **In-repo-only body (M3 / slice-041, split-lineage label "030C")**: per
+    ADR-042 + ADR-043 the per-version installed-changelog read-leg is
+    decoupled (forward-sync re-homed onto the non-catalog MCFS-1 gate
+    `tools/methodology_changelog_forward_sync.py`); this entry-pin therefore
+    asserts ONLY the git-tracked in-repo entry (the META-1 invariant) and
+    reads NO `Path.home()` path, so `shippability_decoupling_audit.classify_fn`
+    classifies it `clean` — authoring it in the old installed-reading shape
+    would re-introduce an essential-class cited fn and self-violate AC3
+    (slice-037 three-layer self-application). The installed↔in-repo
+    forward-sync of THIS very entry is covered by MCFS-1's whole-file
+    content-equality gate, not by a per-version installed read here.
+
+    The name keeps the existing `_entry_present_in_repo_and_installed`
+    convention (TRI-1 scope-cut: no rename this slice — the chartered
+    follow-up identifier-truth slice realigns all such names uniformly,
+    including this one; the over-claim is slice-035 decided-not-discovered).
+
+    Defect class: the v0.53.0 MCFS-1 entry silently lost / never added →
+    R-4-retirement provenance + the MCFS-1 rule reference unrecoverable from
+    the changelog; bidirectional forward-sync now enforced by MCFS-1, not
+    this pin.
+
+    Rule reference: MCFS-1 (slice-041; ADR-042 + ADR-043; new minted rule,
+    refines nothing, supersedes nothing; completes the slice-030 split
+    030A→030B→030C, retires R-4).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    for surface_name, content in [("in-repo", in_repo)]:
+        assert "## v0.53.0" in content, (
+            f"{surface_name} methodology-changelog.md missing v0.53.0 entry "
+            f"header — slice-041 MCFS-1 entry was not added or was lost"
+        )
+        body = _extract_version_body(content, "0.53.0")
+        assert "MCFS-1" in body, (
+            f"{surface_name} v0.53.0 entry body missing the 'MCFS-1' rule "
+            f"reference — entry-pin broken at the rule-reference layer"
+        )
+        assert "the read **registered** not **absent**" in body, (
+            f"{surface_name} v0.53.0 entry body missing the canonical R-4 "
+            f"charter phrase 'the read **registered** not **absent**' — a "
+            f"future edit could silently drop the closed-world-allowlist "
+            f"rationale that distinguishes MCFS-1 from rev-1's falsified "
+            f"empty-allowlist branch"
+        )
+        assert "ADR-042" in body and "ADR-043" in body, (
+            f"{surface_name} v0.53.0 entry body missing the ADR-042/ADR-043 "
+            f"decision lineage"
+        )
+        assert "supersedes nothing" in body, (
+            f"{surface_name} v0.53.0 entry must state MCFS-1 supersedes "
+            f"nothing (new minted rule — lineage clean)"
+        )
+
+
+def test_v_0_53_0_mcfs_1_shippability_consumer_propagation():
+    """SCPD-1/RPCD-1 consumer-reference propagation: the MCFS-1 rule's
+    consumer reference MUST propagate into `architecture/shippability.md`
+    (catalog row #41) so the slice-041 critical path can never silently
+    regress (RPCD-1: every new audit rule propagates into the shippability
+    catalog).
+
+    In-repo-only (reads the git-tracked catalog via `read_file`; no
+    `Path.home()` — classifies `clean`).
+
+    Defect class: the v0.53.0 MCFS-1 catalog row dropped / never added →
+    the decouple + closed-world-allowlist + R-4 retirement regress
+    undetected by `/validate-slice`'s catalog runner (the exact
+    slice-038→R-10 ~5-slice detection-latency class the slice-040 lesson
+    warns about).
+
+    Rule reference: MCFS-1 (slice-041; ADR-042 + ADR-043; RPCD-1/SCPD-1
+    consumer-reference propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "| 41 | slice-041-reframe-installed-pin-forward-sync-invariant" \
+        in catalog, (
+            "architecture/shippability.md missing catalog row #41 for "
+            "slice-041 — RPCD-1/SCPD-1 MCFS-1 consumer-reference propagation "
+            "incomplete (the /validate-slice catalog runner cannot guard the "
+            "MCFS-1 critical path)"
+        )
+    assert "MCFS-1" in catalog, (
+        "architecture/shippability.md row #41 missing the 'MCFS-1' rule "
+        "reference — consumer-reference propagation broken at the rule-ID "
+        "layer"
+    )
+    # m-add-2 negative invariant: the MCFS-1 regression suite (reads
+    # installed) MUST NOT be catalog-cited — only the in-repo-only entry-pin
+    # + this consumer-propagation pin carry the row.
+    assert "test_methodology_changelog_forward_sync" not in catalog, (
+        "architecture/shippability.md cites the MCFS-1 regression suite — it "
+        "reads ~/.claude/methodology-changelog.md and would classify "
+        "essential-unregistered (exit 1 self-violation); m-add-2 negative "
+        "invariant: the row cites ONLY the in-repo-only-body entry-pin + "
+        "this consumer-propagation pin"
     )

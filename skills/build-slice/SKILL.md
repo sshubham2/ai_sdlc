@@ -149,6 +149,7 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **Critique-review prerequisite audit passes (CRP-1)** — see "Critique-review prerequisite audit" below
 - [ ] **Pipeline-chain audit passes (PCA-1)** — see "Pipeline-chain audit" below
 - [ ] **Build-checks integrity audit passes (BCI-1)** — see "Build-checks integrity audit" below
+- [ ] **Methodology-changelog forward-sync audit passes (MCFS-1)** — see "Methodology-changelog forward-sync audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
 
@@ -235,6 +236,23 @@ Refusal semantics:
 BCI-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1) — its programmatic gate is `tools/build_checks_integrity.py`, wired non-opt-out here AND as a `/reflect` Step 5b fail-loud post-write instruction. (The shippability-catalog-row wiring is deferred to slice-030B per the user-approved split; 030A's two wiring points fully retire R-4's substance.)
 
 Bootstrap (slice-030A only): slice-030A authors BCI-1; at slice-030A's Step 6 the audit IS run against the repo and MUST exit 0 (self-application discharge — the live files were just reconstructed from the canonical fixtures). Every slice after 030A inherits a self-gating BCI-1.
+
+#### Methodology-changelog forward-sync audit (MCFS-1)
+
+Per **MCFS-1** (`methodology-changelog.md` v0.53.0; slice-041, split-lineage label "030C"; [[ADR-042]] + [[ADR-043]]): the PMI-1 4-part forward-sync that produces `~/.claude/methodology-changelog.md` is LLM-executed prose with no deterministic source — slice-041 re-homed the ~33 per-version `test_v_0_NN_0_*` essential reads that half-asserted it onto ONE deterministic whole-file gate (the slice-030A/BCI-1 sound-control-for-a-non-deterministic-step rationale). MCFS-1 asserts in-repo `methodology-changelog.md` is content-equal **modulo line endings** (EOL-DRIFT-1 / [[ADR-033]]) to the installed copy. Run:
+
+```bash
+$PY -m tools.methodology_changelog_forward_sync
+```
+
+Refusal semantics:
+- `drift` (exit 1, HALT): installed file present but content-divergent after CRLF→LF (incl. empty-present — empty ≠ absent). Message is attributed: *"METHODOLOGY-CHANGELOG FORWARD-SYNC DRIFT — re-run the PMI-1 forward-sync (in-repo → ~/.claude/); this is NOT a slice regression"*.
+- `warn` (exit 0): installed `~/.claude/methodology-changelog.md` **absent** — untracked/environment-dependent; a machine that hasn't installed the plugin must not HALT (slice-030A meta-M3 parity).
+- `usage` (exit 2): in-repo `methodology-changelog.md` missing/unreadable, or repo root unresolvable.
+
+MCFS-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1) — its programmatic gate is `tools/methodology_changelog_forward_sync.py`. It is **non-opt-out and UNGATED** here: this Step 6 checklist item runs **every slice regardless of whether a build-checks rule was promoted** (distinct from `/reflect`'s rule-promotion-gated Step 5b — folding MCFS-1 into a rule-promotion gate would silently disable it on a version-bumping-but-no-rule-promoted slice, the R-7/slice-022 silent-disable class; m1 / DR-1). The complementary `/reflect` wiring is its OWN dedicated Step 5b-fs (also ungated), NOT part of Step 5b.
+
+Bootstrap (slice-041 only): slice-041 authors MCFS-1; at slice-041's Step 6 the audit IS run against the repo and MUST exit 0 (self-application discharge — the v0.53.0 entry was just forward-synced). Every slice after 041 inherits a self-gating MCFS-1.
 
 #### Test-first audit (TF-1)
 
