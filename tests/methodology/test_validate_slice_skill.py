@@ -38,18 +38,38 @@ def test_validate_partial_is_partial():
 
 
 def test_step4_5_5_consumes_machine_stable_command():
-    """Step 5.5 runner consumes the machine-stable command column, NOT the
-    prose `Command` column (slice-031 / SCMD-1 / ADR-031, v2-B2).
+    """Step 5.5 catalog execution is the INVOKED pinned runner, not a
+    hand-rolled prose loop (slice-038 / SRSC-1 / ADR-039).
 
-    Defect class: B2-v1 — the *actual* /validate-slice runner is this SKILL.md
-    Step 5.5 prose. If it still said "Run each entry's Command column", the
-    rows #28/#29 narrative-prose-as-command footgun (D-2) would remain at the
-    real execution site even though the tools were repointed. This prose-pin
-    is the mini-CAD anchor for the runner-side half of AC3.
-    Rule reference: SCMD-1.
+    Supersession lineage: this pin was originally the slice-031 SCMD-1 B2-v1
+    prose-pin asserting `Run each entry's **Machine-cmd** column` — the dead
+    wording from when Step 5.5 described a hand-rolled loop over the
+    Machine-cmd cell. slice-038 (SRSC-1; ADR-039; methodology v0.51.0) closed
+    the R-8 false-FAIL class by making the catalog executor an INVOKED tool
+    (`tools.shippability_runner`, which itself reuses SCMD-1 `_segments()`)
+    instead of a per-slice description — so the slice-031 phrase no longer
+    exists in SKILL.md and this pin had been FAILing slice-innocently on
+    master since slice-038 (risk-register R-10; realigned by slice-040).
+
+    Defect class still guarded: B2-v1 — the *actual* /validate-slice catalog
+    executor is what SKILL.md Step 5.5 prescribes. The pin now asserts the
+    SRSC-1 contract (Step 5.5 INVOKES the canonical pinned runner; an ad-hoc
+    hand-rolled loop is forbidden) at the live wording. Both anchors are
+    SRSC-1-exclusive and absent from the pre-SRSC-1 slice-031 wording, so the
+    pin remains non-tautological: a regression of Step 5.5 to the pre-SRSC-1
+    hand-rolled-loop prose FAILs it. Mini-CAD anchor for the runner-side
+    half of AC3.
+    Rule reference: SRSC-1 (supersedes the slice-031 SCMD-1 B2-v1 pin;
+    ADR-039 / ADR-031).
     """
-    assert "Run each entry's **Machine-cmd** column" in VALIDATE, (
-        "Step 5.5 runner must consume the Machine-cmd column (B2-v1)"
+    assert "$PY -m tools.shippability_runner architecture/shippability.md" in VALIDATE, (
+        "Step 5.5 must INVOKE the canonical pinned runner "
+        "`$PY -m tools.shippability_runner architecture/shippability.md` "
+        "(SRSC-1 / ADR-039), not hand-roll the catalog execution loop"
+    )
+    assert "canonical pinned runner" in VALIDATE, (
+        "Step 5.5 must name the SRSC-1 `canonical pinned runner` contract "
+        "(ADR-039) — guards the 'do NOT hand-roll the execution loop' invariant"
     )
     assert "tools.shippability_decoupling_audit" in VALIDATE, (
         "SCMD-1 must be wired as a non-opt-out Step 5.5 pre-catalog gate"
