@@ -801,6 +801,46 @@ def test_bc_proj_5_has_expected_structural_identity():
     assert p5.check and p5.check.strip(), "BC-PROJ-5 check must be non-empty"
 
 
+def test_bc_proj_6_has_expected_structural_identity():
+    """BC-PROJ-6 (slice-043 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity. The canonical fixture is the subject;
+    these literal constants are the git-tracked oracle (ADR-028; fixture =
+    subject, literal = oracle). BCI-1 separately asserts the gitignored live
+    `architecture/build-checks.md` matches the fixture structurally.
+
+    Defect class: a /reflect Step-5b promotion that silently truncated or
+    mis-authored BC-PROJ-6's structural fields would degrade BC-1 coverage
+    with no loud signal (R-4 class). This literal pin + BCI-1 close that.
+
+    Rule reference: BC-1 (slice-043 /reflect Step 5b; user-approved promotion).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-6" in p_by_id, "BC-PROJ-6 not parsed from project fixture"
+    p6 = p_by_id["BC-PROJ-6"]
+    assert p6.severity == "Important", f"BC-PROJ-6 severity: {p6.severity!r}"
+    assert p6.applies_to == ("architecture/risk-register.md",), (
+        f"BC-PROJ-6 applies_to mismatch: got {p6.applies_to!r}"
+    )
+    assert p6.trigger_keywords == (
+        "retire", "retired", "retirement", "risk-register",
+    ), f"BC-PROJ-6 trigger_keywords mismatch: got {p6.trigger_keywords!r}"
+    assert p6.trigger_anchors == ("retire", "retired", "retirement"), (
+        f"BC-PROJ-6 trigger_anchors mismatch: got {p6.trigger_anchors!r}"
+    )
+    assert p6.negative_anchors == (
+        "defer-with-rationale", "aggregated lessons", "false positive",
+        "meta-discussion", "vocabulary", "critic-missed", "back-sync",
+        "dim 9", "forward-sync",
+    ), f"BC-PROJ-6 negative_anchors mismatch: got {p6.negative_anchors!r}"
+    assert p6.check and p6.check.strip(), "BC-PROJ-6 check must be non-empty"
+
+
 def test_anchor_not_in_keywords_yields_violation(tmp_path: Path):
     """A rule with anchors that aren't in trigger_keywords emits a violation.
 
