@@ -14,7 +14,7 @@ replacement.
 Per /critique-review-v2 M-add-v2-1: this test also pins the QD-1 canonical
 phrase in the SKILL.md (site (ii) of the 2-site canonical-phrase pin;
 site (i) is the changelog body, pinned by
-test_v_0_46_0_qd_1_entry_present_in_repo_and_installed). The literal below
+test_v_0_46_0_qd_1_entry_present_in_repo). The literal below
 MUST stay byte-identical to `_QD1_PHRASE` in test_methodology_changelog.py
 — a reword in either fails a gate, closing the silent-prose-drift surface
 the M1-v2 fix would otherwise have introduced.

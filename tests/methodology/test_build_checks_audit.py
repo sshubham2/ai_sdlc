@@ -762,6 +762,45 @@ def test_bc_proj_4_has_expected_structural_identity():
     assert p4.check and p4.check.strip(), "BC-PROJ-4 check must be non-empty"
 
 
+def test_bc_proj_5_has_expected_structural_identity():
+    """BC-PROJ-5 (slice-042 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity. The canonical fixture is the subject;
+    these literal constants are the git-tracked oracle (ADR-028; fixture =
+    subject, literal = oracle). BCI-1 separately asserts the gitignored live
+    `architecture/build-checks.md` matches the fixture structurally.
+
+    Defect class: a /reflect Step-5b promotion that silently truncated or
+    mis-authored BC-PROJ-5's structural fields would degrade BC-1 coverage
+    with no loud signal (R-4 class). This literal pin + BCI-1 close that.
+
+    Rule reference: BC-1 (slice-042 /reflect Step 5b; user-approved promotion).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-5" in p_by_id, "BC-PROJ-5 not parsed from project fixture"
+    p5 = p_by_id["BC-PROJ-5"]
+    assert p5.severity == "Important", f"BC-PROJ-5 severity: {p5.severity!r}"
+    assert p5.applies_to == ("tests/**/*.py", "tools/**/*.py"), (
+        f"BC-PROJ-5 applies_to mismatch: got {p5.applies_to!r}"
+    )
+    assert p5.trigger_keywords == (
+        "rename", "carve-out", "identifier", "frozen", "snapshot",
+        "inventory", "realign", "drop-suffix", "identifier-truth",
+    ), f"BC-PROJ-5 trigger_keywords mismatch: got {p5.trigger_keywords!r}"
+    assert p5.trigger_anchors == (), (
+        f"BC-PROJ-5 trigger_anchors: expected () got {p5.trigger_anchors!r}"
+    )
+    assert p5.negative_anchors == (), (
+        f"BC-PROJ-5 negative_anchors: expected () got {p5.negative_anchors!r}"
+    )
+    assert p5.check and p5.check.strip(), "BC-PROJ-5 check must be non-empty"
+
+
 def test_anchor_not_in_keywords_yields_violation(tmp_path: Path):
     """A rule with anchors that aren't in trigger_keywords emits a violation.
 
