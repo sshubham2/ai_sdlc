@@ -61,6 +61,16 @@ _SLICE_BRANCH_RE = re.compile(r"^slice/(\d{3})-(.+)$")
 # Slice-folder pattern: `slice-NNN-<slice-name>`.
 _SLICE_FOLDER_RE = re.compile(r"^slice-(\d{3})-(.+)$")
 
+# Diagnostic-only split-slice folder shape (slice-043 / ADR-046 / R-6). NOT an
+# accept regex — `_SLICE_FOLDER_RE` above stays the sole strict accept gate
+# (numeric-only accept unchanged). This is consulted ONLY after a strict miss to
+# emit a convention-naming, actionable `usage-error` for a letter-suffixed
+# split-slice folder (e.g. `slice-030B-...`). Uppercase-only: the documented
+# lineage label is uppercase `030A`/`030B`/`030C`, so a lowercase malformed name
+# (`slice-030misc-x`) correctly falls through to the generic message rather than
+# receiving the split-slice-specific guidance (per slice-043 /critique m1).
+_SPLIT_SLICE_FOLDER_RE = re.compile(r"^slice-(\d{3})([A-Z]+)-(.+)$")
+
 
 @dataclass(frozen=True)
 class BranchViolation:
@@ -269,14 +279,33 @@ def audit(slice_folder: Path, repo_root: Path | None = None) -> AuditResult:
     # Compute expected slice branch from folder name.
     expected = _slice_branch_name(slice_folder)
     if not expected:
+        # Strict `_SLICE_FOLDER_RE` miss. If the name matches the letter-suffixed
+        # split-slice shape, emit a convention-naming, actionable message instead
+        # of the generic one (slice-043 / ADR-046 / R-6); otherwise the generic
+        # message is preserved verbatim (kind + exit-code 2 unchanged either way).
+        split_match = _SPLIT_SLICE_FOLDER_RE.match(slice_folder.name)
+        if split_match:
+            digits, letters, rest = split_match.groups()
+            message = (
+                f"split-slice follow-up folder name not accepted: {slice_folder.name!r}. "
+                f"Per ADR-046 / BRANCH-1, split-slice follow-up folders are numeric "
+                f"`slice-NNN-`; the `NNNx` letter (here `{digits}{letters}`) is a "
+                f"prose lineage label only, never the folder/branch name. Rename to "
+                f"the next free numeric slice number (e.g. `slice-<NNN>-{rest}` with a "
+                f"fresh number = max(existing)+1) and keep `{digits}{letters}` as the "
+                f"split-lineage label in prose (milestone identity-note + reflection "
+                f"lineage + risk-register sub-entry cross-refs)."
+            )
+        else:
+            message = (
+                f"slice folder name does not match `slice-NNN-<name>` pattern: "
+                f"{slice_folder.name}"
+            )
         result.violations.append(
             BranchViolation(
                 kind="usage-error",
                 severity="Important",
-                message=(
-                    f"slice folder name does not match `slice-NNN-<name>` pattern: "
-                    f"{slice_folder.name}"
-                ),
+                message=message,
             )
         )
         return result
