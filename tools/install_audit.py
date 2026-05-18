@@ -92,6 +92,7 @@ _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.shippability_decoupling_audit",
     "tools.shippability_path_audit",
     "tools.shippability_runner",
+    "tools.state_transition_pin_audit",
     "tools.supersede_audit",
     "tools.test_first_audit",
     "tools.triage_audit",
