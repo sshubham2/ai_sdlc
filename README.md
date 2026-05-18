@@ -66,7 +66,7 @@ Claude reads [INSTALL.md](INSTALL.md), detects what's on your machine, asks befo
 The install does:
 
 1. Verifies / creates `~/.claude/.venv` (Python 3.11+)
-2. Installs `graphify` (editable from `~/.claude/packages/graphify` if present, else PyPI)
+2. Installs `graphify` (editable from `~/.claude/packages/graphify` if present, else the `graphifyy` PyPI package)
 3. Registers the graphify Claude Code skill at `~/.claude/skills/graphify/`
 4. Adds the `PY=...` shared-Python convention to `~/.claude/CLAUDE.md` (with your confirmation)
 5. Adds `CLAUDE_CODE_FORK_SUBAGENT=1` to `~/.claude/settings.json` (so `/fork` works)

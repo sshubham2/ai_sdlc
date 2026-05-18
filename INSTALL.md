@@ -15,15 +15,15 @@ That's it. You take it from there.
 
 ## What you're installing
 
-The AI SDLC pipeline (methodology v0.20.0):
+The AI SDLC pipeline (methodology v0.54.0 — see `VERSION`):
 - **Drop-in skills** — copied to `~/.claude/skills/`
 - **5 named subagents** — copied to `~/.claude/agents/`
 - **4 templates** — copied to `~/.claude/templates/`
-- **13 executable methodology tools** (audits, linters, validators) — installed as the `ai-sdlc-tools` Python package via `pip install`, so `$PY -m tools.<name>` resolves from `~/.claude/.venv/`
+- **25 executable methodology tools** (audits, linters, validators) — installed as the `ai-sdlc-tools` Python package via `pip install`, so `$PY -m tools.<name>` resolves from `~/.claude/.venv/`
 - **methodology-changelog.md + VERSION** — copied to `~/.claude/`
 - Graphify integration + fork mode
 
-Per **INST-1** (`methodology-changelog.md` v0.20.0): after install, the AI SDLC source folder can be deleted. The install is entirely self-contained under `~/.claude/` (skills, agents, templates, methodology metadata) and `~/.claude/.venv/lib/.../site-packages/tools/` (the audit tools). Nothing references the source folder at runtime.
+Per **INST-1**: after install, the AI SDLC source folder can be deleted. The install is entirely self-contained under `~/.claude/` (skills, agents, templates, methodology metadata) and `~/.claude/.venv/lib/.../site-packages/tools/` (the audit tools). Nothing references the source folder at runtime.
 
 After install, the user runs `/triage` (greenfield) or `/adopt` (brownfield) to start the workflow on any project.
 
@@ -90,7 +90,7 @@ Else: `python3 -m venv ~/.claude/.venv` (or conda equivalent if the user picked 
 
 If `$PY -m graphify --help` works → skip.
 
-Else: install from `~/.claude/packages/graphify/` (editable) if that path exists, otherwise `$PY -m pip install graphify`.
+Else: install from `~/.claude/packages/graphify/` (editable) if that path exists, otherwise `$PY -m pip install graphifyy`.
 
 Verify: `$PY -m graphify --help` runs cleanly.
 
@@ -147,7 +147,7 @@ Do NOT copy other root MDs (`README.md`, `pipeline.md`, `principles.md`, `tutori
 
 ### 3g: Install ai-sdlc-tools as a pip package
 
-The 13 executable methodology tools (audit modules in `tools/`) ship as a proper Python package so `$PY -m tools.<name>` resolves from the shared venv's site-packages — source-independent. Per **INST-1**.
+The 25 executable methodology tools (audit modules in `tools/`) ship as a proper Python package so `$PY -m tools.<name>` resolves from the shared venv's site-packages — source-independent. Per **INST-1**.
 
 ```bash
 $PY -m pip install --upgrade "$AI_SDLC_DIR"
@@ -165,7 +165,7 @@ Verify the package landed:
 $PY -c "import tools.build_checks_audit; print('ai-sdlc-tools OK')"
 ```
 
-If the import fails with `ModuleNotFoundError`: the install didn't complete; check pip output. Common cause: `pyproject.toml` missing from `$AI_SDLC_DIR` (older source folder pre-v0.20.0 won't have it; tell the user to update the source).
+If the import fails with `ModuleNotFoundError`: the install didn't complete; check pip output. Common cause: `pyproject.toml` missing from `$AI_SDLC_DIR` (an older source folder predating the `pyproject.toml` packaging won't have it; tell the user to update the source).
 
 ## Step 4: Verify (the same preflight `/triage` and `/adopt` use)
 
@@ -229,4 +229,4 @@ If the user wants to verify current install state without the source, they can r
 $PY -m tools.install_audit --claude-dir ~/.claude
 ```
 
-The audit reports any drift from the canonical inventory baked into v0.20.0. (Future versions update the canonical list.)
+The audit reports any drift from its canonical inventory. (Future versions update the canonical list.)
