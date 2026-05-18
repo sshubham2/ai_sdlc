@@ -150,6 +150,7 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **Pipeline-chain audit passes (PCA-1)** — see "Pipeline-chain audit" below
 - [ ] **Build-checks integrity audit passes (BCI-1)** — see "Build-checks integrity audit" below
 - [ ] **Methodology-changelog forward-sync audit passes (MCFS-1)** — see "Methodology-changelog forward-sync audit" below
+- [ ] **State-transition stale-pin audit passes (STP-1)** — see "State-transition stale-pin audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
 
@@ -253,6 +254,28 @@ Refusal semantics:
 MCFS-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1) — its programmatic gate is `tools/methodology_changelog_forward_sync.py`. It is **non-opt-out and UNGATED** here: this Step 6 checklist item runs **every slice regardless of whether a build-checks rule was promoted** (distinct from `/reflect`'s rule-promotion-gated Step 5b — folding MCFS-1 into a rule-promotion gate would silently disable it on a version-bumping-but-no-rule-promoted slice, the R-7/slice-022 silent-disable class; m1 / DR-1). The complementary `/reflect` wiring is its OWN dedicated Step 5b-fs (also ungated), NOT part of Step 5b.
 
 Bootstrap (slice-041 only): slice-041 authors MCFS-1; at slice-041's Step 6 the audit IS run against the repo and MUST exit 0 (self-application discharge — the v0.53.0 entry was just forward-synced). Every slice after 041 inherits a self-gating MCFS-1.
+
+#### State-transition stale-pin audit (STP-1)
+
+Per **STP-1** (`methodology-changelog.md` v0.54.0; slice-044; [[ADR-047]]): a slice that performs a *state transition* but leaves a pre-existing test pinning the OLD value is caught historically only at the pre-finish full-suite (BC-PROJ-4) run, sometimes latent for several slices (R-10 slice-038→040 ~5-slice latency; slice-041 R-4 stale `test_r_4_..._stays_mitigating`; slice-042 ADR-prose recurrence). STP-1 converts this from caught-by-luck to a loud, attributed gate. Run:
+
+```bash
+$PY -m tools.state_transition_pin_audit
+```
+
+Two mechanically-detectable sub-forms (the fuzzy ADR `accepted`→`superseded` sub-form is out of scope per ADR-047):
+- **Sub-form A — SKILL.md-prose-repoint stale pin** (git-diff-independent standing invariant): a `tests/**/test_*skill*.py` positive-membership prose-pin whose folded-constant literal is absent from the *full* target `SKILL.md`. `not in` pins, `ast.Or`-disjunction operands, and mixed `ast.And`-with-`NotIn`/non-constant-sibling are excluded; a positive-only `ast.And` chain is checked per-operand.
+- **Sub-form B — risk-status-stale pin** (git-diff-independent standing invariant): a test `FunctionDef` name matching `(?:^|_)r[_-]?(\d+).*?_(stays|remains|is)_(open|mitigating|retired|accepted)(?:_|$)` whose claimed status differs from the live `architecture/risk-register.md` `**Status**:` (parsed via the object-identity-reused `risk_register_audit._parse_risks`).
+
+Refusal semantics:
+- `stale-skill-prose-pin` (Important, exit 1): Sub-form A — names `tests/<file>::<fn>` + the missing folded literal + target SKILL.md + remediation.
+- `stale-risk-status-pin` (Important, exit 1): Sub-form B — names the risk ID + `claimed → live` + the stale `tests/<file>::<fn>` + remediation.
+- Per-scanned-file AST `SyntaxError` → **skip-with-visible-note, NO violation, NOT exit 2** (ADR-037/PTFFD-1 discipline, inherited from the `shippability_path_audit.py`/`_pyfn` precedent — a false-FAIL on a parse failure is the strictly-worse audit failure mode; e.g. the permanent `tests/methodology/fixtures/syntax_error.py`).
+- `usage-error` (Important, exit 2): hard-input failure ONLY — `architecture/risk-register.md` missing/unreadable/unparseable, `tests/`/`skills/` dir missing, or repo-root unresolvable. Fail-closed, never silent exit 0.
+
+STP-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1) — its programmatic gate is `tools/state_transition_pin_audit.py`. It is **git-independent** (Sub-form B revised from a git-merge-base mechanism by the slice-044 plan-mode deviation — `architecture/` is gitignored).
+
+Bootstrap (slice-044 only): slice-044 authors STP-1; at slice-044's Step 6 the audit IS run against the repo and MUST exit 0 (self-application discharge — no live test contradicts the register, no removed-anchor prose-pin, the lone unparseable fixture is skip-noted). Every slice after 044 inherits a self-gating STP-1.
 
 #### Test-first audit (TF-1)
 

@@ -3019,3 +3019,74 @@ def test_v_0_53_0_mcfs_1_shippability_consumer_propagation():
         "invariant: the row cites ONLY the in-repo-only-body entry-pin + "
         "this consumer-propagation pin"
     )
+
+
+def test_v_0_54_0_stp_1_entry_present_in_repo():
+    """methodology-changelog v0.54.0 / STP-1 entry-pin.
+
+    **In-repo-only body** (slice-041 M3 discipline): reads ONLY the
+    git-tracked in-repo entry via `read_file` (no `Path.home()`), so
+    `shippability_decoupling_audit.classify_fn` classifies it `clean` —
+    authoring it in an installed-reading shape would re-introduce an
+    essential-class cited fn and self-violate AC3. The installed↔in-repo
+    forward-sync of THIS entry is covered by MCFS-1's whole-file gate.
+
+    Defect class: the v0.54.0 STP-1 entry silently lost / never added →
+    the STP-1 rule reference + the slice-044 git-independence-deviation
+    provenance unrecoverable from the changelog.
+
+    Rule reference: STP-1 (slice-044; ADR-047; new minted NON-`-D` `vN.N`
+    audit-gate rule, refines nothing, supersedes nothing).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.54.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.54.0 entry header — "
+        "slice-044 STP-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.54.0")
+    assert "STP-1" in body, (
+        "v0.54.0 entry body missing the 'STP-1' rule reference — entry-pin "
+        "broken at the rule-reference layer"
+    )
+    assert "ADR-047" in body, (
+        "v0.54.0 entry body missing the ADR-047 decision lineage"
+    )
+    assert "refines nothing, supersedes nothing" in body, (
+        "v0.54.0 entry must state STP-1 refines/supersedes nothing (new "
+        "minted rule — lineage clean)"
+    )
+    assert "git-diff-independent" in body or "git-free" in body, (
+        "v0.54.0 entry must record the slice-044 git-independence deviation "
+        "(Sub-form B re-spec — the `architecture/`-gitignored root cause)"
+    )
+    assert "skip-with-" in body and "ADR-037" in body, (
+        "v0.54.0 entry must record the per-file-SyntaxError skip-with-note "
+        "discipline inherited from ADR-037/PTFFD-1 (targeted-critique B1/B2)"
+    )
+
+
+def test_v_0_54_0_stp_1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the STP-1 rule's
+    consumer reference MUST propagate into `architecture/shippability.md`
+    (catalog row #44) so the slice-044 critical path can never silently
+    regress (the slice-040 lesson — an uncatalogued audit's breakage is
+    invisible to the catalog runner).
+
+    In-repo-only (reads the git-tracked catalog via `read_file`; no
+    `Path.home()` — classifies `clean`).
+
+    Rule reference: STP-1 (slice-044; ADR-047; RPCD-1/SCPD-1 consumer-
+    reference propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "| 44 | slice-044-add-state-transition-stale-pin-audit" in catalog, (
+        "architecture/shippability.md missing catalog row #44 for slice-044 "
+        "— RPCD-1/SCPD-1 STP-1 consumer-reference propagation incomplete "
+        "(the /validate-slice catalog runner cannot guard the STP-1 "
+        "critical path)"
+    )
+    assert "STP-1" in catalog, (
+        "architecture/shippability.md row #44 missing the 'STP-1' rule "
+        "reference — consumer-reference propagation broken at the rule-ID "
+        "layer"
+    )

@@ -1538,3 +1538,81 @@ def test_bc_proj_2_has_methodology_vocabulary_negative_anchors():
         f"BC-PROJ-2 emits negative-anchor-overlaps-positive violations: "
         f"{[(v.rule_id, v.message) for v in bc_proj_2_violations]}"
     )
+
+
+def test_bc_proj_7_has_expected_structural_identity():
+    """BC-PROJ-7 (slice-044 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity. Canonical fixture = subject; these
+    literal constants = git-tracked oracle (ADR-028). BCI-1 separately
+    asserts the gitignored live build-checks.md matches the fixture.
+
+    Defect class: a /reflect Step-5b promotion silently truncating or
+    mis-authoring BC-PROJ-7's structural fields would degrade BC-1 coverage
+    of the new-audit-tool self-application class with no loud signal (R-4).
+
+    Rule reference: BC-1 (slice-044 /reflect Step 5b; user-approved promotion).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-7" in p_by_id, "BC-PROJ-7 not parsed from project fixture"
+    p7 = p_by_id["BC-PROJ-7"]
+    assert p7.severity == "Critical", f"BC-PROJ-7 severity: {p7.severity!r}"
+    assert p7.applies_to == ("tools/*.py",), (
+        f"BC-PROJ-7 applies_to mismatch: got {p7.applies_to!r}"
+    )
+    assert p7.trigger_keywords == (
+        "audit", "tool", "tools", "shippability", "machine-cmd", "new audit",
+    ), f"BC-PROJ-7 trigger_keywords mismatch: got {p7.trigger_keywords!r}"
+    assert p7.trigger_anchors == ("audit", "tool", "shippability"), (
+        f"BC-PROJ-7 trigger_anchors mismatch: got {p7.trigger_anchors!r}"
+    )
+    assert p7.negative_anchors == (
+        "defer-with-rationale", "aggregated lessons", "false positive",
+        "meta-discussion", "vocabulary", "critic-missed", "back-sync",
+        "dim 9", "forward-sync",
+    ), f"BC-PROJ-7 negative_anchors mismatch: got {p7.negative_anchors!r}"
+    assert p7.check and p7.check.strip(), "BC-PROJ-7 check must be non-empty"
+
+
+def test_bc_proj_8_has_expected_structural_identity():
+    """BC-PROJ-8 (slice-044 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity (gitignored-vault live-reads rule).
+    Canonical fixture = subject; literal constants = git-tracked oracle.
+
+    Defect class: a silent truncation/mis-author of BC-PROJ-8 would lose the
+    "vault-targeting tools must not git-diff/show the gitignored vault"
+    evergreen check with no loud signal (R-4 class).
+
+    Rule reference: BC-1 (slice-044 /reflect Step 5b; user-approved promotion).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-8" in p_by_id, "BC-PROJ-8 not parsed from project fixture"
+    p8 = p_by_id["BC-PROJ-8"]
+    assert p8.severity == "Important", f"BC-PROJ-8 severity: {p8.severity!r}"
+    assert p8.applies_to == ("tools/*.py",), (
+        f"BC-PROJ-8 applies_to mismatch: got {p8.applies_to!r}"
+    )
+    assert p8.trigger_keywords == (
+        "audit", "vault", "architecture", "risk-register", "git",
+        "scan", "gitignored",
+    ), f"BC-PROJ-8 trigger_keywords mismatch: got {p8.trigger_keywords!r}"
+    assert p8.trigger_anchors == ("audit", "vault", "git"), (
+        f"BC-PROJ-8 trigger_anchors mismatch: got {p8.trigger_anchors!r}"
+    )
+    assert p8.negative_anchors == (
+        "defer-with-rationale", "aggregated lessons", "false positive",
+        "meta-discussion", "vocabulary", "critic-missed", "back-sync",
+        "dim 9", "forward-sync",
+    ), f"BC-PROJ-8 negative_anchors mismatch: got {p8.negative_anchors!r}"
+    assert p8.check and p8.check.strip(), "BC-PROJ-8 check must be non-empty"
