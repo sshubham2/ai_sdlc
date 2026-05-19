@@ -151,6 +151,7 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **Build-checks integrity audit passes (BCI-1)** — see "Build-checks integrity audit" below
 - [ ] **Methodology-changelog forward-sync audit passes (MCFS-1)** — see "Methodology-changelog forward-sync audit" below
 - [ ] **State-transition stale-pin audit passes (STP-1)** — see "State-transition stale-pin audit" below
+- [ ] **ai-sdlc-VERSION forward-sync audit passes (AVFS-1)** — see "ai-sdlc-VERSION forward-sync audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
 
@@ -276,6 +277,23 @@ Refusal semantics:
 STP-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1) — its programmatic gate is `tools/state_transition_pin_audit.py`. It is **git-independent** (Sub-form B revised from a git-merge-base mechanism by the slice-044 plan-mode deviation — `architecture/` is gitignored).
 
 Bootstrap (slice-044 only): slice-044 authors STP-1; at slice-044's Step 6 the audit IS run against the repo and MUST exit 0 (self-application discharge — no live test contradicts the register, no removed-anchor prose-pin, the lone unparseable fixture is skip-noted). Every slice after 044 inherits a self-gating STP-1.
+
+#### ai-sdlc-VERSION forward-sync audit (AVFS-1)
+
+Per **AVFS-1** (`methodology-changelog.md` v0.58.0; slice-050; [[ADR-052]]; extends the slice-041/MCFS-1 forward-sync-via-deterministic-downstream-gate lineage): the PMI-1 4-part atomic version bump has a 4th leg — installed `~/.claude/ai-sdlc-VERSION` — that PMI-1 never reads (it audits in-repo `VERSION`==`plugin.yaml` only) and MCFS-1 does not cover (it guards the changelog leg). That leg drifted silently N=2 (slice-035 DEVIATION-2; slice-048→049). AVFS-1 is a standalone verbatim MCFS-1 clone asserting in-repo `VERSION` is content-equal **modulo line endings** (CRLF→LF only — EOL-DRIFT-1 / [[ADR-033]]) to installed `~/.claude/ai-sdlc-VERSION`. Run:
+
+```bash
+$PY -m tools.ai_sdlc_version_forward_sync
+```
+
+Refusal semantics:
+- `drift` (exit 1, HALT): installed file present but content-divergent after CRLF→LF (incl. empty-present AND whitespace-only-present — empty ≠ absent). Message is attributed: *"AI-SDLC-VERSION FORWARD-SYNC DRIFT — re-run the PMI-1 4-part forward-sync (in-repo VERSION → ~/.claude/ai-sdlc-VERSION); this is NOT a slice regression"*.
+- `warn` (exit 0): installed `~/.claude/ai-sdlc-VERSION` **absent** — untracked/environment-dependent; a machine that hasn't installed the plugin must not HALT (slice-030A meta-M3 parity).
+- `usage` (exit 2): in-repo `VERSION` missing/unreadable, or repo root unresolvable.
+
+AVFS-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1 / STP-1) — its programmatic gate is `tools/ai_sdlc_version_forward_sync.py`. It is **non-opt-out and UNGATED** here: this Step 6 checklist item runs **every slice regardless of whether a build-checks rule was promoted** (distinct from `/reflect`'s rule-promotion-gated Step 5b — folding AVFS-1 into a rule-promotion gate would silently disable it on a version-bumping-but-no-rule-promoted slice, the R-7/slice-022 silent-disable class). The complementary `/reflect` wiring is its OWN dedicated Step 5b-avfs (also ungated), NOT part of Step 5b.
+
+Bootstrap (slice-050 only): slice-050 authors AVFS-1. The bootstrap is **conditional and weaker than MCFS-1's** (M1): at slice-050's own Step 6 in-repo `VERSION` is `0.58.0`, so AVFS-1 exits 0 ONLY IF this slice's own 4-part PMI-1 bump correctly forward-synced installed `~/.claude/ai-sdlc-VERSION` → `0.58.0` — and that leg is precisely the N=2-drift-prone manual step AVFS-1 exists to gate. A **non-zero AVFS-1 at slice-050's own Step 6 is the EXPECTED signal to perform/repair the installed-VERSION forward-sync — NOT a slice defect**; re-run until exit 0. Every slice after 050 inherits a self-gating AVFS-1 (which from slice-051 behaves exactly like MCFS-1's bootstrap, the bump leg then a routine part of any version-bumping slice).
 
 #### Test-first audit (TF-1)
 

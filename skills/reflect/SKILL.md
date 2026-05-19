@@ -230,6 +230,18 @@ Per **MCFS-1** (`methodology-changelog.md` v0.53.0; slice-041, split-lineage lab
 >
 > If it exits non-zero (`drift`/HALT): **STOP and report** — the in-repo → `~/.claude/` forward-sync was forgotten or diverged. Re-run the PMI-1 forward-sync (byte-copy in-repo → installed) and re-run until exit 0 (incl. the installed-absent WARN, also exit 0). This is the deterministic downstream control that retires R-4's essential-class residual (the per-version installed reads are decoupled; ADR-042). MCFS-1 is also wired non-opt-out at `/build-slice` Step 6 (likewise ungated) — the two ungated points are complementary, neither gated on rule promotion.
 
+### Step 5b-avfs: ai-sdlc-VERSION forward-sync gate (AVFS-1)
+
+Per **AVFS-1** (`methodology-changelog.md` v0.58.0; slice-050; [[ADR-052]]; extends the slice-041/MCFS-1 forward-sync-via-deterministic-downstream-gate lineage): a deterministic downstream gate asserting in-repo `VERSION` is content-equal **modulo line endings** (CRLF→LF only) to the installed `~/.claude/ai-sdlc-VERSION` — the 4th PMI-1 leg PMI-1 never reads and MCFS-1 does not cover (it drifted silently N=2: slice-035 DEVIATION-2, slice-048→049).
+
+> **This is a SEPARATE, UNGATED step — explicitly NOT folded into Step 5b** (MCFS-1 Step 5b-fs parity). Step 5b (build-checks promotion) is rule-promotion-gated; the ai-sdlc-VERSION forward-sync must fire on **any slice that bumped the PMI-1 version**, independent of whether a build-checks rule was promoted. Folding it into the rule-promotion-gated Step 5b would silently disable the gate on a version-bumping-but-no-rule-promoted slice (the R-7/slice-022 silent-disable class). Run it whenever this slice performed a PMI-1 4-part bump:
+>
+> ```bash
+> $PY -m tools.ai_sdlc_version_forward_sync
+> ```
+>
+> If it exits non-zero (`drift`/HALT): **STOP and report** — the in-repo `VERSION` → `~/.claude/ai-sdlc-VERSION` forward-sync was forgotten or diverged. Re-run the PMI-1 4-part forward-sync (byte-copy in-repo `VERSION` → installed `~/.claude/ai-sdlc-VERSION`) and re-run until exit 0 (incl. the installed-absent WARN, also exit 0). This is the deterministic downstream control retiring the slice-035/048/049 N=2 silent-drift class. AVFS-1 is also wired non-opt-out at `/build-slice` Step 6 (likewise ungated) — the two ungated points are complementary, neither gated on rule promotion.
+
 ### Step 5.3: Add one entry to `architecture/shippability.md`
 
 Every completed slice contributes ONE critical-path test to the shippability catalog. Future `/validate-slice` runs execute the full catalog to catch regressions.

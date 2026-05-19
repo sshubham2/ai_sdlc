@@ -3287,3 +3287,88 @@ def test_v_0_57_0_osdg_1_shippability_consumer_propagation():
         "reference — consumer-reference propagation broken at the "
         "rule-ID layer"
     )
+
+
+# --- Slice-050 / v0.58.0 AVFS-1 entry pin + shippability propagation ---
+
+
+def test_v_0_58_0_avfs_1_entry_present_in_repo():
+    """methodology-changelog v0.58.0 / AVFS-1 entry-pin (content-bearing —
+    B1: NOT a thin presence check; STP-1/MCFS-1 entry-pin depth).
+
+    **In-repo-only body** (slice-041 M3 discipline): reads ONLY the
+    git-tracked in-repo entry via `read_file` (no `Path.home()`), so
+    `shippability_decoupling_audit.classify_fn` classifies it `clean`.
+    The installed↔in-repo forward-sync of THIS entry is covered by
+    MCFS-1's whole-file gate (NOT a per-version installed read here).
+
+    Defect class: the v0.58.0 entry silently lost / never added → the
+    AVFS-1 rule reference, its ADR-052 lineage, the standalone-clone
+    (not-folded-into-MCFS-1) decision, and the canonical attribution
+    phrase become unrecoverable from the changelog.
+
+    Rule reference: AVFS-1 (slice-050; ADR-052; extends the slice-041
+    MCFS-1 forward-sync-via-deterministic-downstream-gate lineage; mints a
+    new rule; supersedes nothing).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.58.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.58.0 entry header — "
+        "slice-050 AVFS-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.58.0")
+    assert "AVFS-1" in body, (
+        "v0.58.0 entry body missing the 'AVFS-1' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-052" in body, (
+        "v0.58.0 entry body missing the ADR-052 decision lineage"
+    )
+    assert "supersedes nothing" in body, (
+        "v0.58.0 entry must state AVFS-1 mints a new rule / supersedes "
+        "nothing (lineage clean — extends, does not supersede, the "
+        "MCFS-1 forward-sync-gate lineage)"
+    )
+    assert "NOT a slice regression" in body, (
+        "v0.58.0 entry must carry the canonical attribution phrase 'NOT a "
+        "slice regression' (the _ATTRIB rationale a future Builder reads "
+        "when AVFS-1 HALTs — a tautological presence check would miss this)"
+    )
+    assert "standalone" in body and "MCFS-1" in body, (
+        "v0.58.0 entry must record the ADR-052 standalone-clone decision "
+        "(not folded into MCFS-1's whole-file gate) — the load-bearing "
+        "design choice distinguishing the AVFS-1 deliverable"
+    )
+    assert "Rule reference" in body, (
+        "v0.58.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+
+
+def test_v_0_58_0_avfs_1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the AVFS-1 rule's
+    consumer reference MUST propagate into `architecture/shippability.md`
+    (catalog row #50) so the slice-050 critical path can never silently
+    regress (the slice-040 lesson — an uncatalogued pin's breakage is
+    invisible to the catalog runner).
+
+    In-repo-only (reads the git-tracked catalog via `read_file`; no
+    `Path.home()` — classifies `clean`).
+
+    Rule reference: AVFS-1 (slice-050; ADR-052; RPCD-1/SCPD-1 consumer-
+    reference propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 50 | slice-050-add-ai-sdlc-version-forward-sync-gate" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #50 for "
+        "slice-050 — RPCD-1/SCPD-1 AVFS-1 consumer-reference propagation "
+        "incomplete (the /validate-slice catalog runner cannot guard the "
+        "AVFS-1 critical path)"
+    )
+    assert "AVFS-1" in catalog, (
+        "architecture/shippability.md row #50 missing the 'AVFS-1' rule "
+        "reference — consumer-reference propagation broken at the "
+        "rule-ID layer"
+    )

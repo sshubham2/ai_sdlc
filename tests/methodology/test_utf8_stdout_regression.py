@@ -99,6 +99,7 @@ _ROOT_ONLY_TOOLS = [
     "tools.build_checks_integrity",  # slice-030A / BCI-1 (--check-live/--json, no slice arg)
     "tools.methodology_changelog_forward_sync",  # slice-041 / MCFS-1 (--check/--json/--root, no slice arg)
     "tools.state_transition_pin_audit",  # slice-044 / STP-1 (--root/--json, no positional/slice arg)
+    "tools.ai_sdlc_version_forward_sync",  # slice-050 / AVFS-1 (--check/--json/--root, no slice arg)
 ]
 
 
