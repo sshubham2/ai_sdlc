@@ -3140,3 +3140,77 @@ def test_v_0_55_0_bfrd_1_reclassification_entry_present_in_repo():
         "v0.55.0 entry missing the literal 'Rule reference' line — "
         "META-1 entry-pin obligation unmet"
     )
+
+
+# --- Slice-048 / SOAD-1 structured-options-ask discipline entry pinning ---
+
+
+def test_v_0_56_0_soad_1_entry_present_in_repo():
+    """methodology-changelog v0.56.0 / SOAD-1 entry-pin.
+
+    **In-repo-only body** (slice-041 M3 discipline): reads ONLY the
+    git-tracked in-repo entry via `read_file` (no `Path.home()`), so
+    `shippability_decoupling_audit.classify_fn` classifies it `clean`.
+    The installed↔in-repo forward-sync of THIS entry is covered by
+    MCFS-1's whole-file gate.
+
+    Defect class: the v0.56.0 entry silently lost / never added → the
+    SOAD-1 rule reference, its ADR-050-generalizes-ADR-048 lineage, and
+    the new-rule (supersedes-nothing) treatment become unrecoverable
+    from the changelog.
+
+    Rule reference: SOAD-1 (slice-048; ADR-050 generalizes ADR-048's
+    gate-specific structured-options-ask requirement; mints a new rule;
+    supersedes nothing).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.56.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.56.0 entry header — "
+        "slice-048 SOAD-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.56.0")
+    assert "SOAD-1" in body, (
+        "v0.56.0 entry body missing the 'SOAD-1' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-050" in body and "generalizes ADR-048" in body, (
+        "v0.56.0 entry body must record the ADR-050 generalization of "
+        "ADR-048's gate-specific structured-options-ask requirement "
+        "(lineage)"
+    )
+    assert "mints a new rule" in body and "supersedes nothing" in body, (
+        "v0.56.0 entry must state SOAD-1's new-rule / supersedes-nothing "
+        "treatment (lineage clean — generalizes, does not supersede, "
+        "ADR-048)"
+    )
+    assert "Rule reference" in body, (
+        "v0.56.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+
+
+def test_v_0_56_0_soad_1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the SOAD-1 rule's
+    consumer reference MUST propagate into `architecture/shippability.md`
+    (catalog row #48) so the slice-048 critical path can never silently
+    regress (the slice-040 lesson — an uncatalogued pin's breakage is
+    invisible to the catalog runner).
+
+    In-repo-only (reads the git-tracked catalog via `read_file`; no
+    `Path.home()` — classifies `clean`).
+
+    Rule reference: SOAD-1 (slice-048; ADR-050; RPCD-1/SCPD-1 consumer-
+    reference propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "| 48 | slice-048-codify-structured-options-ask-rule" in catalog, (
+        "architecture/shippability.md missing catalog row #48 for "
+        "slice-048 — RPCD-1/SCPD-1 SOAD-1 consumer-reference propagation "
+        "incomplete (the /validate-slice catalog runner cannot guard the "
+        "SOAD-1 critical path)"
+    )
+    assert "SOAD-1" in catalog, (
+        "architecture/shippability.md row #48 missing the 'SOAD-1' rule "
+        "reference — consumer-reference propagation broken at the "
+        "rule-ID layer"
+    )

@@ -370,8 +370,12 @@ Check first: does `./CLAUDE.md` exist?
 If the change is more than a typo / single-line tweak / comment / local-variable rename:
 
 1. Check `architecture/slices/_index.md` for an active slice
-2. If none → **ASK** the user: "Run `/slice` first, or is this small enough to skip?"
+2. If none → **ASK** the user via structured options (per the Ask discipline below): "Run `/slice` first, or is this small enough to skip?"
 3. Wait for explicit answer.
+
+## Ask discipline
+
+**Ask discipline**: when a skill needs user input, present it as structured options (with a recommended choice) via the `AskUserQuestion` tool — never a bare free-text prompt. A bare prose ask is legitimate only where `AskUserQuestion` genuinely cannot model the input. Rationale: Claude Code notifies the user only on options prompts; a free-text question blocks silently.
 
 ## Brownfield rules
 
@@ -401,7 +405,9 @@ Skills: `~/.claude/skills/<name>/SKILL.md`. Templates: `~/.claude/templates/`.
 
 **Mode**: <mode>. Vault: `architecture/`. Active slice: `architecture/slices/_index.md`.
 
-**Hard rule**: before editing code (beyond typos/trivial), check for active slice. If none, **ASK** — "Run `/slice` first?" Wait for answer.
+**Hard rule**: before editing code (beyond typos/trivial), check for active slice. If none, **ASK** the user via structured options (per the Ask discipline below) — "Run `/slice` first?" Wait for answer.
+
+**Ask discipline**: when a skill needs user input, present it as structured options (with a recommended choice) via the `AskUserQuestion` tool — never a bare free-text prompt. A bare prose ask is legitimate only where `AskUserQuestion` genuinely cannot model the input. Rationale: Claude Code notifies the user only on options prompts; a free-text question blocks silently.
 
 **Brownfield rules**: code is truth, docs are hypothesis (verify doc claims against code before acting); respect existing conventions; deviations require ADRs; refactors need slices; tests-first for bug fixes; `$PY -m graphify reachable --from=<file>` before wide changes.
 
