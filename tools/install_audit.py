@@ -75,6 +75,7 @@ _CANONICAL_METADATA: tuple[str, ...] = (
 # Slice-027 added tools.pipeline_chain_audit (PCA-1 — verify the 8-skill
 # pipeline-chain auto-advance directives match the canonical loop).
 _CANONICAL_TOOLS: tuple[str, ...] = (
+    "tools.ai_sdlc_version_forward_sync",
     "tools.branch_workflow_audit",
     "tools.build_checks_audit",
     "tools.build_checks_integrity",
