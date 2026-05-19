@@ -3372,3 +3372,96 @@ def test_v_0_58_0_avfs_1_shippability_consumer_propagation():
         "reference — consumer-reference propagation broken at the "
         "rule-ID layer"
     )
+
+
+# --- Slice-051 / v0.59.0 OSDG-1 reflect-member entry pin + shippability ---
+
+
+def test_v_0_59_0_osdg_1_reflect_member_entry_present_in_repo():
+    """methodology-changelog v0.59.0 / OSDG-1 reflect-member entry-pin
+    (content-bearing — M2: NOT a thin presence check; the OSDG-1-membership
+    content surface that, with the CLAUDE.md enumeration prose-pin and the
+    collected+catalog-rowed drift test, defeats the slice-037 M-add-1
+    tautological-green class for the slice's primary deliverable).
+
+    **In-repo-only body** (slice-041 M3 discipline): reads ONLY the
+    git-tracked in-repo entry via `read_file` (no `Path.home()`), so
+    `shippability_decoupling_audit.classify_fn` classifies it `clean`.
+    The installed↔in-repo forward-sync of THIS entry is covered by
+    MCFS-1's whole-file gate (NOT a per-version installed read here).
+
+    Defect class: the v0.59.0 entry silently lost / never added → the
+    OSDG-1 reflect-membership, its ADR-053-extends-ADR-051/OSDG-1 lineage,
+    the no-new-RULE-ID treatment, and the "Opener-Skill name is now a
+    historical label not a scope boundary" decoupling become
+    unrecoverable from the changelog.
+
+    Rule reference: OSDG-1 (slice-049; ADR-051; member-added at slice-051 /
+    ADR-053; extends slice-007 CAD-1 / slice-010 mini-CAD / slice-033
+    EOL-DRIFT-1 / slice-049 OSDG-1; mints no new rule; supersedes nothing).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.59.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.59.0 entry header — "
+        "slice-051 OSDG-1 reflect-member entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.59.0")
+    assert "OSDG-1" in body, (
+        "v0.59.0 entry body missing the 'OSDG-1' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-053" in body and "extends" in body, (
+        "v0.59.0 entry body must record the ADR-053 extension of the "
+        "slice-049/ADR-051 OSDG-1 (and slice-007 CAD-1 / slice-010 "
+        "mini-CAD / slice-033 EOL-DRIFT-1) drift-guard lineage"
+    )
+    assert "reflect" in body, (
+        "v0.59.0 entry body missing the 'reflect' member — the entry must "
+        "name the in-loop skill added to the OSDG-1 guarded set (M2 "
+        "content-bearing membership pin, not a tautological presence check)"
+    )
+    assert "supersedes nothing" in body and "no new rule" in body, (
+        "v0.59.0 entry must state OSDG-1 is extended (no new RULE-ID — the "
+        "literal 'no new rule') and supersedes nothing (lineage clean — "
+        "extends, does not supersede, the CAD-1/mini-CAD/EOL-DRIFT-1/OSDG-1 "
+        "family)"
+    )
+    assert "historical label" in body, (
+        "v0.59.0 entry must record the ADR-053 decoupling — OSDG-1's "
+        "'Opener-Skill' name is now a historical label, not a scope "
+        "boundary (the guarded set now spans a non-opener in-loop skill); "
+        "a tautological presence check would miss this load-bearing note"
+    )
+    assert "Rule reference" in body, (
+        "v0.59.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+
+
+def test_v_0_59_0_osdg_1_reflect_member_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the OSDG-1
+    reflect-member consumer reference MUST propagate into
+    `architecture/shippability.md` (catalog row #51) so the slice-051
+    critical path can never silently regress (the slice-040 lesson — an
+    uncatalogued pin's breakage is invisible to the catalog runner).
+
+    In-repo-only (reads the git-tracked catalog via `read_file`; no
+    `Path.home()` — classifies `clean`).
+
+    Rule reference: OSDG-1 (slice-049; ADR-051; member-added at slice-051 /
+    ADR-053; RPCD-1/SCPD-1 consumer-reference propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 51 | slice-051-extend-osdg-1-to-reflect-skill" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #51 for "
+        "slice-051 — RPCD-1/SCPD-1 OSDG-1 reflect-member consumer-reference "
+        "propagation incomplete (the /validate-slice catalog runner cannot "
+        "guard the OSDG-1 reflect critical path)"
+    )
+    assert "OSDG-1" in catalog, (
+        "architecture/shippability.md row #51 missing the 'OSDG-1' rule "
+        "reference — consumer-reference propagation broken at the "
+        "rule-ID layer"
+    )
