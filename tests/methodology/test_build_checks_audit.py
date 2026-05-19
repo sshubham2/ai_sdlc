@@ -1616,3 +1616,50 @@ def test_bc_proj_8_has_expected_structural_identity():
         "dim 9", "forward-sync",
     ), f"BC-PROJ-8 negative_anchors mismatch: got {p8.negative_anchors!r}"
     assert p8.check and p8.check.strip(), "BC-PROJ-8 check must be non-empty"
+
+
+def test_bc_global_3_has_expected_structural_identity():
+    """BC-GLOBAL-3 (slice-047 /reflect Step-5b global promotion) MUST parse to
+    its expected full structural identity. The canonical global fixture is the
+    subject; these literal constants are the git-tracked oracle (ADR-028;
+    fixture = subject, literal = oracle). BCI-1 separately asserts the
+    gitignored live `~/.claude/build-checks.md` matches the fixture
+    structurally.
+
+    Defect class: a /reflect Step-5b global promotion that silently truncated
+    or mis-authored BC-GLOBAL-3's structural fields would degrade BC-1 global
+    coverage with no loud signal (R-4 class). This literal pin + BCI-1 close
+    that for the slice-047-promoted rule.
+
+    Rule reference: BC-1 (slice-047 /reflect Step 5b; user-approved global
+    promotion of the external-platform-assumption-verification discipline).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    global_text = _CANONICAL_GLOBAL_FIXTURE.read_text(encoding="utf-8")
+    g_rules, _ = _parse_rules(
+        global_text, source="global", path=str(_CANONICAL_GLOBAL_FIXTURE)
+    )
+    g_by_id = {r.rule_id: r for r in g_rules}
+    assert "BC-GLOBAL-3" in g_by_id, "BC-GLOBAL-3 not parsed from global fixture"
+    g3 = g_by_id["BC-GLOBAL-3"]
+    assert g3.severity == "Important", f"BC-GLOBAL-3 severity: {g3.severity!r}"
+    # `**` (NOT always:true) so the Trigger-anchors final-filter is effective
+    # — always:true short-circuits before the anchor path (BC-GLOBAL-1
+    # slice-005 DEVIATION-1 rationale; _rule_applies L413-414).
+    assert g3.applies_to == ("**",), (
+        f"BC-GLOBAL-3 applies_to mismatch: got {g3.applies_to!r}, "
+        f"expected ('**',) so anchors are effective"
+    )
+    assert g3.trigger_keywords == (
+        "third-party", "external", "platform", "sdk", "api", "quota",
+        "rate-limit", "deprecation", "precedence", "resolution",
+    ), f"BC-GLOBAL-3 trigger_keywords mismatch: got {g3.trigger_keywords!r}"
+    assert g3.trigger_anchors == (
+        "third-party", "external", "sdk", "quota", "deprecation",
+    ), f"BC-GLOBAL-3 trigger_anchors mismatch: got {g3.trigger_anchors!r}"
+    assert g3.negative_anchors == (
+        "calibration", "disposition", "aggregated lessons", "false positive",
+        "meta-discussion", "methodology-changelog",
+    ), f"BC-GLOBAL-3 negative_anchors mismatch: got {g3.negative_anchors!r}"
+    assert g3.check and g3.check.strip(), "BC-GLOBAL-3 check must be non-empty"

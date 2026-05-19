@@ -55,3 +55,18 @@ Then **Check**, **Rationale**, **Validation hint**.
 **Rationale**: Generic across any VCS-tracked project with a workflow that keeps work uncommitted while iterating (feature branches, stacked PRs, long-lived task branches). The hazard is structural, not incidental: git revert verbs are defined relative to HEAD/index, never relative to "the change I just made in memory," so they cannot safely undo an uncommitted scratch mutation without collateral loss. The false-green failure mode makes it high-severity: the damage is silent and survives a naive re-test.
 
 **Validation hint**: Grep automation/CI/validation scripts for `git checkout --`, `git restore`, `git stash` near file-mutation logic; require in-place/temp/fixture reversion plus a pre/post hash assertion.
+
+## BC-GLOBAL-3 — Load-bearing external-platform behavior must be verified against official docs before design lock
+
+**Severity**: Important
+**Applies to**: **
+**Promoted from**: ai_sdlc slice-047-add-two-scope-install (2026-05-19) — a full design→critique→critique-review→TRI-1 cycle was spent discovering the slice's load-bearing premise (Claude Code skill vs subagent install-scope precedence) was false; a 10-minute design-time WebFetch against official docs would have caught it pre-design, and the precedence proved asymmetric across artifact classes (skills personal>project; subagents project>user)
+**Trigger keywords**: third-party, external, platform, sdk, api, quota, rate-limit, deprecation, precedence, resolution
+**Trigger anchors**: third-party, external, sdk, quota, deprecation
+**Negative anchors**: calibration, disposition, aggregated lessons, false positive, meta-discussion, methodology-changelog
+
+**Check**: When a slice's PREMISE or value proposition depends on an external-platform / third-party / SDK behavior (resolution order, precedence, quota, rate limit, deprecation, API contract), that behavior MUST be verified against the official current documentation at /design-slice (or established via /risk-spike) BEFORE the design is locked — never asserted from prior belief and deferred to /critique to catch. If the behavior spans more than one artifact/resource class, verify EACH class independently: platform precedence is not guaranteed symmetric (e.g. Claude Code skills resolve personal>project while subagents resolve project>user — the inverse). Cite the doc URL plus the verifying fetch in design.md.
+
+**Rationale**: Generic across any project building on a third-party platform / SDK / API. A false load-bearing external assumption is not an incidental bug — it invalidates the slice's entire reason to exist, and it is cheapest to refute at design time (a single doc fetch) and most expensive to refute after design→critique→review→triage has been spent. The asymmetry corollary is the high-value, non-obvious part: verifying one resource class's behavior and generalizing to a sibling class is a recurring blind spot the first Critic exhibited in slice-047 (caught only by the meta-Critic).
+
+**Validation hint**: Grep the slice's design.md / ADRs for claims of the form "rides/uses/relies on <external platform> <behavior>"; require an accompanying official-doc URL plus a record that the behavior was fetched/verified this slice (not assumed), and — for multi-class platform behaviors — a per-class verification line.
