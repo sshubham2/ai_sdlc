@@ -3214,3 +3214,76 @@ def test_v_0_56_0_soad_1_shippability_consumer_propagation():
         "reference — consumer-reference propagation broken at the "
         "rule-ID layer"
     )
+
+
+def test_v_0_57_0_osdg_1_entry_present_in_repo():
+    """methodology-changelog v0.57.0 / OSDG-1 entry-pin.
+
+    **In-repo-only body** (slice-041 M3 discipline): reads ONLY the
+    git-tracked in-repo entry via `read_file` (no `Path.home()`), so
+    `shippability_decoupling_audit.classify_fn` classifies it `clean`.
+    The installed↔in-repo forward-sync of THIS entry is covered by
+    MCFS-1's whole-file gate.
+
+    Defect class: the v0.57.0 entry silently lost / never added → the
+    OSDG-1 rule reference, its ADR-051 extends-CAD-1/mini-CAD/EOL-DRIFT-1
+    lineage, and the new-rule (supersedes-nothing) treatment become
+    unrecoverable from the changelog.
+
+    Rule reference: OSDG-1 (slice-049; ADR-051 extends slice-007 CAD-1 /
+    slice-010 mini-CAD / slice-033 EOL-DRIFT-1; mints a new rule;
+    supersedes nothing).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.57.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.57.0 entry header — "
+        "slice-049 OSDG-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.57.0")
+    assert "OSDG-1" in body, (
+        "v0.57.0 entry body missing the 'OSDG-1' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-051" in body and "extends" in body, (
+        "v0.57.0 entry body must record the ADR-051 extension of the "
+        "slice-007 CAD-1 / slice-010 mini-CAD / slice-033 EOL-DRIFT-1 "
+        "drift-guard lineage"
+    )
+    assert "mints a new rule" in body and "supersedes nothing" in body, (
+        "v0.57.0 entry must state OSDG-1's new-rule / supersedes-nothing "
+        "treatment (lineage clean — extends, does not supersede, the "
+        "CAD-1/mini-CAD/EOL-DRIFT-1 family)"
+    )
+    assert "Rule reference" in body, (
+        "v0.57.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+
+
+def test_v_0_57_0_osdg_1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the OSDG-1 rule's
+    consumer reference MUST propagate into `architecture/shippability.md`
+    (catalog row #49) so the slice-049 critical path can never silently
+    regress (the slice-040 lesson — an uncatalogued pin's breakage is
+    invisible to the catalog runner).
+
+    In-repo-only (reads the git-tracked catalog via `read_file`; no
+    `Path.home()` — classifies `clean`).
+
+    Rule reference: OSDG-1 (slice-049; ADR-051; RPCD-1/SCPD-1 consumer-
+    reference propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 49 | slice-049-add-triage-adopt-skill-drift-guards" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #49 for "
+        "slice-049 — RPCD-1/SCPD-1 OSDG-1 consumer-reference propagation "
+        "incomplete (the /validate-slice catalog runner cannot guard the "
+        "OSDG-1 critical path)"
+    )
+    assert "OSDG-1" in catalog, (
+        "architecture/shippability.md row #49 missing the 'OSDG-1' rule "
+        "reference — consumer-reference propagation broken at the "
+        "rule-ID layer"
+    )
