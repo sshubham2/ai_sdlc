@@ -3465,3 +3465,89 @@ def test_v_0_59_0_osdg_1_reflect_member_shippability_consumer_propagation():
         "reference — consumer-reference propagation broken at the "
         "rule-ID layer"
     )
+
+
+def test_v_0_60_0_obo_entry_present_in_repo():
+    """methodology-changelog v0.60.0 / ADR-054 --obo entry-pin
+    (content-bearing — NOT a thin presence check; pins the load-bearing
+    surface that, with shippability row #52 and the collected
+    `test_slice_candidates_obo.py`, defeats the slice-037 M-add-1
+    tautological-green class for this slice's primary deliverable).
+
+    **In-repo-only body** (slice-041 M3 discipline): reads ONLY the
+    git-tracked in-repo entry via `read_file` (no `Path.home()`). The
+    installed↔in-repo forward-sync of THIS entry is covered by MCFS-1's
+    whole-file gate, not a per-version installed read here.
+
+    Defect class: the v0.60.0 entry silently lost / never added → the
+    `--obo` capability, the ADR-054 Hard-rule-#2 carve-out, the
+    mechanical-not-honour-system scoped-peek enforcement, and the
+    behavior-change (Inclusion-heuristic) justification become
+    unrecoverable from the changelog.
+
+    Rule reference: ADR-054 (slice-052; bounded /slice-candidates
+    Hard-rule-#2 deviation for --obo "Validate then approve"; mints no
+    new RULE-ID; supersedes nothing).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.60.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.60.0 entry header — "
+        "slice-052 --obo / ADR-054 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.60.0")
+    assert "ADR-054" in body, (
+        "v0.60.0 entry body missing the 'ADR-054' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "--obo" in body and "slice-candidates" in body, (
+        "v0.60.0 entry body must name the new --obo mode on /slice-candidates "
+        "(content-bearing capability pin, not a tautological presence check)"
+    )
+    assert "Behavior change" in body, (
+        "v0.60.0 entry must state this is a Behavior change (Inclusion "
+        "heuristic — 'New skills … qualify'; slice-049/ADR-051 law that a "
+        "methodology-surface behavior change with no other bump reason still "
+        "takes the ## vN + 4-part PMI-1 bump path)"
+    )
+    assert "mechanical, not honour-system" in body, (
+        "v0.60.0 entry must record that the ADR-054 scoped-peek boundary is "
+        "enforced mechanically (--obo-peek Path.resolve() containment), not "
+        "by honour-system prose — the M4 load-bearing note"
+    )
+    assert "supersedes nothing" in body and "NO new RULE-ID" in body, (
+        "v0.60.0 entry must state ADR-054 mints no new RULE-ID and supersedes "
+        "nothing (lineage clean — a new skill capability + one ADR)"
+    )
+    assert "Rule reference" in body, (
+        "v0.60.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+
+
+def test_v_0_60_0_obo_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the ADR-054 --obo
+    consumer reference MUST propagate into `architecture/shippability.md`
+    (catalog row #52) so the slice-052 critical path can never silently
+    regress (slice-040 lesson — an uncatalogued pin's breakage is invisible
+    to the catalog runner).
+
+    In-repo-only (reads the git-tracked catalog via `read_file`; no
+    `Path.home()` — classifies `clean`).
+
+    Rule reference: ADR-054 (slice-052; RPCD-1/SCPD-1 consumer-reference
+    propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 52 | slice-052-add-slice-candidates-obo-mode" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #52 for "
+        "slice-052 — RPCD-1/SCPD-1 ADR-054 --obo consumer-reference "
+        "propagation incomplete (the /validate-slice catalog runner cannot "
+        "guard the --obo operational-parity / scoped-peek critical path)"
+    )
+    assert "ADR-054" in catalog, (
+        "architecture/shippability.md row #52 missing the 'ADR-054' rule "
+        "reference — consumer-reference propagation broken at the "
+        "rule-ID layer"
+    )
