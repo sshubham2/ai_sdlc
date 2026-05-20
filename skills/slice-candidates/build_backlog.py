@@ -418,11 +418,240 @@ def render_backlog(
     return "".join(parts)
 
 
+# ---------------------------------------------------------------------------
+# --obo interactive-mode helpers (slice-052; ADR-054). The conversational loop
+# (per-finding AskUserQuestion, progress, verdict) lives in SKILL.md / Claude;
+# these are the deterministic, non-conversational halves only.
+# ---------------------------------------------------------------------------
+
+import hashlib
+
+_DATA_BLOCK_RE = re.compile(
+    r'<script\s+type="application/json"\s+id="diagnose-data">(.*?)</script>',
+    re.DOTALL,
+)
+_SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
+
+def _reconfigure_stdout() -> None:
+    """Windows cp1252 consoles crash/garble non-ASCII (slice-052 FINDING —
+    pre-existing in main()'s top-candidate print; --obo-extract emits non-ASCII
+    finding JSON to stdout, and SystemExit refusal messages carry em-dashes to
+    stderr — reconfigure BOTH so neither stream mis-encodes)."""
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+
+def _obo_log(in_dir: Path, line: str) -> None:
+    ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    try:
+        with open(in_dir / "obo-run.log", "a", encoding="utf-8", newline="\n") as fh:
+            fh.write(f"{ts} {line}\n")
+    except OSError:
+        pass
+
+
+def _extract_data_block(html_text: str):
+    """Return the single diagnose-data re.Match + parsed dict.
+
+    NEW duplicate detection (slice-052 m1, Major): `parse_html_state()` is
+    non-greedy and silently binds the FIRST block — a stale duplicate (e.g.
+    from a partial/aborted write) would be silently consumed, yielding a
+    valid-looking backlog encoding pre-decision state. Refuse on != 1.
+    """
+    blocks = _DATA_BLOCK_RE.findall(html_text)
+    if len(blocks) == 0:
+        raise SystemExit("diagnosis.html has no embedded diagnose-data JSON block.")
+    if len(blocks) > 1:
+        raise SystemExit(
+            f"diagnosis.html has {len(blocks)} diagnose-data blocks (expected "
+            "exactly 1) — refusing to act on an ambiguous/stale file."
+        )
+    m = _DATA_BLOCK_RE.search(html_text)
+    raw = m.group(1).strip().replace("<\\/script>", "</script>")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Embedded diagnose-data JSON is not valid: {exc}")
+    return m, data
+
+
+def _load_obo(in_dir: Path):
+    html_path = in_dir / "diagnosis.html"
+    if not html_path.exists():
+        raise SystemExit(f"Not found: {html_path}")
+    text = html_path.read_text(encoding="utf-8")
+    m, data = _extract_data_block(text)
+    findings_by_id = get_findings(data, in_dir / "findings")
+    if not findings_by_id:
+        raise SystemExit("diagnosis.html embeds zero findings — nothing to review.")
+    annotations = data.get("annotations") or {}
+    return text, m, data, findings_by_id, annotations
+
+
+def _sorted_findings(data: dict):
+    """Severity-sorted (critical>high>medium>low), stable within band."""
+    fl = data.get("findings") or []
+    return sorted(
+        enumerate(fl),
+        key=lambda iv: (
+            _SEV_ORDER.get(str(iv[1].get("severity", "")).lower(), 99),
+            iv[0],
+        ),
+    )
+
+
+def obo_extract(in_dir: Path) -> None:
+    _text, _m, data, _fb, annotations = _load_obo(in_dir)
+    out = []
+    for _idx, f in _sorted_findings(data):
+        fid = f.get("id")
+        if not fid:
+            continue
+        anno = annotations.get(fid) or {}
+        out.append({
+            "id": fid,
+            "title": f.get("title", ""),
+            "severity": f.get("severity", ""),
+            "description": f.get("description", ""),
+            "suggested_action": f.get("suggested_action", ""),
+            "evidence": f.get("evidence", []),
+            "evidence_paths": sorted(set(evidence_files(f))),
+            # Resume predicate (slice-052 M2/M-add-1): a finding is unreviewed
+            # iff its id is ABSENT from annotations. Deferred findings ARE
+            # present (confirmed=defer) and are terminal for resume.
+            "reviewed": fid in annotations,
+            "current": {
+                "confirmed": anno.get("confirmed", ""),
+                "notes": anno.get("notes", ""),
+            },
+        })
+    print(json.dumps(
+        {
+            "total": len(out),
+            "reviewed": sum(1 for o in out if o["reviewed"]),
+            "findings": out,
+        },
+        indent=2, ensure_ascii=False,
+    ))
+
+
+def _collect(decisions: dict) -> dict:
+    """Mirror assemble.py collect() L1643: drop entries whose confirmed AND
+    notes are both empty (unreviewed findings are ABSENT, not empty entries)."""
+    out = {}
+    for fid, d in (decisions or {}).items():
+        conf = str((d or {}).get("confirmed", "") or "")
+        notes = str((d or {}).get("notes", "") or "")
+        if conf or notes:
+            out[fid] = {"confirmed": conf, "notes": notes}
+    return out
+
+
+def obo_write(in_dir: Path, decisions_path: Path) -> None:
+    html_path = in_dir / "diagnosis.html"
+    if not html_path.exists():
+        raise SystemExit(f"Not found: {html_path}")
+    orig_text = html_path.read_text(encoding="utf-8")
+    orig_sha = hashlib.sha256(orig_text.encode("utf-8")).hexdigest()
+
+    m, data = _extract_data_block(orig_text)
+    findings_by_id = get_findings(data, in_dir / "findings")
+    if not findings_by_id:
+        raise SystemExit("diagnosis.html embeds zero findings — refusing to write.")
+
+    if not decisions_path.exists():
+        raise SystemExit(f"Decisions file not found: {decisions_path}")
+    try:
+        decisions = json.loads(decisions_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Decisions JSON is not valid: {exc}")
+    for fid in decisions:
+        if fid not in findings_by_id:
+            raise SystemExit(f"Decisions reference unknown finding id: {fid}")
+
+    data["annotations"] = _collect(decisions)
+    # Mirror assemble.py L1709 browser save: indent=2, ensure_ascii=False
+    # (B1 — Python default ensure_ascii=True emits \uXXXX, the browser emits
+    # raw UTF-8), then escape only the two chars `<` `/` to `<` `\` `/`.
+    new_inner = json.dumps(data, indent=2, ensure_ascii=False).replace("</", "<\\/")
+    # M-add-2: match-span slice insertion, NEVER re.sub — re.sub/Match.expand
+    # treat \g<…>, \1, and bare backslashes in the REPLACEMENT specially and
+    # would corrupt a payload that legitimately contains <\/ and \uXXXX text.
+    new_text = orig_text[: m.start(1)] + new_inner + orig_text[m.end(1):]
+
+    out_path = in_dir / "diagnosis.annotated.html"
+    with open(out_path, "w", encoding="utf-8", newline="") as fh:
+        fh.write(new_text)
+
+    post_sha = hashlib.sha256(
+        html_path.read_text(encoding="utf-8").encode("utf-8")
+    ).hexdigest()
+    if post_sha != orig_sha:
+        raise SystemExit(
+            "Hard-rule-#3 violation: original diagnosis.html changed during "
+            f"--obo-write ({orig_sha[:12]} -> {post_sha[:12]})."
+        )
+    _obo_log(
+        in_dir,
+        f"WRITE ok annotations={len(data['annotations'])} -> {out_path.name}",
+    )
+    print(
+        f"Wrote: {out_path} (annotations: {len(data['annotations'])}; "
+        f"original diagnosis.html unchanged, sha {orig_sha[:12]})"
+    )
+
+
+def obo_peek(in_dir: Path, finding_id: str, file_arg: str) -> None:
+    _text, _m, _data, findings_by_id, _anno = _load_obo(in_dir)
+    if finding_id not in findings_by_id:
+        raise SystemExit(f"unknown finding id: {finding_id}")
+    # ADR-054: allow-set = resolved cited evidence paths of THIS finding only.
+    allow = {Path(p).resolve() for p in evidence_files(findings_by_id[finding_id])}
+    target = Path(file_arg).resolve()  # normalizes ../, absolute, ./-prefixed
+    if target not in allow or not target.exists():
+        _obo_log(
+            in_dir,
+            f"PEEK refused: {file_arg} not in finding {finding_id} allow-set",
+        )
+        raise SystemExit(
+            f"out-of-scope: {file_arg} not in finding {finding_id} "
+            "evidence allow-set"
+        )
+    _obo_log(in_dir, f"PEEK ok: {finding_id} -> {file_arg}")
+    sys.stdout.write(target.read_text(encoding="utf-8"))
+
+
 def main() -> None:
+    _reconfigure_stdout()
     ap = argparse.ArgumentParser(description="Build slice-candidates backlog.md")
     ap.add_argument("--in", dest="in_dir", required=True, help="Path to diagnose-out")
+    _mode = ap.add_mutually_exclusive_group()
+    _mode.add_argument("--obo-extract", action="store_true",
+                       help="(--obo) emit severity-sorted findings JSON for review")
+    _mode.add_argument("--obo-write", action="store_true",
+                       help="(--obo) bake a decisions map into diagnosis.annotated.html")
+    _mode.add_argument("--obo-peek", action="store_true",
+                       help="(--obo) print a finding's cited evidence (ADR-054)")
+    ap.add_argument("--decisions", help="(--obo-write) path to decisions JSON")
+    ap.add_argument("--finding", help="(--obo-peek) finding id")
+    ap.add_argument("--file", dest="peek_file", help="(--obo-peek) evidence file")
     args = ap.parse_args()
     in_dir = Path(args.in_dir).resolve()
+
+    if args.obo_extract:
+        return obo_extract(in_dir)
+    if args.obo_write:
+        if not args.decisions:
+            raise SystemExit("--obo-write requires --decisions <path>")
+        return obo_write(in_dir, Path(args.decisions).resolve())
+    if args.obo_peek:
+        if not (args.finding and args.peek_file):
+            raise SystemExit("--obo-peek requires --finding <id> and --file <path>")
+        return obo_peek(in_dir, args.finding, args.peek_file)
 
     diagnosis_html = in_dir / "diagnosis.html"
     findings_dir = in_dir / "findings"

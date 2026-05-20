@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Diagnosis</title>
+<style>body{font-family:sans-serif}</style></head>
+<body>
+<h1>Diagnosis report</h1>
+<p>Owner annotates and clicks Save annotated HTML.</p>
+<script type="application/json" id="diagnose-data">{
+  "version": "1",
+  "generated": "2026-05-20T00:00:00+00:00",
+  "findings": [
+    {
+      "id": "F-med-2-aaaa1111",
+      "pass": "p",
+      "category": "c",
+      "severity": "medium",
+      "blast_radius": "small",
+      "reversibility": "cheap",
+      "title": "Med two untouched",
+      "description": "plain ascii desc",
+      "evidence": [
+        {
+          "path": "delta.py",
+          "lines": "2",
+          "note": "d"
+        }
+      ],
+      "suggested_action": "do d",
+      "effort_estimate": "small",
+      "slice_candidate": true
+    },
+    {
+      "id": "F-crit-1-bbbb2222",
+      "pass": "p",
+      "category": "c",
+      "severity": "critical",
+      "blast_radius": "large",
+      "reversibility": "expensive",
+      "title": "Crit one with caf\u00e9 \ud83d\udca1",
+      "description": "non-ASCII caf\u00e9 \ud83d\udca1 smart \u201cquote\u201d",
+      "evidence": [
+        {
+          "path": "alpha.py",
+          "lines": "1-2",
+          "note": "crit caf\u00e9 note \ud83d\udca1"
+        }
+      ],
+      "suggested_action": "fix caf\u00e9 \ud83d\udca1",
+      "effort_estimate": "medium",
+      "slice_candidate": true
+    },
+    {
+      "id": "F-high-1-cccc3333",
+      "pass": "p",
+      "category": "c",
+      "severity": "high",
+      "blast_radius": "medium",
+      "reversibility": "cheap",
+      "title": "High one",
+      "description": "high desc",
+      "evidence": [
+        {
+          "path": "beta.py",
+          "lines": "10",
+          "note": "high note"
+        }
+      ],
+      "suggested_action": "do h",
+      "effort_estimate": "small",
+      "slice_candidate": true
+    },
+    {
+      "id": "F-med-1-dddd4444",
+      "pass": "p",
+      "category": "c",
+      "severity": "medium",
+      "blast_radius": "small",
+      "reversibility": "cheap",
+      "title": "Med one deferred",
+      "description": "med1 desc caf\u00e9",
+      "evidence": [
+        {
+          "path": "gamma.py",
+          "lines": "5",
+          "note": "m1"
+        }
+      ],
+      "suggested_action": "do m1",
+      "effort_estimate": "small",
+      "slice_candidate": true
+    }
+  ],
+  "annotations": {},
+  "resolved_finding_ids": []
+}</script>
+<script>/* app js teardown guard: "<\/script>" */</script>
+</body></html>
