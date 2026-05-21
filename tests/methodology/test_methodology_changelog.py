@@ -3763,3 +3763,44 @@ def test_v_0_62_0_pvfs_1_shippability_consumer_propagation():
         "regression-pinned on the row that exists because of the SC-NNN "
         "(per /critique-review M-add-1)"
     )
+
+
+def test_shippability_row_56_present_and_cites_r15():
+    """SCPD-1 consumer-reference propagation: shippability row #56 MUST
+    cite BOTH `slice-056` AND `R-15` so the slice-056 R-15-mitigation
+    audit trail survives future row rewrites (slice-054 /critique-review
+    M-add-1 BCR-1-traceability-axis pin discipline applied analogously to
+    risk-register-driven slices per slice-056 design.md L23/L185).
+
+    Slice-056 ships the R-15 part-(a) fix (the `_resolve_slice_dir(NNN)`
+    helper + the BCR-1 test repoint). R-15 STAYS `**Status**: mitigating`
+    after slice-056 (per /critique m2 ACCEPTED-FIXED — retirement gate is
+    two-part). The shippability row #56 IS the structural audit trail
+    that slice-056 retired the R-15 part-(a) class; severing the R-15 cite
+    via a future row rewrite would silently break the audit trail.
+
+    A future row rewrite that drops the R-15 cite must FAIL this assertion
+    — preserves the slice-056 / R-15 trace axis even as the catalog
+    evolves.
+
+    Rule reference: slice-056 (SCPD-1 consumer-reference propagation;
+    R-15 retirement part-(a) audit trail; slice-054 M-add-1 traceability-
+    axis pin discipline analogously applied to risk-register-driven slices).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 56 | slice-056-fix-bcr1-round-trip-test-archive-paths" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #56 for "
+        "slice-056 — R-15 mitigation audit trail incomplete (the "
+        "/validate-slice catalog runner cannot guard the slice-056 "
+        "R-15 part-(a) critical path)"
+    )
+    assert "R-15" in catalog, (
+        "architecture/shippability.md row #56 missing the 'R-15' rule "
+        "reference — consumer-reference propagation broken at the "
+        "risk-register-ID layer (a future row rewrite that drops the "
+        "R-15 cite would silently sever the slice-056 R-15 retirement "
+        "audit trail per slice-054 /critique-review M-add-1 traceability-"
+        "axis pin discipline)"
+    )
