@@ -3657,3 +3657,109 @@ def test_v_0_61_0_bcr_1_shippability_consumer_propagation():
         "reference — consumer-reference propagation broken at the "
         "rule-ID layer"
     )
+
+
+def test_v_0_62_0_pvfs_1_entry_present_in_repo():
+    """methodology-changelog v0.62.0 / PVFS-1 entry-pin (content-bearing
+    per slice-051 precedent; NOT a thin presence check; pins the
+    load-bearing surface that, with the shippability-consumer-propagation
+    pin and the catalog-rowed `test_pyproject_version_matches_version_file.py`,
+    defeats the slice-037 M-add-1 tautological-green class for the slice's
+    primary deliverable).
+
+    **In-repo-only body** (slice-041 M3 discipline): reads ONLY the
+    git-tracked in-repo entry via `read_file` (no `Path.home()`), so
+    `shippability_decoupling_audit.classify_fn` classifies it `clean`.
+    The installed↔in-repo forward-sync of THIS entry is covered by
+    MCFS-1's whole-file gate (NOT a per-version installed read here).
+
+    Defect class: the v0.62.0 entry silently lost / never added → the
+    PVFS-1 minting, its ADR-056 / new-rule-supersedes-nothing lineage,
+    the 4-part PMI-1 atomic bump anchor, the Rule reference META-1
+    entry-pin obligation, AND the Pyproject Version Forward Sync
+    rule-name expansion all become unrecoverable from the changelog.
+
+    Rule reference: PVFS-1 (slice-054; ADR-056; mints a new rule;
+    supersedes nothing; extends the PMI-1 / AVFS-1 / MCFS-1 forward-sync
+    family on the pyproject.toml leg).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.62.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.62.0 entry header — "
+        "slice-054 PVFS-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.62.0")
+    assert "PVFS-1" in body, (
+        "v0.62.0 entry body missing the 'PVFS-1' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-056" in body, (
+        "v0.62.0 entry body must record the ADR-056 minting decision "
+        "(the slice-054 Inclusion-heuristic route-B selection)"
+    )
+    assert "Pyproject Version Forward Sync" in body, (
+        "v0.62.0 entry body missing the 'Pyproject Version Forward Sync' "
+        "rule-name expansion — future readers parsing the changelog "
+        "alone must be able to find the rule by full name, not just ID"
+    )
+    assert "mints a new rule" in body and "supersedes nothing" in body, (
+        "v0.62.0 entry must state PVFS-1 'mints a new rule' (NOT '-D' "
+        "refinement, NOT extension-without-new-RULE-ID) AND 'supersedes "
+        "nothing' (lineage clean — extends the PMI-1 / AVFS-1 / MCFS-1 "
+        "forward-sync family, does not supersede any of them)"
+    )
+    assert "4-part PMI-1 atomic bump" in body, (
+        "v0.62.0 entry body missing the '4-part PMI-1 atomic bump' "
+        "anchor — the slice-054 atomic-bump-leg discipline (VERSION + "
+        "plugin.yaml.version + ## v0.62.0 header + ~/.claude/ai-sdlc-"
+        "VERSION) must be named so a future reader sees the 4-leg "
+        "obligation, not just the rule mint"
+    )
+    assert "Rule reference" in body, (
+        "v0.62.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+
+
+def test_v_0_62_0_pvfs_1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the PVFS-1 consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #54) so the slice-054 critical path can never silently regress
+    (slice-040 lesson — an uncatalogued pin's breakage is invisible to
+    the catalog runner).
+
+    Per /critique-review M-add-1 (slice-054): row #54 MUST cite BOTH
+    `PVFS-1` (the new RULE-ID) AND `SC-001` (the originating BCR-1
+    finding ID) — slice-054 is the first end-to-end BCR-1 round-trip
+    dogfood, so the SC-NNN trace axis MUST be regression-pinned on the
+    slice that mints it. A future row rewrite that drops the SC-001 cite
+    would silently sever the `/diagnose → /slice → /reflect` traceability
+    axis slice-053 BCR-1 just shipped to enforce.
+
+    In-repo-only (reads the git-tracked catalog via `read_file`; no
+    `Path.home()` — classifies `clean`).
+
+    Rule reference: PVFS-1 (slice-054; ADR-056; RPCD-1/SCPD-1 consumer-
+    reference propagation; M-add-1 BCR-1-traceability-axis expansion).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 54 | slice-054-fix-pyproject-toml-version-drift" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #54 for "
+        "slice-054 — RPCD-1/SCPD-1 PVFS-1 consumer-reference propagation "
+        "incomplete (the /validate-slice catalog runner cannot guard the "
+        "PVFS-1 pyproject↔VERSION critical path)"
+    )
+    assert "PVFS-1" in catalog, (
+        "architecture/shippability.md row #54 missing the 'PVFS-1' rule "
+        "reference — consumer-reference propagation broken at the "
+        "rule-ID layer"
+    )
+    assert "SC-001" in catalog, (
+        "architecture/shippability.md row #54 missing the 'SC-001' "
+        "originating-finding reference — slice-054 is the first BCR-1 "
+        "round-trip dogfood, so the SC-NNN trace axis MUST be "
+        "regression-pinned on the row that exists because of the SC-NNN "
+        "(per /critique-review M-add-1)"
+    )
