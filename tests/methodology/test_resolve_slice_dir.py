@@ -201,23 +201,29 @@ def test_raises_assertion_with_diagnostic_when_neither_found() -> None:
 
 
 # Whitelist for the corpus backstop. Each entry is (relative_path, line_number).
-# This is the explicit deferral surface for R-15-class instances slice-056
-# acknowledges-but-does-not-fix.
 #
-# Whitelist-shrinkage mechanism for R-15 part-(b) retirement: when the
-# slice-034 retrofit ships and removes the slice-034 literal from
-# test_ptffd1_no_false_positive.py, REMOVE the entry below + the assertion
-# becomes "match-set ⊆ ∅" → empty match-set required → R-15 part-(b)
-# structurally satisfied without waiting for cross-slice observational
-# evidence. This is the M-add-2 closure mechanism per slice-056
-# critique-review.md.
-_R15_CORPUS_WHITELIST: set[tuple[str, int]] = {
-    # slice-034 archive-path reference in PTFFD-1 corpus regression test.
-    # Already on the archive side, not breaking today, latent under slice-034
-    # rename pressure only. Deferred to the slice-034 retrofit slice per
-    # slice-056 /critique M1 ACCEPTED-FIXED.
-    ("tests/methodology/test_ptffd1_no_false_positive.py", 70),
-}
+# Retirement-discharge witness (slice-057, 2026-05-21): the whitelist is now
+# empty because slice-057 retrofitted the lone deferred R-15-class entry (the
+# PTFFD-1 corpus regression test's slice-034 archive-path reference) to use
+# the slice-056 _resolve_slice_dir helper. Empty whitelist + empty match-set
+# means BOTH halves of the backstop assertion are trivially satisfied today,
+# AND any future R-15-class literal added anywhere under tests/methodology
+# will trip the unexpected-matches half (the durable forever-pin). The
+# missing_whitelist half stays as a regression-tripwire if a future
+# maintainer adds a stale whitelist entry (a tuple referring to a file or
+# line that no longer carries the offending construction).
+#
+# This is the M-add-2 structural closure mechanism per slice-056
+# critique-review.md M-add-2 ACCEPTED-FIXED: whitelist-shrinkage to the
+# empty set is the structural witness for R-15 part-(b) retirement, without
+# waiting for cross-slice observational evidence.
+#
+# R-15 is RETIRED in architecture/risk-register.md as of slice-057
+# (retirement-discharge class — no methodology-changelog entry / no ADR / no
+# VERSION bump per slice-040 R-10 / slice-043 R-6 / slice-045 R-11 / slice-
+# 056 R-15-part-(a) N=4 precedent; MEPD-1(b) discharged-by-name against the
+# META-1 vacuous-satisfaction assertion at test_methodology_changelog.py).
+_R15_CORPUS_WHITELIST: set[tuple[str, int]] = set()
 
 # Regex for R-15-class archive-fragile literal-path-RHS: matches both active
 # (``REPO_ROOT / "architecture" / "slices" / "slice-NNN-...``) AND archive
