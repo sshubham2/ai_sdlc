@@ -14,3 +14,4 @@ architecture/
 build/
 ai_sdlc_tools.egg-info/
 graphify-out/
+diagnose-out/
