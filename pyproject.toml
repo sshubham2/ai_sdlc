@@ -1,9 +1,9 @@
 # AI SDLC executable methodology tools — pip-installable package.
 #
-# Per INST-1 (methodology-changelog.md v0.20.0). The pipeline ships skills,
+# Per INST-1. The pipeline ships skills,
 # agents, and templates via cp -r in INSTALL.md (those are markdown files
 # Claude Code reads directly from ~/.claude/). The executable methodology
-# tools (the 13 audit modules under tools/) are a Python package that ships
+# tools (the audit modules under tools/ — see plugin.yaml for the canonical inventory) are a Python package that ships
 # via pip install instead — that way `$PY -m tools.<name>` resolves from the
 # shared venv's site-packages, source-independent.
 #
@@ -17,7 +17,7 @@
 
 [project]
 name = "ai-sdlc-tools"
-version = "0.20.0"
+version = "0.62.0"
 description = "Executable methodology tools for the AI SDLC pipeline (audits, linters, validators)"
 readme = "README.md"
 license = { text = "see repository" }
@@ -63,6 +63,6 @@ build-backend = "setuptools.build_meta"
 packages = ["tools"]
 
 [tool.setuptools.package-data]
-# The tools package itself has no non-Python data files in v0.20.0.
+# The tools package itself has no non-Python data files.
 # (Future audits that need bundled fixtures or templates would declare them here.)
 tools = []
