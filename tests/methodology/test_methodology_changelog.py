@@ -3551,3 +3551,109 @@ def test_v_0_60_0_obo_shippability_consumer_propagation():
         "reference — consumer-reference propagation broken at the "
         "rule-ID layer"
     )
+
+
+# --- Slice-053 / v0.61.0 BCR-1 backlog-round-trip entry pin + shippability ---
+
+
+def test_v_0_61_0_bcr_1_backlog_round_trip_entry_present_in_repo():
+    """methodology-changelog v0.61.0 / BCR-1 backlog-round-trip entry-pin
+    (content-bearing — slice-051 precedent; NOT a thin presence check; pins
+    the load-bearing surface that, with the CLAUDE.md enumeration prose-pin
+    and the collected+catalog-rowed `test_bcr_1_backlog_round_trip.py`,
+    defeats the slice-037 M-add-1 tautological-green class for the slice's
+    primary deliverable).
+
+    **In-repo-only body** (slice-041 M3 discipline): reads ONLY the
+    git-tracked in-repo entry via `read_file` (no `Path.home()`), so
+    `shippability_decoupling_audit.classify_fn` classifies it `clean`.
+    The installed↔in-repo forward-sync of THIS entry is covered by
+    MCFS-1's whole-file gate (NOT a per-version installed read here).
+
+    Defect class: the v0.61.0 entry silently lost / never added → the
+    BCR-1 minting, its ADR-055-extends-BC-PROJ-10/Inclusion-heuristic
+    lineage, the two SKILL.md surfaces it covers (`/slice` consume +
+    `/reflect` round-trip), the new-rule-supersedes-nothing treatment, and
+    the M4 closes-sentinel trigger refinement all become unrecoverable
+    from the changelog.
+
+    Rule reference: BCR-1 (slice-053; ADR-055 extends the BC-PROJ-10 /
+    Inclusion-heuristic lineage; mints a new rule; supersedes nothing).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.61.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.61.0 entry header — "
+        "slice-053 BCR-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.61.0")
+    assert "BCR-1" in body, (
+        "v0.61.0 entry body missing the 'BCR-1' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-055" in body and "extends" in body, (
+        "v0.61.0 entry body must record the ADR-055 extension of the "
+        "BC-PROJ-10 / Inclusion-heuristic lineage (slice-052)"
+    )
+    assert "BC-PROJ-10" in body, (
+        "v0.61.0 entry body missing the 'BC-PROJ-10' lineage anchor — "
+        "the slice-052 Inclusion-heuristic precedent must be cited so "
+        "future readers can trace why BCR-1 is in the methodology-surface "
+        "behavior-change class"
+    )
+    assert "Inclusion-heuristic" in body or "Inclusion heuristic" in body, (
+        "v0.61.0 entry body missing the 'Inclusion-heuristic' / 'Inclusion "
+        "heuristic' anchor — the slice-052 BC-PROJ-10 dischargement law "
+        "(this slice IS a methodology-surface behavior change → 4-part "
+        "PMI-1 bump path) must be named explicitly"
+    )
+    assert "/slice" in body and "/reflect" in body, (
+        "v0.61.0 entry body missing one or both of the two SKILL.md "
+        "surfaces (/slice consume + /reflect round-trip) — the M2 "
+        "content-bearing two-surface membership pin, NOT a tautological "
+        "presence check"
+    )
+    assert "mints a new rule" in body and "supersedes nothing" in body, (
+        "v0.61.0 entry must state BCR-1 'mints a new rule' (NOT '-D' "
+        "refinement, NOT extension-without-new-RULE-ID) AND 'supersedes "
+        "nothing' (lineage clean — extends BC-PROJ-10, does not supersede "
+        "the Inclusion-heuristic family)"
+    )
+    assert "Closes:" in body, (
+        "v0.61.0 entry must record the M4 closes-sentinel trigger "
+        "refinement — `**Closes:** SC-\\d{3}` sentinel-anchored regex, "
+        "NOT bare `SC-\\d{3}` (mentioned-vs-closes disambiguation per "
+        "slice-053 /critique M4 ACCEPTED-FIXED)"
+    )
+    assert "Rule reference" in body, (
+        "v0.61.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+
+
+def test_v_0_61_0_bcr_1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the BCR-1 consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #53) so the slice-053 critical path can never silently regress
+    (slice-040 lesson — an uncatalogued pin's breakage is invisible to
+    the catalog runner).
+
+    In-repo-only (reads the git-tracked catalog via `read_file`; no
+    `Path.home()` — classifies `clean`).
+
+    Rule reference: BCR-1 (slice-053; ADR-055; RPCD-1/SCPD-1 consumer-
+    reference propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 53 | slice-053-wire-backlog-md-into-slice-and-reflect" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #53 for "
+        "slice-053 — RPCD-1/SCPD-1 BCR-1 consumer-reference propagation "
+        "incomplete (the /validate-slice catalog runner cannot guard the "
+        "BCR-1 backlog-consume + round-trip critical path)"
+    )
+    assert "BCR-1" in catalog, (
+        "architecture/shippability.md row #53 missing the 'BCR-1' rule "
+        "reference — consumer-reference propagation broken at the "
+        "rule-ID layer"
+    )
