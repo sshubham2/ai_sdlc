@@ -37,10 +37,16 @@ from __future__ import annotations
 
 import re
 
-from tests.methodology.conftest import REPO_ROOT
+from tests.methodology.conftest import REPO_ROOT, _resolve_slice_dir
 
 
-SLICE_054_DIR = REPO_ROOT / "architecture" / "slices" / "slice-054-fix-pyproject-toml-version-drift"
+# R-15 fix (slice-056; archive-aware vault-test discipline): SLICE_054_DIR is
+# now resolved via _resolve_slice_dir(54) which tries the active path first,
+# then falls back to the archive path. The previous hardcoded literal RHS
+# broke when slice-054 was archived by /reflect. See R-15 in
+# architecture/risk-register.md and tests/methodology/test_resolve_slice_dir.py
+# for the corpus class-closure backstop test.
+SLICE_054_DIR = _resolve_slice_dir(54)
 BACKLOG_PATH = REPO_ROOT / "diagnose-out" / "backlog.md"
 
 
