@@ -3804,3 +3804,49 @@ def test_shippability_row_56_present_and_cites_r15():
         "audit trail per slice-054 /critique-review M-add-1 traceability-"
         "axis pin discipline)"
     )
+
+
+def test_shippability_row_57_present_and_cites_r15():
+    """SCPD-1 consumer-reference propagation: shippability row #57 MUST
+    cite BOTH `slice-057` AND `R-15` so the slice-057 R-15-retirement
+    audit trail survives future row rewrites (slice-054 /critique-review
+    M-add-1 BCR-1-traceability-axis pin discipline applied analogously to
+    risk-register-driven slices, per slice-056 design.md L23/L185
+    precedent — extended at slice-057 from R-15-mitigation to R-15-
+    retirement-discharge framing).
+
+    Slice-057 ships the R-15 part-(b) fix (the `_resolve_slice_dir(34)`
+    retrofit + the `_R15_CORPUS_WHITELIST` shrink to `set()`). R-15
+    transitions `**Status**: mitigating` → `retired` at architecture/
+    risk-register.md as of slice-057 ship (closes the two-part retirement
+    gate slice-056 pre-engineered). The shippability row #57 IS the
+    structural audit trail that slice-057 discharged the R-15 part-(b)
+    class; severing the R-15 cite via a future row rewrite would silently
+    break the audit trail.
+
+    A future row rewrite that drops the R-15 cite must FAIL this
+    assertion — preserves the slice-057 / R-15 trace axis even as the
+    catalog evolves.
+
+    Rule reference: slice-057 (SCPD-1 consumer-reference propagation;
+    R-15 retirement part-(b) audit trail; slice-054 M-add-1 traceability-
+    axis pin discipline analogously applied to risk-register-driven
+    slices per slice-056 row-#56 precedent).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 57 | slice-057-retire-r15-via-slice-034-resolve-slice-dir-retrofit" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #57 for "
+        "slice-057 — R-15 retirement audit trail incomplete (the "
+        "/validate-slice catalog runner cannot guard the slice-057 "
+        "R-15 part-(b) critical path)"
+    )
+    assert "R-15" in catalog, (
+        "architecture/shippability.md row #57 missing the 'R-15' rule "
+        "reference — consumer-reference propagation broken at the "
+        "risk-register-ID layer (a future row rewrite that drops the "
+        "R-15 cite would silently sever the slice-057 R-15 retirement "
+        "audit trail per slice-054 /critique-review M-add-1 traceability-"
+        "axis pin discipline)"
+    )

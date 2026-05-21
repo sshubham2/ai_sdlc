@@ -13,7 +13,7 @@ Rule reference: PTFFD-1 (slice-037; AC3; B2 zero-false-positive linchpin).
 """
 import re
 
-from tests.methodology.conftest import REPO_ROOT
+from tests.methodology.conftest import REPO_ROOT, _resolve_slice_dir
 from tools._pyfn import is_checkable_function_name
 from tools.shippability_path_audit import audit_catalog_file
 
@@ -66,10 +66,7 @@ def test_slice034_prose_test_function_is_not_false_positive():
 
     Rule reference: PTFFD-1 (AC3; B2 named regression fixture).
     """
-    slice034 = (
-        REPO_ROOT / "architecture" / "slices" / "archive"
-        / "slice-034-fix-tf1-audit-field-line-regex" / "mission-brief.md"
-    )
+    slice034 = _resolve_slice_dir(34) / "mission-brief.md"
     assert slice034.is_file(), f"expected archived slice-034 brief at {slice034}"
     text = slice034.read_text(encoding="utf-8")
     assert "(full existing module" in text, (
