@@ -1618,6 +1618,51 @@ def test_bc_proj_8_has_expected_structural_identity():
     assert p8.check and p8.check.strip(), "BC-PROJ-8 check must be non-empty"
 
 
+def test_bc_proj_11_has_expected_structural_identity():
+    """BC-PROJ-11 (slice-058 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity (recipe-doc version-literal rule).
+    Canonical fixture = subject; these literal constants = git-tracked oracle
+    (ADR-028). BCI-1 separately asserts the gitignored live build-checks.md
+    matches the fixture.
+
+    Defect class: a silent truncation / mis-author of BC-PROJ-11 would lose
+    the "recipe docs must reference VERSION dynamically, never hard-code a
+    version literal" evergreen check with no loud signal (R-4 class).
+
+    BC-PROJ-11 carries NO negative anchors by design: its primary signal is
+    the `INSTALL.md, README.md` glob, and the negative-anchor final filter
+    suppresses the glob path too — a real recipe-doc-editing slice that
+    happened to mention a meta-discussion token would be wrongly suppressed
+    (BC-PROJ-4/5 precedent: glob rules without negative anchors).
+
+    Rule reference: BC-1 (slice-058 /reflect Step 5b; user-approved promotion).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-11" in p_by_id, "BC-PROJ-11 not parsed from project fixture"
+    p11 = p_by_id["BC-PROJ-11"]
+    assert p11.severity == "Important", f"BC-PROJ-11 severity: {p11.severity!r}"
+    assert p11.applies_to == ("INSTALL.md", "README.md"), (
+        f"BC-PROJ-11 applies_to mismatch: got {p11.applies_to!r}"
+    )
+    assert p11.trigger_keywords == (
+        "install", "recipe", "methodology version", "version literal",
+    ), f"BC-PROJ-11 trigger_keywords mismatch: got {p11.trigger_keywords!r}"
+    assert p11.trigger_anchors == ("install", "recipe"), (
+        f"BC-PROJ-11 trigger_anchors mismatch: got {p11.trigger_anchors!r}"
+    )
+    assert p11.negative_anchors == (), (
+        f"BC-PROJ-11 negative_anchors mismatch (expected none): "
+        f"got {p11.negative_anchors!r}"
+    )
+    assert p11.check and p11.check.strip(), "BC-PROJ-11 check must be non-empty"
+
+
 def test_bc_global_3_has_expected_structural_identity():
     """BC-GLOBAL-3 (slice-047 /reflect Step-5b global promotion) MUST parse to
     its expected full structural identity. The canonical global fixture is the

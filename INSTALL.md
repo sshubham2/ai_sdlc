@@ -15,7 +15,7 @@ That's it. You take it from there.
 
 ## What you're installing
 
-The AI SDLC pipeline (methodology v0.54.0 — see `VERSION`):
+The AI SDLC pipeline (methodology version: see `VERSION`):
 - **Drop-in skills** — copied to `~/.claude/skills/`
 - **5 named subagents** — copied to `~/.claude/agents/`
 - **4 templates** — copied to `~/.claude/templates/`
@@ -166,6 +166,30 @@ $PY -c "import tools.build_checks_audit; print('ai-sdlc-tools OK')"
 ```
 
 If the import fails with `ModuleNotFoundError`: the install didn't complete; check pip output. Common cause: `pyproject.toml` missing from `$AI_SDLC_DIR` (an older source folder predating the `pyproject.toml` packaging won't have it; tell the user to update the source).
+
+### 3h: Global CLAUDE.md — wakeup-prompt discipline
+
+Check `~/.claude/CLAUDE.md` for a `# Wakeup-prompt discipline` heading. If that heading is already present, skip the append (idempotent re-run; no duplicate append).
+
+Else: append this block. Show the user the diff first and get confirmation — the same discipline as Step 3d (and "What you should NOT do": never modify the global CLAUDE.md without showing the diff):
+
+````
+# Wakeup-prompt discipline
+
+`ScheduleWakeup` replays its `prompt` argument **literally, as fresh user
+input**, when the scheduled time arrives — even if the work it was meant to
+track already finished.
+
+- Never pass a slash-command-shaped string (`/foo ...`) as a no-op label,
+  heartbeat, or fallback wakeup. It is not a label — the runtime re-fires
+  that command as spurious input.
+- Harness-tracked work (the Agent tool, background tasks) notifies you on
+  completion; you do not need a fallback wakeup to poll it.
+- Intentional wakeup prompts — `/loop`'s own prompt, a genuine scheduled
+  task — are unaffected. This rule targets only the no-op / heartbeat misuse.
+````
+
+This block is advisory — it records a harness-tool-usage guardrail, not pipeline runtime config. If `~/.claude/CLAUDE.md` does not exist, the append creates it. If the user declines the confirmation, skip the append and continue the install.
 
 ## Step 4: Verify (the same preflight `/triage` and `/adopt` use)
 
