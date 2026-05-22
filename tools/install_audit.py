@@ -22,7 +22,14 @@ Usage:
     python -m tools.install_audit
     python -m tools.install_audit --claude-dir ~/.claude
     python -m tools.install_audit --json
-    python -m tools.install_audit --strict      # also verify all 13 tool modules import
+    python -m tools.install_audit --strict      # also verify every canonical tool module imports
+
+Note: `--strict`'s import check resolves `tools.<name>` from `sys.path` — run
+from the AI SDLC source repo it imports the in-repo `tools/` package, not the
+venv-installed copy (the CWD-shadowing class ADR-058 / TVFS-1 addresses on the
+version axis). The installed-package version gate is
+`tools.ai_sdlc_tools_version_forward_sync` (TVFS-1); auditing installed
+*importability* is out of scope for this module.
 
 Exit codes:
     0  clean — install matches canonical inventory
@@ -64,7 +71,9 @@ _CANONICAL_METADATA: tuple[str, ...] = (
     "methodology-changelog.md", "ai-sdlc-VERSION",
 )
 
-# The 20 tool modules post-slice-027 (18 audits + lint + install_audit itself).
+# The canonical tool modules (audits + lint + install_audit itself). Each new
+# audit/lint module adds an entry here and a paired plugin.yaml entry (the
+# test_install_audit.py pairing keeps the two lists in lock-step).
 # Slice-007 added tools.critique_agent_drift_audit (CAD-1 — Critic Agent Drift).
 # Slice-021 added tools.branch_workflow_audit (BRANCH-1 — branch-per-slice workflow).
 # Slice-023 added tools.utf8_stdout_audit (UTF8-STDOUT-1 — default UTF-8 stdout
@@ -74,7 +83,10 @@ _CANONICAL_METADATA: tuple[str, ...] = (
 # /build-slice on a skipped mandatory /critique-review).
 # Slice-027 added tools.pipeline_chain_audit (PCA-1 — verify the 8-skill
 # pipeline-chain auto-advance directives match the canonical loop).
+# Slice-059 added tools.ai_sdlc_tools_version_forward_sync (TVFS-1 — assert the
+# installed ai-sdlc-tools pip-package version equals VERSION).
 _CANONICAL_TOOLS: tuple[str, ...] = (
+    "tools.ai_sdlc_tools_version_forward_sync",
     "tools.ai_sdlc_version_forward_sync",
     "tools.branch_workflow_audit",
     "tools.build_checks_audit",
