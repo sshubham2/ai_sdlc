@@ -3850,3 +3850,91 @@ def test_shippability_row_57_present_and_cites_r15():
         "audit trail per slice-054 /critique-review M-add-1 traceability-"
         "axis pin discipline)"
     )
+
+
+def test_v_0_63_0_tvfs_1_entry_present_in_repo():
+    """methodology-changelog v0.63.0 / TVFS-1 entry-pin (content-bearing
+    per slice-051 precedent; NOT a thin presence check).
+
+    **In-repo-only body** (slice-041 M3 discipline): reads ONLY the
+    git-tracked in-repo entry via `read_file` (no `Path.home()`), so
+    `shippability_decoupling_audit.classify_fn` classifies it `clean`.
+    The installed↔in-repo forward-sync of THIS entry is covered by
+    MCFS-1's whole-file gate (NOT a per-version installed read here).
+
+    Defect class: the v0.63.0 entry silently lost / never added → the
+    TVFS-1 minting, its ADR-058 / new-rule-supersedes-nothing lineage,
+    the 4-part PMI-1 atomic bump anchor, the Rule reference META-1
+    entry-pin obligation, AND the `ai-sdlc-tools Version Forward-Sync`
+    rule-name expansion all become unrecoverable from the changelog.
+
+    Rule reference: TVFS-1 (slice-059; ADR-058; mints a new rule;
+    supersedes nothing; extends the PMI-1 / PVFS-1 / AVFS-1 / MCFS-1
+    forward-sync family onto the installed-pip-artifact leg).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.63.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.63.0 entry header — "
+        "slice-059 TVFS-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.63.0")
+    assert "TVFS-1" in body, (
+        "v0.63.0 entry body missing the 'TVFS-1' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-058" in body, (
+        "v0.63.0 entry body must record the ADR-058 minting decision "
+        "(the slice-059 Route-C standalone-tool selection)"
+    )
+    assert "ai-sdlc-tools Version Forward-Sync" in body, (
+        "v0.63.0 entry body missing the 'ai-sdlc-tools Version "
+        "Forward-Sync' rule-name expansion — future readers parsing the "
+        "changelog alone must be able to find the rule by full name, not "
+        "just ID"
+    )
+    assert "mints a new rule" in body and "supersedes nothing" in body, (
+        "v0.63.0 entry must state TVFS-1 'mints a new rule' AND "
+        "'supersedes nothing' (lineage clean — extends the PMI-1 / "
+        "PVFS-1 / AVFS-1 / MCFS-1 forward-sync family, does not "
+        "supersede any of them)"
+    )
+    assert "4-part PMI-1 atomic bump" in body, (
+        "v0.63.0 entry body missing the '4-part PMI-1 atomic bump' "
+        "anchor — the slice-059 atomic-bump-leg discipline (VERSION + "
+        "plugin.yaml.version + pyproject.toml.version + ## v0.63.0 "
+        "header + ~/.claude/ai-sdlc-VERSION) must be named so a future "
+        "reader sees the bump obligation, not just the rule mint"
+    )
+    assert "Rule reference" in body, (
+        "v0.63.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+
+
+def test_v_0_63_0_tvfs_1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the TVFS-1 consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #59) so the slice-059 critical path can never silently regress
+    (slice-040 lesson — an uncatalogued pin's breakage is invisible to
+    the catalog runner).
+
+    In-repo-only (reads the git-tracked catalog via `read_file`; no
+    `Path.home()` — classifies `clean`).
+
+    Rule reference: TVFS-1 (slice-059; ADR-058; RPCD-1/SCPD-1 consumer-
+    reference propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 59 | slice-059-add-tools-package-version-gate" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #59 for "
+        "slice-059 — RPCD-1/SCPD-1 TVFS-1 consumer-reference propagation "
+        "incomplete (the /validate-slice catalog runner cannot guard the "
+        "TVFS-1 installed-pip-package critical path)"
+    )
+    assert "TVFS-1" in catalog, (
+        "architecture/shippability.md row #59 missing the 'TVFS-1' rule "
+        "reference — consumer-reference propagation broken at the "
+        "rule-ID layer"
+    )

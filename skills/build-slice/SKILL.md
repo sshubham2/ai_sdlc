@@ -152,6 +152,7 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **Methodology-changelog forward-sync audit passes (MCFS-1)** — see "Methodology-changelog forward-sync audit" below
 - [ ] **State-transition stale-pin audit passes (STP-1)** — see "State-transition stale-pin audit" below
 - [ ] **ai-sdlc-VERSION forward-sync audit passes (AVFS-1)** — see "ai-sdlc-VERSION forward-sync audit" below
+- [ ] **ai-sdlc-tools version forward-sync audit passes (TVFS-1)** — see "ai-sdlc-tools version forward-sync audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
 
@@ -294,6 +295,23 @@ Refusal semantics:
 AVFS-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1 / STP-1) — its programmatic gate is `tools/ai_sdlc_version_forward_sync.py`. It is **non-opt-out and UNGATED** here: this Step 6 checklist item runs **every slice regardless of whether a build-checks rule was promoted** (distinct from `/reflect`'s rule-promotion-gated Step 5b — folding AVFS-1 into a rule-promotion gate would silently disable it on a version-bumping-but-no-rule-promoted slice, the R-7/slice-022 silent-disable class). The complementary `/reflect` wiring is its OWN dedicated Step 5b-avfs (also ungated), NOT part of Step 5b.
 
 Bootstrap (slice-050 only): slice-050 authors AVFS-1. The bootstrap is **conditional and weaker than MCFS-1's** (M1): at slice-050's own Step 6 in-repo `VERSION` is `0.58.0`, so AVFS-1 exits 0 ONLY IF this slice's own 4-part PMI-1 bump correctly forward-synced installed `~/.claude/ai-sdlc-VERSION` → `0.58.0` — and that leg is precisely the N=2-drift-prone manual step AVFS-1 exists to gate. A **non-zero AVFS-1 at slice-050's own Step 6 is the EXPECTED signal to perform/repair the installed-VERSION forward-sync — NOT a slice defect**; re-run until exit 0. Every slice after 050 inherits a self-gating AVFS-1 (which from slice-051 behaves exactly like MCFS-1's bootstrap, the bump leg then a routine part of any version-bumping slice).
+
+#### ai-sdlc-tools version forward-sync audit (TVFS-1)
+
+Per **TVFS-1** (`methodology-changelog.md` v0.63.0; slice-059; [[ADR-058]]; extends the slice-050/AVFS-1 + slice-041/MCFS-1 forward-sync-via-deterministic-downstream-gate lineage): the PMI-1 version bump's installed **`ai-sdlc-tools` pip-distribution** leg has no gate — PVFS-1 keeps `pyproject.toml` correct so the *next* `pip install` builds a correct wheel, but nothing forces the *re-install* (the venv package drifted silently to `0.20.0` while the source advanced to `0.62.0`). TVFS-1 asserts the version of the `ai-sdlc-tools` distribution installed in the running interpreter's venv site-packages equals trimmed in-repo `VERSION`. The read is scoped to `sysconfig.get_path("purelib")` — the naive `importlib.metadata.version()` is shadowed by the in-repo `ai_sdlc_tools.egg-info/` build artifact (B1). Run:
+
+```bash
+$PY -m tools.ai_sdlc_tools_version_forward_sync
+```
+
+Refusal semantics:
+- `drift` (exit 1, HALT): installed `ai-sdlc-tools` version ≠ in-repo `VERSION`. Message is attributed: *"AI-SDLC-TOOLS VERSION DRIFT — re-run INSTALL.md Step 3g (`$PY -m pip install --upgrade <source>`); this is NOT a slice regression"*.
+- `warn` (exit 0): `ai-sdlc-tools` not installed in the running interpreter's venv site-packages — untracked/environment-dependent; a machine that hasn't installed the plugin must not HALT. The WARN message names `sys.executable` + `purelib` (M3 — TVFS-1's WARN is weaker than AVFS-1's: "not in this interpreter's site-packages" can co-exist with a stale install reachable another way).
+- `usage` (exit 2): in-repo `VERSION` missing/unreadable, repo root unresolvable, OR >1 `ai-sdlc-tools` distribution in site-packages (a stale duplicate `.dist-info` from an interrupted upgrade — distinct duplicate-distribution remediation message, M-add-2).
+
+TVFS-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1 / STP-1 / AVFS-1) — its programmatic gate is `tools/ai_sdlc_tools_version_forward_sync.py`. It is **non-opt-out and UNGATED** here: this Step 6 checklist item runs **every slice regardless of whether a build-checks rule was promoted** (folding TVFS-1 into a rule-promotion gate would silently disable it on a version-bumping-but-no-rule-promoted slice, the R-7/slice-022 silent-disable class). The complementary `/reflect` wiring is its OWN dedicated Step 5b-tvfs (also ungated), NOT part of Step 5b.
+
+Bootstrap (slice-059 only): slice-059 authors TVFS-1. The bootstrap is **conditional** (AVFS-1 precedent): slice-059's build sequence runs `$PY -m pip install --upgrade .` after the 4-part PMI-1 bump to refresh the installed `ai-sdlc-tools` → `0.63.0`. A **non-zero TVFS-1 at slice-059's own Step 6 before that re-install is the EXPECTED signal to perform the re-install — NOT a slice defect**; re-run until exit 0. Every slice after 059 inherits a self-gating TVFS-1 — any version-bumping slice must `$PY -m pip install --upgrade <source>` before Step 6 or TVFS-1 HALTs.
 
 #### Test-first audit (TF-1)
 
