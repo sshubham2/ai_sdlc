@@ -39,6 +39,7 @@ Compute the slice's filtered code diff vs the default branch using the **union-o
 ```bash
 default=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
 [ -z "$default" ] && default=$(git config init.defaultBranch 2>/dev/null)
+[ -z "$default" ] && { echo "default-branch-unresolvable: neither origin/HEAD nor init.defaultBranch resolved" >&2; exit 2; }
 base=$(git merge-base "$default" HEAD)
 
 # Source (i): working-tree-vs-base (modified + staged-but-uncommitted adds)
