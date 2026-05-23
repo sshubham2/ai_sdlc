@@ -76,3 +76,23 @@ def test_step4_5_5_consumes_machine_stable_command():
     )
     # PTFCD-1 must now read the Machine-cmd cell, not the Command cell.
     assert "every row's **Machine-cmd** cell resolves" in VALIDATE
+
+
+def test_validate_slice_predecessor_is_code_review():
+    """Per CRSI-1 (slice-060 / methodology-changelog v0.64.0 / ADR-059):
+    skills/validate-slice/SKILL.md Pipeline-position MUST declare
+    `predecessor: /code-review` post-slice-060 (was `/build-slice` before).
+    """
+    assert "## Pipeline position" in VALIDATE, (
+        "skills/validate-slice/SKILL.md missing `## Pipeline position` block"
+    )
+    assert "**predecessor**: `/code-review`" in VALIDATE, (
+        "skills/validate-slice/SKILL.md Pipeline-position `predecessor:` field "
+        "must point to `/code-review` per CRSI-1 (slice-060)"
+    )
+    idx = VALIDATE.find("## Pipeline position")
+    pp_block = VALIDATE[idx:]
+    assert "**predecessor**: `/build-slice`" not in pp_block, (
+        "skills/validate-slice/SKILL.md Pipeline-position has stale "
+        "`predecessor: /build-slice` (pre-slice-060) — re-apply CRSI-1 flip"
+    )

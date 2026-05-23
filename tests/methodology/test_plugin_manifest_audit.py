@@ -294,3 +294,26 @@ def test_list_actual_tools_filters_leading_underscore_helpers(tmp_path: Path):
     assert "tools/real_audit.py" in actual_synth, (
         f"Non-underscore tool must be included; got: {actual_synth}"
     )
+
+
+# --- Slice-060 / CRSI-1: plugin.yaml enumeration of code-review ---
+
+def test_plugin_yaml_enumerates_code_review_skill_and_agent():
+    """Per CRSI-1 (slice-060; ADR-059): plugin.yaml MUST enumerate the
+    new /code-review skill AND the new agents/code-review.md agent. PMI-1
+    cross-validates plugin.yaml ↔ filesystem ↔ INST-1 canonical tuples.
+    """
+    from pathlib import Path
+    plugin_yaml_path = Path(__file__).resolve().parents[2] / "plugin.yaml"
+    body = plugin_yaml_path.read_text(encoding="utf-8")
+    # Skill entry under skills: section
+    assert "  - id: code-review\n    description:" in body, (
+        "plugin.yaml missing `- id: code-review` entry under skills: — "
+        "CRSI-1 (slice-060) requires PMI-1 inventory to include the new "
+        "/code-review skill"
+    )
+    # The skill description must reference CRSI-1
+    assert "CRSI-1" in body, (
+        "plugin.yaml /code-review entry description missing CRSI-1 "
+        "rule-ID reference (per slice-060 plugin.yaml entries convention)"
+    )

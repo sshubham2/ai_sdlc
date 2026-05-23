@@ -18,7 +18,8 @@ Canonical chain (the per-slice loop). `(successor, auto-advance)`:
     design-slice    -> /critique        (auto-advance: true)
     critique        -> /critique-review (auto-advance: true)   [1]
     critique-review -> /critique         (auto-advance: true)   [2]
-    build-slice     -> /validate-slice  (auto-advance: true)
+    build-slice     -> /code-review     (auto-advance: true)   [5]
+    code-review     -> /validate-slice  (auto-advance: true)   [5]
     validate-slice  -> /reflect         (auto-advance: true)
     reflect         -> /commit-slice    (auto-advance: false)  [3]
     commit-slice    -> /slice           (auto-advance: false)  [4]
@@ -38,6 +39,11 @@ Canonical chain (the per-slice loop). `(successor, auto-advance)`:
     invokes `/commit-slice` manually.
 [4] `commit-slice` is out of the auto-advance loop entirely
     (`auto-advance: false`); it is never an auto-advance target.
+[5] slice-060 / CRSI-1 (methodology-changelog v0.64.0; ADR-059) inserts
+    `/code-review` between `/build-slice` and `/validate-slice` — the
+    canonical chain grows from 8 to 9 entries. v1 advisory-only; TRI-1
+    triage + verdict-driven block on `/validate-slice` deferred to
+    slice-062.
 
 Refuse conditions (exit 1):
     malformed-block      : `## Pipeline position` section absent or a
@@ -53,7 +59,7 @@ Usage:
     python -m tools.pipeline_chain_audit --root <repo-root>
 
 Exit codes:
-    0  clean (all 8 blocks well-formed + edges match canonical chain)
+    0  clean (all 9 blocks well-formed + edges match canonical chain)
     1  violations (malformed block / successor mismatch / auto-advance mismatch)
     2  usage error (repo root unresolvable, skills/ dir or a SKILL.md missing)
 """
@@ -75,7 +81,8 @@ _CANONICAL_CHAIN: tuple[tuple[str, str, bool], ...] = (
     ("design-slice", "/critique", True),
     ("critique", "/critique-review", True),
     ("critique-review", "/critique", True),
-    ("build-slice", "/validate-slice", True),
+    ("build-slice", "/code-review", True),       # slice-060 CRSI-1: was "/validate-slice"
+    ("code-review", "/validate-slice", True),    # slice-060 CRSI-1: new walking-skeleton edge
     ("validate-slice", "/reflect", True),
     ("reflect", "/commit-slice", False),
     ("commit-slice", "/slice", False),
@@ -222,7 +229,7 @@ def audit(repo_root: Path | None = None) -> AuditResult:
                     message=(
                         f"`## Pipeline position` section absent in "
                         f"skills/{skill}/SKILL.md (PCA-1 requires it on all "
-                        f"8 covered skills)"
+                        f"9 covered skills)"
                     ),
                 )
             )
@@ -306,7 +313,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="pipeline_chain_audit",
         description=(
-            "PCA-1 audit: verify the 8-skill pipeline-chain auto-advance "
+            "PCA-1 audit: verify the 9-skill pipeline-chain auto-advance "
             "directives match the canonical loop."
         ),
     )

@@ -1,6 +1,6 @@
 """PCA-1 / AC #5 element: byte-equality of the `## Pipeline position`
 section between in-repo `skills/<name>/SKILL.md` and installed
-`~/.claude/skills/<name>/SKILL.md`, for ALL 8 covered skills.
+`~/.claude/skills/<name>/SKILL.md`, for ALL 9 covered skills.
 
 Why section-scoped (not full-file mini-CAD): only `slice` and
 `build-slice` have full-file drift tests; `install_audit` only
@@ -10,7 +10,8 @@ block is edited but the installed copy is not forward-synced, Claude
 reads a stale chain at runtime with NO existing gate catching it
 (slice-026 M-add-1 watch-list, now load-bearing). This parametrized
 test gives mission-brief AC #5 a 1:1 traceable verification element for
-every one of the 8 touched skills (first-Critic M1 + M2).
+every one of the 9 touched skills (first-Critic M1 + M2; chain length
+grew from 8 → 9 at slice-060 / CRSI-1 with the /code-review insertion).
 
 The full-file mini-CAD generalization for the 6 un-mini-CAD'd skills
 remains the deferred `add-skill-drift-audit` N>=2 follow-on (ADR-025
@@ -55,7 +56,7 @@ def test_pipeline_position_block_byte_equal_in_repo_vs_installed(skill: str):
 
     assert in_repo_sec is not None, (
         f"in-repo skills/{skill}/SKILL.md has no `## Pipeline position` "
-        f"section (PCA-1 requires it on all 8 covered skills)"
+        f"section (PCA-1 requires it on all 9 covered skills)"
     )
     assert installed_sec is not None, (
         f"installed skills/{skill}/SKILL.md has no `## Pipeline position` "

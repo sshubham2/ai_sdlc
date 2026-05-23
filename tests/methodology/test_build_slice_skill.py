@@ -203,3 +203,29 @@ def test_build_slice_crp_1_step_7b_preserves_skip_key():
     assert "Preserve the CRP-1 escape-hatch key" in BUILD
     assert "critique-review-skip:" in BUILD
 
+
+def test_build_slice_successor_is_code_review():
+    """Per CRSI-1 (slice-060 / methodology-changelog v0.64.0 / ADR-059):
+    skills/build-slice/SKILL.md Pipeline-position MUST declare
+    `successor: /code-review` post-slice-060 (was `/validate-slice` before).
+
+    Pin both the `## Pipeline position` section header AND the literal
+    successor field — positive substring assertion catches a future
+    successor flip away from /code-review.
+    """
+    assert "## Pipeline position" in BUILD, (
+        "skills/build-slice/SKILL.md missing `## Pipeline position` block"
+    )
+    assert "**successor**: `/code-review`" in BUILD, (
+        "skills/build-slice/SKILL.md Pipeline-position `successor:` field "
+        "must point to `/code-review` per CRSI-1 (slice-060)"
+    )
+    # Negative pin: the pre-slice-060 successor literal must be ABSENT
+    # from the Pipeline-position block (catches a stale revert).
+    idx = BUILD.find("## Pipeline position")
+    pp_block = BUILD[idx:]
+    assert "**successor**: `/validate-slice`" not in pp_block, (
+        "skills/build-slice/SKILL.md Pipeline-position has stale "
+        "`successor: /validate-slice` (pre-slice-060) — re-apply CRSI-1 flip"
+    )
+

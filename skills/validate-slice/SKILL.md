@@ -296,7 +296,7 @@ In Heavy mode, validation produces a compliance-grade record:
 
 ## Pipeline position
 
-- **predecessor**: `/build-slice`
+- **predecessor**: `/code-review`
 - **successor**: `/reflect`
 - **auto-advance**: true
 - **on-clean-completion**: once every acceptance criterion is PASS with evidence (aggregate `Result: PASS`) and validation.md is written, invoke `/reflect` via the Skill tool without waiting for the user.

@@ -12,7 +12,7 @@
 # both documentation and a target for the audit.
 
 name: ai-sdlc
-version: 0.63.0  # synced with VERSION file (PMI-1 audit enforces)
+version: 0.64.0  # synced with VERSION file (PMI-1 audit enforces)
 description: |
   Spec-driven SDLC for AI implementers. Hybrid of phase-driven rigor (for
   knowable domains) and slice-driven iteration (for unknowable ones).
@@ -30,6 +30,8 @@ skills:
     description: Move completed slices to slices/archive/; maintain _index.md
   - id: build-slice
     description: Plan mode + verification gates; pre-finish gate enforces all rules
+  - id: code-review
+    description: In-loop adversarial code-Critic between /build-slice and /validate-slice (CRSI-1; v1 walking-skeleton, advisory only)
   - id: commit-slice
     description: Generate audit-grade commit message from vault artifacts
   - id: critic-calibrate
@@ -76,6 +78,8 @@ skills:
     description: Reality check — real device, real user, real data; runs VAL-1 + WS-1 + ETC-1
 
 agents:
+  - id: code-review
+    description: Adversarial code-Critic for slice code DIFFS; 9 dimensions reframed for CODE (CRSI-1; slice-060)
   - id: critique
     description: Adversarial Critic for slice designs; 9 dimensions
   - id: critic-calibrate

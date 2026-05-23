@@ -3938,3 +3938,114 @@ def test_v_0_63_0_tvfs_1_shippability_consumer_propagation():
         "reference — consumer-reference propagation broken at the "
         "rule-ID layer"
     )
+
+
+# --- Slice-060 / CRSI-1 entry pinning ---
+
+def test_v_0_64_0_crsi_1_entry_present_in_repo():
+    """methodology-changelog v0.64.0 / CRSI-1 entry-pin (content-bearing
+    per slice-051 / slice-058 / slice-059 precedent; NOT a thin presence
+    check).
+
+    Asserts 8 substring presences in the v0.64.0 entry body (per
+    /critique M4 design.md "What's new" enumeration):
+      (a) `## v0.64.0` header
+      (b) `CRSI-1` rule ID
+      (c) `ADR-059` reference
+      (d) `Code-Review Skill Insertion` full rule-name expansion
+      (e) `mints a new rule` + `supersedes nothing` lineage clauses
+      (f) `5-part PMI-1 atomic bump` (per critique B2 5-part-bump fix)
+      (g) `Rule reference` literal (META-1 enforcing-assertion obligation
+          at tests/methodology/test_methodology_changelog.py:136)
+      (h) OSDG-1 / CAD-1 lineage anchor (drift-guard family-add)
+
+    Rule reference: CRSI-1 (slice-060; ADR-059; mints a new rule;
+    supersedes nothing; extends the dual-Critic design-review family +
+    OSDG-1 / CAD-1 drift-guard families onto code-as-artifact).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.64.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.64.0 entry header — "
+        "slice-060 CRSI-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.64.0")
+    assert "CRSI-1" in body, (
+        "v0.64.0 entry body missing the 'CRSI-1' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-059" in body, (
+        "v0.64.0 entry body must record the ADR-059 minting decision"
+    )
+    assert "Code-Review Skill Insertion" in body, (
+        "v0.64.0 entry body missing the 'Code-Review Skill Insertion' "
+        "rule-name expansion — future readers parsing the changelog "
+        "alone must be able to find the rule by full name, not just ID"
+    )
+    assert "mints a new rule" in body and "supersedes nothing" in body, (
+        "v0.64.0 entry must state CRSI-1 'mints a new rule' AND "
+        "'supersedes nothing' (lineage clean — extends the dual-Critic "
+        "design-review family + OSDG-1 / CAD-1 drift-guard families)"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.64.0 entry body missing the '5-part PMI-1 atomic bump' "
+        "anchor — the slice-060 PVFS-1 leg discipline (VERSION + "
+        "plugin.yaml.version + pyproject.toml.version + ## v0.64.0 "
+        "header + ~/.claude/ai-sdlc-VERSION) must be named"
+    )
+    assert "Rule reference" in body, (
+        "v0.64.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+    # OSDG-1 + CAD-1 lineage anchor (drift-guard family-add evidence)
+    assert "OSDG-1" in body and "CAD-1" in body, (
+        "v0.64.0 entry must record the OSDG-1 (skill-drift) + CAD-1 "
+        "(agent-drift) family-add lineage — the slice-049/051 + "
+        "slice-007 precedent chain"
+    )
+
+
+def test_v_0_64_0_crsi_1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the CRSI-1 consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #60) so the slice-060 critical path can never silently regress
+    (slice-040 lesson + BC-PROJ-10:173 verbatim pair-precedent — an
+    uncatalogued pin's breakage is invisible to the catalog runner).
+
+    Per /critique-review M-add-2: this paired test was missed by the
+    first Critic; meta-Critic EXTEND caught it via BC-PROJ-10 N≥17 stable
+    pair precedent across the changelog test module.
+
+    Rule reference: CRSI-1 (slice-060; ADR-059; RPCD-1/SCPD-1 consumer-
+    reference propagation).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 60 | slice-060-add-code-review-skill" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #60 for "
+        "slice-060 — RPCD-1/SCPD-1 CRSI-1 consumer-reference propagation "
+        "incomplete (the /validate-slice catalog runner cannot guard the "
+        "CRSI-1 critical path)"
+    )
+    assert "CRSI-1" in catalog, (
+        "architecture/shippability.md row #60 missing the 'CRSI-1' rule "
+        "reference — consumer-reference propagation broken at the "
+        "rule-ID layer"
+    )
+    assert "ADR-059" in catalog, (
+        "architecture/shippability.md row #60 missing the 'ADR-059' "
+        "reference — BCR-1 traceability axis broken (per slice-054 "
+        "/critique-review M-add-1 BCR-1-traceability axis pin discipline)"
+    )
+    # Verify the new drift-guard test modules are catalog-referenced
+    # (SCPD-1: silent regression on test module rename caught here)
+    assert "code_review_skill_drift" in catalog, (
+        "architecture/shippability.md row #60 missing reference to the "
+        "test_code_review_skill_drift module — OSDG-1 family-add "
+        "propagation broken"
+    )
+    assert "code_review_agent_drift" in catalog, (
+        "architecture/shippability.md row #60 missing reference to the "
+        "test_code_review_agent_drift module — CAD-1 family-add "
+        "propagation broken"
+    )
