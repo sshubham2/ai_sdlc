@@ -68,8 +68,24 @@ echo "ai-sdlc-tools:   $("$PY" -c 'import tools.build_checks_audit' 2>/dev/null 
 
 Ask the user only when needed:
 
-- **No Python found**: "I don't see Python or conda. Install Python 3.11+ and re-run."
-- **Both system Python and conda available, no venv yet**: ask which to use. Default to `python3 -m venv` if user has no preference.
+- **No Python found**: Python is a hard dependency — do NOT hard-fail with "re-run". Instead, ask the user via the `AskUserQuestion` tool with **three structured options** (SOAD-1 / structured-options ASK discipline):
+  1. **Provide interpreter path** — the user pastes an absolute path to a Python interpreter they have installed but not on PATH (common on Windows where `python3.exe` isn't aliased; conda-only environments; NixOS shell-PATH injection; Docker images with `/usr/bin/python3.11` only).
+  2. **Install Python now — I'll wait** — user installs Python via OS package manager (Windows: `winget install Python.Python.3` or [python.org installer](https://python.org/downloads/); macOS: `brew install python` or [python.org installer](https://python.org/downloads/); Linux: `apt install python3 python3-venv`, `dnf install python3`, or distro equivalent). Floor is whatever `pyproject.toml`'s `requires-python` resolves to — when presenting installer guidance to the user, name the floor by reading it dynamically: `MIN_PY=$(grep -E '^requires-python' "$AI_SDLC_DIR/pyproject.toml" | sed -E 's/.*"[><=!]*([0-9]+\.[0-9]+).*/\1/'); echo "Install Python $MIN_PY or newer"` — never hardcode a specific minor-version literal in the user-facing message (slice-058 / BC-PROJ-11 discipline; hardcoded literals re-drift the next time the floor bumps). After the user confirms install (via a follow-up single-option `AskUserQuestion` "I've installed Python — re-detect"), re-run Step 1's pre-flight detection block.
+  3. **Abort install** — print a clean halt message ("Install aborted — re-run INSTALL.md once Python is available") and stop. Do NOT clean up any pre-existing `~/.claude/` state from prior install attempts (would be destructive; Steps 3a–3h have not yet run in this invocation, but a prior partial-run's artifacts must remain untouched).
+
+  **On the "Provide interpreter path" sub-flow**: validate the user's path via the **Bash tool** (Git-Bash on Windows, system bash on macOS/Linux — matches Step 1's `case "$(uname -s)" in MINGW*` Git-Bash idiom). Wrap the validation in a bash fence so Claude routes through the Bash tool, not PowerShell (`test -x` is not a PowerShell built-in; bash-style `"$user_path"` quoting differs):
+
+  ```bash
+  MIN_PY=$(grep -E '^requires-python' "$AI_SDLC_DIR/pyproject.toml" | sed -E 's/.*"[><=!]*([0-9]+\.[0-9]+).*/\1/')
+  test -x "$user_path" && "$user_path" -c "import sys; req=tuple(int(x) for x in '$MIN_PY'.split('.')); sys.exit(0 if sys.version_info[:2] >= req else 1)"
+  ```
+
+  (`$user_path` is bound by Claude substituting the user's structured-options response into the bash command before invocation — same prose-templating pattern as the `$AI_SDLC_DIR` references in Steps 3f/3g; neither is a cross-bash-invocation shell-variable channel.)
+
+  On validation failure: print a diagnostic naming the path tried + the failing check (existence vs version) + the resolved `$MIN_PY` floor, then re-ask via the SAME 3-option ASK gate — **bounded to ONE retry**. On a second invalid path, abort install (no third retry).
+
+  **On the "Install Python — I'll wait" sub-flow re-detection failing**: re-fire the No-Python ASK gate with the **"Install Python — I'll wait" option REMOVED** — the retry-form offers only **(a) Provide interpreter path** + **(c) Abort install**. This bounds "I'll wait" to exactly one attempt; further failure must route through the explicit-path subflow or abort. Maximum interactive turns at this gate: 4 (initial ASK → install-wait → ASK-retry → path-retry → terminus).
+- **Both system Python and conda available, no venv yet**: ask which to use. Default to `$(command -v python3 || command -v python) -m venv` if user has no preference.
 - **Existing venv that doesn't have graphify**: confirm before installing into it.
 - **Existing `~/.claude/CLAUDE.md` without the PY convention**: explain you'll append a `# Shared Python environment` section, show the exact text, get confirmation.
 - **Existing `~/.claude/settings.json` with other keys but no `CLAUDE_CODE_FORK_SUBAGENT`**: read the file, show the user the planned merge (preserve all existing keys, add the env var to the env block), confirm.
@@ -84,7 +100,7 @@ Each step skips itself if already satisfied. Show the user what you're doing as 
 
 If `$PY` exists → skip.
 
-Else: `python3 -m venv ~/.claude/.venv` (or conda equivalent if the user picked that). Then upgrade pip in the venv.
+Else: `$(command -v python3 || command -v python) -m venv ~/.claude/.venv` (or conda equivalent if the user picked that). Then upgrade pip in the venv. **Detection runs inline here** — does NOT persist a cross-bash-invocation shell variable from Step 1's pre-flight (each fenced bash block is a separate `bash -c` invocation; a `$BOOT_PYTHON` set in Step 1 would not survive into this step). The inline `command -v python3 || command -v python` chain MUST match Step 1's pre-flight echo so the venv-create uses the same interpreter Step 1 detected.
 
 ### 3b: Graphify
 
