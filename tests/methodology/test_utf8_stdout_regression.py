@@ -101,6 +101,7 @@ _ROOT_ONLY_TOOLS = [
     "tools.state_transition_pin_audit",  # slice-044 / STP-1 (--root/--json, no positional/slice arg)
     "tools.ai_sdlc_version_forward_sync",  # slice-050 / AVFS-1 (--check/--json/--root, no slice arg)
     "tools.ai_sdlc_tools_version_forward_sync",  # slice-059 / TVFS-1 (--check/--json/--root, no slice arg)
+    "tools.new_agent_warning_audit",  # slice-063 / NAW-1 (--check/--json/--root, no slice arg)
 ]
 
 

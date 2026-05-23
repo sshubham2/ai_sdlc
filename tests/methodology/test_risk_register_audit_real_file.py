@@ -155,3 +155,51 @@ def test_r_4_retired_by_slice_041_030c_completes_the_split():
             f"R-4 entry must record the {tok} split lineage (030A substance "
             f"→ 030B incidental → 030C essential)"
         )
+
+
+def test_r_18_retired_post_slice_063():
+    """R-18 MUST be `retired` after slice-063 (NAW-1 mint) ships — the
+    new-agent session-restart warning audit IS the structural discharge
+    mechanism for R-18's recurring-class signal.
+
+    Slice-063 ships `tools/new_agent_warning_audit.py` (NAW-1) wired at
+    `/build-slice` Step 6 to emit a non-blocking WARN naming the agent
+    path + session-restart recommendation + R-18 cross-reference when
+    the slice diff adds any `agents/*.md` file. The methodology now
+    surfaces R-18's failure mode (Claude Code agent registry session-
+    cache miss) BEFORE the next slice's chain runs, retiring the risk's
+    `mitigating` status (N=2 cumulative recurrence at slice-061 +
+    slice-062 surfaced the class methodology-discoverably).
+
+    Defect class: a future edit silently flipping R-18 back to
+    `mitigating` / dropping the `**Retired**: slice-063` provenance /
+    losing the NAW-1 mechanism citation would falsely re-open a fully-
+    discharged risk (the warn surface IS in place + the WIRE-1 consumer
+    test asserts the SKILL.md anchor).
+
+    Rule reference: NAW-1 (slice-063; ADR-061; methodology-changelog
+    v0.66.0; mints a new rule; supersedes nothing — naming-class peer
+    of CRSI-1 / TVFS-1 / PVFS-1 / AVFS-1 forward-sync family but on the
+    discovery-gate axis).
+    """
+    register_path = REPO_ROOT / "architecture" / "risk-register.md"
+    result = audit_register(register_path)
+    by_id = {r.risk_id: r for r in result.risks}
+    assert "R-18" in by_id, "R-18 missing from risk-register parse"
+    assert by_id["R-18"].status == "retired", (
+        f"R-18 must be 'retired' after slice-063 (NAW-1) ships — the "
+        f"new-agent warning audit IS the structural discharge "
+        f"mechanism; got {by_id['R-18'].status!r}"
+    )
+    text = register_path.read_text(encoding="utf-8")
+    # Provenance pin: the slice-063 retirement paragraph must cite
+    # NAW-1 / new_agent_warning_audit as the discharge mechanism.
+    assert "slice-063" in text, (
+        "risk-register.md must reference slice-063 in the R-18 "
+        "retirement paragraph"
+    )
+    assert "NAW-1" in text or "new_agent_warning_audit" in text, (
+        "R-18 retirement paragraph must cite the NAW-1 discharge "
+        "mechanism (either RULE-ID `NAW-1` or the tool name "
+        "`new_agent_warning_audit`)"
+    )
