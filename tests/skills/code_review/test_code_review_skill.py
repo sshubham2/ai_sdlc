@@ -120,9 +120,27 @@ def test_skill_md_step_1_diff_resolution_uses_union_of_three_sources():
     )
     step_1 = body[step_1_idx:step_2_idx]
 
+    # Slice-065 AC#1: scope to the ```bash-fenced block within Step 1 to
+    # retire the M1 substring-leak class (the L37 preamble prose carries the
+    # unflagged `git diff "$base"...HEAD` substring; a Source-(iii) assertion
+    # scoped to step_1 is satisfied by the preamble alone — deleting the L51
+    # bash command would still pass). Bash-block scoping + the full
+    # filter-shape literal together pin the L51 bash command structurally.
+    # Per /critique B1 — empirically verified: pre-fix step_1.count
+    # ('git diff "$base"') = 3 (preamble + L45 + L51); bash_block.count(...)
+    # = 2 (L45 + L51 only).
+    bash_start = step_1.find("```bash\n")
+    bash_end = step_1.find("\n```", bash_start)
+    assert bash_start >= 0 and bash_end > bash_start, (
+        "skills/code-review/SKILL.md Step 1 missing ```bash-fenced block — "
+        "bash-block scoping cannot bound (slice-065 AC#1)"
+    )
+    bash_block = step_1[bash_start:bash_end]
+
     # Source 1 — working-tree-vs-base (captures unstaged + staged WT changes
     # against the base; the `$base` form without `...HEAD` is the canonical
-    # working-tree-vs-base diff per git diff documentation).
+    # working-tree-vs-base diff per git diff documentation). Asserted at the
+    # section-scope level: preamble prose mentioning the form is acceptable.
     assert 'git diff "$base"' in step_1 and 'git diff "$base" --name-only' in step_1, (
         "skills/code-review/SKILL.md Step 1 missing working-tree-vs-base "
         "source command `git diff \"$base\" --name-only` — the B1 falsifier "
@@ -139,10 +157,19 @@ def test_skill_md_step_1_diff_resolution_uses_union_of_three_sources():
     )
     # Source 3 — commits-vs-base (covers committed slice work; the
     # pre-existing pre-slice-064 diff line, preserved as one of three sources).
-    assert 'git diff "$base"...HEAD' in step_1, (
-        "skills/code-review/SKILL.md Step 1 missing commits-vs-base source "
-        "command `git diff \"$base\"...HEAD` — required as third source in "
-        "the union-of-three-sources read mechanism"
+    # Slice-065 AC#1 / /critique B1 tightening: scoped to bash_block AND
+    # asserts the full filter-shape literal (L37 preamble carries only the
+    # unflagged form without `--name-only --diff-filter=ACMR`). Double-
+    # redundant: bash-block scoping alone retires the leak; the flag-tail
+    # addition catches a future regression where filter flags drop from L51.
+    assert 'git diff "$base"...HEAD --name-only --diff-filter=ACMR' in bash_block, (
+        "skills/code-review/SKILL.md Step 1 bash block missing commits-vs-base "
+        "source command `git diff \"$base\"...HEAD --name-only "
+        "--diff-filter=ACMR` — required as third source in the union-of-three-"
+        "sources read mechanism. Per slice-065 AC#1 / /critique B1: asserted "
+        "in bash_block (not step_1) to retire the M1 substring-leak class — "
+        "L37 preamble prose mentions of the unflagged `git diff \"$base\""
+        "...HEAD` form are not sufficient to satisfy this assertion."
     )
 
 
@@ -161,13 +188,34 @@ def test_skill_md_step_1_all_three_legs_share_filter_shape():
     step_2_idx = body.find("### Step 2:", step_1_idx)
     step_1 = body[step_1_idx:step_2_idx]
 
-    # Both `git diff` legs carry `--name-only --diff-filter=ACMR`.
-    diff_with_filter = step_1.count("--name-only --diff-filter=ACMR")
-    assert diff_with_filter >= 2, (
-        "skills/code-review/SKILL.md Step 1 must carry the "
-        "`--name-only --diff-filter=ACMR` flag pair on BOTH `git diff` legs "
-        "(working-tree-vs-base AND commits-vs-base) — observed "
-        f"{diff_with_filter} occurrences, expected ≥ 2"
+    # Slice-065 AC#2: scope to ```bash-fenced block (per /critique B1 — the
+    # L37 preamble carries an unflagged `git diff "$base"...HEAD` substring
+    # that leaks into a step_1.count() RHS; bash_block.count() correctly
+    # counts only the L45 + L51 bash leg headers).
+    bash_start = step_1.find("```bash\n")
+    bash_end = step_1.find("\n```", bash_start)
+    assert bash_start >= 0 and bash_end > bash_start, (
+        "skills/code-review/SKILL.md Step 1 missing ```bash-fenced block — "
+        "bash-block scoping cannot bound (slice-065 AC#2)"
+    )
+    bash_block = step_1[bash_start:bash_end]
+
+    # Slice-065 AC#2: semantic invariant scoped to bash_block (replaces
+    # the pre-slice-065 `>= 2` form which admitted a 3-leg / 2-filtered
+    # regression where a future leg dropped `--diff-filter=ACMR`). The
+    # invariant: every `git diff "$base"` leg header in the bash block
+    # MUST be matched by a `--name-only --diff-filter=ACMR` flag pair.
+    # Empirically verified on current SKILL.md: 2 == 2 PASS. Pre-slice-
+    # 065 `step_1.count('git diff "$base"')` = 3 (preamble leak) would
+    # have produced 2 != 3 → FAIL; bash_block scoping retires that.
+    diff_with_filter = bash_block.count("--name-only --diff-filter=ACMR")
+    git_diff_legs = bash_block.count('git diff "$base"')
+    assert diff_with_filter == git_diff_legs, (
+        "skills/code-review/SKILL.md Step 1 bash block: `--name-only "
+        "--diff-filter=ACMR` count must equal `git diff \"$base\"` leg count "
+        "(semantic invariant — every `git diff` leg MUST carry the filter "
+        f"pair). Observed: filter pairs = {diff_with_filter}, `git diff "
+        f"\"$base\"` legs = {git_diff_legs}."
     )
 
     # All three legs carry the architecture/docs path-exclude pathspecs
@@ -206,6 +254,110 @@ def test_skill_md_step_1_all_three_legs_share_filter_shape():
         "skills/code-review/SKILL.md Step 1 contains a bash-array "
         "expansion `${exclude[@]}` — NOT POSIX-portable. Use inline "
         "literal pathspecs on each leg per ADR-062 M1 critique fix."
+    )
+
+
+def test_skill_md_step_1_default_branch_resolver_stops_on_empty():
+    """slice-065 AC#3 + AC#4 / /critique B2: pin the SKILL.md Step 1 bash
+    block STOP guard for the default-branch-unresolvable corner case. Pre-
+    fix, the bash silently falls through to `git merge-base "" HEAD` when
+    both default-branch resolvers (`git symbolic-ref refs/remotes/origin/
+    HEAD` AND `git config init.defaultBranch`) return empty — a CI clean-
+    room corner case. Post-fix, the bash block inserts an explicit
+    `[ -z "$default" ] && { echo "default-branch-unresolvable: ..." >&2;
+    exit 2; }` guard between the second-resolver fallback and `git
+    merge-base`, mirroring NAW-1's ADR-061 §Decision exit-2 contract.
+
+    Bug class: M1 substring-leak retired by bash_block scoping (per
+    /critique B2 — section-scoped `'[ -z "$default" ]' in step_1` and
+    `'default-branch-unresolvable' in step_1` both already TRUE pre-fix
+    via L41 fallback resolver + L68 documented-error-case prose;
+    bash_block scoping + count discipline + co-location pin actually
+    distinguishes pre-fix from post-fix structurally).
+
+    Three composable assertions per /critique B2 proposed-fix (1)+(2)+(3)
+    + /critique m2 brace-group form pinning:
+      (a) Count-based pin: bash_block.count('[ -z "$default" ]') >= 2
+          (additive STOP guard — distinguishes pre-fix count==1 from
+          post-fix count==2)
+      (b) Canonical brace-group form: `&& { echo "default-branch-
+          unresolvable` substring + `exit 2` literal (NAW-1 parity per
+          ADR-061 §Decision; prevents `if`/`fi`-style refactor regression)
+      (c) Structural co-location: STOP guard appears AFTER second-
+          resolver fallback AND BEFORE `git merge-base` (pins the
+          structural relationship, not just substring existence; -1
+          short-circuit safety — Python `138 < -1 < 188` evaluates False
+          per chained-comparison short-circuit, so absent STOP guard
+          correctly fails)
+    """
+    body = _read(_SKILL_MD)
+    step_1_idx = body.find("### Step 1: Resolve the slice's code diff")
+    step_2_idx = body.find("### Step 2:", step_1_idx)
+    assert step_1_idx >= 0 and step_2_idx > step_1_idx, (
+        "skills/code-review/SKILL.md missing `### Step 1:` or `### Step 2:` "
+        "heading — section-scope cannot bound (slice-065 AC#4)"
+    )
+    step_1 = body[step_1_idx:step_2_idx]
+
+    # Bash-block scoping idiom (canonical — used by slice-065 AC#1/#2/#4).
+    bash_start = step_1.find("```bash\n")
+    bash_end = step_1.find("\n```", bash_start)
+    assert bash_start >= 0 and bash_end > bash_start, (
+        "skills/code-review/SKILL.md Step 1 missing ```bash-fenced block — "
+        "bash-block scoping cannot bound (slice-065 AC#4)"
+    )
+    bash_block = step_1[bash_start:bash_end]
+
+    # (a) Count-based pin — the STOP guard is ADDITIVE to the existing
+    # L41 second-resolver fallback `[ -z "$default" ] && default=$(...)`.
+    # Pre-fix count = 1; post-fix count = 2.
+    guard_count = bash_block.count('[ -z "$default" ]')
+    assert guard_count >= 2, (
+        f"skills/code-review/SKILL.md Step 1 bash block must carry the "
+        f"STOP guard `[ -z \"$default\" ] && {{ ... exit 2; }}` AFTER the "
+        f"second resolver (slice-065 AC#3) — observed {guard_count} "
+        f"`[ -z \"$default\" ]` occurrences in the bash block, expected "
+        f">= 2 (one for the second-resolver fallback at L41, one for "
+        f"the new STOP guard inserted between L41 and L42)"
+    )
+
+    # (b) Canonical brace-group form (NAW-1 parity per ADR-061; per
+    # /critique m2 — pins the canonical shape, prevents `if`/`fi`-style
+    # refactor regression that would still pass a bare `'exit 2'`
+    # substring check).
+    assert '&& { echo "default-branch-unresolvable' in bash_block, (
+        "skills/code-review/SKILL.md Step 1 bash block missing the "
+        "canonical STOP-guard brace-group form `&& { echo "
+        "\"default-branch-unresolvable...\" >&2; exit 2; }` mirroring "
+        "NAW-1's exit-2 contract (ADR-061 §Decision — the three-step "
+        "resolver: git symbolic-ref → git config init.defaultBranch → "
+        "fail-fast with exit 2 + default-branch-unresolvable stderr)"
+    )
+    assert "exit 2" in bash_block, (
+        "skills/code-review/SKILL.md Step 1 bash block missing `exit 2` — "
+        "the STOP guard must propagate the exit-2 contract from NAW-1 "
+        "(ADR-061 §Decision); a `return 1` or `exit 1` would break parity "
+        "with the canonical NAW-1 Python implementation at "
+        "tools/new_agent_warning_audit.py:_resolve_default_branch"
+    )
+
+    # (c) Structural co-location — STOP guard between second-resolver
+    # fallback (`git config init.defaultBranch`) and `git merge-base`.
+    # Per /critique B2 proposed-fix (3) — pins the structural
+    # relationship the AC actually wants, not just substring existence.
+    # -1 short-circuit safety: if stop_idx = -1 (pre-fix), Python
+    # chained comparison `138 < -1 < 188` evaluates False (138 < -1 is
+    # False; short-circuits) so the assertion correctly fires.
+    fallback_idx = bash_block.find("git config init.defaultBranch")
+    merge_base_idx = bash_block.find("git merge-base")
+    stop_idx = bash_block.find('[ -z "$default" ] && {')
+    assert fallback_idx < stop_idx < merge_base_idx, (
+        f"skills/code-review/SKILL.md Step 1 bash block STOP guard not "
+        f"structurally co-located between second-resolver fallback "
+        f"(idx={fallback_idx}, 'git config init.defaultBranch') and "
+        f"git merge-base (idx={merge_base_idx}); observed stop_idx="
+        f"{stop_idx} (-1 means the canonical brace-group form is "
+        f"absent from the bash block — see assertion (b))"
     )
 
 
