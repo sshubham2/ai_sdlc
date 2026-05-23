@@ -6,17 +6,32 @@ Asserts:
 - The walking-skeleton self-dogfood produced `code-review.md` on slice-060.
 
 Rule reference: CRSI-1 (methodology-changelog.md v0.64.0; slice-060; ADR-059).
+
+Slice-062 / ADR-060 repoint (R-15 corpus class-closure backstop scope-
+extension): the slice-060 `code-review.md` path is now resolved lazily
+INSIDE the test function via ``_resolve_slice_dir(60)`` from
+``tests.methodology.conftest`` (the slice-056 helper) — NOT a
+module-level binding. Lazy resolution avoids the import-time
+AssertionError class that would error the entire module's collection
+if slice-060's archive folder were absent; the in-test-function
+surface localizes the failure per ``_resolve_slice_dir``'s documented
+contract (slice-056 ``test_raises_assertion_with_diagnostic_when_neither_found``).
+Pre-repoint: module-level ``_SLICE_060_CODE_REVIEW`` literal carried
+the active-path string ``"slice-060-add-code-review-skill"`` which
+broke at slice-060 archival (slice-061 user-approved deferral). The
+slice-061 N=1 scope-gap also motivated extending the R-15 corpus
+class-closure backstop scope to ``tests/skills/**`` + ``tests/agents/**``
+(slice-062 ADR-060 §"Decision"); this file's pre-slice-062 literal was
+the lone wider-scope offender repointed at this slice.
 """
 from __future__ import annotations
 
 from pathlib import Path
 
+from tests.methodology.conftest import _resolve_slice_dir
+
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _SKILL_MD = _REPO_ROOT / "skills" / "code-review" / "SKILL.md"
-_SLICE_060_CODE_REVIEW = (
-    _REPO_ROOT / "architecture" / "slices"
-    / "slice-060-add-code-review-skill" / "code-review.md"
-)
 
 
 def _read(path: Path) -> str:
@@ -71,11 +86,18 @@ def test_self_dogfood_produces_code_review_md_on_slice_060():
     (the artifact-existence-and-content check; NOT a pytest-driven LLM
     invocation — per critique M2 reclassification).
 
-    Per design.md Build-phase sequence Phase C: this test PASSES only after
-    the self-dogfood `/code-review` invocation against slice-060 has run
-    (which itself requires Phase B forward-sync to have completed).
+    Per slice-060 design.md Build-phase sequence Phase C: this test
+    PASSES only after the self-dogfood `/code-review` invocation against
+    slice-060 has run (which itself requires Phase B forward-sync to
+    have completed). slice-062 / ADR-060 repoint: the slice-060 path is
+    now lazy-resolved here via ``_resolve_slice_dir(60)`` (resolves the
+    archived slice-060 folder via the helper's archive-glob fallback)
+    instead of a hardcoded module-level literal — closes the slice-061
+    N=1 R-15-class scope-gap that motivated the slice-062 backstop
+    scope-extension.
     """
-    body = _read(_SLICE_060_CODE_REVIEW)
+    slice_060_code_review = _resolve_slice_dir(60) / "code-review.md"
+    body = _read(slice_060_code_review)
     # Result line present
     assert "**Result**" in body, (
         "slice-060 code-review.md missing **Result** header — agent output "

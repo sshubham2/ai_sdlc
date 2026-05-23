@@ -4049,3 +4049,131 @@ def test_v_0_64_0_crsi_1_shippability_consumer_propagation():
         "test_code_review_agent_drift module — CAD-1 family-add "
         "propagation broken"
     )
+
+
+# --- Slice-062 / R-15-scope-extension entry pinning ---
+
+def test_v_0_65_0_r15_scope_extension_entry_present_in_repo():
+    """methodology-changelog v0.65.0 / R-15-scope-extension entry-pin
+    (content-bearing per slice-051 / slice-058 / slice-059 / slice-060
+    precedent; NOT a thin presence check).
+
+    Asserts 8 substring presences in the v0.65.0 entry body:
+      (a) `## v0.65.0` header
+      (b) `R-15` rule ID
+      (c) `ADR-060` reference
+      (d) `R-15 corpus class-closure backstop scope extension` rule-name
+          expansion (full rule-name + scope-extension qualifier)
+      (e) `mints no new rule` + `supersedes nothing` lineage clauses
+          (slice-062 extends an existing rule's scope; does NOT mint)
+      (f) `5-part PMI-1 atomic bump` (per /critique B1 5-part-bump fix —
+          mirrors slice-060 v0.64.0 entry-pin assertion (f) at L3989)
+      (g) `Rule reference` literal (META-1 enforcing-assertion obligation
+          at tests/methodology/test_methodology_changelog.py:136)
+      (h) ADR-053 naming-class-peer lineage anchor (slice-062 ADR-060
+          extends-not-mints the OSDG-1-member-addition shape)
+
+    Rule reference: ADR-060 (slice-062; mints no new rule; supersedes
+    nothing; extends the slice-056 / slice-057 R-15 backstop scope to
+    wider test corpora — naming-class peer of ADR-053 which extended
+    OSDG-1's guarded set without minting a new rule).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.65.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.65.0 entry header — "
+        "slice-062 R-15-scope-extension entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.65.0")
+    assert "R-15" in body, (
+        "v0.65.0 entry body missing the 'R-15' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-060" in body, (
+        "v0.65.0 entry body must record the ADR-060 minting decision"
+    )
+    assert "R-15 corpus class-closure backstop scope extension" in body, (
+        "v0.65.0 entry body missing the 'R-15 corpus class-closure "
+        "backstop scope extension' rule-name expansion — future readers "
+        "parsing the changelog alone must be able to find the slice's "
+        "intent by full name, not just by ID"
+    )
+    assert "mints no new rule" in body and "supersedes nothing" in body, (
+        "v0.65.0 entry must state ADR-060 'mints no new rule' AND "
+        "'supersedes nothing' (lineage clean — extends the slice-056 / "
+        "slice-057 R-15 backstop scope; does NOT mint a new rule)"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.65.0 entry body missing the '5-part PMI-1 atomic bump' "
+        "anchor — the slice-062 PVFS-1 leg discipline (VERSION + "
+        "plugin.yaml.version + pyproject.toml.version + ## v0.65.0 "
+        "header + ~/.claude/ai-sdlc-VERSION) must be named (per "
+        "/critique B1 fix-block 5-part-bump propagation discipline)"
+    )
+    assert "Rule reference" in body, (
+        "v0.65.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+    # ADR-053 naming-class-peer lineage anchor (slice-062 ADR-060
+    # extends-not-mints shape inherits the slice-051/ADR-053 OSDG-1
+    # member-addition precedent)
+    assert "ADR-053" in body, (
+        "v0.65.0 entry must record the ADR-053 naming-class-peer "
+        "lineage — slice-062 ADR-060 follows the slice-051 / ADR-053 "
+        "extends-not-mints precedent shape"
+    )
+
+
+def test_v_0_65_0_r15_scope_extension_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the R-15-scope-
+    extension consumer reference MUST propagate into
+    `architecture/shippability.md` (catalog row #62) so the slice-062
+    critical path can never silently regress (slice-040 lesson +
+    BC-PROJ-10:173 verbatim pair-precedent — an uncatalogued pin's
+    breakage is invisible to the catalog runner).
+
+    Per /critique-review M-add-2 (BC-PROJ-10 N>=17 stable pair precedent
+    across the changelog test module): mirrors slice-060 row #60 paired
+    pin shape verbatim.
+
+    Rule reference: ADR-060 (slice-062; RPCD-1/SCPD-1 consumer-reference
+    propagation onto the R-15-scope-extension critical path).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 62 | slice-062-extend-r15-corpus-class-closure-scope" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #62 for "
+        "slice-062 — RPCD-1/SCPD-1 R-15-scope-extension consumer-"
+        "reference propagation incomplete (the /validate-slice catalog "
+        "runner cannot guard the R-15-scope-extension critical path)"
+    )
+    assert "R-15" in catalog, (
+        "architecture/shippability.md row #62 missing the 'R-15' rule "
+        "reference — consumer-reference propagation broken at the "
+        "rule-ID layer"
+    )
+    assert "ADR-060" in catalog, (
+        "architecture/shippability.md row #62 missing the 'ADR-060' "
+        "reference — BCR-1 traceability axis broken (per slice-054 "
+        "/critique-review M-add-1 BCR-1-traceability axis pin "
+        "discipline; row MUST cite BOTH R-15 AND ADR-060)"
+    )
+    # Verify the new corpus-extension test functions are catalog-referenced
+    # (SCPD-1: silent regression on test function rename caught here)
+    assert "test_no_new_archive_fragile_literals_in_tests_skills_corpus" in catalog, (
+        "architecture/shippability.md row #62 missing reference to the "
+        "test_no_new_archive_fragile_literals_in_tests_skills_corpus "
+        "function — R-15 backstop scope-extension propagation broken on "
+        "the tests/skills/ arm"
+    )
+    assert "test_no_new_archive_fragile_literals_in_tests_agents_corpus" in catalog, (
+        "architecture/shippability.md row #62 missing reference to the "
+        "test_no_new_archive_fragile_literals_in_tests_agents_corpus "
+        "function — R-15 backstop scope-extension propagation broken on "
+        "the tests/agents/ arm"
+    )
+    assert "test_r15_corpus_whitelist_has_no_orphan_entries" in catalog, (
+        "architecture/shippability.md row #62 missing reference to the "
+        "test_r15_corpus_whitelist_has_no_orphan_entries function — "
+        "aggregated whitelist-integrity check propagation broken"
+    )
