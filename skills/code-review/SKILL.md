@@ -34,16 +34,26 @@ The three-persona model (extended from `/critique` + `/critique-review`): design
 
 ### Step 1: Resolve the slice's code diff
 
-Compute the slice's filtered code diff vs the default branch:
+Compute the slice's filtered code diff vs the default branch using the **union-of-three-sources** read mechanism (per [[ADR-062]], mirroring the slice-063 NAW-1 / [[ADR-061]] §Decision L60-67 pattern). The single-command `git diff "$base"...HEAD` is commit-vs-commit only (per [git-scm.com/docs/git-diff](https://git-scm.com/docs/git-diff) "`<commit>...<commit>` … starting at a common ancestor of both") and returns EMPTY at `/build-slice` Step 6 where slice work is uncommitted in the working tree — commits land only at `/commit-slice` per the PCA-1 HARD-STOP terminal contract. The union covers all three states slice code can occupy at Step 6:
 
 ```bash
 default=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
 [ -z "$default" ] && default=$(git config init.defaultBranch 2>/dev/null)
 base=$(git merge-base "$default" HEAD)
+
+# Source (i): working-tree-vs-base (modified + staged-but-uncommitted adds)
+git diff "$base" --name-only --diff-filter=ACMR -- ':(exclude)architecture/**' ':(exclude)docs/**'
+
+# Source (ii): untracked-new files
+git ls-files --others --exclude-standard -- ':(exclude)architecture/**' ':(exclude)docs/**'
+
+# Source (iii): commits-vs-base (already-committed-in-branch adds)
 git diff "$base"...HEAD --name-only --diff-filter=ACMR -- ':(exclude)architecture/**' ':(exclude)docs/**'
 ```
 
-Default-branch resolution mirrors the BRANCH-1 pattern (slice-021). `--diff-filter=ACMR` includes Added/Copied/Modified/Renamed; deletions excluded.
+**Union the three outputs by path; deduplicate. The resulting file list is the in-scope diff scope handed to Step 2.** Without this aggregation step Claude could plausibly run only Source (iii) for token budget, concatenate without deduplicating producing duplicate review work, intersect instead of union, or ignore Source (ii) — all silent failures.
+
+Default-branch resolution mirrors the BRANCH-1 pattern (slice-021). `--diff-filter=ACMR` includes Added/Copied/Modified/Renamed; deletions excluded. The path-exclude pathspecs are inline literals on each leg (POSIX-portable; no bash arrays).
 
 **In-scope paths** (per design.md M3 — METHODOLOGY-PROSE-AS-EXECUTABLE-CONTRACT is in scope; CLAUDE.md self-hosting-discipline: "skill prose IS executable contract"):
 - `skills/**/SKILL.md` — methodology orchestrator prose (executable contract)
@@ -79,10 +89,10 @@ Risk tier: <low | medium | high from milestone.md>
 <paste contents of each ADR-NNN-*.md created by this slice>
 
 # Changed files (code diff scope)
-<one path per line; vault paths excluded per Step 1 in-scope list>
+<the unioned + deduplicated file list emitted by Step 1 — one path per line; vault paths excluded per Step 1 in-scope list>
 
 # Diff content
-<git diff <base>...HEAD -- <files> output, pasted; size-limited per Claude Code prompt budget — if diff exceeds budget, list paths and let agent Read individual files>
+<for each file in Step 1's union, paste `git diff "$base" -- <file>` output (WT-vs-base per-file — observes uncommitted edits consistently with Step 1's union); size-limited per Claude Code prompt budget — if diff exceeds budget, list paths and let agent Read individual files (the slice-064 wide-slice load-edge-case watch-list per design.md R-X3)>
 ```
 
 Return the agent's complete `code-review.md` content. Do not re-prompt for dimensions — the agent already knows them.

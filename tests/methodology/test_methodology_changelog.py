@@ -4300,3 +4300,131 @@ def test_v_0_66_0_naw_1_shippability_consumer_propagation():
         "test_r_18_retired_post_slice_063 function — R-18 retirement "
         "pin propagation broken"
     )
+
+
+def test_v_0_67_0_naw_extend_entry_present_in_repo():
+    """methodology-changelog v0.67.0 / extend-NAW-1-to-/code-review
+    entry-pin (content-bearing per slice-051 / slice-058 / slice-059 /
+    slice-060 / slice-062 / slice-063 precedent; NOT a thin presence
+    check).
+
+    Asserts 8 substring presences in the v0.67.0 entry body (per
+    design.md L18 / critique-review M-add-2 + M-add-3 fixes; treats the
+    lineage clauses as compound single anchor per slice-063 precedent):
+      (a) `## v0.67.0` header
+      (b) `NAW-1` rule reference (the canonical pattern, not minted)
+      (c) `Extend NAW-1 union-of-three-sources to /code-review`
+          rule-name expansion (slice-063 anchor (d) precedent applied
+          to scope-extension entries; first scope-extension entry that
+          doesn't mint a new rule needs the rule-name expansion to
+          disambiguate "extends NAW-1" vs "is a NAW-1 surface")
+      (d) `ADR-062` reference
+      (e) `5-part PMI-1 atomic bump`
+      (f) `/code-review` surface
+      (g) `Rule reference` literal (META-1 mandatory enforcing-assertion
+          obligation at `test_methodology_changelog.py:136`)
+      (h) `mints no new rule` AND `supersedes nothing` compound lineage
+          clauses (slice-063 v0.66.0 precedent treats this pair as a
+          single compound anchor — N=8 inclusive of this slice on the
+          scope-extension class; slice-049/050/051/057/058/059/062 + 064)
+
+    Rule reference: extension of NAW-1 union-of-three-sources read
+    mechanism (slice-064; ADR-062; mints no new rule; supersedes
+    nothing — the slice-064 entry is a sibling-surface application of
+    NAW-1's pattern, NOT a retirement-discharge / pure-conformance
+    shape; Inclusion-heuristic firing on scope-extension precedent
+    N=8 cumulative inclusive).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.67.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.67.0 entry header — "
+        "slice-064 extend-NAW-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.67.0")
+    assert "NAW-1" in body, (
+        "v0.67.0 entry body missing the 'NAW-1' rule reference — "
+        "entry-pin broken at the rule-reference layer (the canonical "
+        "pattern this slice extends)"
+    )
+    assert "Extend NAW-1 union-of-three-sources to /code-review" in body, (
+        "v0.67.0 entry body missing the 'Extend NAW-1 union-of-three-"
+        "sources to /code-review' rule-name expansion — slice-064 is "
+        "the first scope-extension entry that doesn't mint a new rule, "
+        "so the rule-name expansion disambiguates 'extends NAW-1' vs "
+        "'is a NAW-1 surface' for future readers (slice-063 anchor (d) "
+        "precedent applied to scope-extension entries; /critique-review "
+        "M-add-3 ACCEPTED-FIXED)"
+    )
+    assert "ADR-062" in body, (
+        "v0.67.0 entry body must record the ADR-062 reference"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.67.0 entry body missing the '5-part PMI-1 atomic bump' "
+        "anchor — slice-064 does NOT add a new `tools/*.py`, but the "
+        "PMI-1 leg count is 5 (VERSION + plugin.yaml + pyproject.toml + "
+        "## v0.67.0 header + installed ai-sdlc-VERSION) per slice-060 / "
+        "slice-062 / slice-063 5-part precedent for SKILL.md-touching "
+        "slices"
+    )
+    assert "/code-review" in body, (
+        "v0.67.0 entry body missing the '/code-review' surface anchor — "
+        "the SKILL.md surface being modified must be named explicitly"
+    )
+    assert "Rule reference" in body, (
+        "v0.67.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+    assert "mints no new rule" in body and "supersedes nothing" in body, (
+        "v0.67.0 entry must state ADR-062 'mints no new rule' AND "
+        "'supersedes nothing' (the slice-049 / slice-051 / slice-057 / "
+        "slice-062 scope-extension-no-new-RULE-ID precedent shape; "
+        "slice-063 v0.66.0 precedent treats this pair as a single "
+        "compound anchor)"
+    )
+
+
+def test_v_0_67_0_naw_extend_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the extend-NAW-1
+    consumer reference MUST propagate into `architecture/shippability.md`
+    (catalog row #64) so the slice-064 critical path can never silently
+    regress (slice-040 lesson + BC-PROJ-10:173 verbatim pair-precedent —
+    an uncatalogued pin's breakage is invisible to the catalog runner).
+
+    BCR-1 traceability axis (per slice-054 first-dogfood precedent +
+    slice-056/062/063 lineage): row #64 MUST cite BOTH the new
+    `ADR-062` reference AND the existing `NAW-1` rule-ID (the canonical
+    pattern being extended) AND `ADR-061` (NAW-1's minting decision).
+
+    Rule reference: extension of NAW-1 union-of-three-sources read
+    mechanism (slice-064; ADR-062; RPCD-1/SCPD-1 consumer-reference
+    propagation onto the slice-064 critical path).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 64 | slice-064-fix-code-review-diff-resolution-falsifier" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #64 for "
+        "slice-064 — RPCD-1/SCPD-1 consumer-reference propagation "
+        "incomplete (the /validate-slice catalog runner cannot guard "
+        "the slice-064 critical path)"
+    )
+    assert "ADR-062" in catalog, (
+        "architecture/shippability.md row #64 missing the 'ADR-062' "
+        "reference — BCR-1 traceability axis broken at the ADR layer"
+    )
+    assert "NAW-1" in catalog, (
+        "architecture/shippability.md row #64 missing the 'NAW-1' "
+        "rule reference — BCR-1 traceability axis broken at the "
+        "rule-ID layer (the canonical pattern being extended)"
+    )
+    assert "ADR-061" in catalog, (
+        "architecture/shippability.md row #64 missing the 'ADR-061' "
+        "reference — BCR-1 traceability axis broken at the canonical-"
+        "ADR-being-extended layer"
+    )
+    # SCPD-1: silent regression on test function rename caught here
+    assert "test_skill_md_step_1_diff_resolution_uses_union_of_three_sources" in catalog, (
+        "architecture/shippability.md row #64 missing reference to the "
+        "BFRD-1 repro test — SCPD-1 consumer-reference propagation "
+        "broken"
+    )
