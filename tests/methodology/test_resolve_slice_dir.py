@@ -234,31 +234,48 @@ _R15_LITERAL_PATH_RE = re.compile(
 )
 
 
-def test_no_new_archive_fragile_literals_in_methodology_corpus() -> None:
-    """Corpus class-closure backstop for R-15 (per /critique-review M-add-2
-    ACCEPTED-FIXED).
+def _scan_corpus_for_r15_literals(corpus_dir: Path) -> set[tuple[str, int]]:
+    """Scan a test corpus directory for R-15-class archive-fragile
+    literal-path-RHS substrings; return the set of (relative-posix-path,
+    line-number) match sites.
 
-    Scans every ``tests/methodology/*.py`` file for R-15-class
-    archive-fragile literal-path-RHS substrings and asserts the match-set
-    is a subset of the known whitelist. The whitelist explicitly tracks
-    deferred R-15-class instances slice-056 acknowledges-but-does-not-fix.
+    Per slice-062 / ADR-060 (extends slice-056 backstop scope from
+    ``tests/methodology/*.py`` to all three test corpora —
+    ``tests/methodology/**`` + ``tests/skills/**`` + ``tests/agents/**``).
+    Helper extracted from the original inlined body of
+    ``test_no_new_archive_fragile_literals_in_methodology_corpus`` per
+    /design-slice ADR-060 §"Decision" option 3 (extract helper + 3
+    per-corpus test functions + 1 aggregated whitelist-integrity test;
+    walk-proof falls out structurally because each per-corpus test's
+    pytest collection + pass IS the proof its corpus is walked).
 
-    When a new test module hardcodes a ``REPO_ROOT / "architecture" /
-    "slices" / [archive/] "slice-NNN-..."`` literal-path-RHS, this test
-    FAILs with a clear diagnostic naming the offending file + line.
-    Mitigation: use ``_resolve_slice_dir(NNN)`` from
-    ``tests.methodology.conftest`` instead.
+    Encapsulates: ``sorted(rglob('*.py'))`` walk, self-skip (this very
+    file is excluded — the whitelist + regex constants ARE the literal
+    patterns the regex matches, so including them creates false-positive
+    self-match; the skip is meaningful for the methodology-corpus scan
+    and a no-op for skills/agents scans where this file does not live),
+    ``_R15_LITERAL_PATH_RE.finditer(text)`` over the whole file (Python
+    ``\\s*`` spans newlines so multi-line constructions like the
+    slice-034 ``test_ptffd1_no_false_positive.py:70-71`` construction
+    match — slice-056 N=1 lesson), line-number-from-offset compute, and
+    repo-relative POSIX path normalization.
 
-    Whitelist-shrinkage is the M-add-2 structural mechanism for R-15
-    part-(b) retirement (slice-056 /critique m2 + M-add-2 combined).
+    NO behavior change vs the prior inlined logic at the methodology-corpus
+    call site — per-line equivalent refactor (verified at /design-slice
+    empirical pass).
+
+    Args:
+        corpus_dir: absolute Path to the test corpus directory to scan
+            (e.g., ``REPO_ROOT / "tests" / "methodology"``). MUST exist
+            as a directory; caller asserts via ``corpus_dir.is_dir()``
+            before invoking.
+
+    Returns:
+        Set of (relative-posix-path, line-number) tuples naming every
+        R-15-class match found. Empty set on a clean corpus.
     """
-    methodology_dir = REPO_ROOT / "tests" / "methodology"
-    assert methodology_dir.is_dir(), (
-        f"tests/methodology/ directory missing at {methodology_dir}"
-    )
-
     matches: set[tuple[str, int]] = set()
-    for py_file in sorted(methodology_dir.rglob("*.py")):
+    for py_file in sorted(corpus_dir.rglob("*.py")):
         # Skip this file itself (the whitelist + regex constants ARE the
         # literal patterns the regex matches; including them would create
         # a false-positive self-match — verified at design-time).
@@ -275,25 +292,144 @@ def test_no_new_archive_fragile_literals_in_methodology_corpus() -> None:
         for m in _R15_LITERAL_PATH_RE.finditer(text):
             line_no = text.count("\n", 0, m.start()) + 1
             matches.add((rel, line_no))
+    return matches
 
+
+def _assert_corpus_clean(
+    matches: set[tuple[str, int]], corpus_label: str
+) -> None:
+    """Assert helper-output ``matches`` is a subset of the whitelist;
+    raise AssertionError with the canonical R-15 diagnostic + mitigation
+    hint on violation.
+
+    Shared by the 3 per-corpus test wrappers
+    (``test_no_new_archive_fragile_literals_in_<corpus>_corpus``). The
+    ``corpus_label`` is interpolated into the diagnostic message so the
+    failing test names its corpus unambiguously.
+    """
     unexpected = matches - _R15_CORPUS_WHITELIST
     assert not unexpected, (
         f"R-15-class archive-fragile literal-path-RHS detected in "
-        f"tests/methodology/ corpus at non-whitelisted sites: "
+        f"{corpus_label} corpus at non-whitelisted sites: "
         f"{sorted(unexpected)}. "
         f"Use _resolve_slice_dir(NNN) from tests.methodology.conftest "
         f"instead of hardcoding the slice path. See R-15 in "
         f"architecture/risk-register.md."
     )
 
-    # Also assert the whitelist hasn't grown stale: every whitelisted entry
-    # must still exist in the corpus. A whitelist entry pointing at a
-    # already-fixed surface is dead code that should be pruned.
-    missing_whitelist = _R15_CORPUS_WHITELIST - matches
+
+def test_no_new_archive_fragile_literals_in_methodology_corpus() -> None:
+    """Corpus class-closure backstop for R-15 — ``tests/methodology/`` arm.
+
+    Per slice-056 /critique-review M-add-2 ACCEPTED-FIXED (the original
+    methodology-corpus backstop) + slice-062 ADR-060 (extracted-helper
+    wrapper shape; existing function name PRESERVED per ADR-060 §"Decision"
+    paragraph 3 — the scope-claiming suffix ``_in_methodology_corpus`` is
+    locally accurate; the wider-scope coverage is delivered via two NEW
+    per-corpus test functions below).
+
+    Scans every ``tests/methodology/*.py`` file via the shared
+    ``_scan_corpus_for_r15_literals`` helper and asserts the match-set is
+    a subset of the shared ``_R15_CORPUS_WHITELIST``. The aggregated
+    whitelist-orphan check (``_R15_CORPUS_WHITELIST ⊆ union(all 3
+    corpora matches)``) lives in
+    ``test_r15_corpus_whitelist_has_no_orphan_entries`` below — moved
+    out-of-line per ADR-060 §"Decision" paragraph 2 (the per-function
+    shrinkage check would be incorrect on a per-wrapper basis after
+    extraction, since the shared whitelist might contain documented-
+    deferred sites from other corpora).
+    """
+    methodology_dir = REPO_ROOT / "tests" / "methodology"
+    assert methodology_dir.is_dir(), (
+        f"tests/methodology/ directory missing at {methodology_dir}"
+    )
+    matches = _scan_corpus_for_r15_literals(methodology_dir)
+    _assert_corpus_clean(matches, "tests/methodology/")
+
+
+def test_no_new_archive_fragile_literals_in_tests_skills_corpus() -> None:
+    """Corpus class-closure backstop for R-15 — ``tests/skills/`` arm
+    (NEW per slice-062 ADR-060; scope-extension surface #1).
+
+    Closes the slice-061 N=1 watch-list scope gap (slice-060's
+    ``tests/skills/code_review/test_code_review_skill.py:17`` hardcoded
+    archive-fragile literal that broke at first archive). Per slice-062
+    Phase B, the offending literal is repointed via
+    ``_resolve_slice_dir(60)`` from ``tests.methodology.conftest``;
+    post-repoint, this test PASSES because the wider corpus is then
+    literal-free. This test's pytest-collection + pass IS the structural
+    walk-proof that ``tests/skills/**`` is actually visited by the
+    backstop (per ADR-060 §"Decision" paragraph 1 walk-proof discipline).
+    """
+    skills_dir = REPO_ROOT / "tests" / "skills"
+    assert skills_dir.is_dir(), (
+        f"tests/skills/ directory missing at {skills_dir}"
+    )
+    matches = _scan_corpus_for_r15_literals(skills_dir)
+    _assert_corpus_clean(matches, "tests/skills/")
+
+
+def test_no_new_archive_fragile_literals_in_tests_agents_corpus() -> None:
+    """Corpus class-closure backstop for R-15 — ``tests/agents/`` arm
+    (NEW per slice-062 ADR-060; scope-extension surface #2).
+
+    Currently clean (no R-15-class literals in ``tests/agents/`` at
+    slice-062 ship time — verified empirically at /design-slice). This
+    test's pytest-collection + pass IS the structural walk-proof that
+    ``tests/agents/**`` is actually visited by the backstop (per ADR-060
+    §"Decision" paragraph 1 walk-proof discipline).
+    """
+    agents_dir = REPO_ROOT / "tests" / "agents"
+    assert agents_dir.is_dir(), (
+        f"tests/agents/ directory missing at {agents_dir}"
+    )
+    matches = _scan_corpus_for_r15_literals(agents_dir)
+    _assert_corpus_clean(matches, "tests/agents/")
+
+
+def test_r15_corpus_whitelist_has_no_orphan_entries() -> None:
+    """Aggregated whitelist-integrity check across all 3 test corpora
+    (NEW per slice-062 ADR-060; replaces the prior per-function
+    ``missing_whitelist`` shrinkage check from the slice-056 design).
+
+    Asserts ``_R15_CORPUS_WHITELIST ⊆ union(matches_methodology,
+    matches_skills, matches_agents)`` — i.e., every whitelisted entry
+    must still exist somewhere in the scanned corpora. A whitelist entry
+    pointing at a no-longer-present surface is dead code that should be
+    pruned. When the whitelist becomes empty AND the corpus scans are
+    clean, the M-add-2 whitelist-shrinkage mechanism structurally
+    satisfies R-15 part-(b) (slice-056 /critique m2 + M-add-2 combined;
+    discharged at slice-057 + extended at slice-062 to the wider scope).
+
+    Aggregated across all 3 corpora because the whitelist is shared
+    (ADR-060 §"Decision" paragraph 2): a per-corpus shrinkage check
+    would falsely flag entries that live in a sibling corpus.
+    """
+    methodology_dir = REPO_ROOT / "tests" / "methodology"
+    skills_dir = REPO_ROOT / "tests" / "skills"
+    agents_dir = REPO_ROOT / "tests" / "agents"
+    assert methodology_dir.is_dir(), (
+        f"tests/methodology/ directory missing at {methodology_dir}"
+    )
+    assert skills_dir.is_dir(), (
+        f"tests/skills/ directory missing at {skills_dir}"
+    )
+    assert agents_dir.is_dir(), (
+        f"tests/agents/ directory missing at {agents_dir}"
+    )
+    all_matches = (
+        _scan_corpus_for_r15_literals(methodology_dir)
+        | _scan_corpus_for_r15_literals(skills_dir)
+        | _scan_corpus_for_r15_literals(agents_dir)
+    )
+    missing_whitelist = _R15_CORPUS_WHITELIST - all_matches
     assert not missing_whitelist, (
-        f"_R15_CORPUS_WHITELIST contains entries no longer present in the "
-        f"corpus: {sorted(missing_whitelist)}. The whitelist has shrunk — "
-        f"remove these entries. If the whitelist is now empty, R-15 part-(b) "
-        f"is structurally satisfied; consider transitioning R-15 to retired "
-        f"in architecture/risk-register.md."
+        f"_R15_CORPUS_WHITELIST contains entries no longer present in any "
+        f"scanned corpus: {sorted(missing_whitelist)}. The whitelist has "
+        f"shrunk — remove these entries. If the whitelist is now empty AND "
+        f"all 3 per-corpus tests PASS, R-15 part-(b) is structurally "
+        f"satisfied for the post-slice-062 wider scope; the R-15 risk-"
+        f"register entry's `**Status**:` is already `retired` (slice-057) "
+        f"and the slice-062 scope-extension paragraph documents the wider "
+        f"coverage."
     )
