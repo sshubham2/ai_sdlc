@@ -4177,3 +4177,126 @@ def test_v_0_65_0_r15_scope_extension_shippability_consumer_propagation():
         "test_r15_corpus_whitelist_has_no_orphan_entries function — "
         "aggregated whitelist-integrity check propagation broken"
     )
+
+
+# --- Slice-063 / NAW-1 entry pinning ---
+
+def test_v_0_66_0_naw_1_entry_present_in_repo():
+    """methodology-changelog v0.66.0 / NAW-1 entry-pin (content-bearing
+    per slice-051 / slice-058 / slice-059 / slice-060 / slice-062
+    precedent; NOT a thin presence check).
+
+    Asserts 8 substring presences in the v0.66.0 entry body (per design.md
+    item 8 + critique-review M-add-2 fix — META-1 mandatory + slice-060
+    + slice-062 precedent anchor set):
+      (a) `## v0.66.0` header (slice-060 + slice-062 precedent header
+          anchor; M-add-2 critique fix)
+      (b) `NAW-1` rule ID
+      (c) `ADR-061` reference
+      (d) `New-Agent Warning` rule-name expansion (full rule-name)
+      (e) `mints a new rule` + `supersedes nothing` lineage clauses
+      (f) `Rule reference` literal (META-1 mandatory enforcing-assertion
+          obligation at `test_methodology_changelog.py:136`; M-add-2
+          critique fix)
+      (g) `5-part PMI-1 atomic bump` (5-part, NOT 4-part — slice-063
+          ships a NEW `tools/*.py` so PMI-1 leg count matches slice-060
+          / slice-062 5-part precedent; the anchor literal MUST be
+          `5-part` to avoid the slice-062 M-add-3 stale-carry class)
+
+    Rule reference: NAW-1 (slice-063; ADR-061; mints a new rule;
+    supersedes nothing — the first audit-enforced gate on the
+    discovery-gate axis adjacent to but NOT extending the PMI-1 /
+    PVFS-1 / AVFS-1 / MCFS-1 / TVFS-1 forward-sync family).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.66.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.66.0 entry header — "
+        "slice-063 NAW-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.66.0")
+    assert "NAW-1" in body, (
+        "v0.66.0 entry body missing the 'NAW-1' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-061" in body, (
+        "v0.66.0 entry body must record the ADR-061 minting decision"
+    )
+    assert "New-Agent Warning" in body, (
+        "v0.66.0 entry body missing the 'New-Agent Warning' rule-name "
+        "expansion — future readers parsing the changelog alone must be "
+        "able to find the slice's intent by full name, not just by ID"
+    )
+    assert "mints a new rule" in body and "supersedes nothing" in body, (
+        "v0.66.0 entry must state ADR-061 'mints a new rule' AND "
+        "'supersedes nothing' (the slice-049 / slice-050 / slice-054 / "
+        "slice-059 / slice-060 new-RULE-ID precedent shape)"
+    )
+    assert "Rule reference" in body, (
+        "v0.66.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet (slice-062 /critique-review "
+        "M-add-2 ACCEPTED-FIXED discipline)"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.66.0 entry body missing the '5-part PMI-1 atomic bump' "
+        "anchor — slice-063 ships a NEW `tools/*.py` (NAW-1 audit) so "
+        "PMI-1 leg count matches slice-060 / slice-062 5-part precedent "
+        "(NOT slice-059 4-part). The anchor literal MUST be `5-part` to "
+        "avoid the slice-062 M-add-3 stale-carry class."
+    )
+
+
+def test_v_0_66_0_naw_1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the NAW-1 consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #63) so the slice-063 critical path can never silently regress
+    (slice-040 lesson + BC-PROJ-10:173 verbatim pair-precedent — an
+    uncatalogued pin's breakage is invisible to the catalog runner).
+
+    BCR-1 traceability axis (per slice-054 first-dogfood precedent + the
+    slice-056 row-#56 / slice-062 row-#62 lineage): row #63 MUST cite
+    BOTH the new `NAW-1` rule-ID AND the retired `R-18` risk-ID AND the
+    `ADR-061` minting decision.
+
+    Rule reference: NAW-1 (slice-063; RPCD-1/SCPD-1 consumer-reference
+    propagation onto the NAW-1 critical path).
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert (
+        "| 63 | slice-063-add-build-slice-new-agent-warning" in catalog
+    ), (
+        "architecture/shippability.md missing catalog row #63 for "
+        "slice-063 — RPCD-1/SCPD-1 NAW-1 consumer-reference propagation "
+        "incomplete (the /validate-slice catalog runner cannot guard "
+        "the NAW-1 critical path)"
+    )
+    assert "NAW-1" in catalog, (
+        "architecture/shippability.md row #63 missing the 'NAW-1' rule "
+        "reference — consumer-reference propagation broken at the "
+        "rule-ID layer"
+    )
+    assert "R-18" in catalog, (
+        "architecture/shippability.md row #63 missing the 'R-18' risk "
+        "reference — BCR-1 traceability axis broken (row MUST cite BOTH "
+        "NAW-1 AND R-18 per slice-054 first-dogfood + slice-056 / "
+        "slice-062 lineage precedent)"
+    )
+    assert "ADR-061" in catalog, (
+        "architecture/shippability.md row #63 missing the 'ADR-061' "
+        "reference — BCR-1 traceability axis broken at the ADR layer"
+    )
+    # SCPD-1: silent regression on test function rename caught here
+    assert "test_new_agent_warning_audit" in catalog, (
+        "architecture/shippability.md row #63 missing reference to the "
+        "test_new_agent_warning_audit module — NAW-1 audit-test "
+        "propagation broken"
+    )
+    assert "test_build_slice_step_6_invokes_new_agent_warning_audit" in catalog, (
+        "architecture/shippability.md row #63 missing reference to the "
+        "test_build_slice_step_6_invokes_new_agent_warning_audit "
+        "function — NAW-1 Step 6 wiring pin propagation broken"
+    )
+    assert "test_r_18_retired_post_slice_063" in catalog, (
+        "architecture/shippability.md row #63 missing reference to the "
+        "test_r_18_retired_post_slice_063 function — R-18 retirement "
+        "pin propagation broken"
+    )

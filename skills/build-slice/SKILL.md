@@ -153,6 +153,7 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **State-transition stale-pin audit passes (STP-1)** — see "State-transition stale-pin audit" below
 - [ ] **ai-sdlc-VERSION forward-sync audit passes (AVFS-1)** — see "ai-sdlc-VERSION forward-sync audit" below
 - [ ] **ai-sdlc-tools version forward-sync audit passes (TVFS-1)** — see "ai-sdlc-tools version forward-sync audit" below
+- [ ] **New-agent session-restart warning (NAW-1)** — see "New-agent warning audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
 
@@ -312,6 +313,25 @@ Refusal semantics:
 TVFS-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1 / STP-1 / AVFS-1) — its programmatic gate is `tools/ai_sdlc_tools_version_forward_sync.py`. It is **non-opt-out and UNGATED** here: this Step 6 checklist item runs **every slice regardless of whether a build-checks rule was promoted** (folding TVFS-1 into a rule-promotion gate would silently disable it on a version-bumping-but-no-rule-promoted slice, the R-7/slice-022 silent-disable class). The complementary `/reflect` wiring is its OWN dedicated Step 5b-tvfs (also ungated), NOT part of Step 5b.
 
 Bootstrap (slice-059 only): slice-059 authors TVFS-1. The bootstrap is **conditional** (AVFS-1 precedent): slice-059's build sequence runs `$PY -m pip install --upgrade .` after the 4-part PMI-1 bump to refresh the installed `ai-sdlc-tools` → `0.63.0`. A **non-zero TVFS-1 at slice-059's own Step 6 before that re-install is the EXPECTED signal to perform the re-install — NOT a slice defect**; re-run until exit 0. Every slice after 059 inherits a self-gating TVFS-1 — any version-bumping slice must `$PY -m pip install --upgrade <source>` before Step 6 or TVFS-1 HALTs.
+
+#### New-agent warning audit (NAW-1)
+
+Per **NAW-1** (`methodology-changelog.md` v0.66.0; slice-063; [[ADR-061]]; mints a new rule; supersedes nothing): the first audit-enforced gate on the **discovery-gate** axis, adjacent to (but NOT extending) the forward-sync family (PMI-1 / PVFS-1 / AVFS-1 / MCFS-1 / TVFS-1). R-18 (slice-061-discovered; N=2 cumulative recurrence at slice-061 + slice-062): the Claude Code agent registry is loaded at session start; mid-session writes to `~/.claude/agents/*.md` are invisible to `Agent(subagent_type=…)` calls until the user restarts Claude Code. NAW-1 surfaces this failure mode methodology-discoverably at this Step 6 BEFORE the next slice's chain runs. Run:
+
+```bash
+$PY -m tools.new_agent_warning_audit
+```
+
+Refusal semantics (binary exit contract by construction — there is NO "drift" branch for a discovery gate, and NO exit 1):
+- `clean` (exit 0, quiet stdout): no added `agents/*.md` files in the slice's diff (working-tree-vs-base + untracked-new + commits-vs-base union per [[ADR-061]] §Decision read mechanism). Quiet stdout in `--check` mode; structured `status: "clean"` in `--json`.
+- `warn` (exit 0, stdout): ≥1 added `agents/*.md` files. WARN line(s) on stdout naming each new agent path + session-restart-before-next-slice instruction + R-18 cross-reference. A new-agent slice is NOT a slice regression; the WARN is informational, NEVER a HALT.
+- `usage` (exit 2): repo root unresolvable, `git` binary unavailable on PATH, default-branch resolution returned `None` (no `main` literal fallback in BRANCH-1's `_resolve_default_branch` per the M3 critique fix), or any of the three `git` subprocess calls non-zero. Stderr-only error message per AVFS-1/TVFS-1 precedent.
+
+NAW-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1 / STP-1 / AVFS-1 / TVFS-1) — its programmatic gate is `tools/new_agent_warning_audit.py`. It is **non-opt-out and UNGATED** here: this Step 6 checklist item runs **every slice regardless of whether a build-checks rule was promoted**. There is intentionally **NO `/reflect` Step 5b-naw counterpart** — NAW-1 is a discovery gate, NOT a forward-sync gate; it has no installed-side mutation to verify (distinct from AVFS-1/MCFS-1/TVFS-1's `/reflect` Step 5b-X parity).
+
+**Overbroad-pathspec known false-positive class** (m2 critique fix): the `agents/*.md` pathspec matches ANY `.md` file added under `agents/` — not just files registered in `tools/install_audit.py` `_CANONICAL_AGENTS`. A future slice that adds a prose-doc under `agents/` (e.g., `agents/CONVENTIONS.md`) will trigger a NAW-1 WARN even though no registry cache-miss can result. Accepted as a known-false-positive class with minimal cost — an extra WARN never HALTs.
+
+Bootstrap (slice-063 only): slice-063 authors NAW-1. The bootstrap is **conditional-clean** — the audit runs at slice-063's own Step 6 against slice-063's own working-tree + ls-files state; slice-063 adds zero `agents/*.md` (the slice ships a new `tools/*.py` audit + `skills/build-slice/SKILL.md` edit + `architecture/risk-register.md` flip; zero `agents/*.md` deltas), so all three sources return `[]` → audit exits 0 quietly. Vacuous-pass IS the structural self-application discharge. Every slice after 063 inherits a self-gating NAW-1.
 
 #### Test-first audit (TF-1)
 

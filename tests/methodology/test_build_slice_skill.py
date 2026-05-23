@@ -229,3 +229,34 @@ def test_build_slice_successor_is_code_review():
         "`successor: /validate-slice` (pre-slice-060) — re-apply CRSI-1 flip"
     )
 
+
+
+# --- Slice-063 / NAW-1 Step 6 enumeration pin ---
+def test_build_slice_step_6_invokes_new_agent_warning_audit():
+    """Step 6 pre-finish checklist MUST enumerate NAW-1 (the new-agent
+    session-restart warning audit minted by slice-063 / ADR-061) — both
+    as a checklist line AND as a documented prose sub-section.
+
+    Defect class: a future SKILL.md edit silently drops the NAW-1
+    enumeration line, severing the methodology-discoverable surface
+    R-18's retirement mechanism rests on. The structural-anchor pin
+    catches the drop at /build-slice Step 6 pre-finish (this very test
+    being the consumer-end of the WIRE-1 wiring matrix for the new
+    audit).
+    Rule reference: NAW-1 (slice-063; ADR-061; methodology-changelog
+    v0.66.0; mints a new rule; supersedes nothing).
+    """
+    # Checklist-line literal (slice-063 design.md L68)
+    assert (
+        "**New-agent session-restart warning (NAW-1)**" in BUILD
+    ), "Step 6 checklist missing the NAW-1 enumeration line"
+    # Prose-sub-section heading literal (slice-063 design.md L69)
+    assert "#### New-agent warning audit (NAW-1)" in BUILD, (
+        "Step 6 missing the `#### New-agent warning audit (NAW-1)` "
+        "prose sub-section"
+    )
+    # Run-line literal — the audit's invocation command must be cited
+    assert "tools.new_agent_warning_audit" in BUILD, (
+        "Step 6 NAW-1 sub-section missing the run-line invocation "
+        "`$PY -m tools.new_agent_warning_audit`"
+    )
