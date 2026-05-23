@@ -50,16 +50,16 @@ from tools import _stdout
 # Paired with plugin.yaml; drift between the two is a test failure.
 
 _CANONICAL_SKILLS: tuple[str, ...] = (
-    "adopt", "archive", "build-slice", "commit-slice", "critic-calibrate",
-    "critique", "critique-review", "design-slice", "diagnose", "discover",
-    "drift-check", "heavy-architect", "query-design", "reduce", "reflect",
-    "repro", "risk-spike", "slice", "slice-candidates", "pulse",
-    "supersede-slice",
+    "adopt", "archive", "build-slice", "code-review", "commit-slice",
+    "critic-calibrate", "critique", "critique-review", "design-slice",
+    "diagnose", "discover", "drift-check", "heavy-architect",
+    "query-design", "reduce", "reflect", "repro", "risk-spike",
+    "slice", "slice-candidates", "pulse", "supersede-slice",
     "sync", "triage", "user-test", "validate-slice",
 )
 
 _CANONICAL_AGENTS: tuple[str, ...] = (
-    "critic-calibrate", "critique", "critique-review",
+    "code-review", "critic-calibrate", "critique", "critique-review",
     "diagnose-narrator", "field-recon",
 )
 
@@ -81,8 +81,10 @@ _CANONICAL_METADATA: tuple[str, ...] = (
 # this canonical list by leading-underscore convention.
 # Slice-026 added tools.critique_review_prerequisite_audit (CRP-1 — refuse
 # /build-slice on a skipped mandatory /critique-review).
-# Slice-027 added tools.pipeline_chain_audit (PCA-1 — verify the 8-skill
-# pipeline-chain auto-advance directives match the canonical loop).
+# Slice-027 added tools.pipeline_chain_audit (PCA-1 — verify the
+# pipeline-chain auto-advance directives match the canonical loop;
+# canonical chain extended from 8 to 9 covered skills at slice-060 / CRSI-1
+# with the /code-review insertion between /build-slice and /validate-slice).
 # Slice-059 added tools.ai_sdlc_tools_version_forward_sync (TVFS-1 — assert the
 # installed ai-sdlc-tools pip-package version equals VERSION).
 _CANONICAL_TOOLS: tuple[str, ...] = (

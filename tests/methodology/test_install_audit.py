@@ -340,3 +340,23 @@ def test_install_audit_enumerates_utf8_stdout_audit():
         f"`tools._stdout` is a helper (no main()); MUST NOT be in _CANONICAL_TOOLS "
         f"per B2 ACCEPTED-PENDING at slice-023; current list: {_CANONICAL_TOOLS!r}"
     )
+
+
+# --- Slice-060 / CRSI-1: code-review skill + agent enumeration ---
+
+def test_canonical_skills_and_agents_include_code_review():
+    """Per CRSI-1 (slice-060; ADR-059): INST-1 _CANONICAL_SKILLS MUST
+    include 'code-review' AND _CANONICAL_AGENTS MUST include 'code-review'.
+    The skills tuple is alphabetical post-slice-060 with 'code-review'
+    between 'build-slice' and 'commit-slice'; the agents tuple has
+    'code-review' as the first entry (alphabetically before 'critic-calibrate').
+    """
+    from tools.install_audit import _CANONICAL_SKILLS, _CANONICAL_AGENTS
+    assert "code-review" in _CANONICAL_SKILLS, (
+        "INST-1 _CANONICAL_SKILLS missing 'code-review' — CRSI-1 "
+        "(slice-060) introduces /code-review as an in-loop pipeline skill"
+    )
+    assert "code-review" in _CANONICAL_AGENTS, (
+        "INST-1 _CANONICAL_AGENTS missing 'code-review' — CRSI-1 "
+        "(slice-060) introduces agents/code-review.md as the code-Critic"
+    )

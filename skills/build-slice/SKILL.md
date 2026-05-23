@@ -545,9 +545,9 @@ Brief carries discipline. Plan mode carries groundedness. This avoids the "500-l
 ## Pipeline position
 
 - **predecessor**: `/critique` (post-TRI-1, on CLEAN/NEEDS-FIXES)
-- **successor**: `/validate-slice`
+- **successor**: `/code-review`
 - **auto-advance**: true
-- **on-clean-completion**: once the pre-finish gate fully passes (all ACs, must-not-defer, drift-check, all Step 6 audits incl. PCA-1) and build-log.md is written, invoke `/validate-slice` via the Skill tool without waiting for the user.
+- **on-clean-completion**: once the pre-finish gate fully passes (all ACs, must-not-defer, drift-check, all Step 6 audits incl. PCA-1) and build-log.md is written, invoke `/code-review` via the Skill tool without waiting for the user. Per slice-060 / CRSI-1: `/code-review` is the in-loop adversarial code-Critic between `/build-slice` and `/validate-slice`; `/code-review` itself auto-advances to `/validate-slice` on clean completion (v1 walking-skeleton — advisory only; TRI-1 + verdict-driven block deferred to slice-062).
 - **user-input gates** (halt auto-advance — surface to user, resume only on explicit user action):
   - Plan-mode approval (Step 3 / ExitPlanMode) — HALT for explicit user plan sign-off before any code edits.
   - Mid-slice smoke-gate failure (Step 5) — HALT, STOP, diagnose; do NOT auto-advance on a broken base.

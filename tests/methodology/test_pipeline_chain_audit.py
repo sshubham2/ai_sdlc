@@ -1,7 +1,7 @@
 """Tests for tools.pipeline_chain_audit (PCA-1).
 
 Validates that the audit correctly:
-- Exits 0 when all 8 covered skills carry a well-formed `## Pipeline
+- Exits 0 when all 9 covered skills carry a well-formed `## Pipeline
   position` block whose successor edges match the canonical loop.
 - Exits 1 (`malformed-block`) when a covered skill is missing the block.
 - Exits 1 (`successor-mismatch`) on a wrong successor edge.
@@ -59,12 +59,44 @@ def _make_repo(tmp_path: Path, *, omit: str | None = None,
 
 
 def test_clean_chain_exits_zero(tmp_path: Path):
-    """All 8 well-formed blocks matching the canonical loop → clean, exit 0."""
+    """All 9 well-formed blocks matching the canonical loop → clean, exit 0.
+
+    Chain length grew from 8 → 9 at slice-060 / CRSI-1 with the /code-review
+    insertion between /build-slice and /validate-slice (methodology-changelog
+    v0.64.0; ADR-059).
+    """
     repo = _make_repo(tmp_path)
     result = audit(repo_root=repo)
     assert not result.violations, [v.to_dict() for v in result.violations]
-    assert len(result.skills_checked) == 8
+    assert len(result.skills_checked) == 9
     assert main(["--root", str(repo)]) == 0
+
+
+def test_canonical_chain_includes_code_review_edge():
+    """Per slice-060 / CRSI-1: the canonical chain MUST include the
+    /code-review edge between /build-slice and /validate-slice.
+
+    Asserts on the LIVE `_CANONICAL_CHAIN` tuple imported from the audit
+    module — so adding/removing the edge in tools/pipeline_chain_audit.py
+    is the single source of truth.
+    """
+    chain = dict((skill, succ) for skill, succ, _auto in _CANONICAL_CHAIN)
+    assert chain.get("build-slice") == "/code-review", (
+        "PCA-1 _CANONICAL_CHAIN: /build-slice successor must be "
+        "/code-review post-slice-060 (CRSI-1)"
+    )
+    assert chain.get("code-review") == "/validate-slice", (
+        "PCA-1 _CANONICAL_CHAIN: /code-review successor must be "
+        "/validate-slice (walking-skeleton CRSI-1 edge)"
+    )
+    # All 3 edges (build-slice, code-review, validate-slice) carry
+    # auto-advance: true (CRSI-1 v1 is in-loop with no user-input HALT).
+    for skill, _succ, auto in _CANONICAL_CHAIN:
+        if skill in ("build-slice", "code-review"):
+            assert auto is True, (
+                f"PCA-1 _CANONICAL_CHAIN: {skill} must be auto-advance: true "
+                f"(CRSI-1 in-loop discipline)"
+            )
 
 
 def test_missing_block_exits_one(tmp_path: Path):
@@ -107,3 +139,26 @@ def test_missing_skills_dir_exits_two(tmp_path: Path):
     result = audit(repo_root=tmp_path)
     assert any(v.kind == "usage-error" for v in result.violations)
     assert main(["--root", str(tmp_path)]) == 2
+
+
+def test_audit_exits_zero_on_post_slice_060_repo():
+    """Live-repo integration check: the LIVE post-slice-060 ai_sdlc repo
+    MUST exit 0 on PCA-1 audit (the bootstrap-discharge invariant per
+    design.md "## PCA-1 bootstrap-discharge").
+
+    Asserts the audit's `main()` against `REPO_ROOT` returns 0, proving
+    the in-repo `## Pipeline position` blocks across all 9 skills
+    (slice / design-slice / critique / critique-review / build-slice /
+    code-review / validate-slice / reflect / commit-slice) match the
+    canonical chain. Catches: any future slice that adds/removes/edits
+    a Pipeline-position block out-of-sync with `_CANONICAL_CHAIN`.
+
+    Per CRSI-1 (methodology-changelog v0.64.0; slice-060; ADR-059).
+    """
+    from tests.methodology.conftest import REPO_ROOT
+    assert main(["--root", str(REPO_ROOT)]) == 0, (
+        "PCA-1 audit non-zero against live post-slice-060 repo — chain "
+        "wiring drift between _CANONICAL_CHAIN and a skill's actual "
+        "## Pipeline position block. Re-run `$PY -m tools.pipeline_chain_audit` "
+        "for the specific skill/violation kind."
+    )

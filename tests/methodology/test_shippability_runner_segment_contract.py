@@ -149,3 +149,51 @@ def test_validate_slice_skill_pins_runner_invocation():
         assert "SRSC-1" in content, (
             f"{surface} validate-slice/SKILL.md Step 5.5 does not cite the "
             f"SRSC-1 rule id")
+
+
+# --- Slice-060 / CRSI-1: shippability row #60 dogfood ---
+
+def test_code_review_dogfood_row_runs_clean():
+    """Per CRSI-1 (slice-060; ADR-059) row #60: the SCMD-1 grammar of
+    `architecture/shippability.md` row #60 MUST be well-formed (Machine-cmd
+    column passes SCMD-1 `_segments()` parsing without WinError-2 class
+    false-FAILs) AND the row exists with the required CRSI-1 traceability
+    references (BCR-1 axis pin).
+
+    Per /critique M5: row #60's design is enumerated in design.md
+    "## Shippability catalog row #60 design" with 6 pytest selectors;
+    this test pins the row's existence + the SCMD-1 grammar invariant.
+    """
+    from pathlib import Path
+    catalog = (Path(__file__).resolve().parents[2]
+               / "architecture" / "shippability.md").read_text(encoding="utf-8")
+    # Row existence pin (BCR-1 traceability axis)
+    assert "| 60 | slice-060-add-code-review-skill" in catalog, (
+        "architecture/shippability.md missing row #60 — CRSI-1 "
+        "(slice-060) self-dogfood regression guard absent"
+    )
+    # SCMD-1 grammar: the Machine-cmd cell must use the `<interp>`
+    # placeholder for SRSC-1 portable execution
+    row_60_start = catalog.find("| 60 | slice-060-add-code-review-skill")
+    row_60_end = catalog.find("\n| 61 ", row_60_start)
+    if row_60_end == -1:
+        row_60_end = len(catalog)
+    row_60 = catalog[row_60_start:row_60_end]
+    assert "<interp>" in row_60, (
+        "row #60 Machine-cmd cell missing `<interp>` placeholder — "
+        "SRSC-1 runner requires the placeholder for portable execution"
+    )
+    # 6 pytest selectors per design.md "## Shippability catalog row #60 design"
+    for selector in (
+        "test_code_review_skill_drift.py",
+        "test_code_review_agent_drift.py",
+        "test_v_0_64_0_crsi_1_entry_present_in_repo",
+        "test_v_0_64_0_crsi_1_shippability_consumer_propagation",
+        "test_canonical_chain_includes_code_review_edge",
+        "test_self_dogfood_produces_code_review_md_on_slice_060",
+    ):
+        assert selector in row_60, (
+            f"row #60 missing pytest selector {selector!r} — design.md "
+            f"'## Shippability catalog row #60 design' enumerates 6 "
+            f"selectors; this one is absent"
+        )
