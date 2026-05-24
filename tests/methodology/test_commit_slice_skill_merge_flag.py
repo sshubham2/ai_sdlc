@@ -197,3 +197,69 @@ def test_commit_slice_skill_md_documents_mutual_exclusion_of_three_mode_flags() 
         "skills/commit-slice/SKILL.md mutual-exclusion error model row must "
         "include the explicit 'pass exactly one' diagnostic"
     )
+
+
+# --- Slice-066 / BRANCH-2 worktree-teardown prose pins (AC2) ---
+
+def _step_5b_merge_section(content: str) -> str:
+    """Extract the Step 5b `--merge` flow section from skills/commit-slice/SKILL.md.
+
+    Anchors: starts at "#### Step 5b: With `--merge`" (the H4 heading); ends at the next H4
+    (`#### Step 5c` or `#### Step 5d`).
+    """
+    start = content.find("#### Step 5b: With `--merge`")
+    if start < 0:
+        return ""
+    end = content.find("\n#### Step 5", start + 1)
+    return content[start:end] if end > 0 else content[start:]
+
+
+def test_merge_mode_invokes_git_worktree_remove_post_merge() -> None:
+    """skills/commit-slice/SKILL.md `--merge` (Step 5b) must invoke `git worktree remove` IN-SECTION.
+
+    Defect class: pre-slice-066 the `--merge` flow ended with `git branch -d slice/NNN-<name>` only,
+    leaving the per-slice worktree on disk. Post-BRANCH-2, the flow tears down the worktree before
+    the safe branch-delete. Per ADR-063 §Decision + design.md Step 5b sub-step 5 idempotent
+    worktree-remove guard.
+
+    SECTION-SCOPED: the assertion scopes to Step 5b only (not the whole SKILL.md) — the existing
+    L258 `git worktree remove` diagnostic in a conflict-resolution hint is OUT OF THIS SCOPE and
+    must not satisfy this pin (slice-066 /build-slice Phase B Builder-self-catch).
+
+    Rule reference: BRANCH-2 (slice-066; ADR-063 extends ADR-020's `--merge` mode with worktree-teardown).
+    """
+    content = read_file("skills/commit-slice/SKILL.md")
+    step_5b = _step_5b_merge_section(content)
+    assert step_5b, "skills/commit-slice/SKILL.md must have a `#### Step 5b: With \\`--merge\\`` section"
+    assert "git worktree remove" in step_5b, (
+        "skills/commit-slice/SKILL.md Step 5b `--merge` flow must invoke `git worktree remove` "
+        "IN-SECTION (BRANCH-2 worktree-teardown per ADR-063 §Decision Step 5b sub-step 5; "
+        "the existing L258 git-worktree-remove diagnostic outside Step 5b is out of this scope)"
+    )
+
+
+def test_teardown_order_pins_remove_before_branch_delete() -> None:
+    """BRANCH-2 teardown order is load-bearing: `git worktree remove` MUST precede `git branch -d slice/`.
+
+    Defect class: reverse order (branch-delete before worktree-remove) is rejected by git itself —
+    a branch checked out in a worktree CANNOT be safely deleted (git refuses with "branch 'X'
+    checked out at 'Y'"). The skill prose MUST document this order explicitly so future edits
+    don't accidentally reorder + ship a flow that fails at the user's machine.
+    Rule reference: BRANCH-2 / ADR-063 §Decision order-load-bearing prose.
+
+    Web-known evidence: https://git-scm.com/docs/git-worktree (git refuses `branch -d` on checked-out branch).
+    """
+    content = read_file("skills/commit-slice/SKILL.md")
+    step_5b = _step_5b_merge_section(content)
+    assert step_5b, "skills/commit-slice/SKILL.md must have a `#### Step 5b: With \\`--merge\\`` section"
+    wt_remove_idx = step_5b.find("git worktree remove")
+    branch_delete_idx = step_5b.find("git branch -d slice/")
+    assert wt_remove_idx > 0, "Step 5b must contain `git worktree remove` (BRANCH-2 teardown)"
+    assert branch_delete_idx > 0, "Step 5b must contain `git branch -d slice/` (existing BRANCH-1 safe-delete)"
+    assert wt_remove_idx < branch_delete_idx, (
+        "BRANCH-2 teardown order is LOAD-BEARING: `git worktree remove` MUST appear before "
+        "`git branch -d slice/` in commit-slice SKILL.md Step 5b. A branch checked out in a worktree "
+        "cannot be safely deleted (git refuses with 'branch X checked out at Y'); per ADR-063 §Decision "
+        "+ design.md Step 5b sub-step 6 order-load-bearing pin. Section-scoped: the existing L258 "
+        "git-worktree-remove diagnostic is outside Step 5b and out of this scope."
+    )

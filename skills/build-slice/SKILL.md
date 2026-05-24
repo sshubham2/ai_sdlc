@@ -38,9 +38,9 @@ Runs after `/critique` blockers + majors are addressed. Output: working code + t
 
 ### Branch state
 
-Per **BRANCH-1** (`methodology-changelog.md` v0.35.0): branch-per-slice workflow runs at /build-slice as a structural prerequisite (NOT a new Step — slice-021 follows slice-017 TPHD-1 sub-mode (c) precedent of placing prerequisite-class disciplines under `## Prerequisite check` rather than creating a numbered Step 0). The slice's own commits live on a dedicated `slice/NNN-<slice-name>` branch; `/commit-slice --merge` integrates them back at slice end.
+Per **BRANCH-2** (`methodology-changelog.md` v0.68.0; [[ADR-063]]; partial-supersedes ADR-019 / BRANCH-1 sub-mode (a) build-time branch-create + extends sub-mode (c) audit-time refusal): worktree-per-slice + branch workflow runs at /build-slice as a structural prerequisite (NOT a new Step — slice-021 follows slice-017 TPHD-1 sub-mode (c) precedent of placing prerequisite-class disciplines under `## Prerequisite check` rather than creating a numbered Step 0). The slice's own commits live in a **filesystem-isolated worktree** at the canonical sibling-dir path `<main-parent>/<main-name>-wt/slice-NNN-<slice-name>` on a dedicated `slice/NNN-<slice-name>` branch; `/commit-slice --merge` integrates back + tears the worktree down at slice end (BRANCH-1's `git checkout -b` on the main tree is superseded — closes R-17 / uncommitted-slice-A-WIP-contaminates-slice-B class structurally).
 
-Resolve the repo's default branch at runtime (per /critique M1 ACCEPTED-PENDING — replaces hard-coded `master`/`main` for cross-project portability):
+Resolve the repo's default branch at runtime (unchanged from BRANCH-1 per /critique M1 ACCEPTED-PENDING — canonical N=3-surface pin inherited by BRANCH-2; replaces hard-coded `master`/`main` for cross-project portability):
 
 ```bash
 # Primary resolution
@@ -50,14 +50,20 @@ default=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/r
 # STOP if neither resolves
 ```
 
-Then apply the branch-create logic:
+Then apply the worktree-create logic (BRANCH-2):
 
-1. **If on default branch** (HEAD == resolved default): `git checkout -b slice/NNN-<slice-name>` from current HEAD. Switch is immediate; WT must be clean.
-2. **If `slice/NNN-<slice-name>` already exists** (resume after session death): `git checkout slice/NNN-<slice-name>`.
-3. **If on any other branch** (including stale `slice/<other-number>-*` from prior conflict): STOP, ask user to switch to default branch or document `BRANCH=skip` escape-hatch in `build-log.md` Events per Step 7c canonical shape.
-4. **If working tree is dirty** (`git status --porcelain` non-empty): STOP, ask user to commit or stash. NO auto-stash.
+1. **If on default branch** (HEAD == resolved default): create the worktree at the canonical sibling path + branch in one git command, then `cd` into it:
+   ```bash
+   wt_base="$(dirname "$(pwd)")/$(basename "$(pwd)")-wt"
+   git worktree add "$wt_base/slice-NNN-<slice-name>" -b slice/NNN-<slice-name> "$default"
+   cd "$wt_base/slice-NNN-<slice-name>"
+   ```
+   The worktree's filesystem is physically isolated from the main tree; uncommitted slice-A WIP on the main tree cannot contaminate slice-B's worktree.
+2. **If the worktree already exists** at `<wt_base>/slice-NNN-<slice-name>` (resume after session death): `cd "$wt_base/slice-NNN-<slice-name>"` and verify `git branch --show-current` matches `slice/NNN-<slice-name>`.
+3. **If on any other branch** (including stale `slice/<other-number>-*` from prior conflict OR a worktree for a different slice): STOP, ask user to switch context or document `WORKTREE=skip` escape-hatch in `build-log.md` Events per Step 7c canonical shape.
+4. **If working tree is dirty** in the main tree (`git status --porcelain` non-empty before `worktree add`): STOP, ask user to commit or stash on the main tree. NO auto-stash.
 
-The canonical `BRANCH=skip` escape-hatch line shape (Step 7c-pinned): `<YYYY-MM-DD HH:MM> DEVIATION: BRANCH=skip — rationale: <text>`. The `tools/branch_workflow_audit.py` (BRANCH-1) audit at Step 6 pre-finish refuses anything else.
+The canonical `WORKTREE=skip` escape-hatch line shape (Step 7c-pinned per BRANCH-2; mirrors `BRANCH=skip`'s shape from BRANCH-1): `<YYYY-MM-DD HH:MM> DEVIATION: WORKTREE=skip — rationale: <text>`. The `tools/branch_workflow_audit.py` (BRANCH-2 audit) at Step 6 pre-finish refuses anything else. **`BRANCH=skip` is preserved as a parallel legacy escape-hatch** (per ADR-063 §Scope of supersession "Carried forward unchanged" 4th-surface inheritance) — both grammars coexist; `BRANCH=skip` for legacy single-tree-only escapes, `WORKTREE=skip` for the worktree-discipline-skip case + slice-066 bootstrap.
 
 ## Your task
 
@@ -467,7 +473,9 @@ Updates during build:
 - `2026-05-03 14:32 FINDING: version footer half-hidden by nav bar — screenshot pending`
 - `2026-05-03 14:33 ERROR: screenshot read failed (binary corruption); finding still valid via manual inspection`
 
-**Canonical `BRANCH=skip` sub-shape** (per **BRANCH-1**, `methodology-changelog.md` v0.35.0 sub-mode (a) — narrows the empirically-permissive parent DEVIATION convention for audit-quality): when documenting a deliberate skip of BRANCH-1's branch-create discipline, the DEVIATION line MUST conform to this exact shape: `<YYYY-MM-DD HH:MM> DEVIATION: BRANCH=skip — rationale: <text>` (HH:MM required; `rationale:` token required; text is non-empty). `tools/branch_workflow_audit.py` escape-hatch grep accepts only this shape via the regex `^- \d{4}-\d{2}-\d{2} \d{2}:\d{2} DEVIATION: BRANCH=skip\b.+rationale: .+`. Example: `2026-05-14 20:14 DEVIATION: BRANCH=skip — rationale: trivial 1-line typo fix per CLAUDE.md hard-rule exception`.
+**Canonical `BRANCH=skip` sub-shape** (per **BRANCH-1**, `methodology-changelog.md` v0.35.0 sub-mode (a) — narrows the empirically-permissive parent DEVIATION convention for audit-quality): when documenting a deliberate skip of BRANCH-1's branch-create discipline, the DEVIATION line MUST conform to this exact shape: `<YYYY-MM-DD HH:MM> DEVIATION: BRANCH=skip — rationale: <text>` (HH:MM required; `rationale:` token required; text is non-empty). `tools/branch_workflow_audit.py` escape-hatch grep accepts only this shape via the regex `^- \d{4}-\d{2}-\d{2} \d{2}:\d{2} DEVIATION: BRANCH=skip\b.+rationale: .+`. Example: `2026-05-14 20:14 DEVIATION: BRANCH=skip — rationale: trivial 1-line typo fix per CLAUDE.md hard-rule exception`. **`BRANCH=skip` is preserved post-BRANCH-2 as a legacy parallel escape-hatch** (per ADR-063 §Scope of supersession "Carried forward unchanged" 4th-surface inheritance).
+
+**Canonical `WORKTREE=skip` sub-shape** (per **BRANCH-2**, `methodology-changelog.md` v0.68.0; [[ADR-063]] §Decision; mirrors `BRANCH=skip`'s shape with a new keyword for the worktree-discipline-skip case): when documenting a deliberate skip of BRANCH-2's worktree-create discipline (slice-066 bootstrap; legacy single-tree edge cases; etc.), the DEVIATION line MUST conform to this exact shape: `<YYYY-MM-DD HH:MM> DEVIATION: WORKTREE=skip — rationale: <text>` (HH:MM required; `rationale:` token required; text is non-empty). `tools/branch_workflow_audit.py` `_WORKTREE_SKIP_LINE_RE` grep accepts only this shape via the regex `^- \d{4}-\d{2}-\d{2} \d{2}:\d{2} DEVIATION: WORKTREE=skip\b.+rationale: .+`. Example (slice-066 bootstrap): `2026-05-24 17:00 DEVIATION: WORKTREE=skip-bootstrap — rationale: slice-066 authors the worktree-create prose; bootstrap-reference instance #1`. Cross-spec parity (RPCD-1): the literal `WORKTREE=skip` is pinned across N=3 surfaces — (1) this canonical-line-shape paragraph, (2) `skills/commit-slice/SKILL.md` `--merge`/`--sync-after-pr` cleanup reminder, (3) `tools/branch_workflow_audit.py` `_WORKTREE_SKIP_LINE_RE` regex. Both grammars coexist post-BRANCH-2.
 
 Keep entries to one line each. Detailed evidence (full command output, stack traces, screenshot paths) goes in the Summary section at slice end. The events section is the trace; the summary is the report.
 

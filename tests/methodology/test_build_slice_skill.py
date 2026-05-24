@@ -260,3 +260,67 @@ def test_build_slice_step_6_invokes_new_agent_warning_audit():
         "Step 6 NAW-1 sub-section missing the run-line invocation "
         "`$PY -m tools.new_agent_warning_audit`"
     )
+
+
+# --- Slice-066 / BRANCH-2 worktree-create prose pins (AC1) ---
+
+def _branch_state_section(content: str) -> str:
+    """Extract the `## Prerequisite check ### Branch state` sub-section."""
+    start = content.find("### Branch state")
+    if start < 0:
+        return ""
+    # End at the next H2 (##) or H3 (###) heading
+    end_h3 = content.find("\n### ", start + 1)
+    end_h2 = content.find("\n## ", start + 1)
+    candidates = [i for i in (end_h2, end_h3) if i > 0]
+    end = min(candidates) if candidates else len(content)
+    return content[start:end]
+
+
+def test_branch_state_subsection_invokes_git_worktree_add():
+    """skills/build-slice/SKILL.md `## Prerequisite check ### Branch state` must invoke `git worktree add`.
+
+    Defect class: pre-slice-066 the sub-section used `git checkout -b slice/NNN-` on the main tree,
+    leaving R-17 (uncommitted slice-A WIP contaminating slice-B's first commit) open. Per BRANCH-2
+    ([[ADR-063]]; methodology v0.68.0), the sub-section invokes `git worktree add` for filesystem
+    isolation; the slice's commits live in a filesystem-isolated worktree.
+    Rule reference: BRANCH-2 sub-mode (a) (slice-066; ADR-063; partial-supersedes ADR-019 sub-mode (a)).
+    """
+    branch_state = _branch_state_section(BUILD)
+    assert "git worktree add" in branch_state, (
+        "skills/build-slice/SKILL.md `## Prerequisite check ### Branch state` must invoke "
+        "`git worktree add` (BRANCH-2 worktree-per-slice replaces BRANCH-1's `git checkout -b` "
+        "on the main tree; per [[ADR-063]] §Decision)"
+    )
+
+
+def test_branch_state_subsection_uses_sibling_wt_path_shape():
+    """The worktree-create path follows the sibling-directory convention `<main-parent>/<main-name>-wt/slice-NNN-<name>`.
+
+    Defect class: a non-canonical worktree path (e.g., in-repo `.worktrees/`, absolute hardcoded `/tmp/`)
+    breaks BC-PROJ-9 5-inventory fan-out + audit's `worktree-path-shape-violation` detection.
+    Rule reference: BRANCH-2 / ADR-063 §Decision worktree path convention.
+    """
+    branch_state = _branch_state_section(BUILD)
+    # Either explicit `-wt/` (POSIX) or `-wt\` (Windows) infix is present in the sibling path shape.
+    assert "-wt/" in branch_state or "-wt\\" in branch_state or "-wt`" in branch_state, (
+        "skills/build-slice/SKILL.md `## Prerequisite check ### Branch state` must use the sibling-dir "
+        "worktree path convention `<main-parent>/<main-name>-wt/slice-NNN-<name>` per ADR-063 §Decision"
+    )
+
+
+def test_branch_state_subsection_does_not_use_bare_checkout_b():
+    """The sub-section MUST NOT use bare `git checkout -b slice/` on the main tree (legacy BRANCH-1).
+
+    Defect class: bare `git checkout -b slice/NNN-` is the BRANCH-1 sub-mode (a) mechanism that
+    BRANCH-2 supersedes; co-presence of both forms would re-introduce R-17.
+    Rule reference: BRANCH-2 §"Superseded by this ADR" disposition.
+    """
+    branch_state = _branch_state_section(BUILD)
+    # `git worktree add ... -b slice/NNN-<name>` is the new form; bare `git checkout -b slice/` is forbidden.
+    # We allow the literal `git checkout slice/NNN-<slice-name>` (no `-b`) for the resume case (worktree exists, just cd into it).
+    assert "git checkout -b slice/" not in branch_state, (
+        "skills/build-slice/SKILL.md `## Prerequisite check ### Branch state` must NOT use bare "
+        "`git checkout -b slice/` on the main tree (BRANCH-1 sub-mode (a) mechanism; superseded by "
+        "BRANCH-2's `git worktree add ... -b slice/NNN-<name>` per [[ADR-063]])"
+    )

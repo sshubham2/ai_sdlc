@@ -4428,3 +4428,130 @@ def test_v_0_67_0_naw_extend_shippability_consumer_propagation():
         "BFRD-1 repro test — SCPD-1 consumer-reference propagation "
         "broken"
     )
+
+
+def test_v_0_68_0_branch_2_entry_present_in_repo():
+    """methodology-changelog v0.68.0 / BRANCH-2 worktree-per-slice
+    entry-pin (content-bearing per slice-051 / slice-058 / slice-059 /
+    slice-060 / slice-062 / slice-063 / slice-064 precedent; NOT a thin
+    presence check).
+
+    Asserts substring presences in the v0.68.0 entry body (per
+    design.md / ADR-063 §Decision):
+      (a) `## v0.68.0` dated header
+      (b) `BRANCH-2` rule reference (the new RULE-ID this entry mints)
+      (c) `ADR-063` reference
+      (d) `Worktree-per-slice + branch` canonical-phrase anchor
+      (e) `supersedes ADR-019` lineage (the N=2 partial-supersession)
+      (f) `5-part PMI-1 atomic bump` (slice-063/064 canonical anchor —
+          VERSION + plugin.yaml.version + pyproject.toml [project].version
+          + ## v0.68.0 header + installed ~/.claude/ai-sdlc-VERSION;
+          CLAUDE.md edit + shippability row #66 are SEPARATE BC-PROJ-9
+          / BC-PROJ-10 consumer-propagation surfaces, NOT PMI-1 parts —
+          per slice-066 /build-slice Phase A Builder-self-catch)
+      (g) `R-17` reference (the retired risk this BRANCH-2 closes)
+      (h) `Rule reference` literal (META-1 mandatory enforcing-assertion
+          obligation at `test_methodology_changelog.py:136`)
+      (i) `mints a new rule` AND `supersedes` (compound lineage clauses;
+          mints BRANCH-2 NEW rule, supersedes ADR-019 sub-mode (a))
+
+    Rule reference: BRANCH-2 (slice-066; ADR-063; partial-supersedes
+    ADR-019 sub-mode (a); extends sub-mode (c); methodology v0.68.0;
+    N=2 application of slice-022 partial-supersession encoding pattern).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.68.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.68.0 entry header — "
+        "slice-066 BRANCH-2 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.68.0")
+    assert "BRANCH-2" in body, (
+        "v0.68.0 entry body missing the 'BRANCH-2' rule reference — "
+        "entry-pin broken at the rule-reference layer (this slice MINTS "
+        "BRANCH-2 as a new audit-enforced rule)"
+    )
+    assert "ADR-063" in body, (
+        "v0.68.0 entry body must reference ADR-063 (the partial-supersession of ADR-019 sub-mode (a))"
+    )
+    assert "Worktree-per-slice" in body, (
+        "v0.68.0 entry body missing the 'Worktree-per-slice' canonical "
+        "phrase anchor — BRANCH-2's name is `Worktree-per-slice + branch`"
+    )
+    assert "ADR-019" in body, (
+        "v0.68.0 entry body must reference ADR-019 (the BRANCH-1 mint that BRANCH-2 partial-supersedes)"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.68.0 entry body missing the '5-part PMI-1 atomic bump' "
+        "anchor — slice-066 ships a 5-part bump (VERSION + plugin.yaml + "
+        "pyproject.toml + ## v0.68.0 header + installed ai-sdlc-VERSION) "
+        "per slice-063/064 canonical anchor. CLAUDE.md + shippability "
+        "row #66 are SEPARATE consumer-propagation surfaces (BC-PROJ-9 "
+        "/ BC-PROJ-10), NOT PMI-1 parts (per slice-066 /build-slice "
+        "Phase A Builder-self-catch)"
+    )
+    assert "R-17" in body, (
+        "v0.68.0 entry body must reference R-17 (the risk-register entry "
+        "this BRANCH-2 retires — uncommitted-slice-A-WIP-contaminates-"
+        "slice-B class closed structurally via worktree isolation)"
+    )
+    assert "Rule reference" in body, (
+        "v0.68.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+    assert "mints a new rule" in body, (
+        "v0.68.0 entry must state 'mints a new rule' (BRANCH-2 is a NEW "
+        "audit-enforced rule, NOT a scope-extension; slice-063 v0.66.0 "
+        "/ NAW-1 mint precedent applies to slice-066 / BRANCH-2 mint)"
+    )
+    assert "supersedes" in body, (
+        "v0.68.0 entry must reference the supersedes lineage — ADR-063 "
+        "partial-supersedes ADR-019 sub-mode (a) (slice-022 partial-"
+        "supersession encoding pattern, N=2 application)"
+    )
+
+
+def test_v_0_68_0_branch_2_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the BRANCH-2 consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #66) so the slice-066 critical path can never silently regress
+    (slice-040 lesson + BC-PROJ-10:173 verbatim pair-precedent — an
+    uncatalogued pin's breakage is invisible to the catalog runner).
+
+    BCR-1 traceability axis (per slice-054 first-dogfood precedent +
+    slice-056/062/063/064 lineage): row #66 MUST cite BOTH the new RULE-ID
+    (BRANCH-2) AND the new ADR (ADR-063) AND the retired risk (R-17) —
+    severing any of these axes silently breaks traceability from the
+    catalog row to the methodology-changelog entry to the ADR to the
+    risk-register.
+
+    Rule reference: BC-PROJ-10:173 (paired entry-pin precedent N≥17
+    inclusive of this slice); BCR-1 traceability axis.
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "slice-066-add-worktree-per-slice-discipline" in catalog, (
+        "architecture/shippability.md must contain a slice-066 row "
+        "(catalog row #66 per BC-PROJ-10:173 paired-entry-pin discipline; "
+        "an uncatalogued pin is invisible to the catalog runner)"
+    )
+    # Locate the slice-066 row (single line in pipe-table format).
+    row_start = catalog.find("slice-066-add-worktree-per-slice-discipline")
+    # Find the row boundary: next ` | ` separating columns suggests we're in the row;
+    # take a generous window since rows are very long single-line narratives.
+    row_end = catalog.find("\n| ", row_start)
+    row = catalog[row_start:row_end] if row_end > 0 else catalog[row_start:row_start + 8000]
+    assert "BRANCH-2" in row, (
+        "shippability.md row #66 must cite BRANCH-2 (the new RULE-ID) per "
+        "BCR-1 traceability axis"
+    )
+    assert "ADR-063" in row, (
+        "shippability.md row #66 must cite ADR-063 (the new ADR) per "
+        "BCR-1 traceability axis"
+    )
+    assert "R-17" in row, (
+        "shippability.md row #66 must cite R-17 (the retired risk this "
+        "BRANCH-2 closes) per BCR-1 traceability axis"
+    )
+    assert "worktree" in row.lower(), (
+        "shippability.md row #66 must reference 'worktree' (the discipline "
+        "this row pins) for catalog-runner discoverability"
+    )

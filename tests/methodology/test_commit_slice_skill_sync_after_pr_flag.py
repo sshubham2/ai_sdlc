@@ -170,3 +170,56 @@ def test_skill_md_sync_after_pr_uses_ff_only_pull() -> None:
         "(per /critique B1 ACCEPTED-FIXED; closes silent-merge-commit-on-default "
         "data-loss path)"
     )
+
+
+# --- Slice-066 / BRANCH-2 worktree-teardown in --sync-after-pr (AC2) ---
+
+def _step_5d_sync_after_pr_section(content: str) -> str:
+    """Extract the Step 5d `--sync-after-pr` flow section from skills/commit-slice/SKILL.md.
+
+    Anchors: starts at "#### Step 5d: With `--sync-after-pr`" (the H4 heading); ends at the next
+    H4 OR H3 (`### Step 6` / similar).
+    """
+    start = content.find("#### Step 5d: With `--sync-after-pr`")
+    if start < 0:
+        return ""
+    # End at next H4 or H3 heading
+    end_h4 = content.find("\n#### ", start + 1)
+    end_h3 = content.find("\n### ", start + 1)
+    candidates = [i for i in (end_h4, end_h3) if i > 0]
+    end = min(candidates) if candidates else len(content)
+    return content[start:end]
+
+
+def test_sync_after_pr_mode_invokes_git_worktree_remove_post_merge() -> None:
+    """skills/commit-slice/SKILL.md `--sync-after-pr` (Step 5d) must invoke `git worktree remove` IN-SECTION.
+
+    Defect class: pre-slice-066 the post-PR-merge cleanup ended with `git pull --ff-only` +
+    `git branch -d` only; the per-slice worktree stayed on disk indefinitely. Post-BRANCH-2,
+    `--sync-after-pr` tears the worktree down symmetrically with `--merge` (same idempotent guard
+    + same order constraint).
+
+    SECTION-SCOPED: assertion scopes to Step 5d only — the existing L258 `git worktree remove`
+    diagnostic at the end of Step 5d ALSO triggers a false-pass on the loose section-from-first-
+    mention slice. The narrow Step 5d boundary (next #### or ### heading) cuts before L258 if
+    L258 is in Step 5d body OR after if in Step 6 prose; the section-scoping discipline closes
+    the slice-066 Phase B Builder-self-catch class.
+
+    Rule reference: BRANCH-2 (slice-066; ADR-063 extends ADR-020's `--sync-after-pr` mode with worktree-teardown).
+    """
+    from tests.methodology.conftest import read_file as _rf
+    content = _rf("skills/commit-slice/SKILL.md")
+    step_5d = _step_5d_sync_after_pr_section(content)
+    assert step_5d, "skills/commit-slice/SKILL.md must have a `#### Step 5d: With \\`--sync-after-pr\\`` section"
+    # Pre-slice-066 Step 5d has ONE `git worktree remove` mention (the L258 diagnostic, which IS
+    # currently inside Step 5d per the existing SKILL.md). Post-BRANCH-2, the cleanup flow ADDS a
+    # NEW worktree-remove invocation as an actionable step (not just a diagnostic). We assert >=2
+    # to differentiate post-fix (cleanup step + existing diagnostic) from pre-fix (just diagnostic).
+    wt_remove_count = step_5d.count("git worktree remove")
+    assert wt_remove_count >= 2, (
+        f"skills/commit-slice/SKILL.md `--sync-after-pr` (Step 5d) must invoke `git worktree remove` "
+        f"as an actionable cleanup step (BRANCH-2 worktree-teardown per ADR-063 §Decision Step 5d "
+        f"sub-step 8) IN ADDITION to the existing L258 diagnostic mention; expected >=2 occurrences "
+        f"in Step 5d, got {wt_remove_count}. Section-scoping pinned per slice-066 /build-slice "
+        f"Phase B Builder-self-catch."
+    )
