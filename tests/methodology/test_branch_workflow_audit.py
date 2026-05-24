@@ -203,3 +203,241 @@ def test_branch_workflow_audit_warns_on_stale_slice_branch_from_prior_conflict(t
         "Expected `stale-slice-branch` warning when prior slice/* branches linger; "
         f"got: {[v.kind for v in result.violations]}"
     )
+
+
+# --- Slice-066 / BRANCH-2 worktree-mode audit tests (AC3) ---
+
+
+def _add_worktree(repo: Path, wt_path: Path, branch: str, base: str = "master") -> None:
+    """Create a worktree via real git plumbing.
+
+    `wt_path.parent` must exist (created by caller). `git worktree add` creates the wt-path
+    directory itself.
+    """
+    _run_git(repo, "worktree", "add", str(wt_path), "-b", branch, base)
+
+
+def _make_slice_folder_in_worktree(wt_path: Path, slice_number: int, slice_name: str) -> Path:
+    """Create the active-slice folder inside a worktree's checkout (mirrors repo content)."""
+    slice_folder = wt_path / "architecture" / "slices" / f"slice-{slice_number:03d}-{slice_name}"
+    slice_folder.mkdir(parents=True)
+    (slice_folder / "mission-brief.md").write_text("# Slice fixture\n")
+    return slice_folder
+
+
+def test_accepts_cwd_in_worktree_sibling_path(tmp_path: Path) -> None:
+    """Shape 1 canonical clean: cwd inside worktree at canonical sibling path; audit accepts.
+
+    Defect class: pre-slice-066 the audit had no worktree-mode awareness — running it from
+    inside a worktree at `<main-parent>/<main-name>-wt/slice-NNN-<name>` either spuriously
+    refused (wrong-cwd false positive) or quietly accepted without verifying registration.
+    Post-BRANCH-2, the audit detects worktree-mode via the `.git` file marker + verifies
+    registration via `git worktree list --porcelain`.
+
+    Rule reference: BRANCH-2 sub-mode (c) extended (slice-066; ADR-063).
+    """
+    repo = _init_repo_on_default_branch(tmp_path)
+    # Sibling-dir canonical convention: <tmp_path>/repo-wt/slice-021-test-feature (repo is at <tmp_path>/repo).
+    wt_path = tmp_path / "repo-wt" / "slice-021-test-feature"
+    wt_path.parent.mkdir(parents=True, exist_ok=True)
+    _add_worktree(repo, wt_path, "slice/021-test-feature")
+    slice_folder = _make_slice_folder_in_worktree(wt_path, 21, "test-feature")
+    result = bwa.audit(slice_folder=slice_folder, repo_root=wt_path)
+    important = [v for v in result.violations if v.severity == "Important"]
+    assert not important, (
+        f"Shape 1 (cwd in canonical sibling-path worktree, slice branch checked out) must be clean; "
+        f"got Important violations: {[(v.kind, v.message) for v in important]}"
+    )
+
+
+def test_accepts_worktree_registered_via_git_worktree_list_porcelain(tmp_path: Path) -> None:
+    """The audit must verify the worktree IS registered via `git worktree list --porcelain`.
+
+    Defect class: silent acceptance based on filesystem path-shape alone (without checking
+    `git worktree list`) admits a corrupted state where a directory looks like a worktree
+    (correct path, has `.git` file) but isn't actually registered in `.git/worktrees/`.
+
+    Rule reference: BRANCH-2 worktree-registered helper (slice-066; ADR-063 §Decision).
+    """
+    repo = _init_repo_on_default_branch(tmp_path)
+    wt_path = tmp_path / "repo-wt" / "slice-021-test-feature"
+    wt_path.parent.mkdir(parents=True, exist_ok=True)
+    _add_worktree(repo, wt_path, "slice/021-test-feature")
+    # Verify `git worktree list --porcelain` shows the worktree (real git plumbing).
+    list_result = _run_git(repo, "worktree", "list", "--porcelain")
+    assert str(wt_path) in list_result.stdout or wt_path.name in list_result.stdout, (
+        f"git worktree list --porcelain must show the new worktree at {wt_path}; got: {list_result.stdout}"
+    )
+    slice_folder = _make_slice_folder_in_worktree(wt_path, 21, "test-feature")
+    result = bwa.audit(slice_folder=slice_folder, repo_root=wt_path)
+    # No worktree-not-registered violation should fire (the worktree IS registered).
+    assert not any(v.kind == "worktree-not-registered" for v in result.violations), (
+        f"Worktree registered via `git worktree list --porcelain` must not emit "
+        f"`worktree-not-registered`; got: {[v.kind for v in result.violations]}"
+    )
+
+
+def test_rejects_main_tree_cwd_when_worktree_registered_elsewhere(tmp_path: Path) -> None:
+    """Shape 2 (forgot to cd): cwd is main tree, slice branch checked out in worktree; audit emits worktree-cwd-mismatch.
+
+    Defect class: this is the canonical "Claude forgot to `cd` into the worktree" failure mode.
+    Without `worktree-cwd-mismatch` detection, a Claude running /build-slice Step 6 in the main
+    tree (HEAD on default) while the slice branch is checked out in a worktree elsewhere would
+    either fire the wrong violation (on-default-branch) or silently accept.
+
+    Rule reference: BRANCH-2 / ADR-063 §Decision Audit invocation call-shapes shape 2.
+    """
+    repo = _init_repo_on_default_branch(tmp_path)
+    wt_path = tmp_path / "repo-wt" / "slice-021-test-feature"
+    wt_path.parent.mkdir(parents=True, exist_ok=True)
+    _add_worktree(repo, wt_path, "slice/021-test-feature")
+    # Slice folder also exists in the main tree (mirror of vault content).
+    slice_folder = _make_slice_folder(repo, 21, "test-feature")
+    # Audit called with main tree as repo_root → forgot-to-cd canonical case.
+    result = bwa.audit(slice_folder=slice_folder, repo_root=repo)
+    assert any(v.kind == "worktree-cwd-mismatch" for v in result.violations), (
+        f"Shape 2 (cwd in main tree, slice branch checked out in worktree elsewhere) must emit "
+        f"`worktree-cwd-mismatch`; got kinds: {[v.kind for v in result.violations]}. "
+        f"Per ADR-063 §Decision Audit-invocation call-shapes shape 2."
+    )
+
+
+def test_accepts_invocation_from_inside_worktree_with_relative_slice_folder(tmp_path: Path) -> None:
+    """Variant of shape 1: invocation with cwd-relative slice-folder path inside the worktree.
+
+    Defect class: Path resolution semantics must tolerate cwd-relative slice-folder arguments
+    when invoked from inside the worktree (the canonical /build-slice Step 6 invocation form).
+    Per design.md "Path-comparison semantics" + Windows path edge cases (microsoft/vscode#101244).
+
+    Rule reference: BRANCH-2 path-comparison semantics (slice-066; /critique B2 ACCEPTED-FIXED).
+    """
+    repo = _init_repo_on_default_branch(tmp_path)
+    wt_path = tmp_path / "repo-wt" / "slice-021-test-feature"
+    wt_path.parent.mkdir(parents=True, exist_ok=True)
+    _add_worktree(repo, wt_path, "slice/021-test-feature")
+    slice_folder = _make_slice_folder_in_worktree(wt_path, 21, "test-feature")
+    # Pass slice_folder as absolute path (canonical form); repo_root resolution should land on wt_path.
+    result = bwa.audit(slice_folder=slice_folder, repo_root=None)
+    important = [v for v in result.violations if v.severity == "Important"]
+    assert not important, (
+        f"Shape 1 variant (cwd-resolved repo_root from slice_folder ancestor walk; worktree's .git "
+        f"file detected) must be clean; got Important violations: {[(v.kind, v.message) for v in important]}"
+    )
+
+
+def test_emits_worktree_path_shape_violation_on_non_canonical_wt_path(tmp_path: Path) -> None:
+    """Worktree registered but at a non-canonical path (not `<main-parent>/<main-name>-wt/slice-NNN-<name>`) emits `worktree-path-shape-violation`.
+
+    Defect class: a worktree at an arbitrary path (e.g., `/tmp/random-wt/`) bypasses the
+    canonical convention; tools that derive the worktree path via the canonical resolver
+    would miss it.
+
+    Rule reference: BRANCH-2 / ADR-063 §Decision canonical worktree path convention.
+    """
+    repo = _init_repo_on_default_branch(tmp_path)
+    # Non-canonical wt-path: NOT `<tmp_path>/repo-wt/...`, instead `<tmp_path>/elsewhere/...`.
+    wt_path = tmp_path / "elsewhere" / "slice-021-test-feature"
+    wt_path.parent.mkdir(parents=True, exist_ok=True)
+    _add_worktree(repo, wt_path, "slice/021-test-feature")
+    slice_folder = _make_slice_folder_in_worktree(wt_path, 21, "test-feature")
+    result = bwa.audit(slice_folder=slice_folder, repo_root=wt_path)
+    assert any(v.kind == "worktree-path-shape-violation" for v in result.violations), (
+        f"Non-canonical worktree path `{wt_path}` (expected `{tmp_path}/repo-wt/slice-021-test-feature`) "
+        f"must emit `worktree-path-shape-violation`; got kinds: {[v.kind for v in result.violations]}"
+    )
+
+
+def test_honours_canonical_worktree_skip_rationale_line(tmp_path: Path) -> None:
+    """A canonical `WORKTREE=skip — rationale: <text>` line in build-log.md Events accepts the audit clean.
+
+    Defect class: without an escape-hatch, a legitimate single-tree edge-case slice (or the
+    slice-066 bootstrap itself) would be falsely refused by the worktree-mode gate.
+
+    Canonical line shape (mirrors BRANCH=skip): `<YYYY-MM-DD HH:MM> DEVIATION: WORKTREE=skip\\b.+rationale: .+`
+
+    Rule reference: BRANCH-2 WORKTREE=skip escape-hatch (slice-066; ADR-063 §Decision).
+    """
+    repo = _init_repo_on_default_branch(tmp_path)
+    slice_folder = _make_slice_folder(repo, 66, "test-worktree-skip")
+    # On main tree (no worktree), but WORKTREE=skip is documented in build-log Events.
+    # Explicit utf-8 encoding to match the audit module's read; default platform encoding on
+    # Windows is cp1252 which corrupts the em-dash (U+2014 → 0x97) — Windows cp1252 console
+    # encoding class N≥7 cumulative project-wide per UTF8-STDOUT-1 lineage (slice-066 /build-slice
+    # Phase C step 8 Builder-self-catch on test fixture encoding).
+    (slice_folder / "build-log.md").write_text(
+        "# Build log\n\n"
+        "## Events\n\n"
+        "- 2026-05-24 17:00 DEVIATION: WORKTREE=skip-bootstrap "
+        "— rationale: slice-066 authors the worktree-create prose; bootstrap-reference instance #1\n",
+        encoding="utf-8",
+    )
+    # Need to be on a slice branch to avoid the on-default-branch violation;
+    # WORKTREE=skip applies to the worktree discipline, not the branch discipline.
+    _run_git(repo, "checkout", "-b", "slice/066-test-worktree-skip")
+    result = bwa.audit(slice_folder=slice_folder, repo_root=repo)
+    # No worktree-* Important violations should fire (the escape-hatch is honoured).
+    worktree_violations = [
+        v for v in result.violations
+        if v.kind.startswith("worktree-") and v.severity == "Important"
+    ]
+    assert not worktree_violations, (
+        f"Canonical WORKTREE=skip — rationale: line must accept worktree-mode discipline skip; "
+        f"got worktree-* violations: {[(v.kind, v.message) for v in worktree_violations]}"
+    )
+
+
+def test_emits_worktree_skip_malformed_on_off_canonical_line(tmp_path: Path) -> None:
+    """A `WORKTREE=skip` line that doesn't match canonical grammar emits `worktree-skip-malformed`.
+
+    Defect class: a permissive WORKTREE=skip grammar (no HH:MM, no `rationale:` token) admits
+    drive-by "I skipped" notes that bypass audit discipline. The narrow regex
+    `^- \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} DEVIATION: WORKTREE=skip\\b.+rationale: .+` mirrors
+    BRANCH=skip's shape.
+
+    Rule reference: BRANCH-2 WORKTREE=skip grammar pin (slice-066; ADR-063; mirrors BRANCH=skip).
+    """
+    repo = _init_repo_on_default_branch(tmp_path)
+    slice_folder = _make_slice_folder(repo, 66, "test-worktree-skip-malformed")
+    # Off-canonical WORKTREE=skip line: no HH:MM, no `rationale:` token.
+    # Explicit utf-8 to mirror the audit module's read (UTF8-STDOUT-1 lineage discipline).
+    (slice_folder / "build-log.md").write_text(
+        "# Build log\n\n"
+        "## Events\n\n"
+        "- WORKTREE=skip because I felt like it\n",
+        encoding="utf-8",
+    )
+    _run_git(repo, "checkout", "-b", "slice/066-test-worktree-skip-malformed")
+    result = bwa.audit(slice_folder=slice_folder, repo_root=repo)
+    assert any(v.kind == "worktree-skip-malformed" for v in result.violations), (
+        f"Off-canonical WORKTREE=skip line must emit `worktree-skip-malformed`; got: "
+        f"{[v.kind for v in result.violations]}"
+    )
+
+
+def test_worktree_skip_grammar_pinned_across_three_surfaces() -> None:
+    """Cross-spec parity (RPCD-1): WORKTREE=skip canonical phrase appears across 3 surfaces.
+
+    Defect class: a future edit to one surface (e.g., commit-slice SKILL.md) that drops the
+    canonical phrase would silently break the audit's escape-hatch reading. Cross-spec parity
+    asserts the same literal exists in build-slice SKILL.md, commit-slice SKILL.md, AND
+    branch_workflow_audit.py.
+
+    Rule reference: RPCD-1 / cross-spec parity discipline (slice-019 / slice-023 lineage);
+    BRANCH-2 grammar pin (slice-066; ADR-063 + /critique B4 ACCEPTED-FIXED).
+    """
+    repo_root = Path(__file__).resolve().parents[2]
+    surfaces = {
+        "skills/build-slice/SKILL.md": (repo_root / "skills" / "build-slice" / "SKILL.md").read_text(encoding="utf-8"),
+        "skills/commit-slice/SKILL.md": (repo_root / "skills" / "commit-slice" / "SKILL.md").read_text(encoding="utf-8"),
+        "tools/branch_workflow_audit.py": (repo_root / "tools" / "branch_workflow_audit.py").read_text(encoding="utf-8"),
+    }
+    canonical_phrase = "WORKTREE=skip"
+    for surface_name, surface_content in surfaces.items():
+        assert canonical_phrase in surface_content, (
+            f"Cross-spec parity (RPCD-1): canonical phrase `{canonical_phrase}` must appear in "
+            f"{surface_name} — per slice-066 /critique B4 ACCEPTED-FIXED + ADR-063 §Scope of "
+            f"supersession (BRANCH=skip 4th-surface inheritance preserves parallel grammar; "
+            f"WORKTREE=skip is the new worktree-discipline escape-hatch). If this test fails on "
+            f"one surface, a future edit to that surface dropped the canonical phrase — re-add "
+            f"verbatim before /commit-slice."
+        )

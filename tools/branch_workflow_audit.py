@@ -55,6 +55,16 @@ _BRANCH_SKIP_LINE_RE = re.compile(
     re.MULTILINE,
 )
 
+# Canonical regex for the `WORKTREE=skip` escape-hatch line in build-log.md Events.
+# Per BRANCH-2 (slice-066; ADR-063): mirrors `BRANCH=skip`'s shape with a new keyword.
+# Pinned in skills/build-slice/SKILL.md Step 7c (same canonical-line-shape sub-section).
+# Cross-spec parity (RPCD-1): the literal `WORKTREE=skip` appears across N=3 surfaces —
+#   (1) skills/build-slice/SKILL.md, (2) skills/commit-slice/SKILL.md, (3) this regex.
+_WORKTREE_SKIP_LINE_RE = re.compile(
+    r"^- \d{4}-\d{2}-\d{2} \d{2}:\d{2} DEVIATION: WORKTREE=skip\b.+rationale: .+",
+    re.MULTILINE,
+)
+
 # Slice-branch pattern: `slice/NNN-<slice-name>` (zero-padded 3-digit number).
 _SLICE_BRANCH_RE = re.compile(r"^slice/(\d{3})-(.+)$")
 
@@ -76,7 +86,10 @@ _SPLIT_SLICE_FOLDER_RE = re.compile(r"^slice-(\d{3})([A-Z]+)-(.+)$")
 class BranchViolation:
     kind: str       # "on-default-branch" | "slice-branch-mismatch" |
                     # "escape-hatch-malformed" | "default-branch-unresolvable" |
-                    # "stale-slice-branch" | "usage-error"
+                    # "stale-slice-branch" | "usage-error" |
+                    # (slice-066 / BRANCH-2 worktree-mode additions:)
+                    # "worktree-not-registered" | "worktree-cwd-mismatch" |
+                    # "worktree-path-shape-violation" | "worktree-skip-malformed"
     severity: str   # "Important" (refuses) or "Warning" (for stale-slice-branch)
     message: str
 
@@ -227,6 +240,148 @@ def _check_stale_slice_branches(repo_root: Path, current_branch: str) -> list[Br
     ]
 
 
+def _is_repo_root_a_worktree(repo_root: Path) -> tuple[bool, Path | None]:
+    """Detect worktree-mode by inspecting the `.git` marker.
+
+    A linked worktree's `.git` is a FILE containing `gitdir: <main-repo>/.git/worktrees/<name>`;
+    the main tree's `.git` is a DIRECTORY. Per BRANCH-2 (slice-066; ADR-063 §Decision).
+
+    Returns:
+        (in_worktree, main_repo_root):
+        - (True, <main-repo>) when repo_root is a worktree pointing at <main-repo>.
+        - (False, None) otherwise (main tree, no .git, or malformed pointer).
+    """
+    git_marker = repo_root / ".git"
+    if not git_marker.exists():
+        return (False, None)
+    if git_marker.is_dir():
+        return (False, None)  # Main tree — `.git` is a directory.
+    try:
+        content = git_marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        return (False, None)
+    if not content.startswith("gitdir:"):
+        return (False, None)
+    gitdir_str = content.split(":", 1)[1].strip()
+    gitdir = Path(gitdir_str)
+    if not gitdir.is_absolute():
+        # Worktrees can have relative gitdir paths; resolve against repo_root.
+        gitdir = (repo_root / gitdir).resolve()
+    # gitdir points to <main-repo>/.git/worktrees/<name>. Walk up: name → worktrees → .git → main.
+    if not gitdir.exists():
+        return (False, None)
+    try:
+        main_repo = gitdir.parent.parent.parent
+    except (IndexError, AttributeError):
+        return (False, None)
+    return (True, main_repo)
+
+
+def _resolve_expected_worktree_path(slice_folder: Path, main_repo_root: Path) -> Path:
+    """Canonical sibling-dir convention: `<main-parent>/<main-name>-wt/<slice-folder-name>`.
+
+    Per BRANCH-2 (slice-066; ADR-063 §Decision worktree path convention).
+    For `C:\\Users\\sshub\\ai_sdlc` main repo, slice-066 worktree resolves to
+    `C:\\Users\\sshub\\ai_sdlc-wt\\slice-066-add-worktree-per-slice-discipline`.
+    """
+    return main_repo_root.parent / f"{main_repo_root.name}-wt" / slice_folder.name
+
+
+def _paths_equivalent(a: Path, b: Path) -> bool:
+    """Compare two paths tolerating Windows case-insensitivity + symlink/junction targets.
+
+    Per slice-066 /critique B2 ACCEPTED-FIXED + WebSearch evidence (microsoft/vscode#101244):
+    `git worktree list --porcelain` records paths as-supplied; `Path.resolve()` normalizes case
+    + resolves symlinks. Use `samefile()` when both paths exist; fall back to
+    `os.path.normcase(os.path.realpath(...))` string equality when one side doesn't exist.
+    """
+    import os
+    try:
+        a_resolved = a.resolve(strict=False)
+        b_resolved = b.resolve(strict=False)
+    except (OSError, RuntimeError):
+        return False
+    # Prefer samefile() when both paths exist on disk (handles junctions/symlinks).
+    if a_resolved.exists() and b_resolved.exists():
+        try:
+            return a_resolved.samefile(b_resolved)
+        except (OSError, FileNotFoundError):
+            pass
+    # Fallback: case-insensitive realpath comparison (Windows-tolerant).
+    a_norm = os.path.normcase(os.path.realpath(str(a_resolved)))
+    b_norm = os.path.normcase(os.path.realpath(str(b_resolved)))
+    return a_norm == b_norm
+
+
+def _worktree_registered(main_repo_root: Path, wt_path: Path) -> bool:
+    """Check whether `git worktree list --porcelain` shows `wt_path` as a registered worktree.
+
+    Per BRANCH-2 (slice-066; ADR-063 §Decision worktree-registered helper). The porcelain output
+    format is one record per worktree, each starting with `worktree <path>` line followed by
+    `HEAD <sha>`, `branch refs/heads/<name>` (or `detached`), and a blank line.
+    """
+    result = _run_git(main_repo_root, "worktree", "list", "--porcelain")
+    if result.returncode != 0:
+        return False
+    for line in result.stdout.splitlines():
+        if line.startswith("worktree "):
+            registered_path = Path(line[len("worktree "):])
+            if _paths_equivalent(registered_path, wt_path):
+                return True
+    return False
+
+
+def _slice_branch_in_worktree(main_repo_root: Path, slice_branch: str) -> Path | None:
+    """Locate which worktree (if any) has `slice_branch` checked out.
+
+    Returns the worktree path (resolved) if found, else None. Used to detect the
+    "Claude forgot to `cd` into the worktree" canonical case — slice branch checked out
+    in some worktree but `Path.cwd()` is the main tree.
+
+    Per BRANCH-2 (slice-066; ADR-063 §Decision Audit invocation call-shapes shape 2).
+    """
+    result = _run_git(main_repo_root, "worktree", "list", "--porcelain")
+    if result.returncode != 0:
+        return None
+    current_wt: Path | None = None
+    target_ref = f"branch refs/heads/{slice_branch}"
+    for line in result.stdout.splitlines():
+        if line.startswith("worktree "):
+            current_wt = Path(line[len("worktree "):])
+        elif line == target_ref and current_wt is not None:
+            return current_wt
+    return None
+
+
+def _check_worktree_skip_line(slice_folder: Path) -> tuple[bool, str | None, BranchViolation | None]:
+    """Scan build-log.md Events for a canonical `WORKTREE=skip` line (mirror of `_check_escape_hatch`).
+
+    Returns (skip_used, rationale, malformed_violation). Per BRANCH-2 (slice-066; ADR-063 §Decision).
+    """
+    build_log = slice_folder / "build-log.md"
+    if not build_log.exists():
+        return False, None, None
+    content = build_log.read_text(encoding="utf-8")
+    match = _WORKTREE_SKIP_LINE_RE.search(content)
+    if match:
+        line = match.group(0)
+        rationale_idx = line.find("rationale:")
+        rationale = line[rationale_idx + len("rationale:"):].strip() if rationale_idx >= 0 else None
+        return True, rationale, None
+    # No canonical match — but is a malformed `WORKTREE=skip` attempt present?
+    if "WORKTREE=skip" in content:
+        return False, None, BranchViolation(
+            kind="worktree-skip-malformed",
+            severity="Important",
+            message=(
+                "build-log.md Events contains `WORKTREE=skip` but doesn't conform to "
+                "canonical shape. Required: `<YYYY-MM-DD HH:MM> DEVIATION: WORKTREE=skip — rationale: <text>` "
+                "per skills/build-slice/SKILL.md Step 7c (BRANCH-2; ADR-063)."
+            ),
+        )
+    return False, None, None
+
+
 def audit(slice_folder: Path, repo_root: Path | None = None) -> AuditResult:
     """Run the BRANCH-1 audit against a slice folder.
 
@@ -345,7 +500,7 @@ def audit(slice_folder: Path, repo_root: Path | None = None) -> AuditResult:
     # Check for stale slice branches (warning class — doesn't refuse).
     result.violations.extend(_check_stale_slice_branches(repo_root, current))
 
-    # Check escape-hatch.
+    # Check escape-hatch (BRANCH=skip).
     escape_hatch, rationale, malformed = _check_escape_hatch(slice_folder)
     if malformed:
         result.violations.append(malformed)
@@ -353,23 +508,89 @@ def audit(slice_folder: Path, repo_root: Path | None = None) -> AuditResult:
     result.escape_hatch_used = escape_hatch
     result.escape_hatch_rationale = rationale
 
-    # Apply branch-state logic.
+    # BRANCH-2 (slice-066; ADR-063): worktree-mode awareness.
+    # Check parallel WORKTREE=skip escape-hatch (mirror of BRANCH=skip).
+    worktree_skip_used, _worktree_skip_rationale, worktree_skip_malformed = _check_worktree_skip_line(slice_folder)
+    if worktree_skip_malformed is not None:
+        result.violations.append(worktree_skip_malformed)
+        return result
+
+    # Detect worktree mode via .git marker shape.
+    in_worktree, main_repo_for_wt = _is_repo_root_a_worktree(repo_root)
+    if in_worktree and main_repo_for_wt is not None:
+        # Worktree-mode validation: verify registration + canonical path shape.
+        if not _worktree_registered(main_repo_for_wt, repo_root):
+            result.violations.append(
+                BranchViolation(
+                    kind="worktree-not-registered",
+                    severity="Important",
+                    message=(
+                        f"Worktree at `{repo_root}` is not registered via `git worktree list`. "
+                        f"The worktree's `.git` file may be stale or the worktree may have been "
+                        f"manually deleted. Recover with `git worktree repair` (if `{repo_root}` "
+                        f"exists) or `git worktree add {repo_root} -b {expected} {default}` (if "
+                        f"deleted). Per BRANCH-2 / ADR-063."
+                    ),
+                )
+            )
+            return result
+        expected_wt = _resolve_expected_worktree_path(slice_folder, main_repo_for_wt)
+        if not _paths_equivalent(repo_root, expected_wt):
+            result.violations.append(
+                BranchViolation(
+                    kind="worktree-path-shape-violation",
+                    severity="Important",
+                    message=(
+                        f"Worktree is registered at `{repo_root}` but the canonical convention "
+                        f"is `{expected_wt}` (`<main-parent>/<main-name>-wt/slice-NNN-<name>` per "
+                        f"ADR-063 §Decision). Move the worktree (`git worktree move {repo_root} "
+                        f"{expected_wt}`) or document `WORKTREE=skip — rationale: <text>` in "
+                        f"build-log.md Events."
+                    ),
+                )
+            )
+            # Continue to branch checks — path shape violation is severe but the branch must
+            # still match the expected slice branch.
+    elif not worktree_skip_used:
+        # Main-tree mode: detect "Claude forgot to `cd` into the worktree".
+        # If the slice branch is checked out in a worktree elsewhere AND cwd is main tree,
+        # emit worktree-cwd-mismatch (the canonical Audit-invocation call-shape 2 per ADR-063).
+        wt_path = _slice_branch_in_worktree(repo_root, expected)
+        if wt_path is not None and not _paths_equivalent(wt_path, repo_root):
+            result.violations.append(
+                BranchViolation(
+                    kind="worktree-cwd-mismatch",
+                    severity="Important",
+                    message=(
+                        f"Slice branch `{expected}` is checked out in worktree `{wt_path}` but "
+                        f"your cwd is the main tree `{repo_root}`. Did you forget to `cd "
+                        f"{wt_path}`? Run `cd {wt_path}` and retry; or, if you intend to skip "
+                        f"the worktree discipline for this slice, document `WORKTREE=skip — "
+                        f"rationale: <text>` in build-log.md Events. Per BRANCH-2 / ADR-063 "
+                        f"§Decision Audit-invocation call-shapes shape 2."
+                    ),
+                )
+            )
+            return result
+
+    # Apply branch-state logic. BRANCH=skip OR WORKTREE=skip accepts the discipline-skip case.
+    combined_skip = escape_hatch or worktree_skip_used
     if current == default:
-        if not escape_hatch:
+        if not combined_skip:
             result.violations.append(
                 BranchViolation(
                     kind="on-default-branch",
                     severity="Important",
                     message=(
                         f"active-slice work occurred on default branch '{default}' with no canonical "
-                        f"`BRANCH=skip — rationale: <text>` escape-hatch in build-log.md Events. "
-                        f"Expected branch: '{expected}'. "
+                        f"`BRANCH=skip — rationale: <text>` or `WORKTREE=skip — rationale: <text>` "
+                        f"escape-hatch in build-log.md Events. Expected branch: '{expected}'. "
                         f"Either switch to '{expected}' OR document escape-hatch per "
                         f"skills/build-slice/SKILL.md Step 7c canonical shape."
                     ),
                 )
             )
-        # If escape_hatch present, acceptance via canonical escape-hatch.
+        # If escape_hatch or worktree_skip present, acceptance via canonical escape-hatch.
     elif current.startswith("slice/"):
         if current != expected:
             result.violations.append(
