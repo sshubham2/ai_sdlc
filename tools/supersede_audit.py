@@ -52,6 +52,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from tools import _stdout
+from tools._vault_paths import VAULT_ROOT
 
 # Field-line patterns
 _SUPERSEDES_RE = re.compile(
@@ -168,7 +169,7 @@ def run_audit(project_root: Path) -> AuditResult:
     """Run SUP-1 audit across active + archived slices."""
     result = AuditResult()
 
-    slices_dir = project_root / "architecture" / "slices"
+    slices_dir = project_root / VAULT_ROOT / "slices"  # VAULT_ROOT-routed (slice-068)
     archive_dir = slices_dir / "archive"
 
     active_paths = _list_active_slices(slices_dir)

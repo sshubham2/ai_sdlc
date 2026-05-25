@@ -67,6 +67,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from tools import _stdout
+from tools._vault_paths import VAULT_ROOT
 
 try:
     import tomllib  # Python 3.11+
@@ -518,7 +519,7 @@ def main(argv: list[str] | None = None) -> int:
         "--secrets-allowlist", type=Path, default=None,
         help=(
             "Path to .secrets-allowlist regex file (default: "
-            "architecture/.secrets-allowlist if it exists)"
+            "architecture/.secrets-allowlist if it exists)"  # NOT VAULT_ROOT-routed (slice-068) — error-message prose
         ),
     )
     parser.add_argument(
@@ -574,7 +575,7 @@ def main(argv: list[str] | None = None) -> int:
 
     secrets_allowlist = args.secrets_allowlist
     if secrets_allowlist is None:
-        candidate = Path("architecture/.secrets-allowlist")
+        candidate = VAULT_ROOT / ".secrets-allowlist"  # VAULT_ROOT-routed (slice-068)
         if candidate.exists():
             secrets_allowlist = candidate
 
