@@ -1580,15 +1580,21 @@ def test_bc_proj_7_has_expected_structural_identity():
 
 
 def test_bc_proj_8_has_expected_structural_identity():
-    """BC-PROJ-8 (slice-044 /reflect Step-5b promotion) MUST parse to its
-    expected full structural identity (gitignored-vault live-reads rule).
-    Canonical fixture = subject; literal constants = git-tracked oracle.
+    """BC-PROJ-8 (slice-044 /reflect Step-5b promotion; slice-069 rule-content
+    revision per ADR-066) MUST parse to its expected full structural identity
+    (cross-machine vault live-reads rule). Canonical fixture = subject;
+    literal constants = git-tracked oracle.
 
     Defect class: a silent truncation/mis-author of BC-PROJ-8 would lose the
-    "vault-targeting tools must not git-diff/show the gitignored vault"
-    evergreen check with no loud signal (R-4 class).
+    "vault-targeting tools must use live on-disk reads, not git-history
+    mechanisms" evergreen check with no loud signal (R-4 class lineage; the
+    pre-slice-069 motivation was gitignored-vault structural impossibility,
+    the post-slice-069 motivation is cross-machine / shallow-clone safety —
+    the prescription is unchanged).
 
-    Rule reference: BC-1 (slice-044 /reflect Step 5b; user-approved promotion).
+    Rule reference: BC-1 (slice-044 /reflect Step 5b; user-approved promotion;
+    slice-069 rule-content revision narrowing trigger keywords by dropping
+    `"gitignored"` per ADR-066 — enforcement boundary shifts).
     """
     from tools.build_checks_audit import _parse_rules
 
@@ -1604,8 +1610,7 @@ def test_bc_proj_8_has_expected_structural_identity():
         f"BC-PROJ-8 applies_to mismatch: got {p8.applies_to!r}"
     )
     assert p8.trigger_keywords == (
-        "audit", "vault", "architecture", "risk-register", "git",
-        "scan", "gitignored",
+        "audit", "vault", "architecture", "risk-register", "git", "scan",
     ), f"BC-PROJ-8 trigger_keywords mismatch: got {p8.trigger_keywords!r}"
     assert p8.trigger_anchors == ("audit", "vault", "git"), (
         f"BC-PROJ-8 trigger_anchors mismatch: got {p8.trigger_anchors!r}"

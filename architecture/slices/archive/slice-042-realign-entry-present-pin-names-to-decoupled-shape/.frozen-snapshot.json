@@ -1,0 +1,9 @@
+{
+  "methodology-changelog.md": "d2691e66191c4abc",
+  "architecture/slices/_index.md": "387acd3384555ca3",
+  "architecture/lessons-learned.md": "631041e29a837735",
+  "architecture/critic-calibration-log.md": "6a5be19c651c0775",
+  "decisions_tree(ADR-009..040 frozen)": "c207b0e06aec3fdc",
+  "fixtures_tree": "f3476a50ab8b4ed0",
+  "archive_tree": "2ed78453f6c0f998"
+}

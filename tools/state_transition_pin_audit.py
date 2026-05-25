@@ -27,8 +27,14 @@ sub-form is explicitly out of scope per ADR-047):
 
 - **Sub-form B — risk-status-stale pin** (git-diff-independent standing
   invariant; revised from a git-merge-base mechanism by the slice-044
-  /build-slice plan-mode deviation — ``architecture/`` is gitignored so the
-  merge-base form was inapplicable). A test ``FunctionDef`` name matching
+  /build-slice plan-mode deviation — at slice-044 time ``architecture/``
+  was gitignored, making the merge-base form structurally inapplicable.
+  Post-slice-069 ([[ADR-066]]) the vault is git-tracked but the git-
+  independent form is preserved on cross-machine-safety grounds, now as
+  a *preference* not a *necessity*: fewer git-subprocess calls, works on
+  shallow clones / partial-history forks, and remains semantically correct
+  as a standing-invariant assertion against the live register).
+  A test ``FunctionDef`` name matching
   ``(?:^|_)r[_-]?(\\d+).*?_(stays|remains|is)_(open|mitigating|retired|accepted)(?:_|$)``
   claims ``R-<num>`` is at the named status; if the *live*
   ``architecture/risk-register.md`` ``**Status**:`` for that risk differs

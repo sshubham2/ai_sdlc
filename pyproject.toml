@@ -17,7 +17,7 @@
 
 [project]
 name = "ai-sdlc-tools"
-version = "0.69.0"
+version = "0.70.0"
 description = "Executable methodology tools for the AI SDLC pipeline (audits, linters, validators)"
 readme = "README.md"
 license = { text = "see repository" }
