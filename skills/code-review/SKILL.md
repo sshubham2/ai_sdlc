@@ -43,18 +43,51 @@ default=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/r
 base=$(git merge-base "$default" HEAD)
 
 # Source (i): working-tree-vs-base (modified + staged-but-uncommitted adds)
-git diff "$base" --name-only --diff-filter=ACMR -- ':(exclude)architecture/**' ':(exclude)docs/**'
+git diff "$base" --name-only --diff-filter=ACMR -- \
+  ':(exclude)docs/**' \
+  ':(exclude)architecture/decisions/**' \
+  ':(glob,exclude)architecture/*.md' \
+  ':(exclude)architecture/slices/_index.md' \
+  ':(exclude)architecture/slices/archive/**' \
+  ':(exclude)architecture/slices/*/milestone.md' \
+  ':(exclude)architecture/slices/*/mission-brief.md' \
+  ':(exclude)architecture/slices/*/design.md' \
+  ':(exclude)architecture/slices/*/critique.md' \
+  ':(exclude)architecture/slices/*/critique-review.md' \
+  ':(exclude)architecture/slices/*/code-review.md'
 
 # Source (ii): untracked-new files
-git ls-files --others --exclude-standard -- ':(exclude)architecture/**' ':(exclude)docs/**'
+git ls-files --others --exclude-standard -- \
+  ':(exclude)docs/**' \
+  ':(exclude)architecture/decisions/**' \
+  ':(glob,exclude)architecture/*.md' \
+  ':(exclude)architecture/slices/_index.md' \
+  ':(exclude)architecture/slices/archive/**' \
+  ':(exclude)architecture/slices/*/milestone.md' \
+  ':(exclude)architecture/slices/*/mission-brief.md' \
+  ':(exclude)architecture/slices/*/design.md' \
+  ':(exclude)architecture/slices/*/critique.md' \
+  ':(exclude)architecture/slices/*/critique-review.md' \
+  ':(exclude)architecture/slices/*/code-review.md'
 
 # Source (iii): commits-vs-base (already-committed-in-branch adds)
-git diff "$base"...HEAD --name-only --diff-filter=ACMR -- ':(exclude)architecture/**' ':(exclude)docs/**'
+git diff "$base"...HEAD --name-only --diff-filter=ACMR -- \
+  ':(exclude)docs/**' \
+  ':(exclude)architecture/decisions/**' \
+  ':(glob,exclude)architecture/*.md' \
+  ':(exclude)architecture/slices/_index.md' \
+  ':(exclude)architecture/slices/archive/**' \
+  ':(exclude)architecture/slices/*/milestone.md' \
+  ':(exclude)architecture/slices/*/mission-brief.md' \
+  ':(exclude)architecture/slices/*/design.md' \
+  ':(exclude)architecture/slices/*/critique.md' \
+  ':(exclude)architecture/slices/*/critique-review.md' \
+  ':(exclude)architecture/slices/*/code-review.md'
 ```
 
 **Union the three outputs by path; deduplicate. The resulting file list is the in-scope diff scope handed to Step 2.** Without this aggregation step Claude could plausibly run only Source (iii) for token budget, concatenate without deduplicating producing duplicate review work, intersect instead of union, or ignore Source (ii) — all silent failures.
 
-Default-branch resolution mirrors the BRANCH-1 pattern (slice-021). `--diff-filter=ACMR` includes Added/Copied/Modified/Renamed; deletions excluded. The path-exclude pathspecs are inline literals on each leg (POSIX-portable; no bash arrays).
+Default-branch resolution mirrors the BRANCH-1 pattern (slice-021). `--diff-filter=ACMR` includes Added/Copied/Modified/Renamed; deletions excluded. The path-exclude pathspecs are inline literals on each leg (POSIX-portable; no bash arrays). Per slice-069 / [[ADR-066]] M5 INCLUDE direction, the pre-slice-069 catch-all `':(exclude)architecture/**'` is replaced by 10 surgical exclusions per leg — admitting `architecture/slices/*/{build-log,validation,reflection}.md` (post-build artifacts) into /code-review scope while continuing to exclude ADRs (reviewed by /critique), top-level vault docs (reviewed by /reflect / /risk-spike / /slice on own surfaces), the slice index + archive, and the slice's own non-post-build files (mission-brief / design / critique / critique-review / milestone / code-review.md self-referential).
 
 **In-scope paths** (per design.md M3 — METHODOLOGY-PROSE-AS-EXECUTABLE-CONTRACT is in scope; CLAUDE.md self-hosting-discipline: "skill prose IS executable contract"):
 - `skills/**/SKILL.md` — methodology orchestrator prose (executable contract)
@@ -62,8 +95,16 @@ Default-branch resolution mirrors the BRANCH-1 pattern (slice-021). `--diff-filt
 - `tools/**/*.py` — audit + lint Python modules
 - `tests/**/*.py` — test modules
 - Root-level config files — `plugin.yaml`, `pyproject.toml`, `VERSION`, `methodology-changelog.md`
+- `architecture/slices/*/build-log.md` + `validation.md` + `reflection.md` (post-slice-069 / [[ADR-066]] M5 INCLUDE direction — these post-build artifacts are tracked production content landing in every PR diff; entering /code-review scope rather than relying on the dual-Critic stack which structurally only reads design.md / ADRs at /critique time)
 
-**Out-of-scope paths** — `architecture/**` (vault — gitignored, separate review surface via `/drift-check`), `docs/**` (pure documentation if any).
+**Out-of-scope paths** — pruned via inline `:(exclude)` pathspecs on each of the three union legs (per [[ADR-066]] / slice-069 M5 INCLUDE direction; rationale per excluded class):
+- `docs/**` — pure documentation if any
+- `architecture/decisions/**` — ADRs are reviewed by `/critique` (design-Critic) at /critique time
+- `:(glob)architecture/*.md` — top-level vault docs (risk-register, lessons-learned, build-checks, shippability, slice-queue, concept, triage, principles, pipeline, tutorial) — reviewed by `/reflect` / `/risk-spike` / `/slice` on their own surfaces. **MUST use `:(glob)` pathspec magic** — without it, git's default fnmatch (no `FNM_PATHNAME` flag) makes `*` match across `/` segments and `architecture/*.md` would recursively re-exclude all `.md` files under `architecture/` (including the post-build artifacts M5 INCLUDE admits to scope). Slice-069 build-time discovery: the bare `architecture/*.md` pathspec silently re-excluded `architecture/slices/slice-069-track-vault-in-git/build-log.md` from the /code-review diff scope.
+- `architecture/slices/_index.md` — slice index, maintained by `/reflect`
+- `architecture/slices/archive/**` — archived slice content, frozen historical record
+- `architecture/slices/*/milestone.md` + `mission-brief.md` + `design.md` + `critique.md` + `critique-review.md` — slice non-post-build files (milestone is auto-generated; mission-brief / design / critique / critique-review reviewed by the design-Critic stack at /critique time)
+- `architecture/slices/*/code-review.md` — /code-review's own output, self-referentially excluded
 
 **Error cases**:
 - `default-branch-unresolvable` (neither `git symbolic-ref` nor `git config init.defaultBranch` resolves): STOP with the BRANCH-1-shaped error and instruct user to re-run after default branch resolves.

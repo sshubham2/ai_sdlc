@@ -7,8 +7,10 @@ __pycache__/
 *.pyo
 .pytest_cache/
 
-# Local-only AI SDLC vault (per-project; never tracked)
-architecture/
+# AI SDLC vault — tracked in git per ADR-066 (slice-069) to enable
+# cross-machine parallel slice development; retires the N=4 cumulative
+# worktree-vs-gitignored-vault class. `graphify-out/` + `diagnose-out/`
+# (entirely derived / mostly derived) remain ignored below.
 
 # Build artifacts (pip / setuptools / graphify outputs)
 build/

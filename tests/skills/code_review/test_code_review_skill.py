@@ -218,20 +218,72 @@ def test_skill_md_step_1_all_three_legs_share_filter_shape():
         f"\"$base\"` legs = {git_diff_legs}."
     )
 
-    # All three legs carry the architecture/docs path-exclude pathspecs
-    # (inline literal on each leg, NOT a bash-array; M1 critique fix).
-    exclude_arch = step_1.count("':(exclude)architecture/**'")
-    exclude_docs = step_1.count("':(exclude)docs/**'")
-    assert exclude_arch >= 3, (
-        "skills/code-review/SKILL.md Step 1 must carry the "
-        "`':(exclude)architecture/**'` pathspec on ALL three union legs "
-        f"(working-tree-vs-base + ls-files + commits-vs-base) — observed "
-        f"{exclude_arch} occurrences, expected ≥ 3"
+    # All three legs carry the path-exclude pathspecs (inline literal on
+    # each leg, NOT a bash-array; M1 critique fix). Slice-069 M5 INCLUDE
+    # direction (ADR-066): the pre-slice-069 catch-all
+    # `':(exclude)architecture/**'` is replaced by 10 surgical exclusions
+    # per leg, admitting `architecture/slices/*/{build-log,validation,
+    # reflection}.md` (post-build artifacts) into /code-review scope while
+    # continuing to exclude ADRs (reviewed by /critique), top-level vault
+    # docs (reviewed by /reflect / /risk-spike / /slice on own surfaces),
+    # the slice index + archive, and the slice's own non-post-build files.
+    # MUST use `:(glob,exclude)architecture/*.md` (glob magic + exclude
+    # magic combined per git-scm.com/docs/gitglossary#Documentation/
+    # gitglossary.txt-aiddefpathspecapathspec). Without `:(glob)`, git's
+    # default fnmatch (no `FNM_PATHNAME` flag) makes `*` match across `/`
+    # segments — `architecture/*.md` would recursively re-exclude every
+    # `.md` file under `architecture/`, including `architecture/slices/*/
+    # {build-log,validation,reflection}.md` (the post-build artifacts
+    # M5 INCLUDE admits to scope). Slice-069 build-time discovery: the
+    # bare `architecture/*.md` form silently re-excluded slice-069's own
+    # build-log.md from the /code-review union diff scope.
+    _M5_INCLUDE_EXCLUSIONS = (
+        "':(exclude)architecture/decisions/**'",
+        "':(glob,exclude)architecture/*.md'",
+        "':(exclude)architecture/slices/_index.md'",
+        "':(exclude)architecture/slices/archive/**'",
+        "':(exclude)architecture/slices/*/milestone.md'",
+        "':(exclude)architecture/slices/*/mission-brief.md'",
+        "':(exclude)architecture/slices/*/design.md'",
+        "':(exclude)architecture/slices/*/critique.md'",
+        "':(exclude)architecture/slices/*/critique-review.md'",
+        "':(exclude)architecture/slices/*/code-review.md'",
     )
+    # Each exclusion appears on all three union legs (bash_block-scoped per
+    # slice-065 AC#2 lesson — section-level count over step_1 would mis-count
+    # if the surrounding prose mentioned a pathspec for documentation).
+    for ex in _M5_INCLUDE_EXCLUSIONS:
+        cnt = bash_block.count(ex)
+        assert cnt >= 3, (
+            f"skills/code-review/SKILL.md Step 1 bash block must carry "
+            f"the `{ex}` pathspec on ALL three union legs (working-tree-"
+            f"vs-base + ls-files + commits-vs-base; slice-069 M5 INCLUDE "
+            f"direction per ADR-066) — observed {cnt} occurrences in "
+            f"the bash block, expected >= 3"
+        )
+
+    # Negative regression-pin: the pre-slice-069 catch-all
+    # `':(exclude)architecture/**'` MUST be absent from the bash block —
+    # its presence would silently re-exclude build-log/validation/
+    # reflection that slice-069 M5 INCLUDE direction admits to /code-
+    # review scope. Bash_block-scoped (not step_1) per slice-065 AC#2 —
+    # the surrounding prose intentionally NAMES the catch-all as
+    # historical reference but only the bash block is executable.
+    catchall_count = bash_block.count("':(exclude)architecture/**'")
+    assert catchall_count == 0, (
+        f"skills/code-review/SKILL.md Step 1 bash block must NOT carry "
+        f"the catch-all `':(exclude)architecture/**'` pathspec — slice-"
+        f"069 M5 INCLUDE direction (ADR-066) replaces it with 10 "
+        f"surgical exclusions admitting build-log/validation/reflection "
+        f"into scope; observed {catchall_count} catch-all occurrences "
+        f"in the bash block (expected 0)"
+    )
+
+    exclude_docs = step_1.count("':(exclude)docs/**'")
     assert exclude_docs >= 3, (
         "skills/code-review/SKILL.md Step 1 must carry the "
         "`':(exclude)docs/**'` pathspec on ALL three union legs — "
-        f"observed {exclude_docs} occurrences, expected ≥ 3"
+        f"observed {exclude_docs} occurrences, expected >= 3"
     )
 
     # The `git ls-files` leg has --others --exclude-standard (the canonical

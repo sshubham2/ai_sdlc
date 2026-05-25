@@ -1,0 +1,41 @@
+# Critique Review: Slice 029 make-diagnose-dispatch-sequential
+
+**Reviewed by**: critique-review agent (DR-1)
+**Date**: 2026-05-16
+**First-Critic verdict**: NEEDS-FIXES
+**Dual-review verdict**: EXTEND
+
+## Summary
+
+The first Critic's core diagnosis is sound and high-value: it correctly identified the slice-022 self-violation (the "byte-unchanged" claim colliding with the Step-5/5.5 rewrite) as B1, surfaced the LAYER-EVID-1 N=6 blast-radius omission (B2), and caught the `${1:-$PWD}` flag-collision abort (B3). All eight findings are VALID and the applied fixes mostly close them. However, an "all-8-ACCEPTED-FIXED" round on a medium-risk methodology surface is exactly the too-easy signature the brief warned about — the second pass surfaces two residuals the fixes introduced, one re-scope, and two unverified-assumption gaps, so the verdict is **EXTEND**.
+
+## Confirmed findings
+
+- **B1** (Step 5.5 / dispatch-coupled prose falsely claimed byte-unchanged) — confirmed Blocker. Verified vs SKILL.md ground truth: `:170`, `:187`, `:191` are all real parallel-barrier-model sentences; the design's enumerated inventory is accurate to actual line numbers. Fix correctly replaces the false invariant with an auditable edit set.
+- **B2** (LAYER-EVID-1 N=6 pin + Step-5 cross-ref para in blast radius) — confirmed Blocker. Verified `test_skill_md_pins.py:326-374` is the N=6 bidirectional pin; phrase at SKILL.md:164-166 inside Step 5. Fix correctly adds it to What's-reused + names the guard test in the smoke gate.
+- **B3** (`--parallel`-only collides with `${1:-$PWD}`) — confirmed Blocker. SKILL.md:28 is literally `TARGET="${1:-$PWD}"`. Flag-strip-before-TARGET is the right structural answer (but see M-add-1 — residual).
+- **M1** (header "Risk retired" vs "mitigating" inconsistency) — confirmed Major. R-1 Status `open`, #57037 still open upstream, cwd-mismatch independent, `--parallel` retains exposure. "Mitigating not retired" is the only defensible status. (But see M-add-2 — un-synced surface.)
+- **M3** (single shared contract subsection, no branch duplication) — confirmed Major. SKILL.md:158-162 is the single canonical-contract subsection; single-source invariant is correct defensive design.
+- **m2** (R-1 needs RR-1-recognized `Mitigation:` field) — confirmed Minor. risk-register.md:3 schema confirms `Mitigation` is optional RR-1 field; structured-field fix is right.
+
+## Suspicious findings
+
+- **M2** (drop DSEQ-1 + methodology-changelog v0.43.0) — **SUSPICIOUS, partial**. The recommendation (no rule-ID, follow slice-002) is well-grounded — slice-002 archive has zero rule-ID/changelog refs; the PMI-1 4-surface lockstep cost is a real slice-026/027 hotspot. **But** the first Critic flattened a separable governance question. The methodology-changelog inclusion heuristic (methodology-changelog.md:7) is unconditional: *"If a slice acceptable yesterday would be refused today (or vice versa), it's a changelog entry."* line 9 explicitly lists *"changed prompt structures for named subagents"* as qualifying. A `/diagnose` run that fanned 10 Agents in one message was acceptable 2026-05-15 and is non-default 2026-05-16 — a textbook behavior change. slice-002 establishes a *rule-ID* may be omitted; it does **not** establish the *changelog-entry* obligation can be waived (slice-002 may itself be latent under-documentation). **Recommend M2 re-scoped**: keep "drop DSEQ-1 rule-ID + PMI-1 version bump" (sound); the "no methodology-changelog v0.43.0 entry" half conflicts with the written inclusion heuristic and must be surfaced to the user at TRI-1 as an unresolved governance tension, **not pre-decided in the design's "M2 DROPPED" block**.
+
+## Missed findings
+
+- **M-add-1 (Major): B3 bash-array portability under MINGW unverified + design prose mislabels the :41 abort as the :25 check.** SKILL.md:86 proves /diagnose's bash runs under `MINGW*|MSYS*|CYGWIN*`; the entire existing SKILL.md uses zero bash arrays — the B3 fix introduces `ARGS=()` + `"$@"` as a new construct class into a Git-Bash runtime never stated as validated (Git-Bash bash 4.x/5.x supports arrays so *likely* fine — gap is unverified assumption, not known break). **Worse, a verifiable prose error**: the design/AC2/mission-brief say a typo like `--paralll` "hits the pre-existing `:25` empty-dir check". Verified vs SKILL.md ground truth: `:41` is `cd "$TARGET" ... || { echo "TARGET does not exist"; exit 1; }` — a garbled `--paralll` → post-fix `TARGET=--paralll` → `:41` `cd`-fails abort, **not** the `:25` prose check. Fix does not change typo behavior (correctly, pre-existing) but the explanatory prose is factually wrong about which abort fires. Proposed fix: (a) state the B3 snippet's target shell + assert MINGW-Git-Bash validation; (b) correct design/AC2/mission-brief prose to reference the `:41` `cd`-fails abort, not `:25`.
+
+- **M-add-2 (Major): ADR-027 Reversibility line still asserts "retire the user-blocking R-1 exposure" — M1's fix left an un-synced surface, re-introducing the exact retire/mitigate inconsistency M1 was filed to kill.** ADR-027 Consequences correctly says "open→mitigating … 'retired' wrong while either holds", but the final Reversibility sentence still reads *"locked now because this slice needs it to **retire the user-blocking R-1 exposure**."* Textbook slice-022 self-violation: the methodology-surface slice re-committed its own discipline's defect class (risk-status language inconsistency) inside the very artifact whose fix was supposed to eliminate it. Proposed fix: ADR-027 Reversibility "retire the user-blocking R-1 exposure" → "mitigate the user-blocking R-1 default-path exposure".
+
+- **M-add-3 (Minor): design.md Components-touched "Steps 5.5/6/6.5/7 ordering unchanged" is misleading post-B1.** B1's fix rewrites Step 5.5's opening clause + adds an early-exit clause — a Step-5.5 *prose* change, not a cross-ref wording tweak. The sentence conflates "step *ordering* unchanged" (true) with "Step 5.5 *untouched*" (false). Proposed fix: "Step *sequence* 5→5.5→6→6.5→7 unchanged; Step 5.5 *prose* rewritten dispatch-mode-aware per What's-new item 3; Step 6/6.5 bodies untouched except literal '(parallel)' cross-ref wording."
+
+- **M-add-4 (Minor): m1's shippability Command cell introduces a `-k "<space-separated expr>"` form no existing catalog row uses, colliding with the slice-024 backtick-strip footgun.** Zero of the 29 existing rows use a `-k "..."` substring expression; all use explicit `::test_name`/dir selectors. slice-024 documents the Step 5.5 catalog runner `.strip("`")`s Command cells with bad quoting interaction (23 spurious FAILs). The `-k "sequential or parallel_optin or …"` form's survival through strip+reparse is unexercised. Proposed fix: use explicit `::test_name` selectors matching AC4 test names (consistent with all 29 existing rows), or assert the `-k` form was dry-run through the Step 5.5 strip+exec path.
+
+## Severity adjustments
+
+No adjustments to the first Critic's existing eight: B1/B2/B3 correctly Blockers, M1/M2/M3 correctly Majors (M2's *recommendation* severity is right; its *rationale* is incomplete — see Suspicious), m1/m2 correctly Minors. New: M-add-1/M-add-2 Major, M-add-3/M-add-4 Minor.
+
+## Notes
+
+Confidence: high on M-add-2 (verbatim "retire" still present in ADR-027) and M-add-1's prose half (:41-vs-:25 checkable against SKILL.md). Medium on M-add-1 portability (Git-Bash arrays almost certainly work — gap is unverified, not broken) and M-add-4 (the `-k` form *may* survive strip). M-add-1 portability + M-add-4 are "Builder should verify" not "broken" — should not block TRI-1 if Builder shows a MINGW dry-run. M-add-2 + the M2 re-scope are the substantive items for user reconciliation. Calibration: the first Critic's eight findings were individually strong but the round exhibits the "all-ACCEPTED-FIXED" blind spot — it verified each finding's premise but did not re-audit whether the applied fixes introduced fresh inconsistencies (M-add-2, M-add-3) or rested on unverified runtime assumptions (M-add-1, M-add-4). The brief's slice-022 prediction landed: the highest-yield residual (M-add-2) is the methodology-surface slice re-committing its own discipline's defect inside the fixing artifact.
