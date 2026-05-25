@@ -64,6 +64,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from tools import _stdout
+from tools._vault_paths import VAULT_ROOT
 
 # H2 item heading: "## TM-NN -- title" / "## REQ-NN -- title" / "## NFR-NN -- title"
 _ITEM_HEADING_RE = re.compile(
@@ -149,7 +150,7 @@ class AuditResult:
 
 def _detect_heavy_mode(root: Path) -> bool:
     """True if architecture/triage.md declares mode: Heavy."""
-    triage = root / "architecture" / "triage.md"
+    triage = root / VAULT_ROOT / "triage.md"  # VAULT_ROOT-routed (slice-068)
     if not triage.exists():
         return False
     text = triage.read_text(encoding="utf-8", errors="replace")
@@ -302,11 +303,11 @@ def run_audit(
 
     paths_to_scan: list[Path] = []
     if threats_path is None:
-        threats_path = project_root / "architecture" / "threat-model.md"
+        threats_path = project_root / VAULT_ROOT / "threat-model.md"  # VAULT_ROOT-routed (slice-068)
     if requirements_path is None:
-        requirements_path = project_root / "architecture" / "requirements.md"
+        requirements_path = project_root / VAULT_ROOT / "requirements.md"  # VAULT_ROOT-routed (slice-068)
     if nfrs_path is None:
-        nfrs_path = project_root / "architecture" / "nfrs.md"
+        nfrs_path = project_root / VAULT_ROOT / "nfrs.md"  # VAULT_ROOT-routed (slice-068)
 
     for p in (threats_path, requirements_path, nfrs_path):
         paths_to_scan.append(p)
@@ -332,7 +333,7 @@ def _format_human(result: AuditResult) -> str:
         return (
             "CSP-1 cross-spec parity audit: no Heavy artifacts found "
             "(threat-model.md / requirements.md / nfrs.md absent under "
-            "architecture/).\n"
+            "architecture/).\n"  # NOT VAULT_ROOT-routed (slice-068) — error-message prose
         )
 
     if not result.violations:

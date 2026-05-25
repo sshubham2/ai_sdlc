@@ -72,12 +72,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from tools import _stdout
+from tools._vault_paths import VAULT_ROOT
 
 
 _TOP_N = 10
 _QUEUE_FILENAME = "slice-queue.md"
-_INDEX_MD_REL = Path("architecture") / "slices" / "_index.md"
-_SLICES_DIR_REL = Path("architecture") / "slices"
+_INDEX_MD_REL = VAULT_ROOT / "slices" / "_index.md"  # VAULT_ROOT-routed (slice-068)
+_SLICES_DIR_REL = VAULT_ROOT / "slices"  # VAULT_ROOT-routed (slice-068)
 _GRAPH_DEFAULT_REL = Path("graphify-out") / "graph.json"
 
 # Per design.md L80 + ADR-064 §Consequences: 4-value Parallel-safety enum.
@@ -439,7 +440,7 @@ def write_slice_queue(
     sibling + ``os.replace()``.
     """
     now = now or datetime.now(tz=timezone.utc)
-    out_path = repo_root / "architecture" / _QUEUE_FILENAME
+    out_path = repo_root / VAULT_ROOT / _QUEUE_FILENAME  # VAULT_ROOT-routed (slice-068)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     graph_missing = graph_path is None or not graph_path.exists()
@@ -522,7 +523,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--output", type=Path,
-        default=Path("architecture") / _QUEUE_FILENAME,
+        default=VAULT_ROOT / _QUEUE_FILENAME,  # VAULT_ROOT-routed (slice-068)
         help="Output queue file path (default: architecture/slice-queue.md).",
     )
     p.add_argument(
@@ -581,7 +582,7 @@ def main(argv: list[str] | None = None) -> int:
     # If --output is exactly <root>/architecture/slice-queue.md, use the
     # library entrypoint. Otherwise compose the write manually so users
     # can redirect output for testing/integration scenarios.
-    canonical_out = repo_root / "architecture" / _QUEUE_FILENAME
+    canonical_out = repo_root / VAULT_ROOT / _QUEUE_FILENAME  # VAULT_ROOT-routed (slice-068)
     if out_arg.resolve() == canonical_out:
         write_slice_queue(
             repo_root=repo_root,

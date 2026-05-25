@@ -64,6 +64,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from tools import _stdout
+from tools._vault_paths import VAULT_ROOT
 # Object-identity reuse (CSP-1; slice-038 `consumer._fn is source._fn`
 # lesson) — Sub-form B parses the live register via the SAME parser RR-1
 # uses; NOT re-derived.
@@ -364,14 +365,14 @@ def _count_boolop_stats(root: Path, result: AuditResult) -> None:
 
 def _scan_risk_status_pins(root: Path, result: AuditResult) -> None:
     """Sub-form B — git-diff-independent standing invariant."""
-    register = root / "architecture" / "risk-register.md"
+    register = root / VAULT_ROOT / "risk-register.md"  # VAULT_ROOT-routed (slice-068)
     if not register.exists():
         result.violations.append(
             StateTransitionViolation(
                 kind="usage-error",
                 severity="Important",
                 message=(
-                    f"architecture/risk-register.md not found at {register} — "
+                    f"architecture/risk-register.md not found at {register} — "  # NOT VAULT_ROOT-routed (slice-068) — error-message prose
                     f"Sub-form B cannot resolve live risk statuses (fail-closed; "
                     f"hard-input failure)."
                 ),
@@ -385,7 +386,7 @@ def _scan_risk_status_pins(root: Path, result: AuditResult) -> None:
             StateTransitionViolation(
                 kind="usage-error",
                 severity="Important",
-                message=f"architecture/risk-register.md unreadable: {e} (fail-closed).",
+                message=f"architecture/risk-register.md unreadable: {e} (fail-closed).",  # NOT VAULT_ROOT-routed (slice-068) — error-message prose
             )
         )
         return
@@ -397,7 +398,7 @@ def _scan_risk_status_pins(root: Path, result: AuditResult) -> None:
                 kind="usage-error",
                 severity="Important",
                 message=(
-                    f"architecture/risk-register.md unparseable via "
+                    f"architecture/risk-register.md unparseable via "  # NOT VAULT_ROOT-routed (slice-068) — error-message prose
                     f"risk_register_audit._parse_risks: {e} (fail-closed)."
                 ),
             )

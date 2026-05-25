@@ -57,6 +57,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from tools import _stdout
+from tools._vault_paths import VAULT_ROOT
 
 # H2 risk heading: "## R-1 — title" (em-dash separator, canonical) or
 # "## R-1 - title" (single hyphen, accepted alternate). Double-hyphen
@@ -378,7 +379,7 @@ def main(argv: list[str] | None = None) -> int:
         "register", type=Path,
         help="Path to risk-register.md (default: architecture/risk-register.md)",
         nargs="?",
-        default=Path("architecture/risk-register.md"),
+        default=VAULT_ROOT / "risk-register.md",  # VAULT_ROOT-routed (slice-068)
     )
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument(

@@ -60,6 +60,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from tools import _stdout
+from tools._vault_paths import VAULT_ROOT
 
 # Canonical regex for the milestone.md `critique-review-skip:` frontmatter
 # value. Same `rationale:` spirit as BRANCH-1's `BRANCH=skip — rationale:`
@@ -151,7 +152,7 @@ def _resolve_mode(repo_root: Path) -> str | None:
     Fallback: CLAUDE.md `**Mode**:` line.
     Returns an uppercased mode string, or None if unresolvable.
     """
-    triage = repo_root / "architecture" / "triage.md"
+    triage = repo_root / VAULT_ROOT / "triage.md"  # VAULT_ROOT-routed (slice-068)
     if triage.exists():
         block = _frontmatter_block(triage.read_text(encoding="utf-8"))
         if block:

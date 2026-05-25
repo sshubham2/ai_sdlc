@@ -67,6 +67,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from tools import _stdout
+from tools._vault_paths import VAULT_ROOT
 from tools.build_checks_audit import BuildCheckRule, _parse_rules
 
 _PROJECT_FIXTURE_REL = (
@@ -75,7 +76,7 @@ _PROJECT_FIXTURE_REL = (
 _GLOBAL_FIXTURE_REL = (
     "tests/methodology/fixtures/build_checks/canonical_global_checks.md"
 )
-_PROJECT_LIVE_REL = "architecture/build-checks.md"
+_PROJECT_LIVE_REL = VAULT_ROOT / "build-checks.md"  # VAULT_ROOT-routed (slice-068)
 
 _ATTRIB = (
     "LOCAL VAULT DRIFT — reconstruct from {fixture}; "
