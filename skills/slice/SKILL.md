@@ -377,6 +377,39 @@ Expected: <outcome>. If fails: STOP, diagnose, don't continue.
 - [ ] No new TODOs / FIXMEs / debug prints
 ```
 
+### Step 6.5: Write the parallel-slice queue (PSQ-1)
+
+Per **PSQ-1** (`methodology-changelog.md` v0.69.0; [[ADR-064]]; slice-067 mints a new rule; supersedes nothing): immediately after writing `mission-brief.md` + `milestone.md` (current Step 6), invoke the helper to write `architecture/slice-queue.md` containing the top-10 parallel-safe candidates from Step 1's source-fan-out (sources #1-8). Each entry tags the candidate's blast-radius file set (from graphify) and a 4-value `Parallel-safety` enum computed against the union of expected blast-radius file sets for currently-active slices. The queue is a multi-session-visible artifact future Claude sessions (and slice-068's PSQ-2 claim machinery, when shipped) can read to pick a parallel-safe next-slice.
+
+Invocation shape (wrapped in `try/except ImportError` so any `/slice` run before the helper is installed silently no-ops — bootstrap defense per ADR-064 + slice-066 idempotent-guard precedent; queue-write failure NEVER blocks `/slice`'s primary deliverable):
+
+```bash
+# Serialise your Step 3 ranked candidate list (top-10) to a temp JSON file:
+#   [{"name": "add-foo", "source": "risk-register R-13",
+#     "hint_files": ["tools/foo.py"], "effort": "SMALL",
+#     "risk_retired": "LOW"}, ...]
+# Then invoke (Step 6.5 wraps in try/except to bound failure):
+$PY -c "
+try:
+    from tools.slice_queue_writer import write_slice_queue
+    import json, pathlib
+    cands = json.loads(pathlib.Path('candidates.tmp.json').read_text())
+    write_slice_queue(
+        repo_root=pathlib.Path('.'),
+        candidates=cands,
+        active_slice_num=NNN,
+        graph_path=pathlib.Path('graphify-out/graph.json'),
+    )
+except ImportError:
+    pass  # Helper not installed yet (pre-slice-067 bootstrap or post-PSQ-1-revert); skip queue write
+except Exception as e:
+    import sys
+    print(f'WARN: PSQ-1 queue write failed (non-fatal) — {e}', file=sys.stderr)
+"
+```
+
+The 4-value `Parallel-safety` enum + precedence (highest first): `UNKNOWN-NO-GRAPH` (graphify graph missing) > `UNKNOWN-NO-HINT-FILES` (candidate has no source-cited files) > `OVERLAPS-WITH-slice-NNN[, slice-MMM]` (non-empty intersection with active slice blast-radius) > `NON-OVERLAPPING`. The queue file format (5 required field lines per entry: `Source`, `Blast-radius`, `Parallel-safety`, `Effort`, `Risk-retired`) is a stable on-disk contract that slice-068 (PSQ-2 claim machinery) will extend additively.
+
 ## Critical rules
 
 - ASK before deciding the slice. Present candidates, wait for user pick.
@@ -407,7 +440,7 @@ Expected: <outcome>. If fails: STOP, diagnose, don't continue.
 - **predecessor**: `/reflect` (or `/discover` for slice 1 — loop entry)
 - **successor**: `/design-slice`
 - **auto-advance**: true
-- **on-clean-completion**: once the mission brief + milestone.md are written AND a candidate is settled (user supplied explicit `/slice "<intent>"`, picked from the ranked list, or said "you pick"/autonomous), invoke `/design-slice` via the Skill tool without waiting for the user.
+- **on-clean-completion**: once the mission brief + milestone.md are written AND a candidate is settled (user supplied explicit `/slice "<intent>"`, picked from the ranked list, or said "you pick"/autonomous), invoke `/design-slice` via the Skill tool without waiting for the user. **PSQ-1 side-effect**: Step 6.5 fires here, writing `architecture/slice-queue.md` with the top-10 parallel-safe candidates from Step 1's source-fan-out; queue-write failure is non-fatal (wrapped in try/except per ADR-064 Consequences §); does NOT block auto-advance to `/design-slice`.
 - **user-input gates** (halt auto-advance — surface to user, resume only on explicit user action):
   - Candidate selection — HALT unless the user supplied explicit intent OR said "you pick"/autonomous (Step 3 / Step 3b).
   - BFRD-1 bug-fix confirm gate (Step 3c, per ADR-048) — HALT **only** at the structured confirm/modify-the-distilled-`/repro`-description prompt. On **Confirm/Modify**, `/slice` auto-invokes `/repro` itself (bounded to one attempt) and continues — NOT a hand-off back to the user. On **"Not a bug — cancel"**, fail-closed (no auto-`/repro`, no silent proceed; user re-scopes).

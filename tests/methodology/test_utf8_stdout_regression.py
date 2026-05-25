@@ -102,6 +102,7 @@ _ROOT_ONLY_TOOLS = [
     "tools.ai_sdlc_version_forward_sync",  # slice-050 / AVFS-1 (--check/--json/--root, no slice arg)
     "tools.ai_sdlc_tools_version_forward_sync",  # slice-059 / TVFS-1 (--check/--json/--root, no slice arg)
     "tools.new_agent_warning_audit",  # slice-063 / NAW-1 (--check/--json/--root, no slice arg)
+    "tools.slice_queue_writer",  # slice-067 / PSQ-1 (--candidates-json/--active-slice/--output/--graph/--root)
 ]
 
 

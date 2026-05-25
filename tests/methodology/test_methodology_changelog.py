@@ -4555,3 +4555,135 @@ def test_v_0_68_0_branch_2_shippability_consumer_propagation():
         "shippability.md row #66 must reference 'worktree' (the discipline "
         "this row pins) for catalog-runner discoverability"
     )
+
+
+def test_v_0_69_0_psq_1_entry_present_in_repo():
+    """methodology-changelog v0.69.0 / PSQ-1 parallel-slice queue entry-pin
+    (content-bearing per slice-051 / slice-058 / slice-059 / slice-060 /
+    slice-062 / slice-063 / slice-064 / slice-066 precedent; NOT a thin
+    presence check).
+
+    Asserts substring presences in the v0.69.0 entry body (per
+    design.md / ADR-064 §Decision):
+      (a) `## v0.69.0` dated header
+      (b) `PSQ-1` rule reference (the new RULE-ID this entry mints)
+      (c) `ADR-064` reference
+      (d) `Parallel-slice queue output` canonical-phrase anchor
+      (e) `mints a new rule` (PSQ-1 is the first rule on parallel-slice
+          family axis; supersedes nothing per ADR-064)
+      (f) `5-part PMI-1 atomic bump` (slice-063/064/066 canonical anchor —
+          VERSION + plugin.yaml.version + pyproject.toml [project].version
+          + ## v0.69.0 header + installed ~/.claude/ai-sdlc-VERSION;
+          shippability row #67 is a SEPARATE BC-PROJ-10 consumer-propagation
+          surface, NOT a PMI-1 part — per slice-066 / slice-067 /critique-
+          review M-add-4 ADR-064 L50 fix Builder-self-catch)
+      (g) `Rule reference` literal (META-1 mandatory enforcing-assertion
+          obligation at `test_methodology_changelog.py:136`)
+      (h) `NON-OVERLAPPING` AND `UNKNOWN-NO-HINT-FILES` AND
+          `UNKNOWN-NO-GRAPH` (4-value Parallel-safety enum members — the
+          stable on-disk format contract slice-068 PSQ-2 extends additively)
+
+    Rule reference: PSQ-1 (slice-067; ADR-064 mints a new rule; first rule
+    on parallel-slice family axis; methodology v0.69.0).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.69.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.69.0 entry header — "
+        "slice-067 PSQ-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.69.0")
+    assert "PSQ-1" in body, (
+        "v0.69.0 entry body missing the 'PSQ-1' rule reference — "
+        "entry-pin broken at the rule-reference layer (this slice MINTS "
+        "PSQ-1 as a new audit-enforced rule)"
+    )
+    assert "ADR-064" in body, (
+        "v0.69.0 entry body must reference ADR-064 (the new ADR minting PSQ-1)"
+    )
+    assert "Parallel-slice queue output" in body, (
+        "v0.69.0 entry body missing the 'Parallel-slice queue output' "
+        "canonical phrase anchor — PSQ-1's name"
+    )
+    assert "mints a new rule" in body, (
+        "v0.69.0 entry must state 'mints a new rule' (PSQ-1 is a NEW "
+        "audit-enforced rule; first on parallel-slice family axis; "
+        "supersedes nothing per ADR-064)"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.69.0 entry body missing the '5-part PMI-1 atomic bump' "
+        "anchor — slice-067 ships a 5-part bump (VERSION + plugin.yaml + "
+        "pyproject.toml + ## v0.69.0 header + installed ai-sdlc-VERSION) "
+        "per slice-063/064/066 canonical anchor. Shippability row #67 + "
+        "venv ai-sdlc-tools are SEPARATE consumer-propagation surfaces "
+        "(BC-PROJ-10 / TVFS-1), NOT PMI-1 parts (per slice-067 /critique-"
+        "review M-add-4 ADR-064 L50 fix Builder-self-catch)"
+    )
+    assert "Rule reference" in body, (
+        "v0.69.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+    assert "NON-OVERLAPPING" in body, (
+        "v0.69.0 entry must enumerate the NON-OVERLAPPING Parallel-safety "
+        "enum value (the stable on-disk format contract slice-068 PSQ-2 "
+        "extends additively per ADR-064 §Consequences)"
+    )
+    assert "UNKNOWN-NO-HINT-FILES" in body, (
+        "v0.69.0 entry must enumerate the UNKNOWN-NO-HINT-FILES "
+        "Parallel-safety enum value (per AC4-(d) collision rule + "
+        "/critique-review B2 ACCEPTED-FIXED 4-value enum harmonization)"
+    )
+    assert "UNKNOWN-NO-GRAPH" in body, (
+        "v0.69.0 entry must enumerate the UNKNOWN-NO-GRAPH Parallel-safety "
+        "enum value (per AC4-(c) missing-graph degraded-mode behaviour)"
+    )
+
+
+def test_v_0_69_0_psq_1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the PSQ-1 consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #67) so the slice-067 critical path can never silently regress
+    (slice-040 lesson + BC-PROJ-10:173 verbatim pair-precedent — an
+    uncatalogued pin's breakage is invisible to the catalog runner).
+
+    BCR-1 traceability axis (per slice-054 first-dogfood precedent +
+    slice-056/062/063/064/066 lineage): row #67 MUST cite BOTH the new
+    RULE-ID (PSQ-1) AND the new ADR (ADR-064) AND the two BC-PROJ-10
+    paired-pin test function names — severing any of these axes silently
+    breaks traceability from the catalog row to the methodology-changelog
+    entry to the ADR to the entry-pin tests.
+
+    Rule reference: BC-PROJ-10:173 (paired entry-pin precedent N≥18
+    inclusive of this slice); BCR-1 traceability axis.
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "slice-067-add-parallel-slice-queue-output" in catalog, (
+        "architecture/shippability.md must contain a slice-067 row "
+        "(catalog row #67 per BC-PROJ-10:173 paired-entry-pin discipline; "
+        "an uncatalogued pin is invisible to the catalog runner)"
+    )
+    # Locate the slice-067 row (single line in pipe-table format).
+    row_start = catalog.find("slice-067-add-parallel-slice-queue-output")
+    row_end = catalog.find("\n| ", row_start)
+    row = catalog[row_start:row_end] if row_end > 0 else catalog[row_start:row_start + 8000]
+    assert "PSQ-1" in row, (
+        "shippability.md row #67 must cite PSQ-1 (the new RULE-ID) per "
+        "BCR-1 traceability axis"
+    )
+    assert "ADR-064" in row, (
+        "shippability.md row #67 must cite ADR-064 (the new ADR) per "
+        "BCR-1 traceability axis"
+    )
+    assert "test_v_0_69_0_psq_1_entry_present_in_repo" in row, (
+        "shippability.md row #67 must cite the entry-pin test function "
+        "by canonical name (BC-PROJ-10 paired-pin schema; severing this "
+        "axis silently breaks the catalog-row→test traceability)"
+    )
+    assert "test_v_0_69_0_psq_1_shippability_consumer_propagation" in row, (
+        "shippability.md row #67 must cite the shippability-consumer-"
+        "propagation test function by canonical name (BC-PROJ-10 paired-"
+        "pin schema)"
+    )
+    assert ("queue" in row.lower()) or ("parallel" in row.lower()), (
+        "shippability.md row #67 must reference 'queue' or 'parallel' "
+        "(the discipline this row pins) for catalog-runner discoverability"
+    )
