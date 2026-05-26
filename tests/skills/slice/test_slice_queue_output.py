@@ -322,3 +322,72 @@ def test_idempotent_overwrite_with_provenance_line(tmp_path):
     assert body1_no_ts == body2_no_ts, (
         "PSQ-1 AC5: consecutive runs must produce equivalent content modulo timestamp"
     )
+
+
+# ---------------------------------------------------------------------
+# slice-071 / slice-067 m1 SUPPORT: CLI custom-output path pin
+# ---------------------------------------------------------------------
+
+
+def test_main_cli_custom_output_uses_canonical_write_path(tmp_path):
+    """slice-071 m1 SUPPORT pin (per slice-067 code-Critic m1).
+
+    Pre-slice-071: `main()` had a duplicated ~38-line `else:` branch that
+    re-implemented the candidate-loop + atomic-write sequence for the
+    custom-output path, bypassing the `blast_resolver` injection seam +
+    creating a Fowler "Duplicated Code" smell.
+
+    Post-fix (slice-071 B1): `write_slice_queue` accepts `out_path` kwarg;
+    `main()` collapses to a single library call. Both canonical-output AND
+    custom-output paths traverse the same code path.
+
+    Structural pin: invoke `main()` via CLI argv with `--output <custom>`
+    pointing OUTSIDE `architecture/slice-queue.md`; assert the written
+    file at the custom path has the canonical format (`# Slice queue`
+    header + provenance line + `## Candidates` section + entry per
+    candidate). Pins the slice-067 m1 refactor's collapse.
+    """
+    import json
+    from tools.slice_queue_writer import main as cli_main
+
+    # Set up minimal fixture: candidates JSON file + custom output path.
+    candidates = [{
+        "name": "test-foo",
+        "source": "slice-071 CLI test pin",
+        "hint_files": ["tools/foo.py"],
+        "effort": "SMALL",
+        "risk_retired": "LOW",
+    }]
+    candidates_path = tmp_path / "candidates.json"
+    candidates_path.write_text(json.dumps(candidates), encoding="utf-8")
+
+    custom_out = tmp_path / "custom-queue.md"
+    # Set root to tmp_path so VAULT_ROOT-relative ops have a clean sandbox.
+    (tmp_path / "architecture").mkdir()
+
+    # Invoke CLI with custom --output (NOT canonical architecture/slice-queue.md).
+    rc = cli_main([
+        "--candidates-json", str(candidates_path),
+        "--active-slice", "71",
+        "--output", str(custom_out),
+        "--graph", str(tmp_path / "nonexistent-graph.json"),  # graph_missing path
+        "--root", str(tmp_path),
+    ])
+
+    assert rc == 0, f"CLI main() should exit 0; got {rc}"
+    assert custom_out.exists(), (
+        f"Custom output file `{custom_out}` not created — `write_slice_queue` "
+        f"may have ignored the `out_path` kwarg (slice-067 m1 refactor regression)"
+    )
+    body = custom_out.read_text(encoding="utf-8")
+    # Canonical-format assertions: same shape as canonical-output path.
+    assert "# Slice queue" in body
+    assert "_Generated:" in body
+    assert "## Candidates" in body
+    assert "### test-foo" in body
+    assert "- **Source:** slice-071 CLI test pin" in body
+    assert "- **Effort:** SMALL" in body
+    # graph_missing → UNKNOWN-NO-GRAPH per AC4-(a)
+    assert "UNKNOWN-NO-GRAPH" in body, (
+        "graph_missing path should flag candidates UNKNOWN-NO-GRAPH per AC4-(a)"
+    )

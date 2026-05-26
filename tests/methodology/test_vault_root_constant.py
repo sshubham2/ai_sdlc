@@ -10,6 +10,16 @@ Pins:
 - AC4: env-var override via subprocess (read-at-import semantic); allowlist pinned;
        consumer constants are frozen at first import (M1 freeze contract per
        /critique ACCEPTED-FIXED — production-correctness semantic per ADR-065)
+
+slice-071 m3 DOCUMENT-AS-DESIGNED disposition (per slice-068 code-Critic m3 +
+slice-071 /critique M6 + /critique-review M-add-1 ACCEPTED-FIXED):
+Two-marker convention applies only to lines matched by ``literal_re`` at L118
+of this module; substring-in-prose sites at argparse help / error messages /
+log strings are intentionally unmarked per slice-071 design.md §slice-068-m3
+disposition. The asymmetry is structural — broadening the audit regex to
+catch all `architecture/` substrings would require marking ~6 additional
+user-facing-prose sites without semantic benefit; the test
+``test_two_marker_convention_asymmetry_documented`` pins this prose.
 """
 from __future__ import annotations
 
@@ -163,38 +173,75 @@ def test_shippability_decoupling_audit_tuples_preserve_literal() -> None:
 
 
 def test_full_pytest_baseline_preserved() -> None:
-    """AC3: structural pin — this slice adds exactly 10 new tests; the actual
-    full pytest run is gated by /build-slice pre-finish, not duplicated here.
+    """AC3: structural pin — test-function count.
+
+    slice-068 originally shipped 10 functions. slice-071 SC-028 bundle adds
+    2 more: `test_vault_paths_module_is_leaf` (slice-068 M1 leaf-invariant
+    regression-pin, originally promised in design.md L25 but never added)
+    + `test_two_marker_convention_asymmetry_documented` (slice-068 m3
+    DOCUMENT-AS-DESIGNED sentinel-test). Total: 12.
     """
     test_module_text = Path(__file__).read_text(encoding="utf-8")
     test_count = len(re.findall(r"^def test_", test_module_text, re.MULTILINE))
-    assert test_count == 10, (
-        f"slice-068 test_vault_root_constant.py must contain exactly 10 "
-        f"test functions per mission-brief AC4 (post-/critique M1 freeze-pin "
-        f"row addition: 9 → 10); found {test_count}"
+    assert test_count == 12, (
+        f"test_vault_root_constant.py must contain exactly 12 test functions "
+        f"(slice-068 shipped 10; slice-071 SC-028 bundle added 2: "
+        f"test_vault_paths_module_is_leaf + test_two_marker_convention_"
+        f"asymmetry_documented); found {test_count}"
     )
 
 
 def test_migration_is_idempotent() -> None:
     """AC3: scripted re-application of the migration transform on an
-    already-migrated file produces an empty diff. Empirical pin: take
-    slice_queue_writer.py's current text, apply a no-op transform that
-    re-routes already-routed literals through VAULT_ROOT, assert the
-    re-routed text equals the input.
+    already-migrated file produces an empty diff.
+
+    slice-071 m1 FIX (per slice-068 code-Critic m1): pre-fix the regex
+    ``Path(["\\']architecture["\\']\\)`` caught only ONE of the 4 pre-migration
+    literal shapes the slice-068 8-site migration covered. On
+    post-migration code, the narrow regex finds 0 matches → 0 substitutions
+    → trivially equal to input (test passed vacuously regardless of
+    migration state). Post-fix: regex covers all 4 pre-migration shapes,
+    AND the assertion is empirically load-bearing — re-applying any of the
+    4 transforms to a post-migration file must produce no change.
+
+    4 pre-migration shapes covered:
+      (a) Path("architecture") — bare module-level path constant
+      (b) Path("architecture/<sub>") — single-arg with subpath
+      (c) bare "architecture/<sub>" — string literal interpolated elsewhere
+      (d) repo_root / "architecture" / "<sub>" — composed via __truediv__
     """
     target = REPO_ROOT / "tools/slice_queue_writer.py"
     original = target.read_text(encoding="utf-8")
-    # The migration transform: route any naked Path("architecture") to
-    # VAULT_ROOT. Since slice_queue_writer.py is already migrated post-
-    # slice-068, re-applying the transform produces no change.
+    # 4-shape transform: re-route each pre-migration shape to VAULT_ROOT.
+    # slice-071 m1 FIX expanded coverage per slice-068 code-Critic m1.
+    transformed = original
+    # Shape (a) + (b): Path("architecture[/...]")
     transformed = re.sub(
-        r'Path\(["\']architecture["\']\)',
+        r'Path\(["\']architecture(/[^"\']+)?["\']\)',
         "VAULT_ROOT",
-        original,
+        transformed,
+    )
+    # Shape (c): bare "architecture/<sub>" string literal (not inside Path())
+    # — match string literal "architecture/..." NOT immediately preceded by
+    # `Path(`. Use a negative lookbehind to avoid double-matching (a)+(b).
+    transformed = re.sub(
+        r'(?<!Path\()["\']architecture/[^"\']+["\']',
+        "VAULT_ROOT_REL",
+        transformed,
+    )
+    # Shape (d): composed `<expr> / "architecture" / "<sub>"`. Match a
+    # `/ "architecture" /` fragment as the canonical composition shape.
+    transformed = re.sub(
+        r'/\s*["\']architecture["\']\s*/',
+        "/ VAULT_ROOT_COMPOSED /",
+        transformed,
     )
     assert transformed == original, (
-        "Migration must be idempotent: re-applying the Path('architecture') "
-        "→ VAULT_ROOT transform to an already-migrated file must produce no change."
+        "Migration must be idempotent: re-applying the 4-shape transform "
+        "(Path('architecture'[/sub]) | bare 'architecture/<sub>' | composed "
+        "/'architecture'/) to an already-migrated file must produce no change. "
+        "slice-071 m1 FIX expanded coverage from 1 shape to 4 (per slice-068 "
+        "code-Critic m1)."
     )
 
 
@@ -272,12 +319,45 @@ def test_consumer_constants_are_frozen_at_first_import(
     import tools._vault_paths
     import tools.slice_queue_writer
 
-    # Capture the consumer's frozen constant.
+    # Capture the consumer's frozen constant + the pre-patch VAULT_ROOT.
     frozen_index_md_rel = tools.slice_queue_writer._INDEX_MD_REL
+    pre_patch_vault_root = tools._vault_paths.VAULT_ROOT
 
     # In-process monkeypatch of VAULT_ROOT itself.
+    patched_vault = Path("/tmp/freeze-pin-test")
     monkeypatch.setattr(
-        tools._vault_paths, "VAULT_ROOT", Path("/tmp/freeze-pin-test")
+        tools._vault_paths, "VAULT_ROOT", patched_vault
+    )
+
+    # slice-071 m2 FIX (per slice-068 code-Critic m2): two-step assertion.
+    # Step 1: PROVE the monkeypatch actually mutated the attribute. Pre-fix,
+    # a no-op monkeypatch (or one against a renamed attribute) would have
+    # passed the freeze test silently because both sides of the equality
+    # were the same captured-then-re-read value of a non-recomputed
+    # consumer constant.
+    assert tools._vault_paths.VAULT_ROOT == patched_vault, (
+        "Monkeypatch did NOT mutate tools._vault_paths.VAULT_ROOT — the "
+        "freeze test below would pass trivially. Verify the monkeypatch "
+        "target attribute name."
+    )
+
+    # Step 2: PROVE the consumer's frozen constant did NOT propagate the
+    # patched value — that's the production-correctness semantic.
+    expected_canonical = pre_patch_vault_root / "slices" / "_index.md"
+    assert frozen_index_md_rel == expected_canonical, (
+        f"Consumer's frozen constant captured WRONG pre-patch value: "
+        f"frozen={frozen_index_md_rel!r}, expected canonical "
+        f"VAULT_ROOT-derived form={expected_canonical!r}"
+    )
+    # Step 3: PROVE the consumer's frozen constant ALSO did NOT change to
+    # the patched value (defense-in-depth — if step 2 passed but step 3
+    # also returned True against the patched-derived form, the consumer
+    # would be recomputed-on-read which would violate the freeze).
+    patched_derived = patched_vault / "slices" / "_index.md"
+    assert tools.slice_queue_writer._INDEX_MD_REL != patched_derived, (
+        f"Freeze contract VIOLATED: consumer constant equals "
+        f"patched-derived value {patched_derived!r} — the constant is "
+        f"recomputed-on-read instead of frozen-at-first-import."
     )
 
     # The consumer's frozen constant MUST be unchanged — that's the
@@ -287,4 +367,79 @@ def test_consumer_constants_are_frozen_at_first_import(
         "updated after monkeypatching tools._vault_paths.VAULT_ROOT. "
         "Expected the consumer constant to remain frozen at its first-import "
         "value (production-correctness semantic per ADR-065 §Decision)."
+    )
+
+
+# ─── slice-071 SC-028 bundle additions ─────────────────────────────────
+
+
+def test_vault_paths_module_is_leaf() -> None:
+    """slice-071 M1 FIX pin (per slice-068 code-Critic M1 / SC-028).
+
+    slice-068 design.md L25 + mission-brief.md L54 promised a regression-
+    pin test asserting `tools/_vault_paths.py` imports only stdlib modules
+    (the leaf-invariant). The test was never added at slice-068 build
+    time — code-Critic caught the gap by direct AST inspection at post-
+    build /code-review.
+
+    This test parses `tools/_vault_paths.py` via `ast.parse`, walks all
+    `ast.Import` + `ast.ImportFrom` nodes, and asserts no module starts
+    with `"tools."`. Allowed: `__future__`, `os`, `pathlib` (stdlib roots).
+    """
+    target = REPO_ROOT / "tools" / "_vault_paths.py"
+    source = target.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(target))
+    non_stdlib_imports: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                module_root = alias.name.split(".")[0]
+                if module_root == "tools":
+                    non_stdlib_imports.append(f"import {alias.name}")
+        elif isinstance(node, ast.ImportFrom):
+            if node.module is not None:
+                module_root = node.module.split(".")[0]
+                if module_root == "tools":
+                    non_stdlib_imports.append(
+                        f"from {node.module} import {','.join(a.name for a in node.names)}"
+                    )
+    assert non_stdlib_imports == [], (
+        f"Leaf invariant VIOLATED: tools/_vault_paths.py must import only "
+        f"stdlib modules (not from `tools.*`). Found non-stdlib imports: "
+        f"{non_stdlib_imports}. Per ADR-065 + design.md §VAULT_ROOT seam — "
+        f"the module is the dependency leaf for the VAULT_ROOT cascade; "
+        f"importing from `tools.*` would create a cycle."
+    )
+
+
+def test_two_marker_convention_asymmetry_documented() -> None:
+    """slice-071 m3 DOCUMENT-AS-DESIGNED pin (per slice-068 code-Critic m3
+    + /critique M6 + /critique-review M-add-1 ACCEPTED-FIXED).
+
+    The two-marker convention asymmetry — audit's `literal_re` at L118
+    matches `"architecture[/"\\]` patterns only; substring-in-prose sites
+    at argparse help / error messages / log strings are intentionally
+    unmarked — is documented in this module's docstring. This sentinel
+    test asserts the documentation prose exists, pinning the asymmetry
+    as deliberate-by-design rather than oversight.
+
+    Assertion shape: prose-substring (NOT regex literal) per /critique M6
+    + /critique-review M-add-1. Substrings VERBATIM-aligned to docstring
+    (capital `T` in `Two-marker`; full anchor `§slice-068-m3`).
+    """
+    doc = __doc__ or ""
+    # Verbatim substring assertions — case-sensitive; full-anchor.
+    assert "Two-marker convention" in doc, (
+        "Module docstring must contain `Two-marker convention` prose (capital T)."
+    )
+    assert "argparse help" in doc, (
+        "Module docstring must mention `argparse help` as an unmarked-prose site."
+    )
+    assert "intentionally unmarked" in doc, (
+        "Module docstring must include `intentionally unmarked` to mark the "
+        "asymmetry as deliberate."
+    )
+    assert "slice-071 design.md §slice-068-m3" in doc, (
+        "Module docstring must cite the slice-071 design.md §slice-068-m3 "
+        "disposition as the canonical anchor."
     )

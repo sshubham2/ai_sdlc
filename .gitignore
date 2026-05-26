@@ -9,10 +9,11 @@ __pycache__/
 
 # AI SDLC vault — tracked in git per ADR-066 (slice-069) to enable
 # cross-machine parallel slice development; retires the N=4 cumulative
-# worktree-vs-gitignored-vault class. `graphify-out/` + `diagnose-out/`
-# (entirely derived / mostly derived) remain ignored below.
+# worktree-vs-gitignored-vault class. (Slice-071 m4 FIX per slice-069
+# code-Critic m4: consolidated comment blocks — dropped the forward-
+# reference clause; the next-section header is self-documenting.)
 
-# Build artifacts (pip / setuptools / graphify outputs)
+# Build artifacts (pip / setuptools / graphify outputs — entirely derived)
 build/
 ai_sdlc_tools.egg-info/
 graphify-out/

@@ -4687,3 +4687,121 @@ def test_v_0_69_0_psq_1_shippability_consumer_propagation():
         "shippability.md row #67 must reference 'queue' or 'parallel' "
         "(the discipline this row pins) for catalog-runner discoverability"
     )
+
+
+# ─── slice-071 / slice-069 M2 paired-pin completion ────────────────────
+
+
+def test_v_0_70_0_adr_066_entry_present_in_repo():
+    """methodology-changelog v0.70.0 / ADR-066 entry-pin (content-bearing
+    per slice-051 / slice-058 / slice-059 / slice-060 / slice-062 /
+    slice-063 / slice-064 / slice-066 / slice-067 precedent).
+
+    slice-071 / slice-069 M2 FIX (paired-pin completion per slice-069
+    code-Critic M2): slice-069 shipped MEPD-1 INCLUDE posture but did NOT
+    ship the BC-PROJ-10 paired-entry-pin pair that every prior INCLUDE-
+    posture slice (slice-067 / slice-066 / slice-058 / slice-052) carries.
+    This test (+ its consumer-propagation sibling below) closes the gap.
+
+    Asserts substring presences in the v0.70.0 entry body (per
+    methodology-changelog.md `## v0.70.0` + ADR-066 §Decision):
+      (a) `## v0.70.0` dated header
+      (b) `ADR-066` reference (the new architectural philosophy this entry mints)
+      (c) `vault-in-git` canonical-phrase anchor
+      (d) `BC-PROJ-8` reference (the supersession target)
+      (e) `STP-1 Sub-form B docstring` (canonical reframing anchor)
+      (f) `M5 INCLUDE direction` (the /code-review SKILL.md scope shift)
+      (g) `5-part PMI-1 atomic bump` (slice-063/064/066/067 canonical anchor)
+      (h) `Rule reference` literal (META-1 mandatory enforcing-assertion
+          obligation at `test_methodology_changelog.py:136`)
+      (i) `partial supersession` (ADR-028 §Options-#1 only — preserves
+          BCI-1 Decisions 1-3 unchanged per ADR-066 frontmatter)
+
+    Rule reference: ADR-066 (slice-069; mints a new architectural philosophy;
+    partial supersession of ADR-028 §Options-#1 only; methodology v0.70.0).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.70.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.70.0 entry header — "
+        "slice-069 ADR-066 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.70.0")
+    assert "ADR-066" in body, (
+        "v0.70.0 entry body missing the 'ADR-066' architectural-philosophy "
+        "reference (this slice MINTS ADR-066 as the vault-in-git philosophy)"
+    )
+    assert "vault-in-git" in body or "vault in git" in body.lower(), (
+        "v0.70.0 entry body missing the 'vault-in-git' canonical phrase anchor"
+    )
+    assert "BC-PROJ-8" in body, (
+        "v0.70.0 entry body must reference BC-PROJ-8 (the rule whose content "
+        "is superseded per ADR-066 §Decision)"
+    )
+    assert "STP-1 Sub-form B docstring" in body, (
+        "v0.70.0 entry body missing the 'STP-1 Sub-form B docstring' "
+        "canonical reframing anchor"
+    )
+    assert "M5 INCLUDE direction" in body, (
+        "v0.70.0 entry body missing the 'M5 INCLUDE direction' "
+        "/code-review SKILL.md scope-shift anchor"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.70.0 entry body missing the '5-part PMI-1 atomic bump' "
+        "anchor — slice-069 ships a 5-part bump (VERSION + plugin.yaml + "
+        "pyproject.toml + ## v0.70.0 header + installed ai-sdlc-VERSION)"
+    )
+    assert "Rule reference" in body, (
+        "v0.70.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+    assert "partial supersession" in body or "partial-supersedes" in body or "partial-supersession" in body, (
+        "v0.70.0 entry must state 'partial supersession' (ADR-028 §Options-#1 "
+        "only; BCI-1 Decisions 1-3 remain accepted unchanged per ADR-066 "
+        "§Supersession scope)"
+    )
+
+
+def test_v_0_70_0_adr_066_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the ADR-066 consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #69) so the slice-069 critical path can never silently regress.
+
+    slice-071 / slice-069 M2 FIX (paired-pin completion per slice-069
+    code-Critic M2): slice-069 /reflect Step 5.3 added the shippability
+    row #69 (partial-discharge — the row exists), but the row's BC-PROJ-10
+    paired-pin test function name citations were deferred since the test
+    functions themselves did not exist until this slice. slice-071 closes
+    the gap by adding both the test functions (this test + its sibling
+    above) AND citing them in row #69 (mandatory per BC-PROJ-10:173
+    paired-pin schema).
+
+    BCR-1 traceability axis: row #69 MUST cite the new ADR (ADR-066) AND
+    the two BC-PROJ-10 paired-pin test function names.
+
+    Rule reference: BC-PROJ-10:173 (paired entry-pin precedent N≥19
+    inclusive of this slice); BCR-1 traceability axis.
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "slice-069-track-vault-in-git" in catalog, (
+        "architecture/shippability.md must contain a slice-069 row "
+        "(catalog row #69 per BC-PROJ-10:173 paired-entry-pin discipline)"
+    )
+    # Locate the slice-069 row (single line in pipe-table format).
+    row_start = catalog.find("slice-069-track-vault-in-git")
+    row_end = catalog.find("\n| ", row_start)
+    row = catalog[row_start:row_end] if row_end > 0 else catalog[row_start:row_start + 8000]
+    assert "ADR-066" in row, (
+        "shippability.md row #69 must cite ADR-066 (the new architectural "
+        "philosophy) per BCR-1 traceability axis"
+    )
+    assert "test_v_0_70_0_adr_066_entry_present_in_repo" in row, (
+        "shippability.md row #69 must cite the entry-pin test function "
+        "by canonical name (BC-PROJ-10 paired-pin schema; severing this "
+        "axis silently breaks the catalog-row→test traceability). "
+        "slice-071 / slice-069 M2 FIX adds this citation."
+    )
+    assert "test_v_0_70_0_adr_066_shippability_consumer_propagation" in row, (
+        "shippability.md row #69 must cite the shippability-consumer-"
+        "propagation test function by canonical name (BC-PROJ-10 paired-"
+        "pin schema). slice-071 / slice-069 M2 FIX adds this citation."
+    )
