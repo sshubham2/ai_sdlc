@@ -1518,3 +1518,26 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **Bash-heredoc Python source with backslash patterns** is a Builder-tool-discipline class: silent regex character-class collapse via JSON-decode + bash-tokenize. Fix via `chr(92)*2` or separate `.py` file invocation. /critic-calibrate watch-list N=1.
 - **ADR §Reversibility prose creates BC-1 BC-GLOBAL-2 false-positive surface** that M5 INCLUDE direction further enlarges (build-log §Discovered prose now in /code-review scope). BC-1 keyword-trigger model needs discrimination between prose-discussion vs code-automation. /critic-calibrate watch-list N=1.
 - **`/critic-calibrate` probe narrowing post-slice-069**: gitignored-vault probe scope narrows from `architecture/` (now tracked) to `diagnose-out/` + `graphify-out/` (still gitignored).
+
+## Slice 070 (fix-psq-1-blast-radius-dict-leak) — 2026-05-26
+
+### Worked
+
+- **APED-1 empirical-execution discipline at /critique B1** caught the proposed `path → name → id` precedence's wrong-output class against real graphify data BEFORE /build-slice; would have shipped opaque IDs in Blast-radius cells (still passes the original "no `{':}`" weak-proxy regex but defeats PSQ-1's value-add). Textbook APED-1 catch.
+- **3-Critic stack complementarity at N=7 cumulative (slice-063→070)**: design-Critic + meta-Critic stack ratified CLEAN at TRI-1; code-Critic surfaced 11 distinct findings against the slice diff including 6 Majors (M1 latent overlap-detection-silent-corruption + M2 `_is_path_shaped`-vs-AC#3 contract drift + M3 PRIMARY id-lookup unfiltered + M4 lru_cache shared-mutable + M5 `\`unknown\`` AC#3 fragility + M6 subprocess patching scope). Real distinct defect classes the design-Critic stack structurally cannot reach.
+- **BCR-1 round-trip closure (SC-027) landed cleanly**: `**Closes:** SC-027` sentinel in mission-brief.md → `**Addressed:** slice-070-fix-psq-1-blast-radius-dict-leak on 2026-05-26` line appended after SC-027's Evidence sub-list, before SC-028 header.
+- **Switch-commit-switch-worktree pattern for vault-in-git pre-build artifacts**: user-ratified at /build-slice prereq trip-up — this is the new canonical post-slice-069 pattern for first-time-post-vault-in-git slices.
+
+### Didn't work
+
+- **AC#3 regex blind-spot on `.gitignore`**: design-Critic + meta-Critic + code-Critic all reviewed the AC#3 regex literal at /critique time + post-meta-fix-block; none anticipated that `.gitignore` (a dotfile in `rename-architecture-to-sdlc`'s `hint_files`) would FAIL the original regex. Surfaced at /build-slice Phase D via empirical execution. **Pattern**: design-Critic stack structurally cannot anticipate regex blind-spots on actual rendered content without empirical execution.
+- **TPHD-1 sub-mode (a) cross-doc harmonization gap N=5 cumulative recurrence** (slice-062/064/067/070-meta-Critic/070-build-time): the first-Critic fix-block sweep keeps missing peripheral prose anchors. Meta-Critic catches reliably (per slice-067/070 meta-Critic M-add-3). Pattern is now structural; warrants /critic-calibrate proposal.
+- **Build-log provenance dishonesty** (caught by /code-review m3): the original "not a defect this slice introduced" framing on the abs/rel-path duplication was inaccurate — the `_build_id_to_path_map` helper IS slice-070 code. Builder-discipline gap.
+- **`graphify-out/` + `diagnose-out/` cp-r tax continues at N=5 cumulative** post-slice-069 vault-in-git: slice-069 retired the `architecture/` class but the other two gitignored directories remain. The slice's BCR-1 round-trip closure had to be manually replicated in main tree's diagnose-out/ because the worktree's edit doesn't propagate via merge.
+
+### Pattern
+
+- **For any slice that mints or modifies a parse-rule / regex / glob / pathspec, perform empirical execution against actual production data BEFORE declaring /critique done** — extends APED-1's audit-parse-rule discipline to regex/glob/pathspec rules more broadly. The N+1 first-governed-slice catch surface is otherwise at /build-slice via test execution (later than ideal). /critic-calibrate signal N=1 (slice-070 AC#3 dotfile blind-spot); promote if 2nd recurrence.
+- **The bundle-cleanup slice nomination at slice-071 is structurally overdue** — 30 code-Critic advisory findings accumulated across slice-066/067/068/069/070. Voluntary-restraint discipline holds (slice-064/065/066/067/068/069/070 N=11 cumulative) but the cleanup slice itself is now LARGE. Recommend explicit /slice scope-check (possibly split into code-quality refactors vs spec-prose corrections).
+- **Post-vault-in-git BRANCH-2 + slice-pipeline-artifacts interaction needs codification**: every future first-post-slice-069 slice will trip BRANCH-2 prereq rule 4 "STOP if dirty" because /slice → /critique-review creates tracked artifacts on master tree before /build-slice creates the worktree. The switch-commit-switch-worktree pattern is the documented disposition; needs SKILL.md codification.
+- **Builder fix-block prose-honesty discipline**: when deferring a finding, credit the defect's provenance accurately. "Not a defect this slice introduced" is the wrong framing when the slice ships the code that introduces the defect class.

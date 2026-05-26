@@ -63,6 +63,7 @@ contract by construction").
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import re
 import subprocess
@@ -208,6 +209,95 @@ def _extract_files_from_slice_dir(slice_dir: Path) -> set[str]:
 # ---------------------------------------------------------------------
 
 
+def _is_path_shaped(s: str) -> bool:
+    """A string is path-shaped if it contains a separator or a known extension.
+
+    Mirrors ``_parse_text_nodes``'s "/"-filter discipline at L255 + accepts
+    Windows backslash + known file extensions (slice-070 SC-027 fix).
+    """
+    if not s:
+        return False
+    if "/" in s or "\\" in s:
+        return True
+    return s.endswith((".py", ".md", ".json", ".toml", ".yaml", ".txt"))
+
+
+@functools.lru_cache(maxsize=4)
+def _build_id_to_path_map(graph_path_str: str) -> dict[str, str]:
+    """Build ``{node_id -> repo-relative source_file}`` from graph.json.
+
+    The graphify blast-radius JSON CLI output emits
+    ``{id, label, type:"", path:""}`` where ``type``/``path`` are
+    structurally empty in this repo's graph. The underlying node dicts in
+    ``graph.json`` carry the real path in ``source_file``. This map lets
+    consumers resolve a returned ID to the path they actually need.
+
+    Memoized via ``lru_cache`` (string key — ``Path`` is unhashable in some
+    shapes) so multi-call enrichment within one ``/slice`` Step 6.5
+    invocation reads + parses ``graph.json`` once. Cache size 4 covers the
+    common case (default graph_path + a few overrides per session).
+
+    Returns an empty map on any read/parse failure — best-effort
+    degradation consistent with the surrounding "graphify is best-effort,
+    never block" contract from slice-067.
+    """
+    try:
+        data = json.loads(Path(graph_path_str).read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, json.JSONDecodeError):
+        return {}
+    repo_root = Path.cwd().resolve()
+    out: dict[str, str] = {}
+    for n in data.get("nodes", []):
+        if not isinstance(n, dict):
+            continue
+        nid = n.get("id")
+        src = n.get("source_file")
+        if not (isinstance(nid, str) and isinstance(src, str) and nid and src):
+            continue
+        try:
+            rel = Path(src).resolve().relative_to(repo_root).as_posix()
+        except (ValueError, OSError):
+            rel = Path(src).as_posix()
+        out[nid] = rel
+    return out
+
+
+def _node_to_path(node: object, id_to_path: dict[str, str]) -> str | None:
+    """Extract a path-shaped identifier from a graphify node element.
+
+    PRIMARY path: dict input whose ``id`` is in ``id_to_path`` map -> the
+    mapped repo-relative source_file. This is the path graphify actually
+    carries today; the blast-radius CLI just doesn't surface the field
+    directly in JSON output.
+
+    Forward-compat fallback (future graphify schemas where the CLI DOES
+    surface a path-bearing key): dict input with ``path`` / ``source_file``
+    / ``name`` populated AND path-shaped -> use that value.
+
+    Legacy compat: ``str`` input that is itself path-shaped -> returned
+    verbatim. ID-only strings dropped (mirrors ``_parse_text_nodes``
+    discipline at L255).
+
+    Any other shape -> returns ``None``; caller skips such items rather
+    than letting ``str(node)`` leak Markdown-invalid characters into the
+    rendered ``Blast-radius:`` cell (SC-027 defect class, slice-070 fix).
+    """
+    if isinstance(node, str):
+        return node if _is_path_shaped(node) else None
+    if not isinstance(node, dict):
+        return None
+    # PRIMARY: id-lookup via graph.json map
+    nid = node.get("id")
+    if isinstance(nid, str) and nid in id_to_path:
+        return id_to_path[nid]
+    # Forward-compat: dict has its own populated path-shaped key
+    for key in ("path", "source_file", "name"):
+        val = node.get(key)
+        if isinstance(val, str) and _is_path_shaped(val):
+            return val
+    return None
+
+
 def _call_graphify_blast_radius(
     graph_path: Path, file_or_node: str
 ) -> set[str]:
@@ -216,9 +306,16 @@ def _call_graphify_blast_radius(
     Adapted from ``skills/slice-candidates/build_backlog.py:120-155``. Tries
     ``--file <basename>`` first (current graph node-ID shape uses basenames);
     falls back to ``--from <full-path>`` (legacy node-ID shape). Returns the
-    set of affected node IDs as strings, or empty set on any failure.
+    set of affected node IDs as repo-relative paths, or empty set on any
+    failure.
+
+    Slice-070 SC-027 fix: resolves dict-node IDs via ``_build_id_to_path_map``
+    (graph.json source_file lookup) instead of stringifying the dicts. See
+    ``_node_to_path`` for the extraction-precedence contract.
     """
     py = sys.executable
+    # Build id->repo-relative-path map once at function entry; memoized.
+    id_to_path = _build_id_to_path_map(str(graph_path))
     # Try --file with basename first (current graphify node-ID convention).
     basename = Path(file_or_node).name
     for argv_tail in (
@@ -243,11 +340,11 @@ def _call_graphify_blast_radius(
         except json.JSONDecodeError:
             return _parse_text_nodes(res.stdout)
         if isinstance(data, list):
-            return {str(x) for x in data}
+            return {p for x in data if (p := _node_to_path(x, id_to_path)) is not None}
         if isinstance(data, dict):
             for key in ("nodes", "blast_radius", "affected"):
                 if key in data and isinstance(data[key], list):
-                    return {str(x) for x in data[key]}
+                    return {p for x in data[key] if (p := _node_to_path(x, id_to_path)) is not None}
         return set()
     return set()
 

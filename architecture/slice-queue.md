@@ -1,32 +1,24 @@
 # Slice queue
 
-_Generated: 2026-05-25T05:07:48+00:00 by /slice during slice-069 definition_
+_Generated: 2026-05-26T03:45:25+00:00 by /slice during slice-070 definition_
 
 ## Candidates
 
-### rename-architecture-to-sdlc
+### bundle-066-to-070-code-critic-cleanup
 
-- **Source:** user-intent (query-design 2026-05-25; second half of original rename-and-track candidate, split per slice-069 Step 5 scope check)
-- **Blast-radius:** `.gitignore`, `CLAUDE.md`, `pipeline.md`, `tools/_vault_paths.py`, `tutorial.md`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** LARGE
-- **Risk-retired:** NONE
-
-### add-LOCAL-slice-queue-claim-state-machine
-
-- **Source:** slice-067 plan (original PSQ-2 nominee; now scoped to local-only same-machine sessions per query-design 2026-05-25 finding)
-- **Blast-radius:** `tools/slice_queue_writer.py`, `{'id': 'slice_queue_writer_rationale_1', 'label': 'Parallel-slice queue writer (PSQ-1).  Per **PSQ-1** (`methodology-changelog.md', 'type': '', 'path': ''}`
+- **Source:** Accumulated code-Critic advisory backlog across slice-066/067/068/069 (19 findings)
+- **Blast-radius:** `C:/Users/sshub/ai_sdlc/tools/branch_workflow_audit.py`, `C:/Users/sshub/ai_sdlc/tools/slice_queue_writer.py`, `C:/Users/sshub/ai_sdlc/tools/validate_slice_layers.py`, `tests/methodology/test_vault_root_constant.py`, `tools/branch_workflow_audit.py`, `tools/slice_queue_writer.py`, `tools/validate_slice_layers.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
-- **Risk-retired:** MEDIUM
+- **Risk-retired:** NONE
 
-### fix-psq-1-slice-queue-writer-raw-dict-leak
+### implement-or-downgrade-drift-check
 
-- **Source:** diagnose-out/backlog.md SC-027 (slice-068 critique m2 ACCEPTED-PENDING + critique-review m2 severity adjustment)
-- **Blast-radius:** `tools/slice_queue_writer.py`, `{'id': 'slice_queue_writer_rationale_1', 'label': 'Parallel-slice queue writer (PSQ-1).  Per **PSQ-1** (`methodology-changelog.md', 'type': '', 'path': ''}`
+- **Source:** diagnose-out/backlog.md SC-006 + SC-007 + SC-008 (documented-but-unenforced-gate cluster; HIGH severity)
+- **Blast-radius:** `C:/Users/sshub/ai_sdlc/tools/build_checks_audit.py`, `skills/drift-check/SKILL.md`, `tools/build_checks_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
-- **Risk-retired:** MEDIUM
+- **Effort:** MEDIUM
+- **Risk-retired:** HIGH
 
 ### harden-slice-068-test-vault-root-constant
 
@@ -36,29 +28,21 @@ _Generated: 2026-05-25T05:07:48+00:00 by /slice during slice-069 definition_
 - **Effort:** SMALL
 - **Risk-retired:** LOW
 
-### add-rebase-and-conflict-discipline
+### add-LOCAL-slice-queue-claim-state-machine
 
-- **Source:** slice-067 plan (original PSQ-3 nominee; /commit-slice rebases default before merge + structured-options ASK on conflict)
-- **Blast-radius:** `skills/commit-slice/SKILL.md`, `tools/branch_workflow_audit.py`, `{'id': 'branch_workflow_audit_rationale_1', 'label': 'Branch workflow audit (BRANCH-1).  Validates that the current git branch match', 'type': '', 'path': ''}`
+- **Source:** slice-067 plan (original PSQ-2 nominee; now scoped to local-only same-machine sessions)
+- **Blast-radius:** `C:/Users/sshub/ai_sdlc/tools/slice_queue_writer.py`, `tools/slice_queue_writer.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
 - **Risk-retired:** MEDIUM
 
-### remote-cross-machine-slice-claim-semantics
+### add-rebase-and-conflict-discipline
 
-- **Source:** user-intent (query-design 2026-05-25; candidate #3 of cross-machine-parallel chain; needs /risk-spike)
-- **Blast-radius:** `tools/slice_queue_writer.py`, `{'id': 'slice_queue_writer_rationale_1', 'label': 'Parallel-slice queue writer (PSQ-1).  Per **PSQ-1** (`methodology-changelog.md', 'type': '', 'path': ''}`
+- **Source:** slice-067 plan (original PSQ-3 nominee; /commit-slice rebases default before merge)
+- **Blast-radius:** `C:/Users/sshub/ai_sdlc/tools/branch_workflow_audit.py`, `skills/commit-slice/SKILL.md`, `tools/branch_workflow_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** LARGE
-- **Risk-retired:** HIGH
-
-### rescope-or-rename-claim-state-machine
-
-- **Source:** user-intent (query-design 2026-05-25; depends on remote-claim-semantics outcome; candidate #4 of cross-machine-parallel chain)
-- **Blast-radius:** `unknown`
-- **Parallel-safety:** UNKNOWN-NO-HINT-FILES
-- **Effort:** SMALL
-- **Risk-retired:** LOW
+- **Effort:** MEDIUM
+- **Risk-retired:** MEDIUM
 
 ### extend-osdg-1-to-slice-candidates
 
@@ -76,10 +60,26 @@ _Generated: 2026-05-25T05:07:48+00:00 by /slice during slice-069 definition_
 - **Effort:** SMALL
 - **Risk-retired:** LOW
 
-### add-shippability-runner-cli-tests
+### rename-architecture-to-sdlc
 
-- **Source:** diagnose-out/backlog.md SC-014/SC-015/SC-016/SC-020/SC-021 cluster (CLI exit-1 path untested systemic theme)
-- **Blast-radius:** `tools/branch_workflow_audit.py`, `tools/critique_review_audit.py`, `tools/cross_spec_parity_audit.py`, `tools/shippability_path_audit.py`, `tools/wiring_matrix_audit.py`, `{'id': 'branch_workflow_audit_rationale_1', 'label': 'Branch workflow audit (BRANCH-1).  Validates that the current git branch match', 'type': '', 'path': ''}`, `{'id': 'critique_review_audit_rationale_1', 'label': "Critique-review structural audit (DR-1).  Validates that a slice's `critique-r", 'type': '', 'path': ''}`, `{'id': 'cross_spec_parity_audit_rationale_1', 'label': 'Cross-spec parity audit (CSP-1).  Walks the Heavy-mode artifacts (`architectur', 'type': '', 'path': ''}`, `{'id': 'shippability_path_audit_rationale_1', 'label': 'Shippability-catalog test-path existence audit (PTFCD-1, sub-mode (b)).  Parse', 'type': '', 'path': ''}`, `{'id': 'wiring_matrix_audit_rationale_1', 'label': "Wiring matrix audit (WIRE-1).  Parses the wiring matrix from a slice's design.", 'type': '', 'path': ''}`
+- **Source:** user-intent (carry-over from slice-069 slice-queue; now structurally tractable post-slice-069)
+- **Blast-radius:** `.gitignore`, `CLAUDE.md`, `tools/_vault_paths.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** LARGE
+- **Risk-retired:** NONE
+
+### extract-shared-repo-root-helper
+
+- **Source:** diagnose-out/backlog.md SC-019 (repo-root sentinel inconsistent across audits)
+- **Blast-radius:** `C:/Users/sshub/ai_sdlc/tools/branch_workflow_audit.py`, `C:/Users/sshub/ai_sdlc/tools/critique_review_prerequisite_audit.py`, `C:/Users/sshub/ai_sdlc/tools/pipeline_chain_audit.py`, `C:/Users/sshub/ai_sdlc/tools/shippability_path_audit.py`, `C:/Users/sshub/ai_sdlc/tools/test_first_audit.py`, `tools/branch_workflow_audit.py`, `tools/critique_review_prerequisite_audit.py`, `tools/pipeline_chain_audit.py`, `tools/shippability_path_audit.py`, `tools/test_first_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
-- **Risk-retired:** LOW
+- **Risk-retired:** MEDIUM
+
+### add-shippability-runner-cli-tests-bundle
+
+- **Source:** diagnose-out/backlog.md SC-004 + SC-011 + SC-013 + SC-014 + SC-015 + SC-016 + SC-020 + SC-021 (CLI exit-1 untested 8 findings batch)
+- **Blast-radius:** `C:/Users/sshub/ai_sdlc/tests/methodology/test_mock_budget_lint.py`, `C:/Users/sshub/ai_sdlc/tests/methodology/test_plugin_manifest_audit.py`, `C:/Users/sshub/ai_sdlc/tests/methodology/test_triage_audit.py`, `tests/methodology/test_mock_budget_lint.py`, `tests/methodology/test_plugin_manifest_audit.py`, `tests/methodology/test_triage_audit.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** MEDIUM
+- **Risk-retired:** MEDIUM
