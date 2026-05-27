@@ -1,16 +1,16 @@
 ---
 slice: slice-072-add-psq-2-claim-machinery
-stage: critique
+stage: build
 updated: 2026-05-27
-next-action: run /build-slice
+next-action: Phase D — wire claim-aware behavior into PSQ-1 writer
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-072 add-psq-2-claim-machinery
 
-**Stage**: critique
-**Next action**: run `/build-slice`
+**Stage**: build
+**Next action**: Phase D — wire claim-aware behavior into PSQ-1 writer (`tools/slice_queue_writer.py::_format_entry` + `write_slice_queue` merge)
 **Updated**: 2026-05-27
 **Risk tier**: medium — Critic required: yes (in-house methodology surfaces touched: `tools/slice_queue_writer.py`, new `tools/slice_queue_claim.py`, `skills/slice/SKILL.md` Step 6.5, methodology-changelog, ADR-067; multi-session shared state contract)
 
@@ -20,19 +20,20 @@ critic-required: true
 - [x] /design-slice — 2026-05-27
 - [x] /critique — 2026-05-27 — CLEAN
 - [x] /critique-review — 2026-05-27 — EXTEND
-- [ ] /build-slice
+- [ ] /build-slice — in progress: Phase A+B+C complete; D/E/F/G pending
 - [ ] /validate-slice
 - [ ] /reflect
 
 ## Current focus
 
-Design complete; first Critic + meta-Critic both reviewed; Builder fix-block applied 11+3=14 ACCEPTED-FIXED edits in-band. PSQ-2 schema: 2 optional field lines per entry (`Claimed-by:` + `Claimed-at:`) + forward-compat `_extra_field_lines` pass-through after `Risk-retired:`; new `tools/slice_queue_claim` CLI (claim / release / force-claim / --queue); `tools/slice_queue_writer.write_slice_queue` modified to merge existing claims + forward-compat lines on regen with `newline=""` LF-only atomic write. New ADR-067 mints PSQ-2 (cheap reversibility; supersedes nothing; sibling to PSQ-1 on parallel-slice family axis; §Lineage divergence note disambiguates ADR-064 L37 + R-19 stale session-id forward-references). **6 ACs** (AC5 R-19 retirement / AC6 v-section meta + paired-pin tests + PMI-1 atomic bump) per slice-067 N=1 → slice-072 N=2 documented AC-count-rule deviation per Critic M4 ACCEPTED-FIXED. 18 TF-1 rows. Ready for TRI-1 user-owned triage.
+Phases A+B+C complete. `tools/slice_queue_claim.py` written (~430 LOC: ClaimUsageError + read_git_config_user with 3-case exit-code-based absence detection + parse_queue_text with CRLF-tolerant + _extra_field_lines forward-compat pass-through + apply_claim/apply_release/_rewrite_entry_lines + atomic _atomic_write_text with newline="" + argparse mutually-exclusive CLI). BC-PROJ-9 5-inventory fan-out applied: plugin.yaml tools block (PSQ-2), install_audit._CANONICAL_TOOLS, INSTALL.md L22+L166 (29→30). 17 unit tests in test_psq_2_claim_machinery.py (16 PASS / 1 WRITTEN-FAILING pending Phase D). Bespoke cp1252 test added per Critic B1. 2 paired-pin tests for v0.71.0 in test_methodology_changelog.py (WRITTEN-FAILING pending Phase F). 18 TF-1 rows total. Phase D next: modify tools/slice_queue_writer.py::_format_entry to insert claim lines at [-2] (per Critic m1) + write_slice_queue to merge existing claims via parse_queue_text (per AC4) + explicit newline="" on .tmp write (per Critic M1).
 
 ## On resume
 
-- **Last completed action**: /critique-review + TRI-1 ratification (CLEAN; 14/14 ACCEPTED-FIXED — 11 first-Critic + 3 meta-Critic missed; all fixes landed in-band on mission-brief/design/ADR-067/milestone)
-- **Current work**: none
-- **Next immediate step**: run `/build-slice`
+- **Last completed action**: Phase B/C — wrote test_psq_2_claim_machinery.py (17 tests; 16 PASS; 1 WRITTEN-FAILING dependent on Phase D), added bespoke cp1252 test in test_utf8_stdout_regression.py, added 2 paired-pin tests in test_methodology_changelog.py for v0.71.0
+- **Current work**: ready to start Phase D (PSQ-1 writer modification)
+- **Next immediate step**: edit `tools/slice_queue_writer.py::_format_entry` (claim-line insertion at index [-2] preserving trailing blank) + `write_slice_queue` (claim-preservation merge via `tools.slice_queue_claim.parse_queue_text` + explicit `newline=""` at `.tmp` write); then re-run pytest to confirm AC4 test passes
+- **Worktree**: `C:\Users\sshub\ai_sdlc-wt\slice-072-add-psq-2-claim-machinery` on `slice/072-add-psq-2-claim-machinery` (pre-build commit `19eb357`)
 
 ## Phase artifacts
 

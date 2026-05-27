@@ -130,6 +130,45 @@ def test_install_audit_survives_cp1252_with_u2192(tmp_path):
     _assert_no_encoding_error(proc, "tools.install_audit")
 
 
+def test_slice_queue_claim_survives_cp1252_with_u2192(tmp_path):
+    """slice_queue_claim takes --claim/--release/--force-claim + --queue (no --root).
+
+    Per slice-072 / ADR-067 / Critic B1 ACCEPTED-FIXED — bespoke test
+    mirrors the install_audit_survives_cp1252 precedent above (L121-129):
+    install_audit's argv shape is `--claude-dir`, not `--root`; same shape
+    here — slice_queue_claim's argv is `--claim CANDIDATE --queue PATH`,
+    NOT `--root`. Bucketing into `_ROOT_ONLY_TOOLS` would fail with
+    argparse `unrecognized argument: --root`.
+    """
+    # Build a minimal queue fixture with U+2192 in candidate-source prose.
+    queue_path = tmp_path / "q.md"
+    queue_path.write_text(
+        "# Slice queue\n"
+        "\n"
+        "_Generated: 2026-05-27T00:00:00+00:00 by /slice during slice-072 definition_\n"
+        "\n"
+        "## Candidates\n"
+        "\n"
+        "### fake-candidate\n"
+        "\n"
+        "- **Source:** test fixture with arrow → and em-dash —\n"
+        "- **Blast-radius:** `tools/foo.py`\n"
+        "- **Parallel-safety:** NON-OVERLAPPING\n"
+        "- **Effort:** SMALL\n"
+        "- **Risk-retired:** LOW\n"
+        "\n",
+        encoding="utf-8",
+    )
+    # --claim will likely exit 2 (git config user.name missing in cp1252
+    # subprocess env) but the cp1252 test only verifies no UnicodeEncodeError
+    # at the stdout-writing surface — exit code is unchecked.
+    proc = _run_under_cp1252(
+        [PY, "-m", "tools.slice_queue_claim",
+         "--claim", "fake-candidate", "--queue", str(queue_path)],
+    )
+    _assert_no_encoding_error(proc, "tools.slice_queue_claim")
+
+
 def test_mock_budget_lint_survives_cp1252_with_u2192(tmp_path):
     """mock_budget_lint requires positional `files` (nargs="+") per M-add-2."""
     # Synthetic test file with U+2192 in a comment

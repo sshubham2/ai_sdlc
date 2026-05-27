@@ -4805,3 +4805,128 @@ def test_v_0_70_0_adr_066_shippability_consumer_propagation():
         "propagation test function by canonical name (BC-PROJ-10 paired-"
         "pin schema). slice-071 / slice-069 M2 FIX adds this citation."
     )
+
+
+# ─── slice-072 / PSQ-2 paired-pin (AC6) ────────────────────────────────
+
+
+def test_v_0_71_0_psq_2_entry_present_in_repo():
+    """methodology-changelog v0.71.0 / PSQ-2 parallel-slice queue claim
+    machinery entry-pin (content-bearing per slice-067/069 PSQ-1 precedent).
+
+    Asserts substring presences in the v0.71.0 entry body (per ADR-067
+    §Decision + design.md §"What's new"):
+      (a) `## v0.71.0` dated header
+      (b) `PSQ-2` rule reference (the new RULE-ID this entry mints)
+      (c) `ADR-067` reference
+      (d) `claim machinery` canonical-phrase anchor
+      (e) `mints a new rule` (PSQ-2 is a sibling on parallel-slice family
+          axis; supersedes nothing per ADR-067 frontmatter)
+      (f) `5-part PMI-1 atomic bump` (slice-063/064/066/067/069 canonical
+          anchor — VERSION + plugin.yaml.version + pyproject.toml
+          [project].version + ## v0.71.0 header + installed
+          ~/.claude/ai-sdlc-VERSION; shippability row #72 + venv
+          ai-sdlc-tools are SEPARATE consumer-propagation surfaces, NOT
+          PMI-1 parts per slice-067 M-add-4 leg-enumeration discipline)
+      (g) `Rule reference` literal (META-1 mandatory enforcing-assertion
+          obligation at `test_methodology_changelog.py:136`)
+      (h) `Claimed-by` AND `Claimed-at` (the 2 additive schema field
+          literals — the stable on-disk contract PSQ-2 ships)
+      (i) `git config user` (git-identity-only ownership model per
+          ADR-067 §"Options considered" Option 1)
+      (j) `R-19` (the risk this slice retires)
+
+    Rule reference: PSQ-2 (slice-072; ADR-067 mints a new rule; sibling on
+    parallel-slice family axis; methodology v0.71.0).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.71.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.71.0 entry header — "
+        "slice-072 PSQ-2 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.71.0")
+    assert "PSQ-2" in body, (
+        "v0.71.0 entry body missing the 'PSQ-2' rule reference — "
+        "entry-pin broken at the rule-reference layer (this slice MINTS "
+        "PSQ-2 as a new audit-enforced rule)"
+    )
+    assert "ADR-067" in body, (
+        "v0.71.0 entry body must reference ADR-067 (the new ADR minting PSQ-2)"
+    )
+    assert "claim machinery" in body.lower(), (
+        "v0.71.0 entry body missing the 'claim machinery' canonical phrase "
+        "anchor — PSQ-2's name"
+    )
+    assert "mints a new rule" in body, (
+        "v0.71.0 entry must state 'mints a new rule' (PSQ-2 is a NEW "
+        "audit-enforced rule; sibling on parallel-slice family axis; "
+        "supersedes nothing per ADR-067)"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.71.0 entry body missing the '5-part PMI-1 atomic bump' anchor "
+        "— slice-072 ships a 5-part bump (VERSION + plugin.yaml + "
+        "pyproject.toml + ## v0.71.0 header + installed ai-sdlc-VERSION) "
+        "per slice-063/064/066/067/069 canonical anchor."
+    )
+    assert "Rule reference" in body, (
+        "v0.71.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+    assert "Claimed-by" in body, (
+        "v0.71.0 entry must enumerate the 'Claimed-by' schema field "
+        "literal (the stable on-disk contract PSQ-2 ships)"
+    )
+    assert "Claimed-at" in body, (
+        "v0.71.0 entry must enumerate the 'Claimed-at' schema field "
+        "literal (the stable on-disk contract PSQ-2 ships)"
+    )
+    assert "git config user" in body, (
+        "v0.71.0 entry must reference 'git config user' (git-identity-only "
+        "ownership model per ADR-067 §Options considered Option 1)"
+    )
+    assert "R-19" in body, (
+        "v0.71.0 entry must cite R-19 (the risk this slice retires)"
+    )
+
+
+def test_v_0_71_0_psq_2_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the PSQ-2 consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #72) so the slice-072 critical path can never silently regress.
+
+    BCR-1 traceability axis: row #72 MUST cite the new RULE-ID (PSQ-2)
+    AND the new ADR (ADR-067) AND the two BC-PROJ-10 paired-pin test
+    function names.
+
+    Rule reference: BC-PROJ-10:173 (paired entry-pin precedent N≥20
+    inclusive of this slice); BCR-1 traceability axis.
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "slice-072-add-psq-2-claim-machinery" in catalog, (
+        "architecture/shippability.md must contain a slice-072 row "
+        "(catalog row #72 per BC-PROJ-10:173 paired-entry-pin discipline)"
+    )
+    row_start = catalog.find("slice-072-add-psq-2-claim-machinery")
+    row_end = catalog.find("\n| ", row_start)
+    row = catalog[row_start:row_end] if row_end > 0 else catalog[row_start:row_start + 8000]
+    assert "PSQ-2" in row, (
+        "shippability.md row #72 must cite PSQ-2 (the new RULE-ID) per "
+        "BCR-1 traceability axis"
+    )
+    assert "ADR-067" in row, (
+        "shippability.md row #72 must cite ADR-067 (the new ADR) per "
+        "BCR-1 traceability axis"
+    )
+    assert "test_v_0_71_0_psq_2_entry_present_in_repo" in row, (
+        "shippability.md row #72 must cite the entry-pin test function "
+        "by canonical name (BC-PROJ-10 paired-pin schema)"
+    )
+    assert "test_v_0_71_0_psq_2_shippability_consumer_propagation" in row, (
+        "shippability.md row #72 must cite the shippability-consumer-"
+        "propagation test function by canonical name (BC-PROJ-10 "
+        "paired-pin schema)"
+    )
+    assert ("claim" in row.lower()) or ("psq-2" in row.lower()), (
+        "shippability.md row #72 must reference 'claim' or 'PSQ-2' for "
+        "catalog-runner discoverability"
+    )

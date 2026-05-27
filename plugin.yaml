@@ -132,6 +132,8 @@ tools:
     rule: SCMD-1
   - path: tools/shippability_runner.py
     rule: SRSC-1
+  - path: tools/slice_queue_claim.py
+    rule: PSQ-2
   - path: tools/slice_queue_writer.py
     rule: PSQ-1
   - path: tools/state_transition_pin_audit.py
