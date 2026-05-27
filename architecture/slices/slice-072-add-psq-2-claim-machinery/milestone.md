@@ -2,7 +2,7 @@
 slice: slice-072-add-psq-2-claim-machinery
 stage: build
 updated: 2026-05-27
-next-action: Phase D — wire claim-aware behavior into PSQ-1 writer
+next-action: run /code-review
 risk-tier: medium
 critic-required: true
 ---
@@ -10,7 +10,7 @@ critic-required: true
 # Milestone: slice-072 add-psq-2-claim-machinery
 
 **Stage**: build
-**Next action**: Phase D — wire claim-aware behavior into PSQ-1 writer (`tools/slice_queue_writer.py::_format_entry` + `write_slice_queue` merge)
+**Next action**: run `/code-review` (PCA-1 successor — CRSI-1 in-loop code-Critic; advisory only at v1)
 **Updated**: 2026-05-27
 **Risk tier**: medium — Critic required: yes (in-house methodology surfaces touched: `tools/slice_queue_writer.py`, new `tools/slice_queue_claim.py`, `skills/slice/SKILL.md` Step 6.5, methodology-changelog, ADR-067; multi-session shared state contract)
 
@@ -20,20 +20,21 @@ critic-required: true
 - [x] /design-slice — 2026-05-27
 - [x] /critique — 2026-05-27 — CLEAN
 - [x] /critique-review — 2026-05-27 — EXTEND
-- [ ] /build-slice — in progress: Phase A+B+C complete; D/E/F/G pending
+- [x] /build-slice — 2026-05-27 — SHIPPED-WITH-DEFERRALS (BC-1 BC-GLOBAL-2 N=4 cumulative prose-vs-automation false-positive; defer-with-rationale per slice-069/070/071 precedent)
+- [ ] /code-review (PCA-1 successor; CRSI-1 v1 advisory)
 - [ ] /validate-slice
 - [ ] /reflect
 
 ## Current focus
 
-Phases A+B+C complete. `tools/slice_queue_claim.py` written (~430 LOC: ClaimUsageError + read_git_config_user with 3-case exit-code-based absence detection + parse_queue_text with CRLF-tolerant + _extra_field_lines forward-compat pass-through + apply_claim/apply_release/_rewrite_entry_lines + atomic _atomic_write_text with newline="" + argparse mutually-exclusive CLI). BC-PROJ-9 5-inventory fan-out applied: plugin.yaml tools block (PSQ-2), install_audit._CANONICAL_TOOLS, INSTALL.md L22+L166 (29→30). 17 unit tests in test_psq_2_claim_machinery.py (16 PASS / 1 WRITTEN-FAILING pending Phase D). Bespoke cp1252 test added per Critic B1. 2 paired-pin tests for v0.71.0 in test_methodology_changelog.py (WRITTEN-FAILING pending Phase F). 18 TF-1 rows total. Phase D next: modify tools/slice_queue_writer.py::_format_entry to insert claim lines at [-2] (per Critic m1) + write_slice_queue to merge existing claims via parse_queue_text (per AC4) + explicit newline="" on .tmp write (per Critic M1).
+/build-slice complete — all 7 phases shipped. PSQ-2 claim machinery delivered on `tools/slice_queue_claim.py` (~440 LOC: ClaimUsageError + read_git_config_user with 3-case exit-code-based absence detection + parse_queue_text CRLF-tolerant + _extra_field_lines forward-compat pass-through + apply_claim/apply_release/_rewrite_entry_lines with index-[-2] insertion + atomic _atomic_write_text with newline="" + argparse mutually-exclusive CLI). `tools/slice_queue_writer.py` modified (write_slice_queue merges existing claims via parse_queue_text + newline="" on .tmp write). 5-part PMI-1 atomic bump 0.70.0→0.71.0 complete (VERSION + plugin.yaml + pyproject.toml + ## v0.71.0 header + installed ~/.claude/ai-sdlc-VERSION). R-19 retired with session-id divergence disambiguation paragraph. R-20 cp -r tax fired again N=7 cumulative (deviation logged; orthogonal slice-072+ scope). BC-1 BC-GLOBAL-2 Critical defer-with-rationale per slice-069/070/071 N=4 cumulative prose-vs-automation false-positive class. Full pytest 987/987 PASS (was 966; +21 net new). Shippability 72/72. 14+ Step-6 audits ALL CLEAN. Ready for /code-review.
 
 ## On resume
 
-- **Last completed action**: Phase B/C — wrote test_psq_2_claim_machinery.py (17 tests; 16 PASS; 1 WRITTEN-FAILING dependent on Phase D), added bespoke cp1252 test in test_utf8_stdout_regression.py, added 2 paired-pin tests in test_methodology_changelog.py for v0.71.0
-- **Current work**: ready to start Phase D (PSQ-1 writer modification)
-- **Next immediate step**: edit `tools/slice_queue_writer.py::_format_entry` (claim-line insertion at index [-2] preserving trailing blank) + `write_slice_queue` (claim-preservation merge via `tools.slice_queue_claim.parse_queue_text` + explicit `newline=""` at `.tmp` write); then re-run pytest to confirm AC4 test passes
-- **Worktree**: `C:\Users\sshub\ai_sdlc-wt\slice-072-add-psq-2-claim-machinery` on `slice/072-add-psq-2-claim-machinery` (pre-build commit `19eb357`)
+- **Last completed action**: /build-slice Phase G — pre-finish gate complete; 987/987 pytest + 72/72 shippability + 14+ Step-6 audits clean (1 defer-with-rationale BC-GLOBAL-2 prose-vs-automation false-positive N=4 cumulative); build-log.md summary written; milestone advanced for /code-review handoff
+- **Current work**: none
+- **Next immediate step**: run `/code-review` (PCA-1 successor — CRSI-1 v1 walking-skeleton advisory-only code-Critic between /build-slice and /validate-slice)
+- **Worktree**: `C:\Users\sshub\ai_sdlc-wt\slice-072-add-psq-2-claim-machinery` on `slice/072-add-psq-2-claim-machinery` (pre-build `19eb357` + Phase A-C `6271cbe` + uncommitted Phase D-G to commit at /commit-slice)
 
 ## Phase artifacts
 
@@ -41,7 +42,7 @@ Phases A+B+C complete. `tools/slice_queue_claim.py` written (~430 LOC: ClaimUsag
 - [design.md](design.md)
 - [critique.md](critique.md) — CLEAN (11 first-Critic findings: 2B + 4M + 5m all ACCEPTED-FIXED; user-ratified at TRI-1)
 - [critique-review.md](critique-review.md) — EXTEND (0 suspicious + 3 missed: 1 Major M-add-1 TPHD-1 N=6 + 2 minors all ACCEPTED-FIXED)
-- [build-log.md](build-log.md) — pending
+- [build-log.md](build-log.md) — SHIPPED-WITH-DEFERRALS (Phase A-G executed; BC-GLOBAL-2 prose-vs-automation defer)
 - [validation.md](validation.md) — pending
 - [reflection.md](reflection.md) — pending
 

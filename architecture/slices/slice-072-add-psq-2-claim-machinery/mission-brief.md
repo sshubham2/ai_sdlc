@@ -28,24 +28,25 @@ Each AC maps to one or more failing tests written BEFORE implementation. Statuse
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_schema_appends_claim_fields_after_risk_retired_when_claimed | PENDING |
-| 1 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_schema_omits_claim_fields_when_unclaimed | PENDING |
-| 1 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_parse_queue_text_accepts_crlf_input | PENDING |
-| 1 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_parse_queue_text_preserves_unknown_field_lines_on_roundtrip | PENDING |
-| 2 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claim_cli_writes_user_name_and_email_from_git_config | PENDING |
-| 2 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claim_cli_exits_2_on_missing_user_name_or_user_email | PENDING |
-| 2 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claim_cli_exits_2_on_configured_empty_user_name | PENDING |
-| 2 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claim_cli_atomic_write_via_tmp_sibling_and_os_replace | PENDING |
-| 2 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claim_cli_uses_queue_path_override_when_provided | PENDING |
-| 2 | unit | tests/methodology/test_utf8_stdout_regression.py | test_slice_queue_claim_survives_cp1252_with_u2192 | PENDING |
-| 3 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_release_removes_both_claim_field_lines | PENDING |
-| 3 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_release_on_unknown_candidate_exits_2 | PENDING |
-| 3 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_force_claim_overwrites_existing_claim | PENDING |
-| 3 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_bare_claim_on_already_claimed_exits_2 | PENDING |
-| 4 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_slice_step_6_5_regen_preserves_existing_claims | PENDING |
-| 4 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claims_on_dropped_candidates_are_silently_discarded | PENDING |
-| 6 | unit | tests/methodology/test_methodology_changelog.py | test_v_0_71_0_psq_2_entry_present_in_repo | PENDING |
-| 6 | unit | tests/methodology/test_methodology_changelog.py | test_v_0_71_0_psq_2_shippability_consumer_propagation | PENDING |
+| 1 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_schema_appends_claim_fields_after_risk_retired_when_claimed | PASSING |
+| 1 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_schema_omits_claim_fields_when_unclaimed | PASSING |
+| 1 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_parse_queue_text_accepts_crlf_input | PASSING |
+| 1 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_parse_queue_text_preserves_unknown_field_lines_on_roundtrip | PASSING |
+| 2 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claim_cli_writes_user_name_and_email_from_git_config | PASSING |
+| 2 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claim_cli_exits_2_on_missing_user_name_or_user_email | PASSING |
+| 2 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claim_cli_exits_2_on_configured_empty_user_name | PASSING |
+| 2 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claim_cli_atomic_write_via_tmp_sibling_and_os_replace | PASSING |
+| 2 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claim_cli_uses_queue_path_override_when_provided | PASSING |
+| 2 | unit | tests/methodology/test_utf8_stdout_regression.py | test_slice_queue_claim_survives_cp1252_with_u2192 | PASSING |
+| 3 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_release_removes_both_claim_field_lines | PASSING |
+| 3 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_release_on_unknown_candidate_exits_2 | PASSING |
+| 3 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_force_claim_overwrites_existing_claim | PASSING |
+| 3 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_bare_claim_on_already_claimed_exits_2 | PASSING |
+| 4 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_slice_step_6_5_regen_preserves_existing_claims | PASSING |
+| 4 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_claims_on_dropped_candidates_are_silently_discarded | PASSING |
+| 5 | unit | tests/methodology/test_psq_2_claim_machinery.py | test_r_19_retired_in_risk_register | PASSING |
+| 6 | unit | tests/methodology/test_methodology_changelog.py | test_v_0_71_0_psq_2_entry_present_in_repo | PASSING |
+| 6 | unit | tests/methodology/test_methodology_changelog.py | test_v_0_71_0_psq_2_shippability_consumer_propagation | PASSING |
 
 ## Verification plan
 

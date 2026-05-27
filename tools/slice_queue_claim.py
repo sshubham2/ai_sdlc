@@ -68,7 +68,7 @@ Usage::
     # Library API (used by tools.slice_queue_writer.write_slice_queue at
     # /slice Step 6.5 to merge existing claims onto the regenerated top-10)
     from tools.slice_queue_claim import parse_queue_text
-    claims = parse_queue_text(open('architecture/slice-queue.md').read())
+    claims = parse_queue_text(queue_path.read_text(encoding="utf-8"))
 
 Exit codes::
 

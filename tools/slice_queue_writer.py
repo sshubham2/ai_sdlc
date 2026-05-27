@@ -628,7 +628,7 @@ def _format_entry(item: dict) -> list[str]:
         blast_cell = "`unknown`"
     else:
         blast_cell = ", ".join(f"`{f}`" for f in sorted(blast))
-    return [
+    lines = [
         f"### {name}",
         "",
         f"- **Source:** {item['source']}",
@@ -636,8 +636,25 @@ def _format_entry(item: dict) -> list[str]:
         f"- **Parallel-safety:** {item['parallel_safety']}",
         f"- **Effort:** {item['effort']}",
         f"- **Risk-retired:** {item['risk_retired']}",
-        "",
     ]
+    # PSQ-2 (slice-072): optional claim-line emission INSERT at [-2] before
+    # the trailing empty-line separator (per Critic m1 ACCEPTED-FIXED —
+    # preserves entry-block separation). Both claim keys present-or-absent
+    # together per ADR-067 §Schema extension.
+    claimed_by = item.get("claimed_by")
+    claimed_at = item.get("claimed_at")
+    if claimed_by and claimed_at:
+        lines.append(f"- **Claimed-by:** {claimed_by}")
+        lines.append(f"- **Claimed-at:** {claimed_at}")
+    # PSQ-2 (slice-072): forward-compat unknown field lines from a future
+    # PSQ-3+ extension (per ADR-067 §Consequences + Critic M3 ACCEPTED-FIXED).
+    # _extra_field_lines preserved verbatim AFTER claim lines but BEFORE
+    # trailing blank.
+    extras = item.get("_extra_field_lines") or []
+    for extra in extras:
+        lines.append(extra)
+    lines.append("")
+    return lines
 
 
 # ---------------------------------------------------------------------
@@ -671,6 +688,24 @@ def write_slice_queue(
     if out_path is None:
         out_path = repo_root / VAULT_ROOT / _QUEUE_FILENAME  # VAULT_ROOT-routed (slice-068)
     out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # PSQ-2 (slice-072) integration: read existing queue and parse claims
+    # so they survive across /slice Step 6.5 regeneration on candidates
+    # whose names appear in the new top-10. Claims on dropped candidates
+    # are silently discarded per AC4. Per ADR-067 §Consequences + Critic
+    # B2 ACCEPTED-FIXED. Wrapped in try/except to keep PSQ-1 robust if
+    # PSQ-2 module is unavailable (bootstrap safety per slice-067
+    # ImportError-guard precedent).
+    existing_claims: dict[str, dict[str, object]] = {}
+    if out_path.exists():
+        try:
+            from tools.slice_queue_claim import parse_queue_text  # noqa: PLC0415
+            existing_text = out_path.read_text(encoding="utf-8")
+            existing_claims = parse_queue_text(existing_text)
+        except Exception:
+            # PSQ-2 module missing OR malformed existing queue — non-fatal
+            # to PSQ-1's primary write; queue gets regenerated unclaimed.
+            existing_claims = {}
 
     graph_missing = graph_path is None or not graph_path.exists()
     # Active slices: skip blast-radius derivation entirely when graph
@@ -709,14 +744,31 @@ def write_slice_queue(
             flag, _ = compute_parallel_safety(
                 candidate_blast, active_blasts, graph_missing=False
             )
-        items.append({
+        item = {
             "name": c["name"],
             "source": c["source"],
             "blast_radius": blast_radius,
             "parallel_safety": flag,
             "effort": c["effort"],
             "risk_retired": c["risk_retired"],
-        })
+        }
+        # PSQ-2 (slice-072) claim-preservation merge: copy claim metadata
+        # + forward-compat extras onto the item if the candidate name
+        # survived from the existing queue. Uses .get() to tolerate
+        # absent claim keys on unclaimed entries per meta-Critic m-add-2
+        # ACCEPTED-FIXED (parse_queue_text returns all entries; claim
+        # keys absent on unclaimed).
+        prev = existing_claims.get(c["name"])
+        if prev is not None:
+            claimed_by = prev.get("claimed_by")
+            claimed_at = prev.get("claimed_at")
+            if claimed_by and claimed_at:
+                item["claimed_by"] = claimed_by
+                item["claimed_at"] = claimed_at
+            extras = prev.get("_extra_field_lines") or []
+            if extras:
+                item["_extra_field_lines"] = list(extras)
+        items.append(item)
 
     body = format_queue_md(
         items, now,
@@ -726,8 +778,16 @@ def write_slice_queue(
 
     # Atomic write: .tmp sibling + os.replace() (slice-071 m3 sibling
     # cleanup: ``os`` is now module-level — drop the inline import).
+    # PSQ-2 (slice-072) explicit ``newline=""`` for LF-only byte-
+    # deterministic emission on Windows per Critic M1 ACCEPTED-FIXED
+    # (default ``newline=None`` translates ``\n``→``\r\n`` in text mode,
+    # breaking byte-equal claim-preservation round-trip assertions per
+    # modelcontextprotocol/python-sdk#2433 + runebook.dev TextIOWrapper
+    # docs). PSQ-1's existing pin tests assert against
+    # ``format_queue_md``'s pure-Python ``"\n".join(...)`` output so this
+    # change aligns the writer with the formatter — no PSQ-1 regression.
     tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
-    tmp_path.write_text(body, encoding="utf-8")
+    tmp_path.write_text(body, encoding="utf-8", newline="")
     os.replace(tmp_path, out_path)
     return out_path
 

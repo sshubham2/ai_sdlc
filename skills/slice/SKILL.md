@@ -410,6 +410,8 @@ except Exception as e:
 
 The 4-value `Parallel-safety` enum + precedence (highest first): `UNKNOWN-NO-GRAPH` (graphify graph missing) > `UNKNOWN-NO-HINT-FILES` (candidate has no source-cited files) > `OVERLAPS-WITH-slice-NNN[, slice-MMM]` (non-empty intersection with active slice blast-radius) > `NON-OVERLAPPING`. The queue file format (5 required field lines per entry: `Source`, `Blast-radius`, `Parallel-safety`, `Effort`, `Risk-retired`) is a stable on-disk contract that slice-068 (PSQ-2 claim machinery) will extend additively.
 
+Per **PSQ-2** (`methodology-changelog.md` v0.71.0; slice-072; [[ADR-067]]; mints a new rule): once PSQ-2 ships, the helper additionally preserves `**Claimed-by:** <git user.name> <git user.email>` + `**Claimed-at:** <ISO-8601 UTC>` field lines on candidates whose names survive into the regenerated top-10; claims on dropped candidates are silently discarded. Use `python -m tools.slice_queue_claim --claim <candidate-name>` to claim a candidate, `--release` to release, and `--force-claim` for stale-claim recovery; see [[ADR-067]] for the git-identity-only ownership model + adversarial framing.
+
 ## Critical rules
 
 - ASK before deciding the slice. Present candidates, wait for user pick.

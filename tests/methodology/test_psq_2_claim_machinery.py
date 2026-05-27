@@ -341,6 +341,43 @@ def test_slice_step_6_5_regen_preserves_existing_claims(tmp_path):
     assert "- **Claimed-at:** 2026-05-27T12:00:00+00:00" in new_text
 
 
+def test_r_19_retired_in_risk_register():
+    """AC5: R-19 status flipped mitigating → retired in risk-register.md.
+
+    Per PSQ-2 / ADR-067 — claim machinery makes queue freshness a hint
+    not a load-bearing collision-safety signal; R-19's Mitigating status
+    is closed structurally. Verifies the R-19 entry carries
+    `**Status**: retired` (NOT `mitigating`) AND a `**Retired**:` field-
+    line citing slice-072.
+    """
+    risk_register = (REPO_ROOT / "architecture" / "risk-register.md").read_text(encoding="utf-8")
+    r19_idx = risk_register.find("## R-19 ")
+    assert r19_idx >= 0, "risk-register.md missing R-19 section"
+    next_section = risk_register.find("\n## R-", r19_idx + 1)
+    r19_section = (
+        risk_register[r19_idx:next_section] if next_section > 0
+        else risk_register[r19_idx:]
+    )
+    assert "**Status**: retired" in r19_section, (
+        "R-19 status MUST be 'retired' post-slice-072 — PSQ-2 retires R-19 "
+        "structurally per ADR-067 §Decision"
+    )
+    assert "**Status**: mitigating" not in r19_section, (
+        "R-19 still carries the pre-slice-072 'mitigating' status — flip "
+        "to 'retired' per slice-072 PSQ-2 retirement"
+    )
+    assert "**Retired**:" in r19_section, (
+        "R-19 missing the **Retired**: field-line citing slice-072 + ADR-067"
+    )
+    assert "slice-072" in r19_section, (
+        "R-19 retirement citation must reference slice-072"
+    )
+    assert "ADR-067" in r19_section, (
+        "R-19 retirement citation must reference ADR-067 (the new ADR "
+        "minting PSQ-2)"
+    )
+
+
 def test_claims_on_dropped_candidates_are_silently_discarded(tmp_path):
     """AC4: claim on a candidate NOT in the new top-10 is silently dropped."""
     repo = tmp_path / "fake-repo"
