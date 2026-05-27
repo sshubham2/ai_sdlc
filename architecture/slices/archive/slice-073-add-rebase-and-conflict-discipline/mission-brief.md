@@ -27,14 +27,14 @@ Each AC maps to one or more failing tests written BEFORE implementation. Statuse
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | structural | tests/methodology/test_commit_slice_skill_rebase_flag.py | test_step_5b_contains_git_rebase_invocation | PENDING |
-| 1 | structural | tests/methodology/test_commit_slice_skill_rebase_flag.py | test_step_5b_rebase_precedes_no_ff_merge | PENDING |
-| 1 | structural | tests/methodology/test_commit_slice_skill_rebase_flag.py | test_step_5b_rebase_target_resolved_via_canonical_2_step | PENDING |
-| 2 | structural | tests/methodology/test_commit_slice_skill_rebase_flag.py | test_step_5b_conflict_stops_with_porcelain_u_entries | PENDING |
-| 2 | structural | tests/methodology/test_commit_slice_skill_rebase_flag.py | test_step_5b_conflict_surfaces_git_rebase_abort_hint | PENDING |
-| 3 | structural | tests/methodology/test_methodology_changelog.py | test_v_0_72_0_psq_3_entry_present_in_repo | PENDING |
-| 4 | structural | tests/methodology/test_methodology_changelog.py | test_v_0_72_0_psq_3_shippability_consumer_propagation | PENDING |
-| 5 | structural | tests/methodology/test_methodology_changelog.py | test_version_files_synchronized_at_v_0_72_0 | PENDING |
+| 1 | structural | tests/methodology/test_commit_slice_skill_rebase_flag.py | test_step_5b_contains_git_rebase_invocation | PASSING |
+| 1 | structural | tests/methodology/test_commit_slice_skill_rebase_flag.py | test_step_5b_rebase_precedes_no_ff_merge | PASSING |
+| 1 | structural | tests/methodology/test_commit_slice_skill_rebase_flag.py | test_step_5b_rebase_target_resolved_via_canonical_2_step | PASSING |
+| 2 | structural | tests/methodology/test_commit_slice_skill_rebase_flag.py | test_step_5b_conflict_stops_with_porcelain_u_entries | PASSING |
+| 2 | structural | tests/methodology/test_commit_slice_skill_rebase_flag.py | test_step_5b_conflict_surfaces_git_rebase_abort_hint | PASSING |
+| 3 | structural | tests/methodology/test_methodology_changelog.py | test_v_0_72_0_psq_3_entry_present_in_repo | PASSING |
+| 4 | structural | tests/methodology/test_methodology_changelog.py | test_v_0_72_0_psq_3_shippability_consumer_propagation | PASSING |
+| 5 | structural | tests/methodology/test_methodology_changelog.py | test_version_files_synchronized_at_v_0_72_0 | PASSING |
 
 Note: AC3 + AC4 share the entry-present test row (AC3 = "PSQ-3 minted in changelog"; AC4 = "BC-PROJ-10 paired-pin tests PASS"); the same `test_v_0_72_0_psq_3_entry_present_in_repo` verifies both. AC4 additionally requires `test_v_0_72_0_psq_3_shippability_consumer_propagation`.
 

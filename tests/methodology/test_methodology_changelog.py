@@ -4930,3 +4930,171 @@ def test_v_0_71_0_psq_2_shippability_consumer_propagation():
         "shippability.md row #72 must reference 'claim' or 'PSQ-2' for "
         "catalog-runner discoverability"
     )
+
+
+def test_v_0_72_0_psq_3_entry_present_in_repo():
+    """methodology-changelog v0.72.0 / PSQ-3 rebase-and-conflict discipline
+    entry-pin (content-bearing per slice-072 PSQ-2 / slice-067 PSQ-1 precedent).
+
+    Asserts substring presences in the v0.72.0 entry body (per ADR-068
+    §Decision + design.md §"What's new"):
+      (a) `## v0.72.0` dated header
+      (b) `PSQ-3` rule reference (the new RULE-ID this entry mints)
+      (c) `ADR-068` reference
+      (d) `rebase-and-conflict` OR `rebase-onto-default` canonical-phrase
+          anchor (PSQ-3's name)
+      (e) `mints a new rule` (PSQ-3 is a sibling on parallel-slice family
+          axis; supersedes nothing per ADR-068 frontmatter)
+      (f) `5-part PMI-1 atomic bump` (slice-063/064/066/067/069/072
+          canonical anchor — VERSION + plugin.yaml.version + pyproject.toml
+          [project].version + ## v0.72.0 header + installed
+          ~/.claude/ai-sdlc-VERSION; shippability row #73 + venv
+          ai-sdlc-tools are SEPARATE consumer-propagation surfaces, NOT
+          PMI-1 parts per slice-067 M-add-4 leg-enumeration discipline)
+      (g) `Rule reference` literal (META-1 mandatory enforcing-assertion
+          obligation at `test_methodology_changelog.py:136`)
+      (h) `git rebase` (the runtime gate literal — PSQ-3's behavior surface)
+      (i) `git rebase --abort` (the recovery hint literal — PSQ-3's
+          conflict-STOP surface)
+      (j) `Step 5b` (the insertion site — PSQ-3 inserts sub-step 2.5 between
+          existing sub-step 2 and sub-step 3 of /commit-slice --merge)
+      (k) `--merge` (the scope-limited sub-mode — out-of-scope: --push and
+          --sync-after-pr per ADR-068 §Options-#2)
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.72.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.72.0 entry header — "
+        "slice-073 PSQ-3 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.72.0")
+    assert "PSQ-3" in body, (
+        "v0.72.0 entry body missing the 'PSQ-3' rule reference — "
+        "entry-pin broken at the rule-reference layer (this slice MINTS "
+        "PSQ-3 as a new audit-enforced rule)"
+    )
+    assert "ADR-068" in body, (
+        "v0.72.0 entry body must reference ADR-068 (the new ADR minting PSQ-3)"
+    )
+    body_lower = body.lower()
+    assert ("rebase-and-conflict" in body_lower) or ("rebase-onto-default" in body_lower), (
+        "v0.72.0 entry body missing the 'rebase-and-conflict' OR "
+        "'rebase-onto-default' canonical phrase anchor — PSQ-3's name"
+    )
+    assert "mints a new rule" in body, (
+        "v0.72.0 entry must state 'mints a new rule' (PSQ-3 is a NEW "
+        "audit-enforced rule; sibling on parallel-slice family axis; "
+        "supersedes nothing per ADR-068)"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.72.0 entry body missing the '5-part PMI-1 atomic bump' anchor "
+        "— slice-073 ships a 5-part bump (VERSION + plugin.yaml + "
+        "pyproject.toml + ## v0.72.0 header + installed ai-sdlc-VERSION) "
+        "per slice-063/064/066/067/069/072 canonical anchor."
+    )
+    assert "Rule reference" in body, (
+        "v0.72.0 entry missing the literal 'Rule reference' line — "
+        "META-1 entry-pin obligation unmet"
+    )
+    assert "git rebase" in body, (
+        "v0.72.0 entry must reference 'git rebase' (the runtime gate "
+        "literal — PSQ-3's behavior surface; design.md L74 invocation)"
+    )
+    assert "git rebase --abort" in body, (
+        "v0.72.0 entry must reference 'git rebase --abort' (the recovery "
+        "hint literal — PSQ-3's conflict-STOP surface; design.md §Error model)"
+    )
+    assert "Step 5b" in body, (
+        "v0.72.0 entry must reference 'Step 5b' (the insertion site for "
+        "PSQ-3's new sub-step 2.5)"
+    )
+    assert "--merge" in body, (
+        "v0.72.0 entry must reference '--merge' (the scope-limited sub-mode; "
+        "--push + --sync-after-pr are out of scope per ADR-068 §Options-#2)"
+    )
+
+
+def test_v_0_72_0_psq_3_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the PSQ-3 consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #73) so the slice-073 critical path can never silently regress.
+
+    BCR-1 traceability axis: row #73 MUST cite the new RULE-ID (PSQ-3)
+    AND the new ADR (ADR-068) AND the two BC-PROJ-10 paired-pin test
+    function names AND the structural-pin test module name.
+
+    Rule reference: BC-PROJ-10:173 (paired entry-pin precedent N≥21
+    inclusive of this slice); BCR-1 traceability axis.
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "slice-073-add-rebase-and-conflict-discipline" in catalog, (
+        "architecture/shippability.md must contain a slice-073 row "
+        "(catalog row #73 per BC-PROJ-10:173 paired-entry-pin discipline)"
+    )
+    row_start = catalog.find("slice-073-add-rebase-and-conflict-discipline")
+    row_end = catalog.find("\n| ", row_start)
+    row = catalog[row_start:row_end] if row_end > 0 else catalog[row_start:row_start + 8000]
+    assert "PSQ-3" in row, (
+        "shippability.md row #73 must cite PSQ-3 (the new RULE-ID) per "
+        "BCR-1 traceability axis"
+    )
+    assert "ADR-068" in row, (
+        "shippability.md row #73 must cite ADR-068 (the new ADR) per "
+        "BCR-1 traceability axis"
+    )
+    assert "test_v_0_72_0_psq_3_entry_present_in_repo" in row, (
+        "shippability.md row #73 must cite the entry-pin test function "
+        "by canonical name (BC-PROJ-10 paired-pin schema)"
+    )
+    assert "test_v_0_72_0_psq_3_shippability_consumer_propagation" in row, (
+        "shippability.md row #73 must cite the shippability-consumer-"
+        "propagation test function by canonical name (BC-PROJ-10 "
+        "paired-pin schema)"
+    )
+    assert "test_commit_slice_skill_rebase_flag" in row, (
+        "shippability.md row #73 must cite the structural-pin test module "
+        "name (`test_commit_slice_skill_rebase_flag.py` / 5 prose-pin tests) "
+        "— the runtime invocation gate"
+    )
+    assert ("rebase" in row.lower()) or ("psq-3" in row.lower()), (
+        "shippability.md row #73 must reference 'rebase' or 'PSQ-3' for "
+        "catalog-runner discoverability"
+    )
+
+
+def test_version_files_synchronized_at_v_0_72_0():
+    """AC5 — 5-part PMI-1 atomic bump 0.71.0 → 0.72.0.
+
+    Verifies the 5 canonical version-bearing legs are synchronized at
+    `0.72.0` post-bump:
+      (1) `VERSION` file
+      (2) `plugin.yaml` version field
+      (3) `pyproject.toml [project].version` field (PVFS-1)
+      (4) `## v0.72.0` header in `methodology-changelog.md`
+      (5) installed `~/.claude/ai-sdlc-0.72.0/` directory (AVFS-1; verified
+          separately by the AVFS-1 audit; this test asserts legs 1-4 only —
+          leg 5 is environment-dependent and may be absent on a fresh
+          checkout, where AVFS-1 returns WARN per slice-030A meta-M3 parity)
+
+    Per slice-063/064/066/067/069/072 canonical 5-part PMI-1 anchor. The
+    test is intentionally tolerant of leg 5's absence — that leg is gated
+    by AVFS-1's own deterministic downstream gate at /build-slice Step 6.
+    """
+    version = read_file("VERSION").strip()
+    assert version == "0.72.0", (
+        f"VERSION file must equal '0.72.0' post-bump; got {version!r}. "
+        "5-part PMI-1 leg 1 broken — re-run the bump or fix VERSION manually."
+    )
+    plugin_yaml = read_file("plugin.yaml")
+    assert "version: 0.72.0" in plugin_yaml or 'version: "0.72.0"' in plugin_yaml, (
+        "plugin.yaml must contain 'version: 0.72.0' post-bump (5-part PMI-1 leg 2)"
+    )
+    pyproject = read_file("pyproject.toml")
+    assert 'version = "0.72.0"' in pyproject, (
+        "pyproject.toml [project].version must equal '0.72.0' post-bump (PVFS-1; "
+        "5-part PMI-1 leg 3)"
+    )
+    changelog = read_file("methodology-changelog.md")
+    assert "## v0.72.0" in changelog, (
+        "methodology-changelog.md must contain '## v0.72.0' header post-bump "
+        "(5-part PMI-1 leg 4)"
+    )
