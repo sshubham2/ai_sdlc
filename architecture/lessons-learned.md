@@ -1541,3 +1541,27 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **The bundle-cleanup slice nomination at slice-071 is structurally overdue** — 30 code-Critic advisory findings accumulated across slice-066/067/068/069/070. Voluntary-restraint discipline holds (slice-064/065/066/067/068/069/070 N=11 cumulative) but the cleanup slice itself is now LARGE. Recommend explicit /slice scope-check (possibly split into code-quality refactors vs spec-prose corrections).
 - **Post-vault-in-git BRANCH-2 + slice-pipeline-artifacts interaction needs codification**: every future first-post-slice-069 slice will trip BRANCH-2 prereq rule 4 "STOP if dirty" because /slice → /critique-review creates tracked artifacts on master tree before /build-slice creates the worktree. The switch-commit-switch-worktree pattern is the documented disposition; needs SKILL.md codification.
 - **Builder fix-block prose-honesty discipline**: when deferring a finding, credit the defect's provenance accurately. "Not a defect this slice introduced" is the wrong framing when the slice ships the code that introduces the defect class.
+
+## Slice 071 (bundle-066-to-070-code-critic-cleanup) — 2026-05-26
+
+### Worked
+
+- **Per-finding disposition table as design's load-bearing artifact** enables tractable 31-finding bundled cleanup at 10× slice-065 reference-precedent scale. All 28 FIXes + 3 non-FIX closure dispositions (1 DOCUMENT-AS-DESIGNED + 1 ALREADY-FIXED-AT-/reflect + 1 honest DEFER-AGAIN) landed without scope expansion; mid-slice smoke + final pre-finish gate both clean.
+- **Per-cluster paired build phases** (M-add-2 fix): each cluster's source-side FIX + paired regression-pin test land in the same commit. Removes test-first-by-other-name RSAD-1 anti-pattern; tests are verifiable as load-bearing at code review time without requiring sequential RED-then-GREEN cycling.
+- **APED-1 conformance (empirical regex execution against actual data BEFORE declaring done)** caught the broken `_PATH_SHAPED_RE` regex at /critique B1 — would have inverted slice-070 M5's intent inside the very M2 fix. N=2 cumulative; strongest /critic-calibrate active nomination.
+- **Builder fix-block prose-honesty propagation** (slice-070 reflection lesson → slice-071 enforcement): /critique M2 caught slice-069 m6 disposition-rename anti-pattern; Builder accepted honest DEFER-AGAIN = 1 count in-band. Cross-slice methodology-lesson transmission worked.
+
+### Didn't work
+
+- **First-attempt mid-slice smoke gate failed** on `test_bcr_1_sc054_round_trip_inputs_invariant` because gitignored `diagnose-out/backlog.md` was absent from worktree. N=6 cumulative cp-r tax. User-flagged "we need a better solution"; promoted to R-20 risk-register entry with 4 candidate fix classes; slice-072+ highest-priority structural-fix nominee.
+- **Disposition-rename anti-pattern was almost shipped** as "ACKNOWLEDGED-NO-FIX" / "zero DEFER-AGAIN" framing pre-Critic. Critic correctly caught the RSAD-1 risk (this slice IS authoring a cleanup-discipline precedent; the rename would have propagated to future bundled-cleanup slices as established discipline).
+- **Initial sentinel-test assertions did NOT match the proposed docstring prose** (M-add-1 catch). Meta-Critic empirically demonstrated 2-of-4 assertions would fail silently — the very RSAD-1 class the M6 fix was closing manifested inside the M6 fix-block. APED-1 conformance check at /build-slice Phase B4 closed it.
+
+### Pattern
+
+- **Bundled-cleanup canonical shape** (slice-064→065 first instance; slice-071 third instance at 10× scale): the `slice-NNN-bundle-XXX-code-critic-cleanup` shape with per-finding disposition table + per-cluster paired build phases + MEPD-1 EXCLUDE posture + voluntary-restraint discipline is now empirically reusable at three different scales (3 / 3 / 31 findings). Future bundled cleanups can use this shape verbatim.
+- **3-Critic stack N=8 cumulative complementarity-on-CLEAN-dual-Critic-stack**: code-Critic surfaces genuine novel findings even when the dual-Critic stack passes CLEAN at TRI-1. Slice-071 is the canonical 5-Minor-only catch. The 3-Critic stack is structurally non-collapsible; preserve advisory-only discipline through slice-072+ until v2 ships.
+- **Voluntary-restraint discipline at N=12 cumulative** (slice-037/046/050/052/055/056/057/061/065/067/070/071): cleanup-only slices ship MEPD-1 EXCLUDE consistently. The disposition shape is stable; future bundle-of-bundles cleanup slices inherit the same discipline.
+- **N+1 first-governed-slice doctrine extends to N=18 cumulative**: slice-071 is the FIRST 31-finding bundled cleanup at 10× precedent scale; surfaces a new structural axis (R-20 cp-r tax pattern visibility at mid-slice smoke). The N+1 catch class continues to produce novel structural-axis observations.
+- **APED-1 scope extension N=2 cumulative** (slice-070 AC#3 dotfile blind-spot + slice-071 /critique B1 broken regex) — strongest /critic-calibrate active nomination for slice-072+.
+- **BC-1 BC-GLOBAL-2 prose-vs-automation false-positive class N=3 cumulative** (slice-069 + slice-070 + slice-071) — structural signal for /critic-calibrate keyword-trigger discrimination promotion.
