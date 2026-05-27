@@ -333,3 +333,25 @@ Status `mitigating`, not `retired`: both residual axes are bounded but real. Rev
 **Candidate fix** (NOT a slice-067 deliverable): slice-068 PSQ-2 ships the `Claimed-by` field — once claim machinery is in place, queue freshness becomes a hint, not a load-bearing signal. Alternative: a future PSQ-3+ slice could ship a `/slice --refresh` shortcut OR a queue-staleness audit at `/build-slice` Step 6 that WARNs if `architecture/slice-queue.md`'s provenance timestamp is older than the most-recent active slice's `mission-brief.md` mtime. Neither is needed at PSQ-1 maturity (N=1 class signal; no empirical staleness-misled-session incident yet).
 
 **Why not Critic-promotion**: per slice-037 audit-vs-real-artifact law: the gap is a multi-session runtime-behavior interaction, not a per-slice Critic dimension. The Critic for slice-067 could not have caught this — it's about how /slice's queue output interacts with future sessions' /slice + /build-slice runs, which is invisible to single-slice review. The right tooling is the design-time-anticipated risk-register entry (this one) + slice-068's claim-machinery structural close. STP-1 Sub-form B clean: no `test_r_19_*_stays_*` pin contradicts the new `mitigating` status.
+
+## R-20 — Gitignored `diagnose-out/` + `graphify-out/` directories require manual `cp -r` from main tree to worktree at every BRANCH-2 slice (post-vault-in-git cp-r tax residual)
+
+**Likelihood**: high
+**Impact**: low
+**Status**: mitigating
+**Reversibility**: cheap
+**Discovered**: slice-071-bundle-066-to-070-code-critic-cleanup (2026-05-26)
+**Mitigation**: surfaced at slice-071 Phase E mid-slice smoke gate when `test_bcr_1_sc054_round_trip_inputs_invariant` failed because `diagnose-out/backlog.md` was absent from the worktree (gitignored). Pattern is N=6 cumulative post-slice-069 vault-in-git (slice-067 was N=3 / slice-068 N=4 / slice-069 N=5 / slice-070 N=5 / slice-071 N=6). Per slice-070 reflection L80 and slice-069 reflection. User-flagged at slice-071 with "we need a better solution" — promoted from a recurring-class-but-no-risk-register-entry observation to a tracked risk.
+
+**Slice-069 retired the `architecture/` vault portion of this class** via ADR-066 vault-in-git philosophy. But `diagnose-out/` (entirely derived) + `graphify-out/` (entirely derived) remain gitignored per the principle that derived artifacts should not be tracked. The cost: every BRANCH-2 slice that needs the diagnose-out backlog (for BCR-1 round-trip tests) OR the graphify-out graph (for `_call_graphify_blast_radius` integration tests) requires a manual `cp -r` from the main tree before mid-slice smoke can pass.
+
+**Mitigating because**: (a) the workaround is trivial (two `cp -r` invocations); (b) the impact is bounded to /build-slice Phase E mid-slice smoke (does not cause production defects); (c) the derived-not-tracked principle is correct — un-gitignoring graphify-out/ would add ~5-15MB churn per `/diagnose` run + diagnose-out/ + graphify-out/ are environment-dependent, not methodology-dependent (different machines produce different graphs).
+
+**Candidate fix classes** (NOT slice-071 deliverables; slice-072+ nominations):
+
+- **(a) Codify cp -r step in BRANCH-2 worktree-create SKILL.md prose**: `skills/build-slice/SKILL.md` `## Prerequisite check ### Branch state` sub-section adds an explicit step "after `cd <wt-path>`, run `cp -r ../<main>/diagnose-out ../<main>/graphify-out ./` to seed gitignored deps". Removes "I forgot to cp" as a failure mode. Cheapest fix; deterministic.
+- **(b) Post-/build-slice symlink discipline**: instead of cp -r, create symlinks `diagnose-out → <main>/diagnose-out` + `graphify-out → <main>/graphify-out`. Avoids data duplication. Trade-off: junction/symlink semantics on Windows are fragile (slice-066 critique-review B2 lineage); cross-platform symlink-creation requires elevated privileges on Windows pre-Developer-Mode.
+- **(c) Un-gitignore graphify-out/ + diagnose-out/**: parallel to slice-069's vault-in-git approach. Trade-off: ~5-15MB more repo size + churn each `/diagnose` run. Derived-artifacts-shouldn't-be-tracked principle pushes against this.
+- **(d) Audit gate**: `/build-slice` Phase E mid-slice smoke pre-check that verifies `diagnose-out/backlog.md` exists; if absent, automatically run `cp -r ../<main>/diagnose-out ./` OR WARN with copy instruction. Combines (a) + automation.
+
+**Why not Critic-promotion**: per slice-037 audit-vs-real-artifact law: the gap is a BRANCH-2 worktree + gitignored-derived-artifact interaction, invisible to single-slice review at /critique time. The right tooling is risk-register tracking until N≥3 + slice-072+ dedicated fix slice.

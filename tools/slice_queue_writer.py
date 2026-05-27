@@ -65,9 +65,11 @@ from __future__ import annotations
 import argparse
 import functools
 import json
+import os
 import re
 import subprocess
 import sys
+import types
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
@@ -81,6 +83,26 @@ _QUEUE_FILENAME = "slice-queue.md"
 _INDEX_MD_REL = VAULT_ROOT / "slices" / "_index.md"  # VAULT_ROOT-routed (slice-068)
 _SLICES_DIR_REL = VAULT_ROOT / "slices"  # VAULT_ROOT-routed (slice-068)
 _GRAPH_DEFAULT_REL = Path("graphify-out") / "graph.json"
+
+# Path-shape regex (slice-071 M2 FIX per /critique B1 ACCEPTED-FIXED).
+# Verbatim from tests/bugs/test_psq_1_blast_radius_dict_leak.py:291-295
+# (slice-070 build minted; uses negated `[^\s`]` classes which avoid the
+# `]\-` ambiguity that broke the originally-drafted three-alternative regex).
+# Accepts: tokens with path separator (a/b), `.alphanum{1,8}` extension
+# (file.HTML, file.cfg), or leading-dot dotfile (.gitignore, .env).
+# Rejects: bare letter-only opaque identifiers (unknown, Makefile, abc).
+_PATH_SHAPED_RE = re.compile(
+    r"^(?:[^\s`]*[/\\][^\s`]+"          # has path separator
+    r"|[^\s`]*\.[A-Za-z0-9]{1,8}"       # ends with .ext (1-8 alphanum)
+    r"|\.[A-Za-z][A-Za-z0-9_.-]*)$"     # leading-dot dotfile
+)
+
+# Forward-compat key probe order for `_node_to_path` dict input
+# (slice-071 m5 FIX per slice-070 code-Critic m5: extract magic tuple to
+# module-level constant; docstring + `_node_to_path` reference it).
+# Order is semantic: `path` first (most-likely future surface), `source_file`
+# (graphify's current internal field), `name` (legacy fallback).
+_FORWARD_COMPAT_PATH_KEYS: tuple[str, ...] = ("path", "source_file", "name")
 
 # Per design.md L80 + ADR-064 §Consequences: 4-value Parallel-safety enum.
 _FLAG_NON_OVERLAPPING = "NON-OVERLAPPING"
@@ -210,20 +232,91 @@ def _extract_files_from_slice_dir(slice_dir: Path) -> set[str]:
 
 
 def _is_path_shaped(s: str) -> bool:
-    """A string is path-shaped if it contains a separator or a known extension.
+    """A string is path-shaped per the module-level ``_PATH_SHAPED_RE``.
 
-    Mirrors ``_parse_text_nodes``'s "/"-filter discipline at L255 + accepts
-    Windows backslash + known file extensions (slice-070 SC-027 fix).
+    Single source of truth (slice-071 M2 FIX per /critique B1 ACCEPTED-FIXED):
+    the regex is defined ONCE at module scope; both this predicate AND the
+    test-side validator import it. Accepts tokens with path separator,
+    `.alphanum{1,8}` extension, or leading-dot dotfile. Rejects bare opaque
+    identifiers (`unknown`, `Makefile`, letter-only strings).
     """
     if not s:
         return False
-    if "/" in s or "\\" in s:
-        return True
-    return s.endswith((".py", ".md", ".json", ".toml", ".yaml", ".txt"))
+    return _PATH_SHAPED_RE.fullmatch(s) is not None
+
+
+def _discover_known_repo_roots(repo_root: Path) -> list[Path]:
+    """Return all repo-root candidates for path normalization.
+
+    Per slice-071 M1 FIX step 1 (/critique-review M3 ACCEPTED-FIXED 4-step
+    algorithm): query ``git worktree list --porcelain`` for all registered
+    worktrees so abs paths sourced from one tree can be normalized against
+    any sibling tree. Worktree mode under BRANCH-2 produces a main tree +
+    one or more sibling `<main-parent>/<main-name>-wt/slice-NNN-*` trees;
+    a graph.json built from one tree may contain abs paths another tree
+    needs to interpret relative-to its own root.
+
+    Returns ``[repo_root]`` (single-entry list) on any subprocess failure or
+    when git is unavailable — degrades gracefully to "no worktree
+    awareness", which is the pre-slice-071 behavior.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_root), "worktree", "list", "--porcelain"],
+            capture_output=True, text=True, encoding="utf-8",
+            timeout=10, check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return [repo_root]
+    if result.returncode != 0:
+        return [repo_root]
+    roots: list[Path] = []
+    for line in result.stdout.splitlines():
+        if line.startswith("worktree "):
+            wt_path_str = line[len("worktree "):].strip()
+            if wt_path_str:
+                roots.append(Path(wt_path_str))
+    return roots if roots else [repo_root]
+
+
+def _normalize_abs_to_repo_relative(
+    abs_path_str: str, repo_root: Path, candidate_roots: list[Path]
+) -> str | None:
+    """Normalize an absolute path to a repo-relative form (slice-071 M1 FIX).
+
+    Per /critique M3 ACCEPTED-FIXED 4-step algorithm (steps 2-4):
+      2. Try ``Path(abs).relative_to(candidate_root)`` for each candidate
+         root; first success is the canonical relative form (returned as
+         POSIX string).
+      3. If no candidate succeeds, fall back to
+         ``os.path.relpath(abs, repo_root)`` and accept only if
+         ``_PATH_SHAPED_RE`` validates.
+      4. If neither path succeeds, return None (caller drops the entry).
+    """
+    try:
+        abs_path = Path(abs_path_str).resolve()
+    except (OSError, RuntimeError):
+        return None
+    # Step 2: try relative_to against each known root.
+    for candidate_root in candidate_roots:
+        try:
+            return abs_path.relative_to(candidate_root.resolve()).as_posix()
+        except (ValueError, OSError):
+            continue
+    # Step 3: os.path.relpath fallback + regex validation.
+    try:
+        relpath = os.path.relpath(str(abs_path), str(repo_root.resolve()))
+        relpath_posix = Path(relpath).as_posix()
+    except (ValueError, OSError):
+        return None
+    if _PATH_SHAPED_RE.fullmatch(relpath_posix) is not None:
+        return relpath_posix
+    # Step 4: drop.
+    return None
 
 
 @functools.lru_cache(maxsize=4)
-def _build_id_to_path_map(graph_path_str: str) -> dict[str, str]:
+def _build_id_to_path_map(graph_path_str: str) -> types.MappingProxyType:
     """Build ``{node_id -> repo-relative source_file}`` from graph.json.
 
     The graphify blast-radius JSON CLI output emits
@@ -237,15 +330,29 @@ def _build_id_to_path_map(graph_path_str: str) -> dict[str, str]:
     invocation reads + parses ``graph.json`` once. Cache size 4 covers the
     common case (default graph_path + a few overrides per session).
 
+    Returns a read-only ``MappingProxyType`` view (slice-071 M4 FIX per
+    slice-070 code-Critic M4): future mutating callers raise ``TypeError``,
+    closing the lru_cache shared-mutable foot-gun.
+
     Returns an empty map on any read/parse failure — best-effort
     degradation consistent with the surrounding "graphify is best-effort,
     never block" contract from slice-067.
+
+    Per slice-071 M1 FIX (per /critique M3 ACCEPTED-FIXED 4-step
+    algorithm): abs path normalization uses ``_discover_known_repo_roots``
+    (BRANCH-2 worktree-aware) + ``_normalize_abs_to_repo_relative`` (regex-
+    validated fallback + drop). Entries that cannot be normalized to a
+    path-shaped repo-relative form are DROPPED (the helper's pre-slice-071
+    fallback to bare ``as_posix()`` of the abs path leaked worktree
+    absolute paths into the id->path map, surfacing in rendered
+    `Blast-radius:` cells as duplicate abs/rel entries for the same file).
     """
     try:
         data = json.loads(Path(graph_path_str).read_text(encoding="utf-8"))
     except (FileNotFoundError, OSError, json.JSONDecodeError):
-        return {}
+        return types.MappingProxyType({})
     repo_root = Path.cwd().resolve()
+    candidate_roots = _discover_known_repo_roots(repo_root)
     out: dict[str, str] = {}
     for n in data.get("nodes", []):
         if not isinstance(n, dict):
@@ -254,25 +361,31 @@ def _build_id_to_path_map(graph_path_str: str) -> dict[str, str]:
         src = n.get("source_file")
         if not (isinstance(nid, str) and isinstance(src, str) and nid and src):
             continue
-        try:
-            rel = Path(src).resolve().relative_to(repo_root).as_posix()
-        except (ValueError, OSError):
-            rel = Path(src).as_posix()
+        rel = _normalize_abs_to_repo_relative(src, repo_root, candidate_roots)
+        if rel is None:
+            continue  # Step 4 drop — entry would have leaked unfiltered abs path
         out[nid] = rel
-    return out
+    return types.MappingProxyType(out)
 
 
-def _node_to_path(node: object, id_to_path: dict[str, str]) -> str | None:
+def _node_to_path(node: object, id_to_path) -> str | None:
     """Extract a path-shaped identifier from a graphify node element.
 
     PRIMARY path: dict input whose ``id`` is in ``id_to_path`` map -> the
-    mapped repo-relative source_file. This is the path graphify actually
-    carries today; the blast-radius CLI just doesn't surface the field
-    directly in JSON output.
+    mapped repo-relative source_file (slice-071 M3 FIX per slice-070
+    code-Critic M3: PRIMARY return is wrapped with ``_is_path_shaped``
+    filter for defense-in-depth consistency with forward-compat branch).
+    This is the path graphify actually carries today; the blast-radius CLI
+    just doesn't surface the field directly in JSON output.
 
     Forward-compat fallback (future graphify schemas where the CLI DOES
-    surface a path-bearing key): dict input with ``path`` / ``source_file``
-    / ``name`` populated AND path-shaped -> use that value.
+    surface a path-bearing key): dict input with any key in
+    ``_FORWARD_COMPAT_PATH_KEYS`` (slice-071 m5 FIX: module-level constant
+    replaces magic tuple per slice-070 code-Critic m5) populated AND
+    path-shaped -> use that value. The constant enumerates the keys in
+    semantic order: ``path`` first (most-likely future surface),
+    ``source_file`` (graphify's current internal field), ``name``
+    (legacy fallback).
 
     Legacy compat: ``str`` input that is itself path-shaped -> returned
     verbatim. ID-only strings dropped (mirrors ``_parse_text_nodes``
@@ -281,17 +394,25 @@ def _node_to_path(node: object, id_to_path: dict[str, str]) -> str | None:
     Any other shape -> returns ``None``; caller skips such items rather
     than letting ``str(node)`` leak Markdown-invalid characters into the
     rendered ``Blast-radius:`` cell (SC-027 defect class, slice-070 fix).
+
+    ``id_to_path`` accepts ``dict[str, str]`` OR ``MappingProxyType``
+    (read-only view returned by ``_build_id_to_path_map`` post-slice-071
+    M4 FIX).
     """
     if isinstance(node, str):
         return node if _is_path_shaped(node) else None
     if not isinstance(node, dict):
         return None
-    # PRIMARY: id-lookup via graph.json map
+    # PRIMARY: id-lookup via graph.json map (slice-071 M3 FIX: filtered).
     nid = node.get("id")
     if isinstance(nid, str) and nid in id_to_path:
-        return id_to_path[nid]
-    # Forward-compat: dict has its own populated path-shaped key
-    for key in ("path", "source_file", "name"):
+        val = id_to_path[nid]
+        if _is_path_shaped(val):
+            return val
+        # Fall through to forward-compat if PRIMARY value fails filter.
+    # Forward-compat: dict has its own populated path-shaped key.
+    # slice-071 m5 FIX: probe order is the module-level constant.
+    for key in _FORWARD_COMPAT_PATH_KEYS:
         val = node.get(key)
         if isinstance(val, str) and _is_path_shaped(val):
             return val
@@ -314,8 +435,6 @@ def _call_graphify_blast_radius(
     ``_node_to_path`` for the extraction-precedence contract.
     """
     py = sys.executable
-    # Build id->repo-relative-path map once at function entry; memoized.
-    id_to_path = _build_id_to_path_map(str(graph_path))
     # Try --file with basename first (current graphify node-ID convention).
     basename = Path(file_or_node).name
     for argv_tail in (
@@ -339,6 +458,10 @@ def _call_graphify_blast_radius(
             data = json.loads(res.stdout)
         except json.JSONDecodeError:
             return _parse_text_nodes(res.stdout)
+        # slice-071 m4 FIX (per slice-070 code-Critic m4): build id->path
+        # map AFTER subprocess+JSON-parse succeed, not at function entry —
+        # skips wasted lru_cache work on subprocess-failure paths.
+        id_to_path = _build_id_to_path_map(str(graph_path))
         if isinstance(data, list):
             return {p for x in data if (p := _node_to_path(x, id_to_path)) is not None}
         if isinstance(data, dict):
@@ -530,14 +653,23 @@ def write_slice_queue(
     now: datetime | None = None,
     *,
     blast_resolver: Callable[[Path, str], set[str]] | None = None,
+    out_path: Path | None = None,
 ) -> Path:
     """Write ``architecture/slice-queue.md``. Returns the output Path.
 
     Top-10 cap enforced. Idempotent overwrite (not append) via ``.tmp``
     sibling + ``os.replace()``.
+
+    ``out_path`` (slice-071 / slice-067 m1 FIX per slice-067 code-Critic
+    m1): when ``None`` (default), writes to the canonical
+    ``architecture/slice-queue.md``; when provided (CLI ``--output
+    <custom>`` path), writes to the given path. Collapses the previous
+    duplicated ``main()`` custom-output branch — single source of truth for
+    the candidate-loop + atomic-write sequence.
     """
     now = now or datetime.now(tz=timezone.utc)
-    out_path = repo_root / VAULT_ROOT / _QUEUE_FILENAME  # VAULT_ROOT-routed (slice-068)
+    if out_path is None:
+        out_path = repo_root / VAULT_ROOT / _QUEUE_FILENAME  # VAULT_ROOT-routed (slice-068)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     graph_missing = graph_path is None or not graph_path.exists()
@@ -592,11 +724,11 @@ def write_slice_queue(
         active_slice_num=active_slice_num,
     )
 
-    # Atomic write: .tmp sibling + os.replace().
+    # Atomic write: .tmp sibling + os.replace() (slice-071 m3 sibling
+    # cleanup: ``os`` is now module-level — drop the inline import).
     tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
     tmp_path.write_text(body, encoding="utf-8")
-    import os as _os
-    _os.replace(tmp_path, out_path)
+    os.replace(tmp_path, out_path)
     return out_path
 
 
@@ -676,55 +808,19 @@ def main(argv: list[str] | None = None) -> int:
     graph_path = args.graph if args.graph.is_absolute() else args.root / args.graph
     repo_root = args.root.resolve()
 
-    # If --output is exactly <root>/architecture/slice-queue.md, use the
-    # library entrypoint. Otherwise compose the write manually so users
-    # can redirect output for testing/integration scenarios.
-    canonical_out = repo_root / VAULT_ROOT / _QUEUE_FILENAME  # VAULT_ROOT-routed (slice-068)
-    if out_arg.resolve() == canonical_out:
-        write_slice_queue(
-            repo_root=repo_root,
-            candidates=candidates,
-            active_slice_num=args.active_slice,
-            graph_path=graph_path if graph_path.exists() else None,
-        )
-    else:
-        # Direct write to custom path (rare).
-        out_arg.parent.mkdir(parents=True, exist_ok=True)
-        graph_missing = not graph_path.exists()
-        active_blasts = (
-            derive_active_slice_blast_radius(repo_root, graph_path)
-            if not graph_missing else {}
-        )
-        items: list[dict] = []
-        for c in candidates[:_TOP_N]:
-            hint_files = set(c.get("hint_files") or [])
-            if graph_missing:
-                flag, _ = compute_parallel_safety(
-                    hint_files, active_blasts, graph_missing=True
-                )
-                blast_radius: set[str] | None = None
-            else:
-                cb = set(hint_files)
-                for f in hint_files:
-                    cb |= _call_graphify_blast_radius(graph_path, f)
-                blast_radius = cb
-                flag, _ = compute_parallel_safety(
-                    cb, active_blasts, graph_missing=False
-                )
-            items.append({
-                "name": c["name"], "source": c["source"],
-                "blast_radius": blast_radius, "parallel_safety": flag,
-                "effort": c["effort"], "risk_retired": c["risk_retired"],
-            })
-        body = format_queue_md(
-            items, datetime.now(tz=timezone.utc),
-            warn_no_graph=graph_missing,
-            active_slice_num=args.active_slice,
-        )
-        import os as _os
-        tmp = out_arg.with_suffix(out_arg.suffix + ".tmp")
-        tmp.write_text(body, encoding="utf-8")
-        _os.replace(tmp, out_arg)
+    # slice-071 / slice-067 m1 FIX (per slice-067 code-Critic m1): collapse
+    # the previous custom-output duplicated branch into the canonical
+    # library call with `out_path=out_arg`. Both canonical-output and
+    # custom-output paths now traverse the same atomic-write + candidate-
+    # loop logic — single source of truth eliminates the Fowler
+    # "Duplicated Code" smell.
+    write_slice_queue(
+        repo_root=repo_root,
+        candidates=candidates,
+        active_slice_num=args.active_slice,
+        graph_path=graph_path if graph_path.exists() else None,
+        out_path=out_arg,
+    )
 
     return 0
 

@@ -54,10 +54,15 @@ Then apply the worktree-create logic (BRANCH-2):
 
 1. **If on default branch** (HEAD == resolved default): create the worktree at the canonical sibling path + branch in one git command, then `cd` into it:
    ```bash
-   wt_base="$(dirname "$(pwd)")/$(basename "$(pwd)")-wt"
+   repo_root="$(git rev-parse --show-toplevel)"
+   wt_base="$(dirname "$repo_root")/$(basename "$repo_root")-wt"
    git worktree add "$wt_base/slice-NNN-<slice-name>" -b slice/NNN-<slice-name> "$default"
    cd "$wt_base/slice-NNN-<slice-name>"
    ```
+   (POSIX shell; on Windows invoke via Git for Windows' bundled MSYS bash — same dependency convention as commit-slice Step 5b/5d.)
+
+   Slice-071 M2 + m4 FIXes (per slice-066 code-Critic M2/m4): `wt_base` is derived from `git rev-parse --show-toplevel` (the canonical `.git`-ancestor walk) rather than `$(pwd)` (cwd-derived). Pre-fix, running `/build-slice` from a subdirectory (e.g., `cwd=architecture/slices/`) computed `wt_base=architecture/slices-wt/...` while the audit at `tools/branch_workflow_audit.py:_resolve_expected_worktree_path` derived the canonical path from `.git` ancestry, surfacing a `worktree-path-shape-violation`. The two surfaces now agree on the same canonical path via the same mechanism.
+
    The worktree's filesystem is physically isolated from the main tree; uncommitted slice-A WIP on the main tree cannot contaminate slice-B's worktree.
 2. **If the worktree already exists** at `<wt_base>/slice-NNN-<slice-name>` (resume after session death): `cd "$wt_base/slice-NNN-<slice-name>"` and verify `git branch --show-current` matches `slice/NNN-<slice-name>`.
 3. **If on any other branch** (including stale `slice/<other-number>-*` from prior conflict OR a worktree for a different slice): STOP, ask user to switch context or document `WORKTREE=skip` escape-hatch in `build-log.md` Events per Step 7c canonical shape.

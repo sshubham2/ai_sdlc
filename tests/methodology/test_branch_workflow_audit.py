@@ -355,15 +355,35 @@ def test_honours_canonical_worktree_skip_rationale_line(tmp_path: Path) -> None:
 
     Canonical line shape (mirrors BRANCH=skip): `<YYYY-MM-DD HH:MM> DEVIATION: WORKTREE=skip\\b.+rationale: .+`
 
+    slice-071 m2 FIX (per slice-066 code-Critic m2 + APED-1 conformance):
+    fixture rewritten to actually exercise the WORKTREE=skip dependency.
+    Pre-fix the test passed even WITHOUT the WORKTREE=skip line because
+    the slice branch was checked out IN the main tree (no worktree
+    registered elsewhere), so `_slice_branch_in_worktree(repo_root,
+    expected)` found a match on the main-tree's own worktree-list entry,
+    and `_paths_equivalent(wt_path, repo_root)` returned True (it IS the
+    main tree), so no `worktree-cwd-mismatch` fired regardless. The
+    rewritten fixture creates a worktree elsewhere with the slice branch
+    (mirroring `test_rejects_main_tree_cwd_when_worktree_registered_
+    elsewhere`) — the WORKTREE=skip line is now load-bearing for the
+    audit's clean verdict.
+
     Rule reference: BRANCH-2 WORKTREE=skip escape-hatch (slice-066; ADR-063 §Decision).
     """
     repo = _init_repo_on_default_branch(tmp_path)
+    # Create the worktree elsewhere with the slice branch — without the
+    # WORKTREE=skip line the audit would now emit worktree-cwd-mismatch
+    # (the slice branch lives in <wt_path> but the audit's repo_root is the
+    # main tree). This is the canonical "Claude forgot to cd into the
+    # worktree" failure mode that the WORKTREE=skip escape-hatch covers.
+    wt_path = tmp_path / "repo-wt" / "slice-066-test-worktree-skip"
+    wt_path.parent.mkdir(parents=True, exist_ok=True)
+    _add_worktree(repo, wt_path, "slice/066-test-worktree-skip")
+    # Slice folder mirrored in the main tree for the audit invocation.
     slice_folder = _make_slice_folder(repo, 66, "test-worktree-skip")
-    # On main tree (no worktree), but WORKTREE=skip is documented in build-log Events.
-    # Explicit utf-8 encoding to match the audit module's read; default platform encoding on
-    # Windows is cp1252 which corrupts the em-dash (U+2014 → 0x97) — Windows cp1252 console
-    # encoding class N≥7 cumulative project-wide per UTF8-STDOUT-1 lineage (slice-066 /build-slice
-    # Phase C step 8 Builder-self-catch on test fixture encoding).
+    # WORKTREE=skip documented in build-log Events. Explicit utf-8 encoding
+    # to match the audit module's read (UTF8-STDOUT-1 lineage discipline —
+    # Windows default cp1252 corrupts U+2014 em-dash).
     (slice_folder / "build-log.md").write_text(
         "# Build log\n\n"
         "## Events\n\n"
@@ -371,9 +391,8 @@ def test_honours_canonical_worktree_skip_rationale_line(tmp_path: Path) -> None:
         "— rationale: slice-066 authors the worktree-create prose; bootstrap-reference instance #1\n",
         encoding="utf-8",
     )
-    # Need to be on a slice branch to avoid the on-default-branch violation;
-    # WORKTREE=skip applies to the worktree discipline, not the branch discipline.
-    _run_git(repo, "checkout", "-b", "slice/066-test-worktree-skip")
+    # Audit invoked with main tree as repo_root (the "forgot to cd" shape
+    # — without WORKTREE=skip, worktree-cwd-mismatch would fire).
     result = bwa.audit(slice_folder=slice_folder, repo_root=repo)
     # No worktree-* Important violations should fire (the escape-hatch is honoured).
     worktree_violations = [
@@ -384,6 +403,71 @@ def test_honours_canonical_worktree_skip_rationale_line(tmp_path: Path) -> None:
         f"Canonical WORKTREE=skip — rationale: line must accept worktree-mode discipline skip; "
         f"got worktree-* violations: {[(v.kind, v.message) for v in worktree_violations]}"
     )
+    # APED-1 load-bearing check (slice-071 m2 FIX): remove the
+    # WORKTREE=skip line → audit MUST now fail with worktree-cwd-mismatch.
+    # Proves the WORKTREE=skip line was the load-bearing element of the
+    # clean verdict above (pre-slice-071 fixture passed even without it).
+    (slice_folder / "build-log.md").write_text(
+        "# Build log\n\n## Events\n\n- 2026-05-26 09:00 BUILD: starting\n",
+        encoding="utf-8",
+    )
+    result_without_skip = bwa.audit(slice_folder=slice_folder, repo_root=repo)
+    assert any(
+        v.kind == "worktree-cwd-mismatch" and v.severity == "Important"
+        for v in result_without_skip.violations
+    ), (
+        "APED-1 load-bearing check (slice-071 m2 FIX): removing the "
+        "WORKTREE=skip line MUST cause `worktree-cwd-mismatch` to fire. "
+        f"Got violations: {[(v.kind, v.severity) for v in result_without_skip.violations]}"
+    )
+
+
+def test_audit_result_surfaces_worktree_skip_fields(tmp_path: Path) -> None:
+    """slice-071 m1 FIX pin (per slice-066 code-Critic m1).
+
+    `AuditResult.worktree_skip_used` + `worktree_skip_rationale` MUST be
+    populated AND reach `to_dict()` output. Symmetric with the existing
+    BRANCH=skip surface (`escape_hatch_used` + `escape_hatch_rationale`).
+
+    Pre-fix: `_check_worktree_skip_line` returned the rationale but the
+    consumer at L513 discarded it (`_` prefix); a `--json` consumer could
+    not distinguish "clean because BRANCH=skip" from "clean because
+    WORKTREE=skip".
+    """
+    repo = _init_repo_on_default_branch(tmp_path)
+    # Set up: worktree elsewhere + WORKTREE=skip line.
+    wt_path = tmp_path / "repo-wt" / "slice-066-skip-fields-test"
+    wt_path.parent.mkdir(parents=True, exist_ok=True)
+    _add_worktree(repo, wt_path, "slice/066-skip-fields-test")
+    slice_folder = _make_slice_folder(repo, 66, "skip-fields-test")
+    rationale_text = "test rationale for surfacing worktree_skip in AuditResult"
+    (slice_folder / "build-log.md").write_text(
+        "# Build log\n\n## Events\n\n"
+        "- 2026-05-26 10:00 DEVIATION: WORKTREE=skip "
+        f"— rationale: {rationale_text}\n",
+        encoding="utf-8",
+    )
+    result = bwa.audit(slice_folder=slice_folder, repo_root=repo)
+    assert result.worktree_skip_used is True, (
+        f"AuditResult.worktree_skip_used must be True when WORKTREE=skip "
+        f"line is present; got {result.worktree_skip_used}"
+    )
+    assert result.worktree_skip_rationale is not None, (
+        "AuditResult.worktree_skip_rationale must be populated when "
+        "WORKTREE=skip line is present"
+    )
+    assert rationale_text in result.worktree_skip_rationale, (
+        f"AuditResult.worktree_skip_rationale must contain the rationale "
+        f"text from the canonical line; got {result.worktree_skip_rationale!r}"
+    )
+    # Verify the fields reach to_dict() output (--json consumer-visible).
+    d = result.to_dict()
+    assert d["worktree_skip_used"] is True
+    assert rationale_text in d["worktree_skip_rationale"]
+    # Symmetry pin: the BRANCH=skip surface fields also exist (not populated
+    # in this test, but the schema is symmetric).
+    assert "escape_hatch_used" in d
+    assert "escape_hatch_rationale" in d
 
 
 def test_emits_worktree_skip_malformed_on_off_canonical_line(tmp_path: Path) -> None:

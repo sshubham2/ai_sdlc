@@ -34,7 +34,24 @@ from unittest.mock import patch
 
 import pytest
 
-from tools.slice_queue_writer import _call_graphify_blast_radius
+from tools.slice_queue_writer import (
+    _build_id_to_path_map,
+    _call_graphify_blast_radius,
+    _FORWARD_COMPAT_PATH_KEYS,
+    _PATH_SHAPED_RE,
+)
+
+
+# slice-071 m1 FIX (per slice-070 code-Critic m1): autouse fixture clears
+# the `_build_id_to_path_map` lru_cache before each test. Prevents
+# cross-test state leak via the lru_cache shared-instance — pre-fix, a
+# test that successfully populated the cache would leak its
+# MappingProxyType into subsequent tests' callers.
+@pytest.fixture(autouse=True)
+def _clear_id_to_path_cache():
+    _build_id_to_path_map.cache_clear()
+    yield
+    _build_id_to_path_map.cache_clear()
 
 
 # Empirically-verified graphify-in-this-repo blast-radius output shape:
@@ -95,7 +112,7 @@ def test_blast_radius_resolves_real_graphify_node_shape_via_id_lookup():
     graph.json fixture). The fix's id-lookup precedence is what makes the
     test pass.
     """
-    with patch.object(subprocess, "run", side_effect=_fake_subprocess_run), \
+    with patch("tools.slice_queue_writer.subprocess.run", side_effect=_fake_subprocess_run), \
          patch(
              "tools.slice_queue_writer._build_id_to_path_map",
              return_value=_EXPECTED_ID_TO_PATH,
@@ -140,7 +157,7 @@ def test_blast_radius_handles_legacy_list_of_strings_shape():
             stderr="",
         )
 
-    with patch.object(subprocess, "run", side_effect=_fake_run), \
+    with patch("tools.slice_queue_writer.subprocess.run", side_effect=_fake_run), \
          patch(
              "tools.slice_queue_writer._build_id_to_path_map",
              return_value={},
@@ -174,7 +191,7 @@ def test_blast_radius_drops_non_path_strings_from_legacy_shape():
             stderr="",
         )
 
-    with patch.object(subprocess, "run", side_effect=_fake_run), \
+    with patch("tools.slice_queue_writer.subprocess.run", side_effect=_fake_run), \
          patch(
              "tools.slice_queue_writer._build_id_to_path_map",
              return_value={},
@@ -224,7 +241,7 @@ def test_blast_radius_handles_dict_with_nodes_key_of_node_dicts():
         "slice_queue_writer_rationale_1": "tools/slice_queue_writer.py",
         "validate_slice_layers_rationale_1": "tools/validate_slice_layers.py",
     }
-    with patch.object(subprocess, "run", side_effect=_fake_run), \
+    with patch("tools.slice_queue_writer.subprocess.run", side_effect=_fake_run), \
          patch(
              "tools.slice_queue_writer._build_id_to_path_map",
              return_value=id_to_path,
@@ -260,7 +277,7 @@ def test_blast_radius_forward_compat_extracts_populated_path_or_source_file():
             stderr="",
         )
 
-    with patch.object(subprocess, "run", side_effect=_fake_run), \
+    with patch("tools.slice_queue_writer.subprocess.run", side_effect=_fake_run), \
          patch(
              "tools.slice_queue_writer._build_id_to_path_map",
              return_value={},
@@ -283,16 +300,12 @@ def test_blast_radius_forward_compat_extracts_populated_path_or_source_file():
 
 import re as _re
 
-# Per /critique M1 fix + /build-slice 2026-05-26 DEVIATION widening:
-# positive-shape regex accepts tokens that (a) contain a path separator,
-# (b) end with a `.alphanum` extension, OR (c) are leading-dot dotfiles
-# like `.gitignore` / `.env`. Rejects bare opaque identifiers, dict-string
-# leaks, empty tokens, and other non-path corruption classes.
-_PATH_SHAPED_TOKEN_RE = _re.compile(
-    r"^(?:[^\s`]*[/\\][^\s`]+"          # has path separator
-    r"|[^\s`]*\.[A-Za-z0-9]{1,8}"       # ends with .ext (1-8 alphanum)
-    r"|\.[A-Za-z][A-Za-z0-9_.-]*)$"     # leading-dot dotfile
-)
+# slice-071 M2 FIX (per slice-070 code-Critic M2 + /critique B1 ACCEPTED-FIXED):
+# the positive-shape regex moved OUT of this test file and INTO
+# `tools/slice_queue_writer.py` as the module-level constant `_PATH_SHAPED_RE`.
+# Single source of truth: production code AND this test use the same regex.
+# Local alias preserved for surrounding-test backward-compat.
+_PATH_SHAPED_TOKEN_RE = _PATH_SHAPED_RE
 
 # Matches a `Blast-radius:` cell line and captures its value portion.
 _BLAST_RADIUS_LINE_RE = _re.compile(
@@ -341,6 +354,14 @@ def test_committed_slice_queue_md_blast_radius_cells_contain_only_path_shaped_to
     offenders: list[tuple[int, str, str]] = []
     for line_idx, cell_value in enumerate(cells):
         for token in _BACKTICK_TOKEN_RE.findall(cell_value):
+            # slice-071 M5 FIX (per slice-070 code-Critic M5): `unknown` is
+            # a DOCUMENTED SENTINEL emitted by `_format_entry` for empty
+            # blast cells (slice-067 AC4-(b)/(c) — degraded `graph missing`
+            # or `empty hint_files` states). It MUST not be flagged as a
+            # path-shape offender. See `test_unknown_cell_is_documented_
+            # sentinel_not_an_offender` below for the structural pin.
+            if token == "unknown":
+                continue
             if not _PATH_SHAPED_TOKEN_RE.match(token):
                 offenders.append((line_idx, cell_value[:80], token))
     assert offenders == [], (
@@ -350,4 +371,155 @@ def test_committed_slice_queue_md_blast_radius_cells_contain_only_path_shaped_to
             f"  cell #{idx}: token={tok!r} (in cell starting {cell[:60]!r}...)"
             for idx, cell, tok in offenders[:10]
         )
+    )
+
+
+# ---------------------------------------------------------------------
+# slice-071 hardening tests (per /critique-review + /critique fix-blocks)
+# ---------------------------------------------------------------------
+
+
+def test_unknown_cell_is_documented_sentinel_not_an_offender():
+    """slice-071 M5 FIX pin (per slice-070 code-Critic M5).
+
+    The `_format_entry` helper renders `` `unknown` `` for blast cells
+    when graph is missing OR when hint_files is empty (slice-067 AC4-(b)
+    and AC4-(c) — these are LEGITIMATE degraded states). The AC#3
+    live-artifact test loop MUST skip this sentinel rather than treating
+    it as a path-shape offender.
+
+    Structural pin: this test confirms `unknown` does NOT match
+    `_PATH_SHAPED_RE` (so the AC#3 skip-condition is load-bearing — without
+    the skip, a graph-missing slice-queue.md regen would FAIL the AC#3
+    loop with a misleading "SC-027 regression" message).
+    """
+    assert _PATH_SHAPED_RE.fullmatch("unknown") is None, (
+        "`unknown` MUST be rejected by `_PATH_SHAPED_RE` — it is the "
+        "degraded-state sentinel; the AC#3 loop relies on a separate "
+        "skip-condition (`if token == \"unknown\": continue`) to handle it."
+    )
+
+
+def test_call_graphify_blast_radius_falls_back_to_from_flag_on_node_not_found():
+    """slice-071 m2 FIX pin (per slice-070 code-Critic m2).
+
+    Pre-fix: the `--from` fallback retry branch at L323 was structurally
+    dead from test perspective — every fake_run returned returncode=0 on
+    the FIRST call (`--file <basename>`), so the second call (`--from
+    <full-path>`) was never exercised.
+
+    Post-fix: simulate the empirically-observed graphify behavior where
+    `--file <basename>` fails with returncode=2 ("node not found") then
+    `--from <full-path>` succeeds. Pins that the fallback branch is
+    invocation-reachable AND produces the expected resolved set.
+    """
+    call_count = {"n": 0}
+
+    def _fake_run_fallback(*args, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            return SimpleNamespace(returncode=2, stdout="", stderr="node not found")
+        return SimpleNamespace(
+            returncode=0,
+            stdout=_REAL_GRAPHIFY_NODE_LIST_JSON,
+            stderr="",
+        )
+
+    with patch(
+        "tools.slice_queue_writer.subprocess.run", side_effect=_fake_run_fallback
+    ), patch(
+        "tools.slice_queue_writer._build_id_to_path_map",
+        return_value=_EXPECTED_ID_TO_PATH,
+        create=True,
+    ):
+        result = _call_graphify_blast_radius(
+            Path("graphify-out/graph.json"),
+            "tools/slice_queue_writer.py",
+        )
+    assert call_count["n"] == 2, (
+        f"Expected 2 subprocess calls (--file then --from fallback); "
+        f"got {call_count['n']}"
+    )
+    assert result == {
+        "tools/slice_queue_writer.py",
+        "tools/branch_workflow_audit.py",
+    }, f"Fallback branch did not produce resolved set; got {result!r}"
+
+
+def test_forward_compat_path_keys_docstring_in_sync_with_constant():
+    """slice-071 m5 FIX + /critique-review m-add-1 drift-prevention pin.
+
+    The `_FORWARD_COMPAT_PATH_KEYS` constant is referenced by name in the
+    `_node_to_path` docstring (`tools/slice_queue_writer.py`). A future
+    edit that reorders the tuple without updating the docstring (or vice
+    versa) would silently drift — exactly the slice-070 code-Critic m5
+    defect class.
+
+    Structural pin: assert the constant tuple's items all appear in the
+    `_node_to_path.__doc__` string. (Order-strict assertion deferred —
+    the test pins SET membership, not ORDER; a stronger order-pin
+    discipline can be added if the constant order becomes semantic.)
+    """
+    import tools.slice_queue_writer as sqw
+
+    doc = sqw._node_to_path.__doc__ or ""
+    for key in _FORWARD_COMPAT_PATH_KEYS:
+        assert key in doc, (
+            f"`{key}` (member of `_FORWARD_COMPAT_PATH_KEYS`) is not "
+            f"mentioned in `_node_to_path` docstring. Update the docstring "
+            f"to enumerate `_FORWARD_COMPAT_PATH_KEYS` members per slice-071 "
+            f"m5 + /critique-review m-add-1 drift-prevention."
+        )
+    # Constant identity pin: the docstring references the constant by name.
+    assert "_FORWARD_COMPAT_PATH_KEYS" in doc, (
+        "`_node_to_path` docstring must reference `_FORWARD_COMPAT_PATH_KEYS` "
+        "by name so a future reader knows where the canonical tuple lives."
+    )
+
+
+# ---------------------------------------------------------------------
+# slice-071 M2 SUPPORT: 4 positive + 3 negative regex cases
+# ---------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("token", [
+    ".gitignore",         # leading-dot dotfile
+    ".env",               # leading-dot dotfile (short)
+    "file.HTML",          # uppercase extension
+    "file.cfg",           # non-canonical extension
+])
+def test_path_shaped_re_accepts_dotfile_and_uppercase_and_noncanonical_ext(token):
+    """slice-071 M2 SUPPORT: positive cases for `_PATH_SHAPED_RE`.
+
+    These are the 4 cases the AC#3 DEVIATION (slice-070) explicitly widened
+    the regex to admit. APED-1 conformance: pin them as positive
+    membership cases so a future regex narrowing breaks loudly.
+    """
+    assert _PATH_SHAPED_RE.fullmatch(token) is not None, (
+        f"`_PATH_SHAPED_RE` MUST accept `{token}` per slice-070 AC#3 "
+        f"DEVIATION + slice-071 M2 single-source-of-truth seam."
+    )
+
+
+@pytest.mark.parametrize("token", [
+    "unknown",            # documented sentinel — bare letter-only
+    "Makefile",           # capital-letter-only opaque identifier
+    "abc",                # short letter-only opaque identifier
+])
+def test_path_shaped_re_rejects_letter_only_opaque_identifiers(token):
+    """slice-071 M2 SUPPORT: negative cases for `_PATH_SHAPED_RE`.
+
+    These cases would have been ACCEPTED by the originally-drafted
+    three-alternative regex at /design-slice time — Critic B1 empirically
+    demonstrated `[/\\]` parses as `[/\\]` terminating the character class
+    early, yielding `_PATH_SHAPED_RE.fullmatch("unknown") → True`. The
+    replacement test-side regex (now production constant) correctly
+    rejects these.
+
+    APED-1 conformance: pin these as REJECTED so a future regex
+    re-introduction of the `]\\-` ambiguity breaks loudly.
+    """
+    assert _PATH_SHAPED_RE.fullmatch(token) is None, (
+        f"`_PATH_SHAPED_RE` MUST reject `{token}` — letter-only opaque "
+        f"identifier; see /critique B1 + slice-071 M2 FIX rationale."
     )

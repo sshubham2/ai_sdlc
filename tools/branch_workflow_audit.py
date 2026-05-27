@@ -35,11 +35,23 @@ Exit codes:
     0  clean (current branch matches active slice OR canonical escape-hatch present)
     1  violations (on default branch + no escape-hatch, or branch-mismatch, or stale-slice-branch)
     2  usage error (slice-folder missing, git unavailable, default-branch-unresolvable)
+
+Operational notes (slice-071 / slice-069 m5 codification):
+
+  ``--detach HEAD`` worktree-add sub-case: when verifying a state-transition
+  in-place (slice-069 H4 N=4 verification pattern) and the slice branch
+  is already checked out in another worktree, ``git worktree add <path>
+  <branch>`` refuses with "branch already checked out". The canonical
+  workaround per slice-069 build-log Phase H4 is ``git worktree add
+  --detach <verify-path> HEAD`` (detached HEAD pointing at current
+  commit), which sidesteps the branch-collision check. Codified here for
+  future BRANCH-2 slices that need throwaway-worktree verification.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -106,6 +118,14 @@ class AuditResult:
     resolved_default_branch: str = ""
     escape_hatch_used: bool = False
     escape_hatch_rationale: str | None = None
+    # slice-071 m1 FIX (per slice-066 code-Critic m1): surface
+    # WORKTREE=skip alongside the BRANCH=skip escape-hatch fields. Pre-
+    # fix, `_check_worktree_skip_line` computed the rationale but
+    # discarded it (`_` prefix); a `--json` consumer could not
+    # distinguish "clean because BRANCH=skip" from "clean because
+    # WORKTREE=skip". Now symmetric with the existing BRANCH=skip surface.
+    worktree_skip_used: bool = False
+    worktree_skip_rationale: str | None = None
     violations: list[BranchViolation] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -118,6 +138,8 @@ class AuditResult:
             "resolved_default_branch": self.resolved_default_branch,
             "escape_hatch_used": self.escape_hatch_used,
             "escape_hatch_rationale": self.escape_hatch_rationale,
+            "worktree_skip_used": self.worktree_skip_used,
+            "worktree_skip_rationale": self.worktree_skip_rationale,
             "violations": [v.to_dict() for v in self.violations],
             "summary": {
                 "violation_count": len([v for v in self.violations if v.severity == "Important"]),
@@ -249,7 +271,11 @@ def _is_repo_root_a_worktree(repo_root: Path) -> tuple[bool, Path | None]:
     Returns:
         (in_worktree, main_repo_root):
         - (True, <main-repo>) when repo_root is a worktree pointing at <main-repo>.
-        - (False, None) otherwise (main tree, no .git, or malformed pointer).
+        - (False, None) otherwise (main tree, no .git, malformed pointer, OR
+          shallow-gitdir-walk-off — slice-071 M1 FIX per slice-066 code-Critic
+          M1: gitdir < 4 parts triggers an unguarded `Path.parent.parent.parent`
+          walk off the filesystem into unrelated ancestors; sanity-check via
+          `.git`-existence on the resolved main repo closes this surface).
     """
     git_marker = repo_root / ".git"
     if not git_marker.exists():
@@ -270,9 +296,22 @@ def _is_repo_root_a_worktree(repo_root: Path) -> tuple[bool, Path | None]:
     # gitdir points to <main-repo>/.git/worktrees/<name>. Walk up: name → worktrees → .git → main.
     if not gitdir.exists():
         return (False, None)
+    # slice-071 M1 FIX (slice-066 code-Critic M1): guard against shallow
+    # gitdir paths that would walk past the intended worktrees-record-root
+    # into unrelated directories. `Path.parent` on a root path returns the
+    # path itself (no exception); the try/except below is structurally
+    # unreachable without this guard.
+    if len(gitdir.parts) < 4:
+        return (False, None)
     try:
         main_repo = gitdir.parent.parent.parent
     except (IndexError, AttributeError):
+        return (False, None)
+    # slice-071 M1 FIX (continued): even with depth ≥ 4, gitdir might
+    # resolve to a path whose 3-parent walk lands somewhere that ISN'T a
+    # git repo (corrupted .git pointer, attacker-crafted file, unusual
+    # setup). Sanity-check via .git existence on the resolved main repo.
+    if not (main_repo / ".git").exists():
         return (False, None)
     return (True, main_repo)
 
@@ -294,8 +333,11 @@ def _paths_equivalent(a: Path, b: Path) -> bool:
     `git worktree list --porcelain` records paths as-supplied; `Path.resolve()` normalizes case
     + resolves symlinks. Use `samefile()` when both paths exist; fall back to
     `os.path.normcase(os.path.realpath(...))` string equality when one side doesn't exist.
+
+    slice-071 m3 FIX (per slice-066 code-Critic m3): `import os` hoisted to
+    module-level imports block; pre-fix the import lived inline at function
+    entry (per-call lookup overhead + PEP 8 violation).
     """
-    import os
     try:
         a_resolved = a.resolve(strict=False)
         b_resolved = b.resolve(strict=False)
@@ -510,7 +552,11 @@ def audit(slice_folder: Path, repo_root: Path | None = None) -> AuditResult:
 
     # BRANCH-2 (slice-066; ADR-063): worktree-mode awareness.
     # Check parallel WORKTREE=skip escape-hatch (mirror of BRANCH=skip).
-    worktree_skip_used, _worktree_skip_rationale, worktree_skip_malformed = _check_worktree_skip_line(slice_folder)
+    # slice-071 m1 FIX (per slice-066 code-Critic m1): rationale is now
+    # surfaced via AuditResult (consumer-visible) rather than discarded.
+    worktree_skip_used, worktree_skip_rationale, worktree_skip_malformed = _check_worktree_skip_line(slice_folder)
+    result.worktree_skip_used = worktree_skip_used
+    result.worktree_skip_rationale = worktree_skip_rationale
     if worktree_skip_malformed is not None:
         result.violations.append(worktree_skip_malformed)
         return result

@@ -51,6 +51,7 @@ import re
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+
 from tools import _stdout
 from tools._vault_paths import VAULT_ROOT
 
