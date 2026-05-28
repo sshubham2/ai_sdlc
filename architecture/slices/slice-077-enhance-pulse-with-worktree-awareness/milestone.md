@@ -1,16 +1,16 @@
 ---
 slice: slice-077-enhance-pulse-with-worktree-awareness
-stage: build
+stage: code-review
 updated: 2026-05-29
-next-action: run /code-review
+next-action: run /validate-slice
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-077 enhance-pulse-with-worktree-awareness
 
-**Stage**: build (Phase A-G complete; /build-slice DONE)
-**Next action**: run `/code-review`
+**Stage**: code-review (0B/2M/11m findings; all DEFERRED per voluntary-restraint N=17 cumulative)
+**Next action**: run `/validate-slice`
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surface `skills/pulse/SKILL.md` + ships new helper `tools/pulse_worktree_resolver.py`; mandatory-Critic trigger fires regardless of tier)
 
@@ -21,7 +21,7 @@ critic-required: true
 - [x] /critique — 2026-05-28 — CLEAN (19 first-Critic findings: 4B/9M/6m, all VALIDATED at TRI-1; 17 ACCEPTED-FIXED + 2 DEFERRED)
 - [x] /critique-review — 2026-05-28 — EXTEND (3 missed findings M-add-1/M-add-2/M-add-3, all ACCEPTED-FIXED in-band)
 - [x] /build-slice — 2026-05-29 — DONE (5/5 ACs PASS evidence; 1061/1061 pytest; 12+ Step-6 audits clean; APED-1 13/13)
-- [ ] /code-review (CRSI-1 v1 walking-skeleton; advisory-only post-build)
+- [x] /code-review — 2026-05-29 — 0B/2M/11m advisory findings; all DEFERRED to slice-079+ bundled-cleanup (voluntary-restraint N=17 cumulative; 3-Critic stack N=13 cumulative — design+meta+code each catch structurally-distinct defect classes)
 - [ ] /validate-slice
 - [ ] /reflect
 
