@@ -29,13 +29,13 @@ After this slice ships: a 5-session parallel-slice workflow whose only conflict 
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | methodology / v0.73.0 entry-pin | tests/methodology/test_methodology_changelog.py | test_v_0_73_0_pcr_1_entry_present_in_repo | WRITTEN-FAILING |
-| 1 | methodology / v0.73.0 shippability | tests/methodology/test_methodology_changelog.py | test_v_0_73_0_pcr_1_shippability_consumer_propagation | WRITTEN-FAILING |
+| 1 | methodology / v0.73.0 entry-pin | tests/methodology/test_methodology_changelog.py | test_v_0_73_0_pcr_1_entry_present_in_repo | PASSING |
+| 1 | methodology / v0.73.0 shippability | tests/methodology/test_methodology_changelog.py | test_v_0_73_0_pcr_1_shippability_consumer_propagation | PASSING |
 | 1 | methodology / PMI-1 5-part atomic | tests/methodology/test_methodology_changelog.py | test_version_files_synchronized_at_v_0_73_0 | WRITTEN-FAILING |
 | 1 | methodology / ADR existence | tests/methodology/test_pcr_1_adr_present.py | test_adr_069_parallel_conflict_resolution_mechanism_exists | PASSING |
 | 1 | methodology / taxonomy doc | tests/methodology/test_pcr_1_taxonomy_documented.py | test_three_class_taxonomy_lists_soft_vault_claim_hard | PASSING |
-| 2 | methodology / commit-slice SKILL.md prose | tests/methodology/test_commit_slice_skill_pcr_1_diagnostic.py | test_step_5b_substep_2_5_emits_full_concerned_slice_diagnostic | WRITTEN-FAILING |
-| 2 | methodology / commit-slice SKILL.md prose | tests/methodology/test_commit_slice_skill_pcr_1_diagnostic.py | test_diagnostic_includes_blast_radius_claim_history_commit_time_mission_brief_link | WRITTEN-FAILING |
+| 2 | methodology / commit-slice SKILL.md prose | tests/methodology/test_commit_slice_skill_pcr_1_diagnostic.py | test_step_5b_substep_2_5_emits_full_concerned_slice_diagnostic | PASSING |
+| 2 | methodology / commit-slice SKILL.md prose | tests/methodology/test_commit_slice_skill_pcr_1_diagnostic.py | test_diagnostic_includes_blast_radius_claim_history_commit_time_mission_brief_link | PASSING |
 | 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_dispatches_to_slice_queue_writer_for_slice_queue_conflict | PASSING |
 | 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_appends_shippability_rows_from_both_branches | PASSING |
 | 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_handles_file_added_only_on_one_branch_for_shippability | PASSING |

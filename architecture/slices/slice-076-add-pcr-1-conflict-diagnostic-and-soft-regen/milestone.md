@@ -2,15 +2,15 @@
 slice: slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen
 stage: build
 updated: 2026-05-28
-next-action: Phase E (SKILL.md edit at sub-step 2.5 + v0.73.0 methodology-changelog entry + ADR-069 forward-sync + shippability row #76). Phase D (mid-slice smoke gate) was intentionally folded into Phase E since the smoke-gate assertions (rule entry present + ADR exists + diagnostic prose + entry-pin tests collectable) require Phase E artifacts to be meaningful. Resume from worktree C:/Users/sshub/ai_sdlc-wt/slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen.
+next-action: Phase F (PMI-1 5-leg atomic bump 0.72.0 → 0.73.0 + BC-PROJ-9 5-inventory bump 30 → 31 for new tool module). Bump VERSION + plugin.yaml version + pyproject.toml [project].version + ~/.claude/ai-sdlc-VERSION + register tools/parallel_conflict_resolver.py at plugin.yaml tools block + tools/install_audit.py _CANONICAL_TOOLS + INSTALL.md L22 + L166 (30→31 both sites) + tests/methodology/test_utf8_stdout_regression.py _ROOT_ONLY_TOOLS + $PY -m pip install --upgrade . for TVFS-1 + MCFS-1 forward-sync. Resume from worktree C:/Users/sshub/ai_sdlc-wt/slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen.
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-076 add-pcr-1-conflict-diagnostic-and-soft-regen
 
-**Stage**: build (Phases A+B+C complete; Phase D folded into Phase E; resume Phase E)
-**Next action**: Phase E — SKILL.md edit at Step 5b sub-step 2.5 + v0.73.0 changelog entry + ADR-069 forward-sync + shippability row #76
+**Stage**: build (Phases A+B+C+D+E complete; Phase F + G pending)
+**Next action**: Phase F — PMI-1 5-leg atomic bump 0.72.0 → 0.73.0 + BC-PROJ-9 5-inventory bump 30 → 31
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surfaces `skills/commit-slice/SKILL.md` + mints new rule PCR-1 + new ADR-069; mandatory-Critic trigger fires)
 
@@ -63,9 +63,9 @@ The bundle-074-code-critic-cleanup work is re-queued at this slice's scaffold; s
 
 ## On resume
 
-- **Last completed action**: /build-slice Phase C (tools/parallel_conflict_resolver.py full impl — ~600 LOC across 11 functions + _SoftResolutionError + helpers; mission-brief TF-1 plan flipped 18 rows WRITTEN-FAILING → PASSING; build-log events appended; corrected test_overlay_claims_on_queue_text.py fixtures to real `- **Claimed-by:**` format).
-- **Current work**: none — Phase C about to be committed.
-- **Next immediate step**: `/build-slice` Phase E — (1) edit skills/commit-slice/SKILL.md Step 5b sub-step 2.5 to insert PCR-1 resolver dispatch BEFORE existing SOAD-1 STOP (mirror PSQ-3 prose-pin precedent); (2) append v0.73.0 entry to methodology-changelog.md (PCR-1 + ADR-069 + parallel-conflict-resolution + mints a new rule + 5-part PMI-1 atomic bump + Rule reference); (3) add shippability row #76 with PCR-1 + ADR-069 + paired-pin test names + parallel_conflict_resolver substring; (4) OSDG-1 forward-sync of commit-slice SKILL.md to installed copy at ~/.claude/skills/commit-slice/SKILL.md. Phase D mid-slice smoke folded into Phase E (smoke-gate assertions per mission-brief.md L107-127 require Phase E artifacts). After Phase E lands all 6 SKILL-prose + changelog + shippability tests should PASS, leaving only the 5-inventory + version-sync tests for Phase F.
+- **Last completed action**: /build-slice Phase E (SKILL.md Step 5b sub-step 2.5 PCR-1 dispatch insertion + v0.73.0 methodology-changelog entry + shippability row #75 + OSDG-1/CAD-1 forward-sync of commit-slice SKILL.md to installed copy; mid-slice smoke gate all 4 PASS; TF-1 plan flipped 4 more rows → PASSING).
+- **Current work**: none — Phase E about to be committed.
+- **Next immediate step**: `/build-slice` Phase F — PMI-1 5-leg atomic bump 0.72.0 → 0.73.0 (leg 1: VERSION file + leg 2: plugin.yaml version field + leg 3: pyproject.toml [project].version + leg 4: methodology-changelog.md ## v0.73.0 header [DONE at Phase E] + leg 5: ~/.claude/ai-sdlc-VERSION installed). BC-PROJ-9 5-inventory bump 30 → 31 for tools/parallel_conflict_resolver.py: plugin.yaml tools block + tools/install_audit.py _CANONICAL_TOOLS tuple + INSTALL.md L22 + L166 tool-count literals 30→31 (TWO-SITE pin per /critique M6 ACCEPTED-FIXED) + tests/methodology/test_utf8_stdout_regression.py _ROOT_ONLY_TOOLS. Plus separate post-bump forward-sync obligations per slice-063 M-add-1 leg-enumeration discipline: $PY -m pip install --upgrade . for TVFS-1 venv ai-sdlc-tools refresh + MCFS-1 forward-sync of in-repo methodology-changelog.md → ~/.claude/methodology-changelog.md. After Phase F all remaining 2 WRITTEN-FAILING tests should PASS. Phase G = 14+ Step-6 audits + APED-1 empirical battery on 4 minted predicates per mission-brief must-not-defer + build-log finalize.
 
 ## Phase artifacts
 
