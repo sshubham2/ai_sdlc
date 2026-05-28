@@ -1,16 +1,16 @@
 ---
 slice: slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen
-stage: build
+stage: code-review
 updated: 2026-05-29
-next-action: Phase G — 14+ Step-6 audit gauntlet (TF-1 / WIRE-1 / BC-1 / RR-1 / PMI-1 / CAD-1 / INST-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1 / STP-1 / AVFS-1 / TVFS-1 / NAW-1 / BRANCH-2 / LINT-MOCK-1) + APED-1 empirical battery on 4 minted predicates (_SOFT_FILE_SET membership + classify_conflict 5-way + _extract_claim_diff parser + _merge_shippability row-union) per mission-brief must-not-defer + build-log Summary section finalize. After Phase G, /build-slice declares done and hands off to /code-review (CRSI-1 v1 advisory) then /validate-slice then /reflect.
+next-action: run `/code-review` (CRSI-1 v1 walking-skeleton advisory-only post-build; auto-advance per PCA-1 on clean /build-slice completion). /build-slice declared done at Phase G: 1036/1036 pytest PASS + 75/75 shippability PASS + 18 Step-6 audits clean (modulo 2 BC-1 defer-with-rationale per slice-074 N=7 cumulative prose-vs-automation + keyword-false-positive class) + APED-1 4-predicate battery 28/28 expected. After /code-review: /validate-slice then /reflect.
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-076 add-pcr-1-conflict-diagnostic-and-soft-regen
 
-**Stage**: build (Phases A+B+C+D+E+F complete; Phase G pending)
-**Next action**: Phase G — 14+ Step-6 audit gauntlet + APED-1 empirical battery + build-log finalize
+**Stage**: code-review (all 7 /build-slice phases A-G complete; PCA-1 auto-advance to /code-review)
+**Next action**: run `/code-review` (CRSI-1 v1 walking-skeleton advisory-only)
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surfaces `skills/commit-slice/SKILL.md` + mints new rule PCR-1 + new ADR-069; mandatory-Critic trigger fires)
 
@@ -21,7 +21,7 @@ critic-required: true
 - [x] /critique — 2026-05-28 — NEEDS-FIXES (4B / 7M / 5m; ACCEPTED-FIXED dispositions applied to design + ADR + mission-brief)
 - [x] /critique-review — 2026-05-28 — EXTEND (0 suspicious / 5 missed / 1 severity-adjustment; all 5 M-add ACCEPTED-FIXED at TRI-1)
 - [x] TRI-1 user ratification — 2026-05-28 — final verdict NEEDS-FIXES (16 ACCEPTED-FIXED + 2 ACCEPTED-PENDING + 1 OVERRIDDEN + 5 M-add ACCEPTED-FIXED = 19 dispositioned findings; 2 ACCEPTED-PENDING apply at /build-slice Phase A: M2 stage-missing catch + m5 R-21 risk-register entry)
-- [ ] /build-slice — IN PROGRESS: Phases A+B+C+D+E+F complete. TF-1 plan: 31 PASSING / 0 WRITTEN-FAILING / 1 PENDING (manual end-to-end). Full pytest: 1036/1036 PASS — fully green. Phase G remaining (audit gauntlet + APED-1 + finalize).
+- [x] /build-slice — 2026-05-29 — SHIPPED-WITH-DEFERRALS (2 BC-1 Important defer-with-rationale per slice-074 N=7 cumulative). TF-1 plan: 31/31 PASSING; full pytest 1036/1036; shippability 75/75; 18 Step-6 audits clean; APED-1 4-predicate battery 28/28 expected.
 - [ ] /code-review (CRSI-1 v1 walking-skeleton; advisory-only post-build)
 - [ ] /validate-slice
 - [ ] /reflect
