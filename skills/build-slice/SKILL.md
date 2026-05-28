@@ -58,6 +58,9 @@ Then apply the worktree-create logic (BRANCH-2):
    wt_base="$(dirname "$repo_root")/$(basename "$repo_root")-wt"
    git worktree add "$wt_base/slice-NNN-<slice-name>" -b slice/NNN-<slice-name> "$default"
    cd "$wt_base/slice-NNN-<slice-name>"
+   # Seed gitignored derived dirs from main tree (R-20): /diagnose + graphify outputs
+   if [ -d "$repo_root/diagnose-out" ]; then cp -r "$repo_root/diagnose-out" ./; fi
+   if [ -d "$repo_root/graphify-out" ]; then cp -r "$repo_root/graphify-out" ./; fi
    ```
    (POSIX shell; on Windows invoke via Git for Windows' bundled MSYS bash — same dependency convention as commit-slice Step 5b/5d.)
 
@@ -66,7 +69,22 @@ Then apply the worktree-create logic (BRANCH-2):
    The worktree's filesystem is physically isolated from the main tree; uncommitted slice-A WIP on the main tree cannot contaminate slice-B's worktree.
 2. **If the worktree already exists** at `<wt_base>/slice-NNN-<slice-name>` (resume after session death): `cd "$wt_base/slice-NNN-<slice-name>"` and verify `git branch --show-current` matches `slice/NNN-<slice-name>`.
 3. **If on any other branch** (including stale `slice/<other-number>-*` from prior conflict OR a worktree for a different slice): STOP, ask user to switch context or document `WORKTREE=skip` escape-hatch in `build-log.md` Events per Step 7c canonical shape.
-4. **If working tree is dirty** in the main tree (`git status --porcelain` non-empty before `worktree add`): STOP, ask user to commit or stash on the main tree. NO auto-stash.
+4. **If working tree is dirty** in the main tree (`git status --porcelain` non-empty before `worktree add`): apply the canonical switch-commit-switch-worktree sequence below; NO auto-stash (the codified sequence requires explicit `git add` + `git commit` of the scaffolding, never silent shelve via `git stash`). The dirty state is typically `/slice`+`/critique`+`/critique-review` scaffolding (mission-brief.md + design.md + critique.md + critique-review.md + milestone.md + regenerated slice-queue.md) written before `/build-slice` per the post-vault-in-git slice lifecycle:
+   ```bash
+   # Canonical switch-commit-switch-worktree sequence for dirty pre-build state on default
+   # (N=5 cumulative slice-070/071/072/073/074; canonical origin: slice-070 reflection L127;
+   # post-vault-in-git scaffolding-by-design class)
+   git switch -c slice/NNN-<slice-name>          # carry dirty state to slice branch
+   git add <scaffolding files>                     # explicit staging — no auto-stash
+   git commit -m "scaffold(slice-NNN): mission-brief + design + critique + ..."  # scaffolding commit on slice branch
+   git switch "$default"                           # back to clean default
+   git worktree add "$wt_base/slice-NNN-<slice-name>" slice/NNN-<slice-name>   # no -b; branch exists
+   cd "$wt_base/slice-NNN-<slice-name>"
+   # Then seed gitignored derived dirs per point 1's R-20 step
+   if [ -d "$repo_root/diagnose-out" ]; then cp -r "$repo_root/diagnose-out" ./; fi
+   if [ -d "$repo_root/graphify-out" ]; then cp -r "$repo_root/graphify-out" ./; fi
+   ```
+   This sequence is **NOT idempotent by design** — re-running after a session death mid-scaffolding-commit fails LOUDLY at `git switch -c slice/NNN-<slice-name>` (`fatal: A branch named 'slice/NNN-<slice-name>' already exists`); recovery is via point 2 ("If the worktree already exists"), NOT silent state re-creation. **`-b` is OMITTED at `git worktree add`** because the branch was created at step 1 of this sequence; including `-b` would cause `fatal: A branch named '...' already exists`. Contrast with point 1's new-branch-at-worktree-create form `git worktree add ... -b slice/NNN-<slice-name> "$default"`. If you cannot or do not wish to apply this sequence (e.g., the dirty state is unrelated to slice scaffolding and you want to STOP for manual resolution), document `WORKTREE=skip` escape-hatch in `build-log.md` Events per Step 7c canonical shape.
 
 The canonical `WORKTREE=skip` escape-hatch line shape (Step 7c-pinned per BRANCH-2; mirrors `BRANCH=skip`'s shape from BRANCH-1): `<YYYY-MM-DD HH:MM> DEVIATION: WORKTREE=skip — rationale: <text>`. The `tools/branch_workflow_audit.py` (BRANCH-2 audit) at Step 6 pre-finish refuses anything else. **`BRANCH=skip` is preserved as a parallel legacy escape-hatch** (per ADR-063 §Scope of supersession "Carried forward unchanged" 4th-surface inheritance) — both grammars coexist; `BRANCH=skip` for legacy single-tree-only escapes, `WORKTREE=skip` for the worktree-discipline-skip case + slice-066 bootstrap.
 
