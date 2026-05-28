@@ -2,15 +2,15 @@
 slice: slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen
 stage: build
 updated: 2026-05-28
-next-action: Phase C (implement helper functions in tools/parallel_conflict_resolver.py — ~400 LOC across 10 functions: diagnose_conflict + classify_conflict + resolve_soft_conflict + 7 private helpers + CLI dispatch). Resume in fresh Claude session via /pulse from worktree C:/Users/sshub/ai_sdlc-wt/slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen. Phase B WRITTEN-FAILING tests will progressively flip to PASSING as Phase C implementations land.
+next-action: Phase E (SKILL.md edit at sub-step 2.5 + v0.73.0 methodology-changelog entry + ADR-069 forward-sync + shippability row #76). Phase D (mid-slice smoke gate) was intentionally folded into Phase E since the smoke-gate assertions (rule entry present + ADR exists + diagnostic prose + entry-pin tests collectable) require Phase E artifacts to be meaningful. Resume from worktree C:/Users/sshub/ai_sdlc-wt/slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen.
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-076 add-pcr-1-conflict-diagnostic-and-soft-regen
 
-**Stage**: build (Phase B complete; resume Phase C in fresh session)
-**Next action**: Phase C — implement helper functions in `tools/parallel_conflict_resolver.py`
+**Stage**: build (Phases A+B+C complete; Phase D folded into Phase E; resume Phase E)
+**Next action**: Phase E — SKILL.md edit at Step 5b sub-step 2.5 + v0.73.0 changelog entry + ADR-069 forward-sync + shippability row #76
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surfaces `skills/commit-slice/SKILL.md` + mints new rule PCR-1 + new ADR-069; mandatory-Critic trigger fires)
 
@@ -21,7 +21,7 @@ critic-required: true
 - [x] /critique — 2026-05-28 — NEEDS-FIXES (4B / 7M / 5m; ACCEPTED-FIXED dispositions applied to design + ADR + mission-brief)
 - [x] /critique-review — 2026-05-28 — EXTEND (0 suspicious / 5 missed / 1 severity-adjustment; all 5 M-add ACCEPTED-FIXED at TRI-1)
 - [x] TRI-1 user ratification — 2026-05-28 — final verdict NEEDS-FIXES (16 ACCEPTED-FIXED + 2 ACCEPTED-PENDING + 1 OVERRIDDEN + 5 M-add ACCEPTED-FIXED = 19 dispositioned findings; 2 ACCEPTED-PENDING apply at /build-slice Phase A: M2 stage-missing catch + m5 R-21 risk-register entry)
-- [ ] /build-slice — IN PROGRESS: Phase A complete (HEAD 19b7eaa) + Phase B complete (TF-1 plan 5 PASSING / 26 WRITTEN-FAILING / 1 PENDING; R-21 heading-level fix). Phases C-G PENDING — resume in fresh Claude session (~5-6 hours estimated remaining work).
+- [ ] /build-slice — IN PROGRESS: Phases A+B+C complete (HEAD fc3358e + Phase C uncommitted). TF-1 plan: 25 PASSING / 6 WRITTEN-FAILING (all Phase E+F) / 1 PENDING (manual end-to-end). Full pytest: 1028/1036 PASS; 6 failures are Phase E+F deliverables + 2 are pre-existing Phase-A skeleton-without-registration audits (resolve at Phase F 5-inventory bump). Phases E-G PENDING (D folded into E).
 - [ ] /code-review (CRSI-1 v1 walking-skeleton; advisory-only post-build)
 - [ ] /validate-slice
 - [ ] /reflect
@@ -63,9 +63,9 @@ The bundle-074-code-critic-cleanup work is re-queued at this slice's scaffold; s
 
 ## On resume
 
-- **Last completed action**: /build-slice Phase B (28 PCR-1 tests authored across 9 new test files in tests/skills/parallel_conflict_resolver/ + tests/methodology/test_pcr_1_*; 3 v0.73.0 entry-pin tests appended to tests/methodology/test_methodology_changelog.py; mission-brief TF-1 plan flipped PENDING → WRITTEN-FAILING/PASSING; R-21 heading-level latent-bug fixed).
-- **Current work**: none — Phase B about to be committed; fresh-session resume expected for Phase C.
-- **Next immediate step**: `/build-slice` Phase C — implement the 10 helper functions in tools/parallel_conflict_resolver.py (diagnose_conflict + classify_conflict + resolve_soft_conflict + _extract_u_files + _derive_concerned_slices + _extract_claim_diff + _regen_slice_queue + _overlay_claims_on_queue_text + _merge_shippability + _append_audit_log + main()). Phase C is the largest impl chunk (~400 LOC); Phase D mid-slice smoke; Phase E SKILL.md edit + v0.73.0 changelog; Phase F PMI-1 5-leg + 5-inventory bumps; Phase G audits + APED-1 battery + finalize.
+- **Last completed action**: /build-slice Phase C (tools/parallel_conflict_resolver.py full impl — ~600 LOC across 11 functions + _SoftResolutionError + helpers; mission-brief TF-1 plan flipped 18 rows WRITTEN-FAILING → PASSING; build-log events appended; corrected test_overlay_claims_on_queue_text.py fixtures to real `- **Claimed-by:**` format).
+- **Current work**: none — Phase C about to be committed.
+- **Next immediate step**: `/build-slice` Phase E — (1) edit skills/commit-slice/SKILL.md Step 5b sub-step 2.5 to insert PCR-1 resolver dispatch BEFORE existing SOAD-1 STOP (mirror PSQ-3 prose-pin precedent); (2) append v0.73.0 entry to methodology-changelog.md (PCR-1 + ADR-069 + parallel-conflict-resolution + mints a new rule + 5-part PMI-1 atomic bump + Rule reference); (3) add shippability row #76 with PCR-1 + ADR-069 + paired-pin test names + parallel_conflict_resolver substring; (4) OSDG-1 forward-sync of commit-slice SKILL.md to installed copy at ~/.claude/skills/commit-slice/SKILL.md. Phase D mid-slice smoke folded into Phase E (smoke-gate assertions per mission-brief.md L107-127 require Phase E artifacts). After Phase E lands all 6 SKILL-prose + changelog + shippability tests should PASS, leaving only the 5-inventory + version-sync tests for Phase F.
 
 ## Phase artifacts
 

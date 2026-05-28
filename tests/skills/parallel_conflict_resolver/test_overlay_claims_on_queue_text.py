@@ -26,19 +26,19 @@ _QUEUE_NO_CLAIMS = """# Slice queue
 
 ### add-foo
 
-**Source**: risk-register R-13
-**Blast-radius**: tools/foo.py
-**Parallel-safety**: GRAPH-DISJOINT
-**Effort**: SMALL
-**Risk-retired**: LOW
+- **Source:** risk-register R-13
+- **Blast-radius:** `tools/foo.py`
+- **Parallel-safety:** GRAPH-DISJOINT
+- **Effort:** SMALL
+- **Risk-retired:** LOW
 
 ### add-bar
 
-**Source**: risk-register R-14
-**Blast-radius**: tools/bar.py
-**Parallel-safety**: GRAPH-DISJOINT
-**Effort**: SMALL
-**Risk-retired**: LOW
+- **Source:** risk-register R-14
+- **Blast-radius:** `tools/bar.py`
+- **Parallel-safety:** GRAPH-DISJOINT
+- **Effort:** SMALL
+- **Risk-retired:** LOW
 """
 
 
@@ -48,21 +48,21 @@ _QUEUE_WITH_CLAIM_ON_FOO = """# Slice queue
 
 ### add-foo
 
-**Source**: risk-register R-13
-**Blast-radius**: tools/foo.py
-**Parallel-safety**: GRAPH-DISJOINT
-**Effort**: SMALL
-**Risk-retired**: LOW
-**Claimed-by**: alice <alice@example.com>
-**Claimed-at**: 2026-05-28T09:00:00Z
+- **Source:** risk-register R-13
+- **Blast-radius:** `tools/foo.py`
+- **Parallel-safety:** GRAPH-DISJOINT
+- **Effort:** SMALL
+- **Risk-retired:** LOW
+- **Claimed-by:** alice <alice@example.com>
+- **Claimed-at:** 2026-05-28T09:00:00Z
 
 ### add-bar
 
-**Source**: risk-register R-14
-**Blast-radius**: tools/bar.py
-**Parallel-safety**: GRAPH-DISJOINT
-**Effort**: SMALL
-**Risk-retired**: LOW
+- **Source:** risk-register R-14
+- **Blast-radius:** `tools/bar.py`
+- **Parallel-safety:** GRAPH-DISJOINT
+- **Effort:** SMALL
+- **Risk-retired:** LOW
 """
 
 
@@ -85,16 +85,16 @@ def test_overlay_claims_on_queue_text_inserts_claimed_by_under_risk_retired_for_
         },
     }
     result = _overlay_claims_on_queue_text(_QUEUE_NO_CLAIMS, merged_claims)
-    assert "**Claimed-by**: alice <alice@example.com>" in result, (
+    assert "- **Claimed-by:** alice <alice@example.com>" in result, (
         "Overlay must insert the Claimed-by literal for the new claim"
     )
-    assert "**Claimed-at**: 2026-05-28T10:00:00Z" in result, (
+    assert "- **Claimed-at:** 2026-05-28T10:00:00Z" in result, (
         "Overlay must insert the Claimed-at literal for the new claim"
     )
     # Insertion position: must appear AFTER add-foo's Risk-retired line +
     # BEFORE the next ### candidate heading (or EOF).
-    risk_retired_idx = result.find("**Risk-retired**: LOW")
-    claimed_by_idx = result.find("**Claimed-by**: alice")
+    risk_retired_idx = result.find("- **Risk-retired:** LOW")
+    claimed_by_idx = result.find("- **Claimed-by:** alice")
     next_candidate_idx = result.find("### add-bar")
     assert risk_retired_idx != -1 and claimed_by_idx != -1, (
         "Overlay must produce both Risk-retired (preserved) + Claimed-by (inserted)"
@@ -128,10 +128,10 @@ def test_overlay_claims_on_queue_text_replaces_existing_claim_with_newer_claimed
         },
     }
     result = _overlay_claims_on_queue_text(_QUEUE_WITH_CLAIM_ON_FOO, merged_claims)
-    assert "**Claimed-by**: bob <bob@example.com>" in result, (
+    assert "- **Claimed-by:** bob <bob@example.com>" in result, (
         "Overlay must contain the NEW (replaced) Claimed-by literal"
     )
-    assert "**Claimed-at**: 2026-05-28T11:00:00Z" in result, (
+    assert "- **Claimed-at:** 2026-05-28T11:00:00Z" in result, (
         "Overlay must contain the NEW (replaced) Claimed-at literal"
     )
     assert "alice <alice@example.com>" not in result, (
@@ -139,9 +139,9 @@ def test_overlay_claims_on_queue_text_replaces_existing_claim_with_newer_claimed
         "claimer 'alice' MUST NOT remain after replacement"
     )
     # Exactly one Claimed-by line for add-foo (no append-instead-of-replace).
-    assert result.count("**Claimed-by**:") == 1, (
+    assert result.count("- **Claimed-by:**") == 1, (
         f"Exactly 1 Claimed-by line expected after replacement; got "
-        f"{result.count('**Claimed-by**:')} — append-instead-of-replace bug"
+        f"{result.count('- **Claimed-by:**')} - append-instead-of-replace bug"
     )
 
 
@@ -170,7 +170,7 @@ def test_overlay_claims_on_queue_text_drops_claims_for_candidates_absent_from_ta
     }
     result = _overlay_claims_on_queue_text(_QUEUE_NO_CLAIMS, merged_claims)
     # The valid claim (add-foo) MUST be inserted.
-    assert "**Claimed-by**: alice <alice@example.com>" in result, (
+    assert "- **Claimed-by:** alice <alice@example.com>" in result, (
         "Valid claim for add-foo (present in queue_text) MUST be inserted"
     )
     # The orphan claim MUST be dropped (not inserted as a new candidate).
