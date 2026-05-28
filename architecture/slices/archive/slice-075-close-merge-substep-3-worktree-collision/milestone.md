@@ -1,16 +1,16 @@
 ---
 slice: slice-075-close-merge-substep-3-worktree-collision
-stage: critique
+stage: complete
 updated: 2026-05-28
-next-action: run /build-slice (TRI-1 CLEAN; auto-advance per PCA-1)
+next-action: none (slice complete) — user invokes /commit-slice manually per PCA-1 terminal-before-commit contract
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-075 close-merge-substep-3-worktree-collision
 
-**Stage**: critique (TRI-1 ratified CLEAN; ready for /build-slice)
-**Next action**: run `/build-slice` (PCA-1 auto-advance — TRI-1 ratified Final verdict CLEAN; all 6 dispositions ACCEPTED-FIXED in-band)
+**Stage**: complete (reflection captured; auto-archiving next)
+**Next action**: none — slice complete. User invokes `/commit-slice` manually (PCA-1 auto-advance terminates here by contract; `/commit-slice` is NEVER auto-invoked)
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: yes (mandatory trigger: in-house methodology surface `skills/commit-slice/SKILL.md`)
 
@@ -21,10 +21,10 @@ critic-required: true
 - [x] /critique — 2026-05-28 — CLEAN (post-TRI-1; user ratified all 6 ACCEPTED-FIXED in-band — 4 first-Critic + 2 meta-Critic)
 - [x] /critique-review — 2026-05-28 — EXTEND (4 first-Critic findings VALID + 2 meta-Critic MISSED findings M-add-1/M-add-2 RSAD-1-class + 0 SUSPICIOUS + 0 SEVERITY-WRONG)
 - [x] TRI-1 user triage — 2026-05-28 — CLEAN (all 6 ACCEPTED-FIXED ratified; triage_audit clean)
-- [ ] /build-slice
-- [ ] /code-review
-- [ ] /validate-slice
-- [ ] /reflect
+- [x] /build-slice — 2026-05-28 — SHIPPED (16/16 Step 6 audits CLEAN; full pytest 1006/1006 PASS; shippability 74/74 PASS; 2 build-time RSAD-1 defects surfaced + resolved in-band)
+- [x] /code-review — 2026-05-28 — FINDINGS 0B/0M/2m advisory (both DEFERRED to slice-076+ `slice-NNN-bundle-075-code-critic-cleanup` per CRSI-1 v1 walking-skeleton + voluntary-restraint N=16 cumulative): m1 `_extract_substep_2_1_block` narration-leakage (RSAD-1 sub-class N=3) + m2 source-document-move stale-anchor sweep (TPHD-1 sub-mode (a) "file-move-but-anchor-not-swept" sub-class variant); 3-Critic stack N=11 cumulative; SCMD-1 verified post-edit
+- [x] /validate-slice — 2026-05-28 — PASS (5/5 ACs PASS with evidence; 74/74 shippability runner PASS no regressions; SCMD-1 pre-catalog clean 783 cited fns + PTFCD-1 pre-catalog clean 381 test-path tokens; VAL-1 clean 0 secrets + 0 hallucinated imports; WS-1/ETC-1 default-off; no multi-instance required; no reality surprises)
+- [x] /reflect — 2026-05-28 — captured (Validated 9 items + Corrected 3 in-band tightenings + Discovered 6 patterns incl. /critic-calibrate 6th-signal RSAD-1 annotation-literal-pollution N=3 + Deferred 9 items + Critic calibration: 6/6 VALIDATED + 3 MISSED by Critic build-time RSAD-1 + code-Critic m1+m2 NOT-YET; lessons-learned appended; MCFS-1+AVFS-1+TVFS-1 PASS at v0.72.0 unchanged MEPD-1 EXCLUDE; graphify refreshed)
 
 ## Current focus
 

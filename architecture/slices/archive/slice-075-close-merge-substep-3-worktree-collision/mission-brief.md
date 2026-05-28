@@ -25,12 +25,13 @@ Per **TF-1** (`methodology-changelog.md` v0.13.0). Each AC maps to ≥1 failing 
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | methodology | tests/methodology/test_commit_slice_skill_merge_substep_3_main_tree_transition.py | test_substep_3_includes_main_tree_transition_before_checkout | PENDING |
-| 3 | methodology (paired-pin for AC#1) | tests/methodology/test_commit_slice_skill_merge_substep_3_main_tree_transition.py | test_substep_3_main_tree_transition_uses_canonical_worktree_list_awk_extraction | PENDING |
-| 2 | methodology | tests/methodology/test_commit_slice_skill_merge_wt_clean_preflight_ordering.py | test_wt_clean_preflight_does_not_contradict_substep_2_commit | PENDING |
-| 4 | methodology (paired-pin for AC#2) | tests/methodology/test_commit_slice_skill_merge_wt_clean_preflight_ordering.py | test_wt_clean_preflight_preserves_silent_wt_discard_protection_intent | PENDING |
+| 1 | methodology | tests/methodology/test_commit_slice_skill_merge_substep_3_main_tree_transition.py | test_substep_3_includes_main_tree_transition_before_checkout | PASSING |
+| 3 | methodology (paired-pin for AC#1) | tests/methodology/test_commit_slice_skill_merge_substep_3_main_tree_transition.py | test_substep_3_main_tree_transition_uses_canonical_worktree_list_awk_extraction | PASSING |
+| 2 | methodology | tests/methodology/test_commit_slice_skill_merge_wt_clean_preflight_ordering.py | test_wt_clean_preflight_does_not_contradict_substep_2_commit | PASSING |
+| 4 | methodology (paired-pin for AC#2) | tests/methodology/test_commit_slice_skill_merge_wt_clean_preflight_ordering.py | test_wt_clean_preflight_preserves_silent_wt_discard_protection_intent | PASSING |
+| 5 | meta (shippability catalog representative) | tests/methodology/test_commit_slice_skill_merge_substep_3_main_tree_transition.py | test_substep_3_includes_main_tree_transition_before_checkout | PASSING |
 
-(Test-first plan deliberately maps AC#3 + AC#4 to paired-pin functions in the same test modules as AC#1 + AC#2 respectively — convention follows slice-067/072/073 paired-pin precedent. AC#5 is a meta-AC covering /validate-slice CLEAN at slice-finish; not test-first-pinnable except via the shippability catalog runner which is an existing audit.)
+(Test-first plan deliberately maps AC#3 + AC#4 to paired-pin functions in the same test modules as AC#1 + AC#2 respectively — convention follows slice-067/072/073 paired-pin precedent. AC#5 is the meta-AC covering /validate-slice CLEAN at slice-finish; its TF-1 row points to the shippability catalog representative test added at row 74 — running this test through the shippability runner is the deterministic gate for AC#5's "shippability runner ≥74/74 PASS" sub-claim.)
 
 ## Verification plan
 
