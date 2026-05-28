@@ -1622,3 +1622,29 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 - **TPHD-1 sub-mode (a) Builder-fix-block-introduces-N+1-regressions HELD at N=7 cumulative** (no new instance this slice). Pattern recurrence rate slows when Builder fix-block discipline is tight (slice-074: ~17 design-time fixes applied with 0 meta-Critic-caught regressions across both /critique passes).
 
+## Slice 075 (close-merge-substep-3-worktree-collision) — 2026-05-28
+
+### Worked
+
+- **3-edit minimal prose surgery at SKILL.md Step 5b** — surgically resolved P1.2 (worktree-vs-main-tree collision) + P2.4 (WT-clean preflight contradiction) with zero scope creep. The `cd "$main_tree"` prepend + WT-clean lift to sub-step 2.1. + decimal-marker mirror of slice-073's PSQ-3 sub-step 2.5 precedent are all in-band corrections to existing ADR-063/068/020 contracts (MEPD-1 EXCLUDE; v0.72.0 unchanged).
+- **`2.1.` block-anchored extraction with prelude guard** (per /critique-review M-add-1/M-add-2 ACCEPTED-FIXED) makes TF-1 WRITTEN-FAILING genuinely fail pre-fix despite L168 already containing all 3 intent literals AND L181 PSQ-3 conflict-STOP already containing `git status --porcelain` after L173 `git commit`. The unique-to-post-fix `2.1.` literal anchor is the load-bearing distinguisher.
+- **APED-1 empirical execution at /critique-review pass-2** correctly identified pre-fix-PASS class via Python-level grep against pre-fix SKILL.md substrings. Gold-standard rigor per slice-074 lineage held this slice.
+- **Voluntary-restraint N=16 cumulative** continues structurally stable across 16 cycles — code-Critic m1 + m2 deferred cleanly to slice-076+ bundle without scope dispute.
+- **3-Critic stack N=11 cumulative complementarity** — code-Critic m1 (line-start vs substring anchor analysis on `2.1.` finding L169 narration leakage at offset 1131 vs real marker at offset 1812) + m2 (file-move stale-anchor sweep) are STRUCTURALLY UNREACHABLE by design-Critic + meta-Critic stack (which read mission-brief/design but don't run APED-1 on post-fix prose at substring-vs-line-start granularity). The 3-Critic stack value continues to validate.
+
+### Didn't work
+
+- **Self-introduced annotation-literal-pollution defects N=3 cumulative on slice-075 alone**: 2 caught at build-time mid-slice smoke (Edit 1 annotation `git status --porcelain` polluting AC#2 negative-anchor + Edit 2 annotation `git checkout` polluting AC#1 ordering offset) + 1 latent post-finish at /code-review m1 (`find("2.1.")` returning narration offset). Resolution was instance-specific (rephrase 2 specific literals + tighten 1 test pin); discipline didn't generalize. Design-Critic + meta-Critic stack didn't catch — class is **post-design-Critic structurally** (annotation drafts hadn't been written at /critique time).
+- **Source-document move not propagated to in-vault references**: 5 stale `enable-parallel-slice-pending-items.txt` anchors remain in mission-brief.md (L5/L66/L72/L81) + design.md (L6) after the file moved to `architecture/slices/slice-075-.../source-pending-items.txt`. TPHD-1 sub-mode (a) sub-class variant "file-move-but-anchor-not-swept" (vs prior "edit-but-mirror-not-swept" class). N=8 cumulative TPHD-1.
+- **/critic-calibrate STILL OVERDUE** — slice-074 reflection noted "SEVERELY OVERDUE at FIVE simultaneous signals"; slice-075 adds 6th signal (RSAD-1 annotation-literal-pollution N=3 cumulative this-slice-alone). Cost of deferring continues to compound. Strongest slice-076 candidate alongside the code-Critic-cleanup bundle.
+
+### Pattern
+
+- **For ANY structural-pin test that asserts a literal in prose-as-executable-contract surfaces, the pinned literal MUST be UNIQUE-TO-THE-INVOCATION (not a noun-phrase that appears in informative narration)**. Tighten to invocation-form (`git checkout $default`), line-start anchor (`^2.1.\s`), or wrapping context (`\nLITERAL\n`). APED-1 against pre-fix AND post-fix prose at design time would catch the build-time + post-finish RSAD-1 sub-class. The /critic-calibrate proposal target: strengthen agents/critique.md RSAD-1 sub-clause with "literal-uniqueness against prospective annotation prose" enforcement language.
+
+- **For file-move operations within a slice**, sweep all in-vault references to the old path BEFORE commit. Grep-based defense: `grep -r "<old-name>" architecture/slices/<this-slice>/`. The cost (~30s sweep) is trivial vs the downstream "fresh reader following stale anchor" cost.
+
+- **MEPD-1 EXCLUDE + DID add shippability row N=2 cumulative** (slice-068 + slice-075) — confirms the two axes are independent. /reflect Step 5.3 prose at `/critic-calibrate` proposal target should disentangle them explicitly.
+
+- **Voluntary-restraint discipline + bundled-cleanup-at-N+1 canonical disposition shape** continues to function reliably across 16 cycles. The cleanup slice's blast radius is bounded; no scope inflation tracked across the lineage.
+
