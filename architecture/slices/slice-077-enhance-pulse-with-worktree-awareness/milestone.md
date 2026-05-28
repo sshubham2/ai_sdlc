@@ -1,16 +1,16 @@
 ---
 slice: slice-077-enhance-pulse-with-worktree-awareness
 stage: build
-updated: 2026-05-28
-next-action: Phase A — pulse_worktree_resolver.py skeleton
+updated: 2026-05-29
+next-action: run /code-review
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-077 enhance-pulse-with-worktree-awareness
 
-**Stage**: build (Phase A in progress)
-**Next action**: Phase A — pulse_worktree_resolver.py skeleton
+**Stage**: build (Phase A-G complete; /build-slice DONE)
+**Next action**: run `/code-review`
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surface `skills/pulse/SKILL.md` + ships new helper `tools/pulse_worktree_resolver.py`; mandatory-Critic trigger fires regardless of tier)
 
@@ -20,7 +20,7 @@ critic-required: true
 - [x] /design-slice — 2026-05-28
 - [x] /critique — 2026-05-28 — CLEAN (19 first-Critic findings: 4B/9M/6m, all VALIDATED at TRI-1; 17 ACCEPTED-FIXED + 2 DEFERRED)
 - [x] /critique-review — 2026-05-28 — EXTEND (3 missed findings M-add-1/M-add-2/M-add-3, all ACCEPTED-FIXED in-band)
-- [ ] /build-slice
+- [x] /build-slice — 2026-05-29 — DONE (5/5 ACs PASS evidence; 1061/1061 pytest; 12+ Step-6 audits clean; APED-1 13/13)
 - [ ] /code-review (CRSI-1 v1 walking-skeleton; advisory-only post-build)
 - [ ] /validate-slice
 - [ ] /reflect
