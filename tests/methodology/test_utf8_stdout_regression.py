@@ -104,6 +104,7 @@ _ROOT_ONLY_TOOLS = [
     "tools.new_agent_warning_audit",  # slice-063 / NAW-1 (--check/--json/--root, no slice arg)
     "tools.slice_queue_writer",  # slice-067 / PSQ-1 (--candidates-json/--active-slice/--output/--graph/--root)
     "tools.parallel_conflict_resolver",  # slice-076 / PCR-1 (--diagnose/--classify/--resolve-soft/--json/--repo-root, no slice arg)
+    "tools.pulse_worktree_resolver",  # slice-077 / ADR-070 (--detect/--classify/--json/--repo-root, no positional slice arg)
 ]
 
 

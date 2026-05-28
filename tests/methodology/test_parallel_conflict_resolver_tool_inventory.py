@@ -56,22 +56,35 @@ def test_parallel_conflict_resolver_in_canonical_tools_plugin_manifest_install_m
         "surface 2 (INST-1 install audit)"
     )
 
-    # (3) + (4) INSTALL.md tool-count literal at L22 + L166 both at 31
+    # (3) + (4) INSTALL.md tool-count literal at L22 + L166 — relaxed from
+    # hard-pin of `31` (slice-076 PCR-1 state) to forward-compatible assertion:
+    # the file must mention `tools/parallel_conflict_resolver.py` (or
+    # `parallel_conflict_resolver`) somewhere AND the literal count present
+    # at L22 must equal the literal count at L166 (catches half-bumped state).
+    # Pre-fix the assertion pinned `31` literally; slice-077 (32 tools) and
+    # every subsequent count-bumping slice would TPHD-1 sub-mode (a) regress
+    # this test. Per /critic-calibrate signal "MEPD-1 EXCLUDE vs shippability
+    # row obligation should be disentangled".
     install_md = read_file("INSTALL.md")
-    # Both forms must read 31, not 30, post-PCR-1 (30→31 bump).
-    assert "**31 executable methodology tools**" in install_md, (
-        "INSTALL.md must contain '**31 executable methodology tools**' literal "
-        "(L22 anchor; bumped from **30** at PCR-1 BC-PROJ-9 5-inventory surface 3)"
+    install_md_lines = install_md.splitlines()
+    l22 = install_md_lines[21] if len(install_md_lines) > 21 else ""
+    l166 = install_md_lines[165] if len(install_md_lines) > 165 else ""
+    # Extract the integer count from both sites (e.g. "**32 executable methodology tools**")
+    import re as _re
+    l22_match = _re.search(r"\*\*(\d+) executable methodology tools\*\*", l22)
+    l166_match = _re.search(r"The (\d+) executable methodology tools \(audit modules", l166)
+    assert l22_match, f"INSTALL.md L22 missing '**N executable methodology tools**' literal; got {l22!r}"
+    assert l166_match, f"INSTALL.md L166 missing 'The N executable methodology tools (audit modules' literal; got {l166!r}"
+    l22_count = int(l22_match.group(1))
+    l166_count = int(l166_match.group(1))
+    assert l22_count == l166_count, (
+        f"INSTALL.md L22 + L166 counts diverge (L22={l22_count}, L166={l166_count}) — "
+        "BC-PROJ-9 5-inventory two-site pin per slice-076 M6 ACCEPTED-FIXED demands lockstep"
     )
-    assert "31 executable methodology tools (audit modules" in install_md, (
-        "INSTALL.md must contain 'The 31 executable methodology tools (audit modules' "
-        "literal (L166 anchor; bumped from '30' at PCR-1 BC-PROJ-9 5-inventory "
-        "surface 4 — TWO-SITE pin per /critique M6 ACCEPTED-FIXED; desync between "
-        "L22 and L166 fails INST-1 audit)"
+    assert l22_count >= 31, (
+        f"INSTALL.md tool count regressed below the slice-076 PCR-1 floor (L22={l22_count}); "
+        "PCR-1 required 30 → 31 bump; subsequent slices may only bump UP, not down"
     )
-    # Defense-in-depth: there must be NO remaining literal '30 executable methodology
-    # tools' anywhere in INSTALL.md (catches a half-bumped state where one site bumped
-    # but the other didn't).
     assert "30 executable methodology tools" not in install_md, (
         "INSTALL.md still contains stale '30 executable methodology tools' literal "
         "— a half-bumped state at PCR-1; BOTH L22 + L166 sites must bump 30→31 in "

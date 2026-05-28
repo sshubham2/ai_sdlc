@@ -105,6 +105,7 @@ _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.parallel_conflict_resolver",
     "tools.pipeline_chain_audit",
     "tools.plugin_manifest_audit",
+    "tools.pulse_worktree_resolver",
     "tools.risk_register_audit",
     "tools.shippability_decoupling_audit",
     "tools.shippability_path_audit",

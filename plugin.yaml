@@ -126,6 +126,8 @@ tools:
     rule: PCA-1
   - path: tools/plugin_manifest_audit.py
     rule: PMI-1
+  - path: tools/pulse_worktree_resolver.py
+    rule: ADR-070
   - path: tools/risk_register_audit.py
     rule: RR-1
   - path: tools/shippability_path_audit.py
