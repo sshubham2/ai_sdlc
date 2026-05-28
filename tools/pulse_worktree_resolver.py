@@ -155,18 +155,25 @@ def _parse_worktree_porcelain(output: str) -> list[dict[str, str]]:
     return blocks
 
 
-def _resolve_milestone_path(repo_root: Path, slice_num: str, slice_name: str) -> Path | None:
+def _resolve_milestone_path(scan_root: Path, slice_num: str, slice_name: str) -> Path | None:
     """Resolve milestone.md path for a slice — active OR archived. Returns
     None if neither exists.
 
-    Active: architecture/slices/slice-NNN-<name>/milestone.md
-    Archive: architecture/slices/archive/slice-NNN-<name>/milestone.md
+    Active: <scan_root>/architecture/slices/slice-NNN-<name>/milestone.md
+    Archive: <scan_root>/architecture/slices/archive/slice-NNN-<name>/milestone.md
+
+    For BRANCH-2 worktrees, `scan_root` MUST be the WORKTREE's path (not the
+    main repo's path) — the milestone.md is checked into the slice branch and
+    physically lives in the worktree's filesystem, not the main tree's. This
+    is precisely the witnessed-gap scenario slice-077 closes (R-22): a freshly
+    scaffolded slice's milestone is invisible to /pulse if it reads only the
+    main tree.
     """
     folder = f"slice-{slice_num}-{slice_name}"
-    active = repo_root / "architecture" / "slices" / folder / "milestone.md"
+    active = scan_root / "architecture" / "slices" / folder / "milestone.md"
     if active.is_file():
         return active
-    archive = repo_root / "architecture" / "slices" / "archive" / folder / "milestone.md"
+    archive = scan_root / "architecture" / "slices" / "archive" / folder / "milestone.md"
     if archive.is_file():
         return archive
     return None
@@ -260,7 +267,10 @@ def detect_active_worktrees(repo_root: Path) -> list[WorktreeInfo]:
         if not wt_path.exists():
             continue
         head_sha = block.get("HEAD", "")
-        milestone_path = _resolve_milestone_path(repo_root, slice_num, slice_name)
+        # Resolve milestone.md from the WORKTREE's filesystem, not the main
+        # tree's — BRANCH-2 worktrees check milestone into the slice branch
+        # so the file physically lives in the worktree.
+        milestone_path = _resolve_milestone_path(wt_path, slice_num, slice_name)
         out.append(
             WorktreeInfo(
                 path=str(wt_path).replace("\\", "/"),

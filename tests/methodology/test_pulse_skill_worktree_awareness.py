@@ -39,12 +39,12 @@ def test_step_1_documents_git_worktree_list_pre_read():
     """
     text = _read_skill()
     wt_idx = text.find("git worktree list --porcelain")
-    main_milestone_idx = text.find("milestone.md FIRST")
+    main_milestone_idx = text.find("Active slice folder (if any):")
     assert wt_idx != -1, (
         "Step 1 must mention `git worktree list --porcelain` as the worktree-detection pre-read step"
     )
     assert main_milestone_idx != -1, (
-        "existing 'milestone.md FIRST' anchor missing — Step 1 read instruction may have drifted"
+        "existing 'Active slice folder (if any):' anchor missing — Step 1 read instruction may have drifted"
     )
     assert wt_idx < main_milestone_idx, (
         "worktree-detection bullet must PRECEDE the existing main-tree milestone.md read instruction "
@@ -59,7 +59,7 @@ def test_worktree_milestone_read_precedes_main_tree_milestone_read():
     so the test asserts BOTH literals + that they come BEFORE the existing
     main-tree milestone.md read."""
     text = _read_skill()
-    main_milestone_idx = text.find("milestone.md FIRST")
+    main_milestone_idx = text.find("Active slice folder (if any):")
     archive_idx = text.find("slices/archive/slice-NNN")
     assert main_milestone_idx != -1
     assert archive_idx != -1, (

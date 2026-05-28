@@ -35,11 +35,12 @@ Independent of modes. Read-only — never modifies vault files.
 
 Read these files (non-recursive, small total):
 
+- **BRANCH-2 worktree detection** (per slice-077 / ADR-070; mandatory pre-read step BEFORE any milestone.md read): run `git worktree list --porcelain` (or invoke `python -m tools.pulse_worktree_resolver --detect --json` from the repo root) to enumerate non-main worktrees registered with the repo. For each worktree on a `slice/NNN-<name>` branch (canonical BRANCH-2 path `<main-parent>/<main-name>-wt/slice-NNN-<name>`), read that worktree's `architecture/slices/slice-NNN-<name>/milestone.md` (active path) OR `architecture/slices/archive/slice-NNN-<name>/milestone.md` (archive path — auto-archived in worktree by `/reflect` Step 6). The worktree's milestone is canonical for slice-NNN's state during the BRANCH-2 worktree window; the main-tree `architecture/slices/<active>/milestone.md` is stale until `/commit-slice --merge`. Then classify each worktree via `python -m tools.pulse_worktree_resolver --classify slice-NNN-<name> --json` to compute one of 4 `WorktreeState` values (`IN_PROGRESS` / `BUILT_BUT_NOT_MERGED` / `MERGED` / `UNKNOWN`) per ADR-070 § 4-state worktree taxonomy.
 - `architecture/triage.md` → mode, classification, pipeline path, deferred steps
 - `architecture/concept.md` (if exists) → 1-line "what it does"
 - `architecture/risk-register.md` → risks with status (open / mitigating / retired / accepted) — use the **RR-1** audit (`$PY -m tools.risk_register_audit architecture/risk-register.md --json --filter-status open --sort score`) for scored, sorted output. Surface top-3 open by score in the "Risk exposure" section; older legacy table-format files emit zero risks and fall back to a grep-based summary with a one-line "register not migrated to RR-1 format" hint.
 - `architecture/slices/_index.md` → active slice list, recent-10, aggregated lessons
-- Active slice folder (if any): `milestone.md` FIRST (primary source — explicit stage, next-action, progress, on-resume data in one file). Only read `mission-brief.md` for extra detail on intent or ACs if the milestone summary isn't enough.
+- Active slice folder (if any): `milestone.md` FIRST (primary source — explicit stage, next-action, progress, on-resume data in one file). Only read `mission-brief.md` for extra detail on intent or ACs if the milestone summary isn't enough. **Worktree precedence**: when a BRANCH-2 worktree on a `slice/NNN-<name>` branch exists (per the pre-read step above), the WORKTREE's milestone.md is authoritative for slice-NNN's state; consult both but prefer the worktree's when they diverge during a `BUILT_BUT_NOT_MERGED` window.
 - If `milestone.md` shows stage `build` (or later but `build-log.md` exists): also read the **tail (~last 15 lines) of `build-log.md`'s `## Events` section**. This is the append-only flight recorder written by `/build-slice` Step 7c. Tool failures and session deaths can leave `milestone.md` stale; the events trace is the durable record. Compare the latest event timestamp to milestone.md's last update — if events are newer, milestone.md is behind and the events tell the real story.
 - `architecture/shippability.md` (if exists) → count of critical paths
 - `architecture/critic-calibration-log.md` (if exists) → last calibration run date, slices since last run
@@ -86,6 +87,29 @@ If fallback triggers: flag to user "milestone.md missing — consider running `/
   - ⚠️⚠️ **overdue** (>20 slices): "calibration overdue — N slices; run /critic-calibrate next"
 - **Cadence-overdue override**: if state is ⚠️⚠️ overdue, the cadence flag supersedes other "Recommended next action" entries in Step 3 output (calibration runs first, then resume normal next-slice work)
 - **First-run handling**: if calibration log is empty AND <10 archived slices, do not flag — output "first calibration deferred until 10 archived slices accumulate" (this is not a warning)
+
+**Recommended next action override-precedence (per slice-077 / ADR-070 — `worktree-state override` ranks above `cadence-overdue`)**:
+
+The "Recommended next action" surfaced in Step 3 output is resolved deterministically HERE in Step 2 (main-thread; the Step 3 Haiku dispatch consumes the resolved value via the augmented state-dict's `recommended_next_action_override` key — Haiku does NOT run the override logic). Precedence (HIGHEST first):
+
+1. **Worktree-state override** (new; slice-077): if any detected worktree's classification is `BUILT_BUT_NOT_MERGED`, recommend `cd <worktree-path> && /commit-slice --merge` (the stuck-state pipeline pointer — merge is blocking the next slice). If `IN_PROGRESS` (and no `BUILT_BUT_NOT_MERGED`), recommend `cd <worktree-path>` plus the worktree's stage-derived next-action. Supersedes #2 + #3.
+2. **CAL-1 cadence-overdue override** (existing): if /critic-calibrate cadence is ⚠️⚠️ overdue, recommend `/critic-calibrate`. Fires only when #1 doesn't.
+3. **Stage-derived next-action** (existing): read the active-slice main-tree `milestone.md` `next-action:` field.
+
+The full 4×CAL-1 precedence table per design.md L125-134:
+
+| WorktreeState observed | CAL-1 cadence-overdue? | Resolved next-action |
+|---|---|---|
+| `BUILT_BUT_NOT_MERGED` | any | `cd <wt> && /commit-slice --merge` (rule #1) |
+| `IN_PROGRESS` | any | `cd <wt> && <stage-derived from worktree milestone>` (rule #1 variant) |
+| `MERGED` (CLEANUP-CANDIDATE) | overdue | `/critic-calibrate` (rule #2) + sidebar WARN |
+| `MERGED` (CLEANUP-CANDIDATE) | not overdue | stage-derived (rule #3) + sidebar WARN |
+| `UNKNOWN` | overdue | `/critic-calibrate` (rule #2) + WARN naming UNKNOWN sub-reason |
+| `UNKNOWN` | not overdue | stage-derived (rule #3) + WARN naming UNKNOWN sub-reason |
+| no worktrees detected | overdue | `/critic-calibrate` (rule #2; current behavior preserved) |
+| no worktrees detected | not overdue | stage-derived (rule #3; current behavior preserved) |
+
+The augmented structured-state dict passed to Step 3 Haiku includes `worktrees: list[WorktreeInfo]` + `worktree_classifications: list[WorktreeStateClassification]` + `recommended_next_action_override: str | None` keys per slice-077 design.md L37. Haiku consumes these to render the "Recommended next action" line; the override resolution is already baked into the dict.
 
 **Risk exposure**:
 - Active HIGH risks count
@@ -163,6 +187,8 @@ Output format (default, balanced) — **the dispatched agent fills this**:
 ## Drift & bypass
 - Unresolved drift entries: 0
 - Pipeline bypasses (changelog.md): 1 (typo fix on 2026-04-18)
+
+(Per slice-077 / ADR-070 — **vault-forward-population false-positive suppression**: when any active worktree's classification is `BUILT_BUT_NOT_MERGED` AND ALL 3 installed surfaces (`~/.claude/methodology-changelog.md` + `~/.claude/ai-sdlc-VERSION` + `~/.claude/skills/pulse/SKILL.md`) are content-equal-modulo-EOL (per ADR-033 / EOL-DRIFT-1) to the worktree's copies, the master-vs-installed divergence is the EXPECTED state of the BUILT_BUT_NOT_MERGED window — the worktree's `/reflect` step already forward-synced the installed copies; master is behind by design until merge. SUPPRESS the "vault forward-population" drift flag in this case AND emit a positive surface instead: `ℹ️ Master-vs-installed divergence on changelog/VERSION/SKILL.md is the EXPECTED state during the BUILT_BUT_NOT_MERGED window — run /commit-slice --merge to reconcile.` The negative case is load-bearing: if any installed surface diverges from BOTH worktree AND main, suppression does NOT fire — that's genuine three-way drift. UNKNOWN-state worktrees do NOT trigger suppression; they surface as one-line WARNs in this section with their UNKNOWN sub-reason per design.md § Fail-closed paths, NEVER silently dropped.)
 
 ## Top lessons (last 5 recent)
 - Image features: enumerate formats + EXIF upfront
