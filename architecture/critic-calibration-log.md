@@ -591,3 +591,121 @@ Next /critic-calibrate run (after slices 045+ archive, target ~10–20 slices, O
 | Next /critic-calibrate trigger | slices 045+ archive (default ~10–20 slices), OR earlier if (a) STP-1 post-codification effectiveness needs verification, OR (b) recompute-don't-trust cure proves ineffective, OR (c) governing-lag class hits a 3rd distinct rule |
 
 ---
+
+## Calibration run — 2026-05-28 (post-slice-075)
+
+**Window**: last 15 reflections (slice-061 through slice-075). Default window size reached. First calibration run covering slices 045–075 (16-slice gap since the 2026-05-18 post-slice-044 run; rules minted in the gap — STP-1@slice-044, NAW-1@slice-063, BRANCH-2@slice-066, BCI-1@slice-066, VFS@slice-068, vault-in-git@slice-069, PSQ-1@slice-070, PSQ-2@slice-072, R-20 retirement@slice-074 — are carried forward as already-codified).
+
+**Total misses analyzed**: ~15 distinct-slice miss-class instances; ~30 cumulative within-instance signals. Window extract at `critic-calibrate-window-061-075.md` (583 lines).
+
+### Pattern summary
+
+| # | Category | Distinct-slice MISSES (window) | Slices | In `agents/critique.md` first-Critic scope? | Disposition |
+|---|---|---|---|---|---|
+| 1 | TPHD-1 sub-mode (a) Builder-fix-block-introduces-N+1-regressions (meta-Critic catches stale-anchor sweep gaps post-ACCEPTED-FIXED) | **7** | 062, 064, 067, 070, 071, 072, 073 | **Partial** — by-design meta-Critic specialization (FBCD-1 sub-mode b); first-Critic addition would replicate meta-Critic's already-effective work | Out of scope — designed-as-backstop, NOT a first-Critic prompt gap |
+| 2 | **APED-1 scope-extension to regex / pathspec / glob mints at design-time** (rule covers "audit parse-rules"; in-window misses extend same shape to non-audit minted regex/pathspec/glob) | **3 MISS + 2 CATCH** | 069 M5 INCLUDE pathspec over-match (MISS); 070 AC#3 `.gitignore` dotfile blind-spot (MISS); 071 B1 `_PATH_SHAPED_RE` broken regex (MISS + CATCH counter-example); 074 pass-2 B1/M1/M2 (CATCH gold-standard) | **Yes** — APED-1 refinement | **PROPOSAL 1 — ACCEPTED** |
+| 3 | AC count > 5 on new-mechanism mints (≤5-AC carve-out violation) | **2** (067 M-add-1, 072 M4) + slice-074 lessons-citation cumulative N=3 | 067, 072 | Yes — Dim 4 sub-bullet candidate | Below N=3 distinct-slice threshold (one below) |
+| 4 | RSAD-1 annotation-literal-pollution (slice authors structural-pin tests whose pinned literal is satisfied by informative narration in the slice's own SKILL.md prose surgery) | **2 distinct slices / N=5 cumulative within-instance** | 065 B1/B2 substring-leak; 075 3× build-time RSAD-1 defects | **No — structurally post-design-Critic** (annotation drafts don't exist at /critique time; they are Phase C build artifacts) | Out-of-scope by structure → route to BRANCH-2 SKILL.md Builder-discipline addition |
+| 5 | Critic over-reach FALSE-ALARM — "demands structural-test evidence for structurally-self-evident no-op class" | **3 OVERRIDDEN FALSE-ALARMs** | 064 m3, 067 M1, 070 m3 | Yes — but adding "be more restrained" prose is documented anti-pattern in /critic-calibrate skill | Below proposal threshold by anti-pattern; existing Honesty rule + "Do NOT manufacture findings" already covers; revisit at N=4 if OVERRIDE workload becomes burdensome |
+| 6 | Spec-prose-claims-a-test-that-isn't-in-TF-1-plan | **1** (068 code-Critic M1) | 068 | Yes | Below threshold (N=1) |
+| 7 | Gitignored-vault-vs-worktree probe | **2** (067, 068) | 067, 068 | Partial | Below threshold; trigger condition retired by vault-in-git@slice-069 |
+| 8 | Count-claim hand-verification at design time (`grep -c` against production source) | **2** (069 `_SECRET_PATTERNS` 9-vs-10; 071 design.md "6 new tests" vs 9 actual) | 069, 071 | Yes — adjacent to FBCD-1 sub-mode (a) | Below threshold; promote at N=3 as FBCD-1 sub-mode (a) refinement |
+| 9 | TPHD-1 sub-mode (a) file-move-but-anchor-not-swept variant | **1** (075 5 stale anchors after source-doc scaffold-relocation) | 075 | Yes — TPHD-1 sub-mode (a) variant | Below threshold (N=1) |
+| 10 | MEPD-1 INCLUDE empirical-scan-of-prior-INCLUDE-artifacts (paired-pin tests + shippability rows) | **1** (069 code-Critic M2) | 069 | Partial — MEPD-1 refinement | Below threshold (N=1) |
+| 11 | Cross-slice runtime-state interactions (R-18 agent-loading; harness state) | **2** (061, 062 R-18 N=2) | 061, 062 | **No — structurally outside any Critic layer** (Claude Code harness runtime-state) | Out-of-scope by structure (methodology-side warning + risk-register) |
+| 12 | PMI-1 5-part leg enumeration drift across N>3 sites | **5** (062 B1, 063 M-add-1, 064 m1+M-add-2, 066 M-add-2, 067 M-add-4) | 062, 063, 064, 066, 067 | Yes in principle | Subsumed by FBCD-1 sub-mode (a) (already codified); meta-Critic N+1 catches operating as designed |
+| 13 | BC-1 BC-GLOBAL-2 prose-vs-automation false-positive discrimination | **4** (slice-074 lessons cite N=6 cumulative) | 069, 070, 071, 074 (lessons) | **No — out of `critique.md` scope** (BC-1 audit model refinement) | Routed to `tools/build_checks.py` negative-anchor filtering |
+| 14 | Rule minted in slice N is first-Critic blind spot on slice N+1 (governing-lag) | Multiple (BRANCH-2@066 N+1 = 067/068; PSQ-1@070 N+1 = 071) | Multiple | **No — designed DR-1 backstop fires as expected** | Out-of-scope (backstop IS the design) |
+| 15 | 3-Critic stack value-validation (each Critic catches different class) | **N=11 cumulative through 075** | Every codification-class slice | n/a — discovery | Stable structural observation; not a proposal |
+
+### Effectiveness on past proposals
+
+All 8 prior accepted proposals + the CCC-1 user-override + STP-1 codification are **EFFECTIVE or STRONGLY EFFECTIVE** with zero in-scope first-Critic recurrence across cumulative slices 045–075.
+
+| Proposal / Rule | Applied | Cumulative 045–075 result | Verdict |
+|---|---|---|---|
+| 2026-05-10 Proposal 1 (Dim 1 tooling-doc-vs-impl parity) | 2026-05-10 | 0 source-code-level docstring-vs-implementation MISSES; ~70 consecutive clean slices (6–75) | SUSTAINED STRONGLY EFFECTIVE |
+| 2026-05-10 Proposal 2 (Dim 4 methodology-audit conformance) | 2026-05-10 | 0 MISSES at the three named sub-sub-bullets; slice-064 B2, slice-066 B4 = CATCHES applying this sub-bullet | SUSTAINED STRONGLY EFFECTIVE |
+| CCC-1 user-override (Dim 9 dimension) | 2026-05-10 | Catch-rate range floor 60–100% UPHELD every slice in window (e.g., 066 14/14, 069 16/16, 071 12/12, 073 26/26, 074 pass-1 8/8 + pass-2 5/5); 3 FALSE-ALARMs in window (064 m3, 067 M1, 070 m3) all correctly OVERRIDDEN | Qualitatively SUSTAINED; quantitative target stays formally RETIRED |
+| RPCD-1 (Dim 9 #9, slice-016) | slice-016 | 0 first-Critic MISSES sub-modes a/b/c; slice-070 B1 first-Critic empirically executed graphify (RPCD-1 internalized) | SUSTAINED EFFECTIVE |
+| FBCD-1 (Dim 9 #10, slice-024) | slice-024 | 0 first-Critic sub-mode (a) MISSES; sub-mode (b) meta-Critic catches at N=7 in window (the designed division of labor) | SUSTAINED EFFECTIVE at sub-mode (a); sub-mode (b) backstop operating as designed |
+| PTFCD-1 / PTFFD-1 (Dim 9 #11, slice-025/slice-037) | slice-025 / slice-037 | 0 file-level + 0 function-level recurrence; slice-063 M1, slice-064 B1, slice-065, slice-073 B1 = CATCHES (internalization) | SUSTAINED EFFECTIVE |
+| APED-1 (Dim 9 #12, slice-039) | slice-039 | EFFECTIVE within ORIGINAL `tools/**` parse-rule scope; **scope-extension class (design-time-minted regex/pathspec/glob) is N=3 NEW MISS evidence in window** → Proposal 1 | EFFECTIVE within original scope; **scope-extension is this run's accepted refinement** |
+| MEPD-1 (Dim 7 checklist, slice-039) | slice-039 | 0 first-Critic MISSES of the rule; slice-061 M8, slice-074 M4 = CATCHES applying MEPD-1 by name | SUSTAINED EFFECTIVE |
+| STP-1 (slice-044) | slice-044 | 0 obvious recurrences across 045–075 — first post-codification window confirms | EFFECTIVE — first post-codification measurement |
+
+**Critic-disposition accuracy**: ~100% on filed findings every slice in window. Three OVERRIDDEN FALSE-ALARMs (064 m3, 067 M1, 070 m3) share the structural-self-evidence-over-reach shape — logged as Watching-but-not-proposing per anti-pattern guidance.
+
+### Proposals
+
+| # | Pattern | Distinct slices | Proposed change | Target | User action |
+|---|---|---|---|---|---|
+| 1 | APED-1 scope-extension to non-audit minted regex / pathspec / glob | 3 MISS (069 M5 / 070 AC#3 / 071 B1) + 1 CATCH counter-example (074 pass-2 B1/M1/M2) | (a) Header sentence amended to record scope-extension provenance; (b) "When reviewing..." opener broadened from `tools/**` audit parse rules to any minted regex/glob/pathspec/parse rule (including AC-row test regex, git pathspec, Glob/Grep patterns in skill prose); (c) Adversarial battery extended with **dotfile / hidden-path** input (the slice-070 class) AND **representative real-corpus input** (the slice-069 class); (d) Clause (2) Blocker criteria extended with **under-match on legitimate-but-edge-case input the rule's domain includes** (dotfiles, deeply-nested paths, paths with `-` / `_` / `.` boundaries) | `~/.claude/agents/critique.md` Dim 9 sub-clause #12 (and in-repo `agents/critique.md` per CAD-1) | **ACCEPTED** (2026-05-28) — user to apply manually per exact steps in the run conversation |
+
+### Watching but not proposing
+
+| Sub-class | N distinct slices in window | Promotion criterion |
+|---|---|---|
+| **TPHD-1 sub-mode (a) Builder-fix-block-introduces-N+1-regressions** | 7 (062/064/067/070/071/072/073) | **Structurally meta-Critic specialization** (FBCD-1 sub-mode b). N=7 is the BACKSTOP FIRING AS DESIGNED, not a first-Critic regression. Adding to `critique.md` would replicate the meta-Critic's already-effective work (generic-addition anti-pattern). Promote only if **meta-Critic also misses** in slices 076+ — then it becomes a first-Critic-must-do, not a meta-Critic-already-does. |
+| **Critic over-reach FALSE-ALARM ("structural-test evidence for structurally-self-evident no-op")** | 3 (064 m3, 067 M1, 070 m3) — all OVERRIDDEN | Threshold N=3 met but **routing-out**: adding "be more restrained" prose is documented anti-pattern in this skill itself. Existing Honesty rule + "Do NOT manufacture findings to justify the review" passages already cover this. The user's OVERRIDE-MISJUDGED disposition is the correct calibration mechanism. Revisit at N=4 if user finds OVERRIDE workload burdensome. |
+| **RSAD-1 annotation-literal-pollution** | 2 distinct (065 + 075); N=5 within-instance | **Structurally post-design-Critic**. Annotation drafts don't exist at /critique time (Phase C build artifacts). Route to slice-076+ Builder-discipline addition in `skills/build-slice/SKILL.md` (mirroring slice-074's R-20 codification), NOT a `critique.md` change. |
+| **AC count > 5 on new-mechanism mints** (≤5-AC carve-out violation) | 2 (067 M-add-1, 072 M4) | One below N=3 distinct-slice threshold. Slice-074 lessons-citation cumulative N=3 is lessons-recall-count, not first-Critic MISS. Promote at N=3 actual first-Critic MISS as Dim 4 sub-bullet (Wiegers AC traceability) refinement. |
+| **Count-claim hand-verification at design time** (`grep -c` against production source) | 2 (069 `_SECRET_PATTERNS` 9-vs-10; 071 design.md "6 new tests" vs 9 actual) | One below threshold. Adjacent to FBCD-1 sub-mode (a) which covers cross-document consistency but NOT hand-verification against production source. Promote at N=3 as FBCD-1 sub-mode (a) refinement. Partially overlaps Proposal 1 (extended APED-1 adversarial battery's real-corpus input). |
+| **Spec-prose-claims-a-test-that-isn't-in-TF-1-plan** | 1 (068 code-Critic M1) | At N=2-3, propose design-Critic probe. |
+| **Gitignored-vault-vs-worktree probe** | 2 (067, 068) | Trigger condition structurally retired by vault-in-git@slice-069. |
+| **MEPD-1 INCLUDE empirical-scan-of-prior-INCLUDE-artifacts** | 1 (069 code-Critic M2) | At N=2 (project's documented proactive-codification convention), refine MEPD-1 body. |
+| **TPHD-1 sub-mode (a) file-move-but-anchor-not-swept variant** | 1 (075) | Watch. |
+| **Cross-slice runtime-state interactions (R-18 class)** | 2 (061, 062) | Structurally out-of-scope for any Critic layer; methodology-side warning territory. |
+| **BC-1 BC-GLOBAL-2 prose-vs-automation false-positive discrimination** | 4 in-window / 6 cumulative | Out of `critique.md` scope — BC-1 audit model refinement, not Critic prompt. Route to negative-anchor filtering in `tools/build_checks.py`. |
+| **PMI-1 5-part leg enumeration drift across N>3 sites** | 5 (062/063/064/066/067) | Subsumed under FBCD-1 sub-mode (a); meta-Critic N+1 catches operating as designed. |
+| **3-Critic stack value-validation** | N=11 cumulative through 075 | Discovery, not a miss class. Stable structural observation. |
+
+### Non-`critique.md` routing recommendations (user-side, not Critic-prompt proposals)
+
+1. **TPHD-1 sub-mode (a) first-Critic sharpening** (N=7 cumulative in window) → designed meta-Critic specialization per slice-037 audit-vs-real-artifact law. If a routing is desired, target is `agents/critique-review.md` (different agent), not this skill's proposal target. Reflections nominate, but per the agent rubric this is structurally out-of-scope for `critique.md`.
+2. **RSAD-1 annotation-literal-pollution** → slice-076+ Builder-discipline addition to `skills/build-slice/SKILL.md` (mirroring slice-074's R-20 codification): "for prose-as-executable-contract surfaces, before writing annotation prose, APED-1-execute the structural test's pinned literal against the prospective annotation".
+3. **BC-1 BC-GLOBAL-2 prose-vs-automation discrimination** (N=4-6 cumulative) → `tools/build_checks.py` negative-anchor filtering refinement slice candidate.
+4. **Carryover un-actioned items** from prior runs (still NOT `critique.md` proposals): auto-mode-classifier Builder-awareness note; autonomous-loop rubber-stamp note (slice-030A D-3). Both still pending.
+5. **Recompute-don't-trust cure tracking** (carried from 2026-05-18 run): no recurrence in window 061–075 indicating the slice-042 design.md-canonical-anchor-command cure HELD. Confirmed STABLE.
+
+### Effectiveness check methodology
+
+Next /critic-calibrate run (after slices 076+ archive, target ~10–20 slices, OR earlier per triggers below) should verify:
+
+1. **Proposal 1 — FIRST measurement** (slices 076+ that mint a regex / pathspec / glob in mission-brief / design.md / new ADR): 0 first-Critic MISSES on the scope-extended class; findings continue to explicitly record the executed adversarial battery, including the dotfile + real-corpus inputs. Baseline = N=3 MISS (069 M5 / 070 AC#3 / 071 B1) + N=1 CATCH counter-example (074 pass-2). Mirror the RPCD-1/FBCD-1/APED-1-original internalization trajectory (DR-1 catches on the scope-extended class → 0).
+2. **TPHD-1 sub-mode (a) backstop integrity**: if meta-Critic starts missing at sub-mode (b) in slices 076+ (i.e., a stale-anchor sweep gap caught at /build-slice or later, not at /critique-review), promote the first-Critic-must-do refinement at next calibration run.
+3. **FALSE-ALARM Critic-restraint pattern**: if N=4 OVERRIDDEN-FALSE-ALARM emerges across slices 076+ AND user finds the OVERRIDE workload burdensome, revisit the structural-self-evidence-over-reach discipline.
+4. **APED-1 ORIGINAL scope (`tools/**` parse rules)**: confirm sustained 0 first-Critic misses on the audit-parse-rule core (separate from the scope-extension measurement).
+5. **AC count > 5 / Count-claim hand-verification**: if either hits N=3 distinct-slice at slices 076+, propose Dim 4 sub-bullet (AC count) or FBCD-1 sub-mode (a) refinement (count-claim hand-verification).
+6. **Watch-list N=1 categories**: any of MEPD-1 INCLUDE empirical-scan, TPHD-1 file-move-anchor-sweep, Spec-prose-claims-a-test-that-isn't-in-TF-1-plan hitting N=2-3 → promote.
+7. **Standard sustained-effectiveness**: confirm RPCD-1, FBCD-1 sub-mode (a), PTFCD-1/PTFFD-1, MEPD-1, STP-1, 2026-05-10 Dim 1+Dim 4 proposals all stay at 0 first-Critic recurrence.
+
+**User judgement awareness**: zero OVERRIDE-MISJUDGED-on-VALIDATED entries in window. Three OVERRIDDEN FALSE-ALARMs (064 m3, 067 M1, 070 m3) — all correctly user-overridden per Critic-self-acknowledged hedges; not a user-side misjudgement signal. No user calibration signal to surface beyond the watch-list entry.
+
+### Run summary
+
+| Metric | Value |
+|---|---|
+| Window | slices 061–075 (15 reflections; default window size) — first calibration run covering 045–075 |
+| Cumulative analysis surface | slices 045–075 (16-slice gap + 15-slice window since 2026-05-18 post-slice-044 run) |
+| Distinct slice misses analyzed | ~15 distinct-slice miss-class instances; ~30 cumulative within-instance signals |
+| Proposals generated | 1 |
+| Proposals accepted | 1 (APED-1 scope-extension to non-audit minted regex/pathspec/glob — user 2026-05-28) |
+| Proposals declined by meta-Critic at analysis time | 2 routed out (RSAD-1 annotation-pollution → BRANCH-2 Builder-discipline; structural-self-evidence over-reach → anti-pattern, log-only) |
+| 2026-05-10 Proposal 1 (Dim 1) | SUSTAINED STRONGLY EFFECTIVE — ~70 consecutive clean (6–75) |
+| 2026-05-10 Proposal 2 (Dim 4) | SUSTAINED STRONGLY EFFECTIVE — 0 misses 045–075 |
+| CCC-1 user-override (Dim 9) | Qualitatively SUSTAINED; range floor 60–100% UPHELD; quantitative target stays RETIRED |
+| RPCD-1 (slice-016) | SUSTAINED EFFECTIVE — 0 first-Critic misses 045–075 |
+| FBCD-1 (slice-024) | SUSTAINED EFFECTIVE sub-mode (a); sub-mode (b) backstop operating as designed (N=7 catches in window) |
+| PTFCD-1 / PTFFD-1 (slice-025/037) | SUSTAINED EFFECTIVE — 0 file/function-level recurrence |
+| APED-1 (slice-039) | EFFECTIVE within ORIGINAL scope; scope-extension is this run's accepted refinement |
+| MEPD-1 (slice-039) | SUSTAINED EFFECTIVE — 0 first-Critic misses 045–075 |
+| STP-1 (slice-044) — FIRST measurement | EFFECTIVE — 0 obvious recurrences across 045–075 |
+| Critic-disposition accuracy | ~100% on filed findings every slice in window; 3 OVERRIDDEN FALSE-ALARMs (064 m3, 067 M1, 070 m3) all correctly user-overridden |
+| 3-Critic stack value-validation | N=11 cumulative through 075 (each Critic catches a different class) — empirically stable; do NOT collapse the stack |
+| Strongest signal | APED-1 scope-extension (N=3 MISS in non-audit minted-regex/pathspec/glob; slice-074 pass-2 demonstrated the broader scope IS Critic-reachable when generalized) |
+| Watch-list strongest (deferred) | TPHD-1 sub-mode (a) N=7 (designed backstop; not first-Critic gap); Critic-restraint FALSE-ALARM N=3 (anti-pattern routing); RSAD-1 annotation-pollution (route to BRANCH-2 Builder-discipline) |
+| Non-`critique.md` routings surfaced | 5 (TPHD-1 sub-mode-a sharpening; RSAD-1 annotation-pollution; BC-1 BC-GLOBAL-2; auto-mode-classifier note; autonomous-loop rubber-stamp note) |
+| Next /critic-calibrate trigger | slices 076+ archive (default ~10–20 slices), OR earlier if (a) Proposal 1 post-application miss-counts need verification, OR (b) TPHD-1 sub-mode (a) starts leaking past meta-Critic backstop, OR (c) FALSE-ALARM Critic-restraint pattern hits N=4, OR (d) AC count > 5 / count-claim hand-verification hits N=3 |
+
+---
