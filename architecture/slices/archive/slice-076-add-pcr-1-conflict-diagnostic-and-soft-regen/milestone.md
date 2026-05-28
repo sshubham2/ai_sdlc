@@ -1,16 +1,16 @@
 ---
 slice: slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen
-stage: reflect
+stage: complete
 updated: 2026-05-29
-next-action: run `/reflect` (PCA-1 auto-advance from /validate-slice on aggregate PASS). /validate-slice all 5/5 ACs PASS; VAL-1 clean (0 secrets, 0 hallucinated imports); shippability 75/75 PASS; 1039/1039 full pytest PASS; 18 Step-6 audits clean modulo 2 BC-1 Important defer-with-rationale; 0 reality surprises; 0 multi-instance requirements (PCR-1 is cooperative-coordination per ADR-069). All 9 code-Critic findings fixed in-band at fix-in-band commit 90f6976 (user fix-all disposition; 3-Critic stack value-validation N=12 cumulative; voluntary-restraint N=16 UNCHANGED).
+next-action: none (slice complete; auto-archiving next). PCA-1 terminal-before-commit halt — `/commit-slice` is user-invoked by contract.
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-076 add-pcr-1-conflict-diagnostic-and-soft-regen
 
-**Stage**: reflect (/validate-slice complete; PCA-1 auto-advance to /reflect on aggregate PASS)
-**Next action**: run `/reflect`
+**Stage**: complete (slice shipped + lessons captured + BC-PROJ-12 promoted; auto-archiving next)
+**Next action**: `/commit-slice` (user-invoked per PCA-1 terminal contract)
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surfaces `skills/commit-slice/SKILL.md` + mints new rule PCR-1 + new ADR-069; mandatory-Critic trigger fires)
 
@@ -24,7 +24,7 @@ critic-required: true
 - [x] /build-slice — 2026-05-29 — SHIPPED-WITH-DEFERRALS (2 BC-1 Important defer-with-rationale per slice-074 N=7 cumulative). TF-1 plan: 31/31 PASSING; full pytest 1036/1036; shippability 75/75; 18 Step-6 audits clean; APED-1 4-predicate battery 28/28 expected.
 - [x] /code-review — 2026-05-29 — 9 findings (0B / 3M / 6m); ALL 9 FIXED IN-BAND (user override: option 3 fix-all); 3-Critic stack value-validation N=12 cumulative. Findings: M1 EOL-DRIFT-1 (4 write_text/open sites; newline="" applied + LF-only regression test) / M2 atomicity gap (stage-then-commit refactor in resolve_soft_conflict: helpers now return (Path, str) without writing; batch-write only on all-success + atomicity regression test) / M3 missing defense-in-depth VAULT_CLAIM gate (added in _regen_slice_queue after _extract_claim_diff; VAULT_CLAIM defense-in-depth regression test) / m1 __import__("os") → import os / m2 narrow except Exception → except ClaimUsageError / m3 silent claim-drop warning when block lacks Risk-retired / m4 6 unused pytest imports removed / m5 porcelain rename-with-arrow → fail-closed UNKNOWN / m6 audit log single open("a") + conditional header. Voluntary-restraint N=16 cumulative UNCHANGED (user chose fix-in-band over defer). 1039/1039 pytest PASS (was 1036; +3 regression tests). All 18 Step-6 audits remain clean.
 - [x] /validate-slice — 2026-05-29 — **PASS** (5/5 ACs PASS with evidence). VAL-1 layered safety clean (0 secrets, 0 hallucinated imports). Shippability runner via SRSC-1 pinned: 75/75 PASS, 0 FAIL (no regressions). 1039/1039 full pytest PASS. WS-1 + ETC-1 default-off (mission-brief Walking-skeleton=false / Exploratory-charter=false). Multi-instance: N/A (PCR-1 is cooperative-coordination convention per ADR-069 § Adversarial model, not a security boundary). 0 reality surprises. R-21 open residual remains tracked for empirical refutation in future parallel-slice usage. PCA-1 auto-advance to /reflect on aggregate PASS.
-- [ ] /reflect
+- [x] /reflect — 2026-05-29 — vault updates landed: R-21 registered/heading-fixed (Phase A/B); shippability row #75 added (Phase E); methodology-changelog v0.73.0 entry added (Phase E); ADR-069 authored at /design-slice; lessons-learned appended with slice-076 block + 3-Critic stack N=12 + RSAD-1 N=4 + design→code translation gap canonical instance. BC-PROJ-12 promoted ("New helpers writing markdown files must use newline='' to preserve LF on Windows"; user-approved at N=2 cumulative threshold; BCI-1 + literal-constant oracle test PASS; full pytest 1040/1040). Critic calibration: 21 critique findings (16 first-Critic + 5 M-add) all VALIDATED (no FALSE-ALARM, no OVERRIDE-MISJUDGED); 9 code-Critic findings VALIDATED + 9 of 9 Missed-by-design-Critic-stack (3-Critic stack value-validation N=12 cumulative). Graphify code graph refreshed (190 files / 3169 nodes / 4050 edges / 163 communities).
 
 ## Current focus
 
