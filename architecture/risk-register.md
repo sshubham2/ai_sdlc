@@ -360,9 +360,7 @@ Status `mitigating`, not `retired`: both residual axes are bounded but real. Rev
 
 **Why not Critic-promotion**: per slice-037 audit-vs-real-artifact law: the gap is a BRANCH-2 worktree + gitignored-derived-artifact interaction, invisible to single-slice review at /critique time. The right tooling is risk-register tracking until N≥3 + slice-072+ dedicated fix slice.
 
----
-
-### R-21 — SOFT auto-regen produces semantically-different content from manual-resolve baseline at a corner case
+## R-21 — SOFT auto-regen produces semantically-different content from manual-resolve baseline at a corner case
 
 **Likelihood**: medium
 **Impact**: medium

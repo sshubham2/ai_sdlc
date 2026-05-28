@@ -29,38 +29,41 @@ After this slice ships: a 5-session parallel-slice workflow whose only conflict 
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | methodology / v0.73.0 entry-pin | tests/methodology/test_methodology_changelog.py | test_v_0_73_0_pcr_1_entry_present_in_repo | PENDING |
-| 1 | methodology / v0.73.0 shippability | tests/methodology/test_methodology_changelog.py | test_v_0_73_0_pcr_1_shippability_consumer_propagation | PENDING |
-| 1 | methodology / PMI-1 5-part atomic | tests/methodology/test_methodology_changelog.py | test_version_files_synchronized_at_v_0_73_0 | PENDING |
-| 1 | methodology / ADR existence | tests/methodology/test_pcr_1_adr_present.py | test_adr_069_parallel_conflict_resolution_mechanism_exists | PENDING |
-| 1 | methodology / taxonomy doc | tests/methodology/test_pcr_1_taxonomy_documented.py | test_three_class_taxonomy_lists_soft_vault_claim_hard | PENDING |
-| 2 | methodology / commit-slice SKILL.md prose | tests/methodology/test_commit_slice_skill_pcr_1_diagnostic.py | test_step_5b_substep_2_5_emits_full_concerned_slice_diagnostic | PENDING |
-| 2 | methodology / commit-slice SKILL.md prose | tests/methodology/test_commit_slice_skill_pcr_1_diagnostic.py | test_diagnostic_includes_blast_radius_claim_history_commit_time_mission_brief_link | PENDING |
-| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_dispatches_to_slice_queue_writer_for_slice_queue_conflict | PENDING |
-| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_appends_shippability_rows_from_both_branches | PENDING |
-| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_handles_file_added_only_on_one_branch_for_shippability | PENDING |
-| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_handles_file_added_only_on_one_branch_for_slice_queue | PENDING |
-| 3 | unit / claim overlay | tests/skills/parallel_conflict_resolver/test_overlay_claims_on_queue_text.py | test_overlay_claims_on_queue_text_inserts_claimed_by_under_risk_retired_for_new_claim | PENDING |
-| 3 | unit / claim overlay | tests/skills/parallel_conflict_resolver/test_overlay_claims_on_queue_text.py | test_overlay_claims_on_queue_text_replaces_existing_claim_with_newer_claimed_at | PENDING |
-| 3 | unit / claim overlay | tests/skills/parallel_conflict_resolver/test_overlay_claims_on_queue_text.py | test_overlay_claims_on_queue_text_drops_claims_for_candidates_absent_from_target_text | PENDING |
-| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_bypassed_when_mixed_with_hard_file | PENDING |
-| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_aborts_when_post_merge_claim_dict_has_same_candidate_different_identities | PENDING |
-| 3 | unit / SOFT file-set pin | tests/skills/parallel_conflict_resolver/test_soft_file_set.py | test_soft_file_set_is_two_canonical_files_forward_slash_keyed | PENDING |
-| 3 | unit / audit logging | tests/skills/parallel_conflict_resolver/test_audit_log.py | test_soft_conflict_resolution_appends_to_parallel_conflict_resolution_log | PENDING |
-| 4 | unit / helper library API | tests/skills/parallel_conflict_resolver/test_diagnose_conflict.py | test_diagnose_conflict_returns_conflict_diagnostic_with_concerned_slices_map | PENDING |
-| 4 | unit / classify_conflict | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_soft_when_all_u_files_are_in_two_member_soft_set | PENDING |
-| 4 | unit / classify_conflict | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_hard_when_any_source_file_present | PENDING |
-| 4 | unit / classify_conflict | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_mixed_when_soft_and_hard_coexist | PENDING |
-| 4 | unit / classify_conflict | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_mixed_when_soft_and_vault_claim_coexist | PENDING |
-| 4 | unit / classify_conflict | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_vault_claim_when_same_candidate_claimed_by_different_identities_across_branches | PENDING |
-| 4 | unit / classify_conflict fail-closed | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_unknown_when_rebase_state_empty | PENDING |
-| 4 | unit / resolve_soft_conflict fail-closed | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_returns_stop_on_unknown_class | PENDING |
-| 4 | unit / Windows path normalization | tests/skills/parallel_conflict_resolver/test_soft_file_set.py | test_soft_file_set_membership_uses_forward_slash_keys_on_windows_paths | PENDING |
-| 4 | unit / CLI | tests/skills/parallel_conflict_resolver/test_cli.py | test_cli_emits_json_when_json_flag_passed | PENDING |
-| 4 | unit / CLI | tests/skills/parallel_conflict_resolver/test_cli.py | test_cli_resolve_soft_exits_zero_on_successful_soft_regen | PENDING |
-| 5 | methodology / BC-PROJ-9 5-inventory | tests/methodology/test_parallel_conflict_resolver_tool_inventory.py | test_parallel_conflict_resolver_in_canonical_tools_plugin_manifest_install_md_at_l22_and_l166 | PENDING |
-| 5 | methodology / CAD-1 commit-slice drift | tests/methodology/test_commit_slice_skill_drift.py | test_in_repo_and_installed_commit_slice_skill_md_are_content_equal | EXISTING (verify still passes post-edit) |
+| 1 | methodology / v0.73.0 entry-pin | tests/methodology/test_methodology_changelog.py | test_v_0_73_0_pcr_1_entry_present_in_repo | WRITTEN-FAILING |
+| 1 | methodology / v0.73.0 shippability | tests/methodology/test_methodology_changelog.py | test_v_0_73_0_pcr_1_shippability_consumer_propagation | WRITTEN-FAILING |
+| 1 | methodology / PMI-1 5-part atomic | tests/methodology/test_methodology_changelog.py | test_version_files_synchronized_at_v_0_73_0 | WRITTEN-FAILING |
+| 1 | methodology / ADR existence | tests/methodology/test_pcr_1_adr_present.py | test_adr_069_parallel_conflict_resolution_mechanism_exists | PASSING |
+| 1 | methodology / taxonomy doc | tests/methodology/test_pcr_1_taxonomy_documented.py | test_three_class_taxonomy_lists_soft_vault_claim_hard | PASSING |
+| 2 | methodology / commit-slice SKILL.md prose | tests/methodology/test_commit_slice_skill_pcr_1_diagnostic.py | test_step_5b_substep_2_5_emits_full_concerned_slice_diagnostic | WRITTEN-FAILING |
+| 2 | methodology / commit-slice SKILL.md prose | tests/methodology/test_commit_slice_skill_pcr_1_diagnostic.py | test_diagnostic_includes_blast_radius_claim_history_commit_time_mission_brief_link | WRITTEN-FAILING |
+| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_dispatches_to_slice_queue_writer_for_slice_queue_conflict | WRITTEN-FAILING |
+| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_appends_shippability_rows_from_both_branches | WRITTEN-FAILING |
+| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_handles_file_added_only_on_one_branch_for_shippability | WRITTEN-FAILING |
+| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_handles_file_added_only_on_one_branch_for_slice_queue | WRITTEN-FAILING |
+| 3 | unit / claim overlay | tests/skills/parallel_conflict_resolver/test_overlay_claims_on_queue_text.py | test_overlay_claims_on_queue_text_inserts_claimed_by_under_risk_retired_for_new_claim | WRITTEN-FAILING |
+| 3 | unit / claim overlay | tests/skills/parallel_conflict_resolver/test_overlay_claims_on_queue_text.py | test_overlay_claims_on_queue_text_replaces_existing_claim_with_newer_claimed_at | WRITTEN-FAILING |
+| 3 | unit / claim overlay | tests/skills/parallel_conflict_resolver/test_overlay_claims_on_queue_text.py | test_overlay_claims_on_queue_text_drops_claims_for_candidates_absent_from_target_text | WRITTEN-FAILING |
+| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_bypassed_when_mixed_with_hard_file | WRITTEN-FAILING |
+| 3 | unit / soft-regen | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_aborts_when_post_merge_claim_dict_has_same_candidate_different_identities | WRITTEN-FAILING |
+| 3 | unit / SOFT file-set pin | tests/skills/parallel_conflict_resolver/test_soft_file_set.py | test_soft_file_set_is_two_canonical_files_forward_slash_keyed | PASSING |
+| 3 | unit / audit logging | tests/skills/parallel_conflict_resolver/test_audit_log.py | test_soft_conflict_resolution_appends_to_parallel_conflict_resolution_log | WRITTEN-FAILING |
+| 4 | unit / helper library API | tests/skills/parallel_conflict_resolver/test_diagnose_conflict.py | test_diagnose_conflict_returns_conflict_diagnostic_with_concerned_slices_map | WRITTEN-FAILING |
+| 4 | unit / classify_conflict | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_soft_when_all_u_files_are_in_two_member_soft_set | WRITTEN-FAILING |
+| 4 | unit / classify_conflict | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_hard_when_any_source_file_present | WRITTEN-FAILING |
+| 4 | unit / classify_conflict | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_mixed_when_soft_and_hard_coexist | WRITTEN-FAILING |
+| 4 | unit / classify_conflict | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_mixed_when_soft_and_vault_claim_coexist | WRITTEN-FAILING |
+| 4 | unit / classify_conflict | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_vault_claim_when_same_candidate_claimed_by_different_identities_across_branches | WRITTEN-FAILING |
+| 4 | unit / classify_conflict fail-closed | tests/skills/parallel_conflict_resolver/test_classify_conflict.py | test_classify_conflict_returns_unknown_when_rebase_state_empty | WRITTEN-FAILING |
+| 4 | unit / resolve_soft_conflict fail-closed | tests/skills/parallel_conflict_resolver/test_resolve_soft_conflict.py | test_resolve_soft_conflict_returns_stop_on_unknown_class | WRITTEN-FAILING |
+| 4 | unit / Windows path normalization | tests/skills/parallel_conflict_resolver/test_soft_file_set.py | test_soft_file_set_membership_uses_forward_slash_keys_on_windows_paths | PASSING |
+| 4 | unit / CLI | tests/skills/parallel_conflict_resolver/test_cli.py | test_cli_emits_json_when_json_flag_passed | WRITTEN-FAILING |
+| 4 | unit / CLI | tests/skills/parallel_conflict_resolver/test_cli.py | test_cli_resolve_soft_exits_zero_on_successful_soft_regen | WRITTEN-FAILING |
+| 5 | methodology / BC-PROJ-9 5-inventory | tests/methodology/test_parallel_conflict_resolver_tool_inventory.py | test_parallel_conflict_resolver_in_canonical_tools_plugin_manifest_install_md_at_l22_and_l166 | WRITTEN-FAILING |
+| 5 | methodology / CAD-1 commit-slice drift | tests/methodology/test_commit_slice_skill_drift.py | test_in_repo_and_installed_commit_slice_skill_md_are_content_equal | PASSING |
 | 5 | end-to-end regression | (manual) | full pytest + shippability + 14 Step-6 audits | PENDING |
+
+<!-- TF-1 status legend: PASSING = test exists and passes today (pinning Phase A scaffolding OR a pre-existing canonical test re-verified post-edit). WRITTEN-FAILING = test exists at Phase B and fails for the right reason (NotImplementedError from skeleton, or missing-prose/missing-anchor that Phase C-F will resolve). PENDING = test not yet authored (e.g., the manual end-to-end row at AC5). The PASSING status on the CAD-1 row is the canonical re-verify-existing-test annotation per slice-026 / ADR-024 precedent: an existing test exercised by this slice but not authored by it; it must continue passing after the SKILL.md edit at Phase E. -->
+
 
 ## Verification plan
 

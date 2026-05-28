@@ -2,15 +2,15 @@
 slice: slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen
 stage: build
 updated: 2026-05-28
-next-action: Phase B (test authoring — ~25 PENDING→WRITTEN-FAILING tests). Resume in fresh Claude session via /pulse from worktree C:/Users/sshub/ai_sdlc-wt/slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen
+next-action: Phase C (implement helper functions in tools/parallel_conflict_resolver.py — ~400 LOC across 10 functions: diagnose_conflict + classify_conflict + resolve_soft_conflict + 7 private helpers + CLI dispatch). Resume in fresh Claude session via /pulse from worktree C:/Users/sshub/ai_sdlc-wt/slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen. Phase B WRITTEN-FAILING tests will progressively flip to PASSING as Phase C implementations land.
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-076 add-pcr-1-conflict-diagnostic-and-soft-regen
 
-**Stage**: design
-**Next action**: run `/critique`
+**Stage**: build (Phase B complete; resume Phase C in fresh session)
+**Next action**: Phase C — implement helper functions in `tools/parallel_conflict_resolver.py`
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surfaces `skills/commit-slice/SKILL.md` + mints new rule PCR-1 + new ADR-069; mandatory-Critic trigger fires)
 
@@ -21,15 +21,16 @@ critic-required: true
 - [x] /critique — 2026-05-28 — NEEDS-FIXES (4B / 7M / 5m; ACCEPTED-FIXED dispositions applied to design + ADR + mission-brief)
 - [x] /critique-review — 2026-05-28 — EXTEND (0 suspicious / 5 missed / 1 severity-adjustment; all 5 M-add ACCEPTED-FIXED at TRI-1)
 - [x] TRI-1 user ratification — 2026-05-28 — final verdict NEEDS-FIXES (16 ACCEPTED-FIXED + 2 ACCEPTED-PENDING + 1 OVERRIDDEN + 5 M-add ACCEPTED-FIXED = 19 dispositioned findings; 2 ACCEPTED-PENDING apply at /build-slice Phase A: M2 stage-missing catch + m5 R-21 risk-register entry)
-- [ ] /build-slice — IN PROGRESS: Phase A complete (R-21 risk-register entry added + build-log.md scaffold + tools/parallel_conflict_resolver.py skeleton with dataclasses + enum + signatures; m5 ACCEPTED-PENDING discharged). Phase B-G PENDING — resume in fresh Claude session (~7-8 hours estimated remaining work).
-- [ ] /build-slice
+- [ ] /build-slice — IN PROGRESS: Phase A complete (HEAD 19b7eaa) + Phase B complete (TF-1 plan 5 PASSING / 26 WRITTEN-FAILING / 1 PENDING; R-21 heading-level fix). Phases C-G PENDING — resume in fresh Claude session (~5-6 hours estimated remaining work).
 - [ ] /code-review (CRSI-1 v1 walking-skeleton; advisory-only post-build)
 - [ ] /validate-slice
 - [ ] /reflect
 
 ## Current focus
 
-Design complete. Mission brief + design + ADR-069 written. Ready for `/critique`.
+Phase B complete. 28 PCR-1 tests authored across 9 new test files + 3 v0.73.0 entry-pin tests appended to existing `test_methodology_changelog.py`. Test scaffold is genuinely WRITTEN-FAILING (NotImplementedError from Phase A skeleton). R-21 latent bug (`### R-21` → `## R-21` heading) fixed in-band.
+
+Ready for `/build-slice` Phase C: implement the 10 helper functions in `tools/parallel_conflict_resolver.py` per design.md § Components touched.
 
 **Design summary**:
 - 3-class taxonomy (SOFT / VAULT_CLAIM / HARD; UNKNOWN + MIXED fail-closed) declared inline in ADR-069 § Decision per /design-slice Step 2 clarifying ask
@@ -62,9 +63,9 @@ The bundle-074-code-critic-cleanup work is re-queued at this slice's scaffold; s
 
 ## On resume
 
-- **Last completed action**: /design-slice (design.md + ADR-069 written; milestone advanced to stage=design; 3 clarifying questions resolved at Step 2)
-- **Current work**: none
-- **Next immediate step**: run `/critique` (mandatory per critic-required: true; touches in-house methodology surfaces + mints new rule + new ADR)
+- **Last completed action**: /build-slice Phase B (28 PCR-1 tests authored across 9 new test files in tests/skills/parallel_conflict_resolver/ + tests/methodology/test_pcr_1_*; 3 v0.73.0 entry-pin tests appended to tests/methodology/test_methodology_changelog.py; mission-brief TF-1 plan flipped PENDING → WRITTEN-FAILING/PASSING; R-21 heading-level latent-bug fixed).
+- **Current work**: none — Phase B about to be committed; fresh-session resume expected for Phase C.
+- **Next immediate step**: `/build-slice` Phase C — implement the 10 helper functions in tools/parallel_conflict_resolver.py (diagnose_conflict + classify_conflict + resolve_soft_conflict + _extract_u_files + _derive_concerned_slices + _extract_claim_diff + _regen_slice_queue + _overlay_claims_on_queue_text + _merge_shippability + _append_audit_log + main()). Phase C is the largest impl chunk (~400 LOC); Phase D mid-slice smoke; Phase E SKILL.md edit + v0.73.0 changelog; Phase F PMI-1 5-leg + 5-inventory bumps; Phase G audits + APED-1 battery + finalize.
 
 ## Phase artifacts
 
