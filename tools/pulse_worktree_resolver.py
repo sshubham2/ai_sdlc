@@ -46,10 +46,10 @@ import json
 import re
 import subprocess
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from tools import _stdout
 from tools.branch_workflow_audit import _resolve_default_branch
@@ -60,6 +60,8 @@ __all__ = [
     "WorktreeStateClassification",
     "detect_active_worktrees",
     "classify_worktree_state",
+    "should_suppress_vault_forward_population_flag",
+    "augment_pulse_state_dict",
     "main",
 ]
 
@@ -72,17 +74,15 @@ _SLICE_BRANCH_RE = re.compile(r"^slice/(\d{3})-(.+)$")
 
 
 # UNKNOWN-reason enumeration per design.md § Fail-closed paths (Classification-side).
-# Each value is also the short-token used in `WorktreeStateClassification.reason`
-# and in the Drift & flags WARN text per ADR-070.
 _UNKNOWN_REASONS = (
-    "fresh-worktree-no-milestone",      # branch exists, milestone.md absent (BRANCH-2 pre-scaffold)
-    "milestone-missing-in-active-and-archive",  # neither active nor archive milestone present
-    "milestone-frontmatter-malformed",  # YAML frontmatter unparseable / no stage: field
-    "detached-head",                    # mid-rebase or manual checkout, HEAD detached
-    "dirty-worktree",                   # `git status --porcelain` non-empty
-    "merge-base-error",                 # `git merge-base --is-ancestor` returned unexpected exit
-    "head-unresolvable",                # `git rev-parse HEAD` failed
-    "slice-folder-name-drift",          # branch `slice/NNN-foo` but folder `slice-NNN-bar`
+    "fresh-worktree-no-milestone",
+    "milestone-missing-in-active-and-archive",
+    "milestone-frontmatter-malformed",
+    "detached-head",
+    "dirty-worktree",
+    "merge-base-error",
+    "head-unresolvable",
+    "slice-folder-name-drift",
 )
 
 
@@ -97,22 +97,6 @@ class WorktreeState(Enum):
 
 @dataclass(frozen=True)
 class WorktreeInfo:
-    """A non-main BRANCH-2 slice worktree registered with the repo.
-
-    `path`: absolute path of the worktree on disk (forward-slash normalized).
-    `branch`: branch name (e.g. `slice/077-enhance-pulse-with-worktree-awareness`).
-    `head_sha`: full 40-char SHA of the worktree's HEAD commit, or empty string
-        if the SHA could not be resolved (rare — would yield UNKNOWN/head-unresolvable).
-    `slice_num`: the 3-digit slice number extracted from the branch name (e.g.
-        `"077"`); empty if branch doesn't match `_SLICE_BRANCH_RE`.
-    `slice_name`: the name suffix extracted from the branch (e.g.
-        `"enhance-pulse-with-worktree-awareness"`).
-    `milestone_path`: absolute Path to the resolved milestone.md (active path
-        `architecture/slices/slice-NNN-<name>/milestone.md` OR archived path
-        `architecture/slices/archive/slice-NNN-<name>/milestone.md`); None if
-        neither resolves.
-    """
-
     path: str
     branch: str
     head_sha: str
@@ -123,41 +107,171 @@ class WorktreeInfo:
 
 @dataclass(frozen=True)
 class WorktreeStateClassification:
-    """Result of classifying one WorktreeInfo against the default branch.
-
-    `state`: one of the 4 `WorktreeState` enum values.
-    `reason`: short-token rationale; for UNKNOWN states this is one of
-        `_UNKNOWN_REASONS`. For IN_PROGRESS / BUILT_BUT_NOT_MERGED / MERGED
-        this is a human-readable summary (e.g.
-        `"milestone stage=reflect; HEAD not ancestor of master"`).
-    `milestone_stage`: the parsed `stage:` field from milestone.md (e.g.
-        `"reflect"`); empty if milestone.md missing or unparseable.
-    """
-
     state: WorktreeState
     reason: str
     milestone_stage: str = ""
+
+
+# ----------------------------- private helpers -----------------------------
+
+
+def _run_git(repo_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    """Run git with -C <repo_root>, capturing both stdout/stderr as text."""
+    return subprocess.run(
+        ["git", "-C", str(repo_root), *args],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _parse_worktree_porcelain(output: str) -> list[dict[str, str]]:
+    """Parse `git worktree list --porcelain` output into block dicts.
+
+    Each block represents one registered worktree. The main worktree is the
+    first block per git-worktree docs ordering invariant. Block keys include
+    `worktree` (path), `HEAD` (40-char sha), `branch` (refs/heads/...), or
+    sentinel-flags like `bare`, `detached`, `prunable`.
+
+    Returns a list of dicts, one per block.
+    """
+    blocks: list[dict[str, str]] = []
+    current: dict[str, str] = {}
+    for raw_line in output.splitlines():
+        line = raw_line.rstrip("\r")
+        if not line:
+            if current:
+                blocks.append(current)
+                current = {}
+            continue
+        # Lines can be 'key value' or just 'key' (e.g. 'bare', 'detached', 'prunable').
+        if " " in line:
+            key, _, value = line.partition(" ")
+            current[key] = value
+        else:
+            current[line] = ""
+    if current:
+        blocks.append(current)
+    return blocks
+
+
+def _resolve_milestone_path(repo_root: Path, slice_num: str, slice_name: str) -> Path | None:
+    """Resolve milestone.md path for a slice — active OR archived. Returns
+    None if neither exists.
+
+    Active: architecture/slices/slice-NNN-<name>/milestone.md
+    Archive: architecture/slices/archive/slice-NNN-<name>/milestone.md
+    """
+    folder = f"slice-{slice_num}-{slice_name}"
+    active = repo_root / "architecture" / "slices" / folder / "milestone.md"
+    if active.is_file():
+        return active
+    archive = repo_root / "architecture" / "slices" / "archive" / folder / "milestone.md"
+    if archive.is_file():
+        return archive
+    return None
+
+
+def _parse_milestone_stage(milestone_path: Path) -> str | None:
+    """Parse `stage:` value from milestone.md YAML frontmatter. Returns None
+    on any parse failure (missing file, no frontmatter, no stage field)."""
+    try:
+        text = milestone_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    if not text.startswith("---"):
+        return None
+    # Find closing frontmatter delimiter
+    rest = text[3:]
+    end_idx = rest.find("\n---")
+    if end_idx == -1:
+        return None
+    frontmatter = rest[:end_idx]
+    for line in frontmatter.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("stage:"):
+            return stripped[len("stage:"):].strip()
+    return None
+
+
+def _content_equal_modulo_eol(a: Path, b: Path) -> bool:
+    """Compare two files content-equal modulo CRLF↔LF per ADR-033 / EOL-DRIFT-1.
+
+    Returns False if either file is missing or unreadable.
+    """
+    try:
+        a_bytes = a.read_bytes()
+        b_bytes = b.read_bytes()
+    except OSError:
+        return False
+    # Normalize CRLF and CR to LF on both sides
+    a_norm = a_bytes.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    b_norm = b_bytes.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return a_norm == b_norm
+
+
+# ----------------------------- library API -----------------------------
 
 
 def detect_active_worktrees(repo_root: Path) -> list[WorktreeInfo]:
     """Detect non-main BRANCH-2 slice worktrees registered with the repo.
 
     Runs ``git worktree list --porcelain`` from `repo_root` and parses the
-    output (the main worktree is listed first per git-worktree docs ordering
-    invariant; subsequent worktrees follow). Returns a list of WorktreeInfo
-    for each non-main worktree whose branch matches `_SLICE_BRANCH_RE`.
+    output. Returns a list of WorktreeInfo for each non-main worktree whose
+    branch matches `_SLICE_BRANCH_RE`.
 
-    Filters applied (return empty list on filtering only; never raises):
+    Filters applied (return empty list on filtering only; never raises on
+    expected failure modes — only on truly-unexpected exceptions like missing
+    git binary):
 
-    - Non-`slice/*` branches: silently filtered out.
-    - `slice/<NNN>` without `-<name>` suffix: filtered out (caller can detect
-      via WARN if they run the audit at higher granularity).
-    - Prunable worktrees (`prunable` line in porcelain output): filtered out.
+    - Main worktree (first block): always filtered out.
+    - Branch missing `branch refs/heads/slice/NNN-<name>` shape: filtered out.
+    - Non-`slice/*` branches: filtered out.
+    - `slice/<NNN>` without `-<name>` suffix (regex non-match): filtered out.
+    - Prunable worktrees: filtered out.
     - Worktrees whose on-disk path doesn't exist: filtered out.
 
-    Phase C implementation. Returns [] until then.
+    Returns empty list if git command fails or no slice worktrees registered.
     """
-    raise NotImplementedError("Phase C — see design.md § What's reused (worktree-list parsing pattern)")
+    result = _run_git(repo_root, "worktree", "list", "--porcelain")
+    if result.returncode != 0:
+        return []
+    blocks = _parse_worktree_porcelain(result.stdout)
+    # First block is the main worktree — skip it.
+    candidates = blocks[1:] if blocks else []
+    out: list[WorktreeInfo] = []
+    for block in candidates:
+        # Filter prunable
+        if "prunable" in block:
+            continue
+        # Filter bare / detached / no branch
+        branch_ref = block.get("branch", "")
+        if not branch_ref.startswith("refs/heads/"):
+            continue
+        branch = branch_ref[len("refs/heads/"):]
+        m = _SLICE_BRANCH_RE.match(branch)
+        if not m:
+            continue
+        slice_num, slice_name = m.group(1), m.group(2)
+        wt_path_str = block.get("worktree", "")
+        if not wt_path_str:
+            continue
+        wt_path = Path(wt_path_str)
+        if not wt_path.exists():
+            continue
+        head_sha = block.get("HEAD", "")
+        milestone_path = _resolve_milestone_path(repo_root, slice_num, slice_name)
+        out.append(
+            WorktreeInfo(
+                path=str(wt_path).replace("\\", "/"),
+                branch=branch,
+                head_sha=head_sha,
+                slice_num=slice_num,
+                slice_name=slice_name,
+                milestone_path=milestone_path,
+            )
+        )
+    return out
 
 
 def classify_worktree_state(
@@ -167,28 +281,161 @@ def classify_worktree_state(
 ) -> WorktreeStateClassification:
     """Classify a worktree's HEAD-vs-default state into one of 4 WorktreeState values.
 
-    Reads ``worktree.milestone_path`` for the milestone.md `stage:` field,
-    then invokes ``git merge-base --is-ancestor <head> <default>`` from
-    `repo_root` to determine ancestry. Fail-closed: returns
-    ``WorktreeStateClassification(state=WorktreeState.UNKNOWN, reason=<one of
-    _UNKNOWN_REASONS>)`` on ANY parse failure — never silent-defaults to
-    MERGED or BUILT_BUT_NOT_MERGED.
-
-    Phase C implementation. Returns UNKNOWN(reason=head-unresolvable) until then.
+    Fail-closed: returns UNKNOWN with a specific reason on any parse failure;
+    never silent-defaults to MERGED or BUILT_BUT_NOT_MERGED.
     """
-    raise NotImplementedError("Phase C — see design.md § Override-precedence ordering")
+    # 1. Resolve milestone.md
+    if worktree.milestone_path is None:
+        return WorktreeStateClassification(
+            state=WorktreeState.UNKNOWN,
+            reason="fresh-worktree-no-milestone",
+        )
+    if not worktree.milestone_path.is_file():
+        return WorktreeStateClassification(
+            state=WorktreeState.UNKNOWN,
+            reason="milestone-missing-in-active-and-archive",
+        )
+
+    # 2. Parse milestone stage
+    stage = _parse_milestone_stage(worktree.milestone_path)
+    if stage is None:
+        return WorktreeStateClassification(
+            state=WorktreeState.UNKNOWN,
+            reason="milestone-frontmatter-malformed",
+        )
+
+    # 3. Resolve HEAD sha (use the cached one if non-empty; otherwise rev-parse)
+    head_sha = worktree.head_sha
+    if not head_sha:
+        rev_result = _run_git(Path(worktree.path), "rev-parse", "HEAD")
+        if rev_result.returncode != 0:
+            return WorktreeStateClassification(
+                state=WorktreeState.UNKNOWN,
+                reason="head-unresolvable",
+                milestone_stage=stage,
+            )
+        head_sha = rev_result.stdout.strip()
+        if not head_sha:
+            return WorktreeStateClassification(
+                state=WorktreeState.UNKNOWN,
+                reason="head-unresolvable",
+                milestone_stage=stage,
+            )
+
+    # 4. Stage-driven dispatch per ADR-070 § 4-state worktree taxonomy:
+    #    - stage != "reflect" → IN_PROGRESS (regardless of ancestry; slice is mid-build).
+    #    - stage == "reflect" + head IS ancestor of default → MERGED (transient).
+    #    - stage == "reflect" + head NOT ancestor → BUILT_BUT_NOT_MERGED.
+    # The IN_PROGRESS case does NOT consult ancestry — a pre-reflect slice's
+    # ancestry state is irrelevant (it's still being built; the next-action
+    # override recommends `cd <wt> && <stage-derived>`, not /commit-slice --merge).
+    if stage != "reflect":
+        return WorktreeStateClassification(
+            state=WorktreeState.IN_PROGRESS,
+            reason=f"milestone stage={stage}; pre-reflect",
+            milestone_stage=stage,
+        )
+
+    # stage == "reflect": consult ancestry to disambiguate BUILT_BUT_NOT_MERGED vs MERGED
+    ancestor_result = _run_git(
+        repo_root, "merge-base", "--is-ancestor", head_sha, default_branch
+    )
+    # exit 0 → IS ancestor (MERGED); exit 1 → NOT ancestor; other → error
+    if ancestor_result.returncode == 0:
+        return WorktreeStateClassification(
+            state=WorktreeState.MERGED,
+            reason=f"HEAD {head_sha[:8]} reachable from {default_branch}",
+            milestone_stage=stage,
+        )
+    if ancestor_result.returncode != 1:
+        return WorktreeStateClassification(
+            state=WorktreeState.UNKNOWN,
+            reason="merge-base-error",
+            milestone_stage=stage,
+        )
+    return WorktreeStateClassification(
+        state=WorktreeState.BUILT_BUT_NOT_MERGED,
+        reason=f"milestone stage=reflect; HEAD not ancestor of {default_branch}",
+        milestone_stage=stage,
+    )
+
+
+def should_suppress_vault_forward_population_flag(
+    detected: Iterable[tuple[WorktreeInfo, WorktreeStateClassification]],
+    installed_home: Path,
+) -> bool:
+    """Predicate per slice-077 design.md L141-156 + ADR-070 L107-127.
+
+    Suppress "vault forward-population" drift flag IFF:
+    (a) at least one worktree.state == BUILT_BUT_NOT_MERGED
+    (b) ALL 3 installed surfaces (methodology-changelog.md, ai-sdlc-VERSION,
+        skills/pulse/SKILL.md) are content-equal-modulo-EOL to the worktree's
+        copy (CRLF↔LF is NOT drift per ADR-033 / EOL-DRIFT-1).
+
+    `installed_home` is the directory representing `~/.claude`-equivalent;
+    tests pass a synthetic tmp_path location. Worktree paths are taken from
+    the WorktreeInfo.path field.
+    """
+    detected_list = list(detected)
+    bbnm = [
+        (info, cls) for info, cls in detected_list if cls.state == WorktreeState.BUILT_BUT_NOT_MERGED
+    ]
+    if not bbnm:
+        return False
+    # Use the first BUILT_BUT_NOT_MERGED worktree for comparison
+    info, _ = bbnm[0]
+    wt_root = Path(info.path)
+    surfaces = [
+        (installed_home / "methodology-changelog.md", wt_root / "methodology-changelog.md"),
+        (installed_home / "ai-sdlc-VERSION", wt_root / "VERSION"),
+        (installed_home / "skills" / "pulse" / "SKILL.md", wt_root / "skills" / "pulse" / "SKILL.md"),
+    ]
+    for installed_path, worktree_path in surfaces:
+        if not _content_equal_modulo_eol(installed_path, worktree_path):
+            return False
+    return True
+
+
+def augment_pulse_state_dict(
+    base_state_dict: dict[str, Any],
+    detected_worktrees: list[WorktreeInfo],
+    classifications: list[WorktreeStateClassification],
+) -> dict[str, Any]:
+    """Augment /pulse Step 2 state-dict with worktree fields per design.md L37.
+
+    Adds three keys:
+    - `worktrees`: list[WorktreeInfo]
+    - `worktree_classifications`: list[WorktreeStateClassification]
+    - `recommended_next_action_override`: str | None (the resolved override
+      per the 3-level precedence table; None when no BUILT_BUT_NOT_MERGED or
+      IN_PROGRESS worktree fires rule #1).
+
+    Per design.md § Override-precedence ordering: the override resolution
+    happens here in Step 2 deterministic main-thread computation; the
+    Step 3 Haiku dispatch consumes the resolved value.
+    """
+    augmented = dict(base_state_dict)
+    augmented["worktrees"] = list(detected_worktrees)
+    augmented["worktree_classifications"] = list(classifications)
+    # Resolve the override per rule #1
+    override: str | None = None
+    for info, cls in zip(detected_worktrees, classifications):
+        if cls.state == WorktreeState.BUILT_BUT_NOT_MERGED:
+            override = f"cd {info.path} && /commit-slice --merge"
+            break
+        if cls.state == WorktreeState.IN_PROGRESS:
+            # IN_PROGRESS variant: defer the stage-derived next-action from the
+            # worktree's milestone.md (cd + continue)
+            override = f"cd {info.path} && continue per worktree milestone.md next-action"
+            # Don't break — a BUILT_BUT_NOT_MERGED later in the list takes priority
+    augmented["recommended_next_action_override"] = override
+    return augmented
+
+
+# ----------------------------- CLI -----------------------------
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
-    """Build the CLI argparser for `python -m tools.pulse_worktree_resolver`.
-
-    Cross-spec parity with PCR-1 per design.md § Cross-spec parity:
-    - mutually-exclusive group ``required=True`` containing ``--detect`` +
-      ``--classify``.
-    - ``--repo-root`` parse-time default ``Path(".")``; post-parse
-      ``args.repo_root.resolve()`` happens at top of `main()` body.
-    - ``--json`` boolean flag.
-    """
     parser = argparse.ArgumentParser(
         prog="python -m tools.pulse_worktree_resolver",
         description=(
@@ -225,7 +472,6 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
 
 def _worktree_info_to_dict(info: WorktreeInfo) -> dict[str, Any]:
-    """Serialize WorktreeInfo for JSON output."""
     return {
         "path": info.path,
         "branch": info.branch,
@@ -237,7 +483,6 @@ def _worktree_info_to_dict(info: WorktreeInfo) -> dict[str, Any]:
 
 
 def _classification_to_dict(cls: WorktreeStateClassification) -> dict[str, Any]:
-    """Serialize WorktreeStateClassification for JSON output."""
     return {
         "state": cls.state.value,
         "reason": cls.reason,
@@ -246,17 +491,11 @@ def _classification_to_dict(cls: WorktreeStateClassification) -> dict[str, Any]:
 
 
 def _emit_error(action: str, message: str) -> None:
-    """Emit error to stderr in canonical PCR-1 shape `{action, error}`."""
     sys.stderr.write(json.dumps({"action": action, "error": message}) + "\n")
 
 
 def _run_detect(repo_root: Path, json_mode: bool) -> int:
-    """Handle `--detect` subcommand."""
-    try:
-        worktrees = detect_active_worktrees(repo_root)
-    except NotImplementedError as e:
-        _emit_error("detect", str(e))
-        return 1
+    worktrees = detect_active_worktrees(repo_root)
     if json_mode:
         sys.stdout.write(
             json.dumps(
@@ -272,7 +511,6 @@ def _run_detect(repo_root: Path, json_mode: bool) -> int:
 
 
 def _run_classify(slice_arg: str, repo_root: Path, json_mode: bool) -> int:
-    """Handle `--classify slice-NNN` subcommand."""
     default_branch = _resolve_default_branch(repo_root)
     if default_branch is None:
         _emit_error(
@@ -280,20 +518,12 @@ def _run_classify(slice_arg: str, repo_root: Path, json_mode: bool) -> int:
             "default-branch-unresolvable: neither origin/HEAD nor init.defaultBranch resolved",
         )
         return 1
-    try:
-        worktrees = detect_active_worktrees(repo_root)
-    except NotImplementedError as e:
-        _emit_error("classify", str(e))
-        return 1
+    worktrees = detect_active_worktrees(repo_root)
     matching = [w for w in worktrees if f"slice-{w.slice_num}-{w.slice_name}" == slice_arg]
     if not matching:
         _emit_error("classify", f"no worktree found for {slice_arg!r}")
         return 1
-    try:
-        cls = classify_worktree_state(matching[0], default_branch, repo_root)
-    except NotImplementedError as e:
-        _emit_error("classify", str(e))
-        return 1
+    cls = classify_worktree_state(matching[0], default_branch, repo_root)
     if json_mode:
         sys.stdout.write(
             json.dumps(
@@ -307,7 +537,7 @@ def _run_classify(slice_arg: str, repo_root: Path, json_mode: bool) -> int:
         )
     else:
         sys.stdout.write(f"{slice_arg}: {cls.state.value} — {cls.reason}\n")
-    return cls.state == WorktreeState.UNKNOWN  # UNKNOWN on --classify → exit 1
+    return 1 if cls.state == WorktreeState.UNKNOWN else 0
 
 
 def main(argv: list[str] | None = None) -> int:
