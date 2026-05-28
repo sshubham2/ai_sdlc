@@ -25,6 +25,9 @@
 - 2026-05-28 23:30 FINDING: 2 prose-pin tests failed on `milestone.md FIRST` substring — actual literal has backticks around `milestone.md`. Fixed in-band by changing test anchor to `Active slice folder (if any):` (post-fix-unique to both pre-and-post-edit SKILL.md). Class: RSAD-1 / prose-pin anchor-form discipline.
 - 2026-05-28 23:35 SMOKE: Mid-slice smoke gate from main repo — `$PY -m tools.pulse_worktree_resolver --classify slice-077-... --json --repo-root C:/Users/sshub/ai_sdlc` correctly returned IN_PROGRESS(stage=build) — witnessed-gap class CLOSED. Required in-band fix to _resolve_milestone_path: scan from worktree's filesystem (not main repo's) since BRANCH-2 milestone.md is checked into the slice branch + lives in worktree's tree, NOT main tree's.
 - 2026-05-28 23:40 TEST: 19/19 Phase D tests PASS (helper unit tests + prose-pin tests + cross-spec parity + CAD-1); Phase D complete
+- 2026-05-28 23:45 BUILD: Phase E start — BC-PROJ-9 5-inventory + shippability row #77
+- 2026-05-28 23:50 BUILD: _CANONICAL_TOOLS bumped 31→32 (`tools.pulse_worktree_resolver` inserted alphabetically after `tools.plugin_manifest_audit`); plugin.yaml tools block extended with `- path: tools/pulse_worktree_resolver.py` rule: ADR-070; INSTALL.md L22 + L166 tool-count `31 → 32` (two-site pin per slice-076 M6 precedent); test_utf8_stdout_regression.py::_ROOT_ONLY_TOOLS extended with `tools.pulse_worktree_resolver` (root-only — uses --repo-root); shippability.md row #77 added
+- 2026-05-28 23:55 TEST: BC-PROJ-9 5-inventory pin PASS (2/2); PMI-1 clean (32 tools, v0.73.0); INST-1 clean (32/32); UTF8-STDOUT-1 clean (32/32); Phase E complete
 
 ## Summary (filled at slice end)
 

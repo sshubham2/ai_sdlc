@@ -19,7 +19,7 @@ The AI SDLC pipeline (methodology version: see `VERSION`):
 - **Drop-in skills** — copied to `~/.claude/skills/`
 - **5 named subagents** — copied to `~/.claude/agents/`
 - **4 templates** — copied to `~/.claude/templates/`
-- **31 executable methodology tools** (audits, linters, validators) — installed as the `ai-sdlc-tools` Python package via `pip install`, so `$PY -m tools.<name>` resolves from `~/.claude/.venv/`
+- **32 executable methodology tools** (audits, linters, validators) — installed as the `ai-sdlc-tools` Python package via `pip install`, so `$PY -m tools.<name>` resolves from `~/.claude/.venv/`
 - **methodology-changelog.md + VERSION** — copied to `~/.claude/`
 - Graphify integration + fork mode
 
@@ -163,7 +163,7 @@ Do NOT copy other root MDs (`README.md`, `pipeline.md`, `principles.md`, `tutori
 
 ### 3g: Install ai-sdlc-tools as a pip package
 
-The 31 executable methodology tools (audit modules in `tools/`) ship as a proper Python package so `$PY -m tools.<name>` resolves from the shared venv's site-packages — source-independent. Per **INST-1**.
+The 32 executable methodology tools (audit modules in `tools/`) ship as a proper Python package so `$PY -m tools.<name>` resolves from the shared venv's site-packages — source-independent. Per **INST-1**.
 
 ```bash
 $PY -m pip install --upgrade "$AI_SDLC_DIR"
