@@ -31,24 +31,25 @@ Slice-076 reflection nominated slice-077 for PCR-2 (VAULT_CLAIM + HARD-conflict 
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | methodology / pulse SKILL.md prose | tests/methodology/test_pulse_skill_worktree_awareness.py | test_step_1_documents_git_worktree_list_pre_read | PENDING |
-| 1 | methodology / pulse SKILL.md prose | tests/methodology/test_pulse_skill_worktree_awareness.py | test_worktree_milestone_read_precedes_main_tree_milestone_read | PENDING |
-| 2 | unit / state classification | tests/skills/pulse/test_classify_worktree_state.py | test_classify_returns_in_progress_when_milestone_stage_is_pre_reflect | PENDING |
-| 2 | unit / state classification | tests/skills/pulse/test_classify_worktree_state.py | test_classify_returns_built_but_not_merged_when_reflect_stage_and_head_not_ancestor_of_default | PENDING |
-| 2 | unit / state classification | tests/skills/pulse/test_classify_worktree_state.py | test_classify_returns_merged_when_head_reachable_from_default | PENDING |
-| 2 | unit / state classification | tests/skills/pulse/test_classify_worktree_state.py | test_classify_returns_unknown_on_unparseable_git_state | PENDING |
-| 3 | methodology / pulse SKILL.md override | tests/methodology/test_pulse_skill_worktree_awareness.py | test_built_but_not_merged_overrides_recommended_next_action_with_commit_slice_merge | PENDING |
-| 3 | methodology / pulse SKILL.md override | tests/methodology/test_pulse_skill_worktree_awareness.py | test_worktree_override_takes_precedence_over_calibration_cadence_override | PENDING |
-| 4 | unit / drift-flag suppression | tests/skills/pulse/test_drift_flag_suppression.py | test_suppress_vault_forward_population_when_built_but_not_merged_and_installed_matches_worktree | PENDING |
-| 4 | unit / drift-flag suppression | tests/skills/pulse/test_drift_flag_suppression.py | test_do_not_suppress_when_installed_diverges_from_both_worktree_and_main | PENDING |
-| 5 | unit / helper library API | tests/skills/pulse/test_detect_active_worktrees.py | test_detect_returns_empty_list_when_only_main_worktree_present | PENDING |
-| 5 | unit / helper library API | tests/skills/pulse/test_detect_active_worktrees.py | test_detect_returns_worktree_info_for_slice_branch_worktree | PENDING |
-| 5 | unit / helper CLI | tests/skills/pulse/test_cli.py | test_cli_detect_json_emits_parseable_worktree_list | PENDING |
-| 5 | unit / helper CLI | tests/skills/pulse/test_cli.py | test_cli_classify_json_returns_state_for_given_slice | PENDING |
-| 5 | methodology / BC-PROJ-9 5-inventory | tests/methodology/test_pulse_worktree_resolver_tool_inventory.py | test_pulse_worktree_resolver_in_canonical_tools_plugin_manifest_install_md_at_l22_and_l166 | PENDING |
-| 3 | unit / Step-2 state-dict contract | tests/skills/pulse/test_state_dict_shape.py | test_step_2_state_dict_includes_worktrees_field_with_worktreeinfo_list | PENDING |
-| 4 | unit / drift-flag suppression (EOL) | tests/skills/pulse/test_drift_flag_suppression.py | test_suppression_predicate_is_eol_agnostic_per_eol_drift_1 | PENDING |
-| 5 | methodology / CAD-1 pulse drift | tests/methodology/test_pulse_skill_drift.py | test_in_repo_and_installed_pulse_skill_md_byte_equal | EXISTING (verify still passes post-edit) |
+| 1 | methodology / pulse SKILL.md prose | tests/methodology/test_pulse_skill_worktree_awareness.py | test_step_1_documents_git_worktree_list_pre_read | WRITTEN-FAILING |
+| 1 | methodology / pulse SKILL.md prose | tests/methodology/test_pulse_skill_worktree_awareness.py | test_worktree_milestone_read_precedes_main_tree_milestone_read | WRITTEN-FAILING |
+| 2 | unit / state classification | tests/skills/pulse/test_classify_worktree_state.py | test_classify_returns_in_progress_when_milestone_stage_is_pre_reflect | WRITTEN-FAILING |
+| 2 | unit / state classification | tests/skills/pulse/test_classify_worktree_state.py | test_classify_returns_built_but_not_merged_when_reflect_stage_and_head_not_ancestor_of_default | WRITTEN-FAILING |
+| 2 | unit / state classification | tests/skills/pulse/test_classify_worktree_state.py | test_classify_returns_merged_when_head_reachable_from_default | WRITTEN-FAILING |
+| 2 | unit / state classification | tests/skills/pulse/test_classify_worktree_state.py | test_classify_returns_unknown_on_unparseable_git_state | WRITTEN-FAILING |
+| 3 | methodology / pulse SKILL.md override | tests/methodology/test_pulse_skill_worktree_awareness.py | test_built_but_not_merged_overrides_recommended_next_action_with_commit_slice_merge | WRITTEN-FAILING |
+| 3 | methodology / pulse SKILL.md override | tests/methodology/test_pulse_skill_worktree_awareness.py | test_worktree_override_takes_precedence_over_calibration_cadence_override | WRITTEN-FAILING |
+| 4 | unit / drift-flag suppression | tests/skills/pulse/test_drift_flag_suppression.py | test_suppress_vault_forward_population_when_built_but_not_merged_and_installed_matches_worktree | WRITTEN-FAILING |
+| 4 | unit / drift-flag suppression | tests/skills/pulse/test_drift_flag_suppression.py | test_do_not_suppress_when_installed_diverges_from_both_worktree_and_main | WRITTEN-FAILING |
+| 5 | unit / helper library API | tests/skills/pulse/test_detect_active_worktrees.py | test_detect_returns_empty_list_when_only_main_worktree_present | WRITTEN-FAILING |
+| 5 | unit / helper library API | tests/skills/pulse/test_detect_active_worktrees.py | test_detect_returns_worktree_info_for_slice_branch_worktree | WRITTEN-FAILING |
+| 5 | unit / helper CLI | tests/skills/pulse/test_cli.py | test_cli_detect_json_emits_parseable_worktree_list | WRITTEN-FAILING |
+| 5 | unit / helper CLI | tests/skills/pulse/test_cli.py | test_cli_classify_json_returns_state_for_given_slice | WRITTEN-FAILING |
+| 5 | methodology / BC-PROJ-9 5-inventory | tests/methodology/test_pulse_worktree_resolver_tool_inventory.py | test_pulse_worktree_resolver_in_canonical_tools_plugin_manifest_install_md_at_l22_and_l166 | WRITTEN-FAILING |
+| 3 | unit / Step-2 state-dict contract | tests/skills/pulse/test_state_dict_shape.py | test_step_2_state_dict_includes_worktrees_field_with_worktreeinfo_list | WRITTEN-FAILING |
+| 4 | unit / drift-flag suppression (EOL) | tests/skills/pulse/test_drift_flag_suppression.py | test_suppression_predicate_is_eol_agnostic_per_eol_drift_1 | WRITTEN-FAILING |
+| 5 | methodology / CAD-1 pulse drift | tests/methodology/test_pulse_skill_drift.py | test_in_repo_and_installed_pulse_skill_md_byte_equal | WRITTEN-FAILING |
+| 5 | methodology / cross-spec parity | tests/methodology/test_pulse_worktree_resolver_tool_inventory.py | test_cross_spec_parity_with_parallel_conflict_resolver | WRITTEN-FAILING |
 
 ## Verification plan
 
