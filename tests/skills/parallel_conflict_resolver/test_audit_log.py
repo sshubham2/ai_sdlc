@@ -17,8 +17,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from tools.parallel_conflict_resolver import (
     ConflictClass,
     ConflictDiagnostic,
@@ -80,4 +78,57 @@ def test_soft_conflict_resolution_appends_to_parallel_conflict_resolution_log(tm
     )
     assert "architecture/shippability.md" in content, (
         "Audit log entry MUST cite resolved U-files (shippability.md)"
+    )
+
+
+def test_append_audit_log_writes_lf_only_no_crlf_translation(tmp_path) -> None:
+    """Regression for M1 / EOL-DRIFT-1 / ADR-033 (code-review fix).
+
+    `_append_audit_log` MUST emit LF-only byte-deterministic output even on
+    Windows. Pre-fix, the lazy-create branch used `Path.write_text(...)` and
+    the append branch used `open("a", encoding=...)` — both default to
+    `newline=None` which on Windows translates `\\n` → `\\r\\n`. The
+    sibling PSQ-2 modules (`tools/slice_queue_writer.py:790` +
+    `tools/slice_queue_claim.py:535`) explicitly use `newline=""` for the
+    same LF-only invariant; PCR-1 now matches.
+
+    Asserts the on-disk bytes contain NO `\\r\\n` (CRLF) sequence after both
+    lazy-create + append branches execute. Single-open append refactor
+    (m6 fix) also covered here — both paths emit LF.
+    """
+    (tmp_path / "architecture").mkdir()
+    log_path = tmp_path / _AUDIT_LOG_PATH
+    assert not log_path.exists(), "pre-test: log file must not exist"
+
+    diag = ConflictDiagnostic(
+        u_files=("architecture/slice-queue.md", "architecture/shippability.md"),
+        concerned_slices={},
+        claim_history=(),
+    )
+    result = ResolutionResult(
+        action="APPLIED",
+        conflict_class=ConflictClass.SOFT,
+        regenerated_files=("architecture/slice-queue.md", "architecture/shippability.md"),
+        reason=None,
+    )
+
+    # First call exercises the lazy-create branch (single-open with header).
+    _append_audit_log(tmp_path, diag, result)
+    assert log_path.exists()
+    bytes_after_first = log_path.read_bytes()
+    assert b"\r\n" not in bytes_after_first, (
+        f"Lazy-create branch produced CRLF bytes — EOL-DRIFT-1 / ADR-033 "
+        f"violation. First 200 bytes: {bytes_after_first[:200]!r}"
+    )
+
+    # Second call exercises the append branch (header NOT re-written).
+    _append_audit_log(tmp_path, diag, result)
+    bytes_after_second = log_path.read_bytes()
+    assert b"\r\n" not in bytes_after_second, (
+        f"Append branch produced CRLF bytes — EOL-DRIFT-1 / ADR-033 "
+        f"violation. First 200 bytes: {bytes_after_second[:200]!r}"
+    )
+    # Header MUST appear exactly once (not re-written on append).
+    assert bytes_after_second.count(b"Parallel-conflict-resolution log") == 1, (
+        "Header MUST appear exactly once; append branch should NOT re-write header"
     )

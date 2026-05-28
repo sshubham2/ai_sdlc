@@ -18,8 +18,6 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-import pytest
-
 from tools.parallel_conflict_resolver import (
     ConcernedSlice,
     ConflictDiagnostic,

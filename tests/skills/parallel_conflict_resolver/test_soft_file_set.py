@@ -20,8 +20,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from tools.parallel_conflict_resolver import _SOFT_FILE_SET
 
 

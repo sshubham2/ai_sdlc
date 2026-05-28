@@ -37,6 +37,7 @@ import dataclasses
 import datetime
 import enum
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -251,19 +252,28 @@ def resolve_soft_conflict(
             reason=reason,
         )
 
-    # SOFT path: regen each SOFT U-file, stage, continue rebase, log.
-    regenerated: list[str] = []
+    # SOFT path: stage-then-commit atomicity (fix M2 / code-review post-Phase-G).
+    # Helpers RETURN (Path, str) pairs without writing to disk. Only if ALL
+    # helpers succeed do we batch-write + git add + git rebase --continue.
+    # If any helper raises _SoftResolutionError mid-loop, the working tree is
+    # left UNTOUCHED — preserving conflict markers + falling through to the
+    # existing SOAD-1 STOP. Defeats the silent partial-resolution path where
+    # slice-queue.md would be overwritten with overlay content while
+    # shippability.md's HARD-escalation returns STOP.
+    pending_writes: list[tuple[Path, str]] = []
     try:
         for u_file in diag.u_files:
             if u_file == "architecture/slice-queue.md":
-                regenerated.extend(_regen_slice_queue(repo_root, diag))
+                pending_writes.append(_regen_slice_queue(repo_root, diag))
             elif u_file == "architecture/shippability.md":
-                regenerated.extend(_merge_shippability(repo_root))
+                pending_writes.append(_merge_shippability(repo_root))
     except _SoftResolutionError as exc:
         # _regen_slice_queue or _merge_shippability surfaced a structural
-        # issue (e.g., both stages missing, or same-slice-number with
-        # different content escalating to HARD per design.md edge cases).
-        # Fall-closed STOP without staging or continuing the rebase.
+        # issue (e.g., both stages missing; same-slice-number-different-
+        # content escalating to HARD; same-candidate-different-identity
+        # claim escalating to VAULT_CLAIM per defense-in-depth M3 gate).
+        # Fall-closed STOP — NO writes occurred per stage-then-commit
+        # atomicity, no staging, no rebase --continue.
         return ResolutionResult(
             action="STOP",
             conflict_class=exc.conflict_class,
@@ -271,13 +281,25 @@ def resolve_soft_conflict(
             reason=str(exc),
         )
 
-    if not regenerated:
+    if not pending_writes:
         return ResolutionResult(
             action="STOP",
             conflict_class=ConflictClass.UNKNOWN,
             regenerated_files=(),
             reason="SOFT classification but no files regenerated - rebase state unexpected",
         )
+
+    # Commit phase: all helpers succeeded — write all resolved content
+    # atomically with newline="" for LF-only byte-deterministic emission
+    # on Windows (mirrors tools/slice_queue_writer.py:790 +
+    # tools/slice_queue_claim.py:535 PSQ-2 LF-discipline; fixes M1 /
+    # EOL-DRIFT-1 / ADR-033 — default Path.write_text newline=None
+    # translates \n to os.linesep on Windows producing CRLF).
+    regenerated: list[str] = []
+    for out_path, content in pending_writes:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(content, encoding="utf-8", newline="")
+        regenerated.append(out_path.relative_to(repo_root).as_posix())
 
     # Stage + continue. Failures here STOP fall-closed per design.md error model.
     try:
@@ -292,7 +314,7 @@ def resolve_soft_conflict(
             cwd=str(repo_root),
             check=True,
             capture_output=True,
-            env={**__import__("os").environ, "GIT_EDITOR": "true"},
+            env={**os.environ, "GIT_EDITOR": "true"},
         )
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
         return ResolutionResult(
@@ -396,6 +418,19 @@ def _extract_u_files(repo_root: Path) -> tuple[str, ...]:
             # Strip surrounding quotes if git quoted the path (rare).
             if path.startswith('"') and path.endswith('"'):
                 path = path[1:-1]
+            # Defensive (fix m5 / code-review): rename-with-conflict produces
+            # `ORIG -> NEW` shape; rare but real with rerere or partial-
+            # rename + concurrent edits. Semantics unclear for SOFT-class
+            # auto-resolution — escalate to UNKNOWN per APED-1 loud-malformed
+            # rather than silently corrupt the path-string match.
+            if " -> " in path:
+                print(
+                    f"parallel-conflict-resolver: rename-with-conflict on "
+                    f"{path!r} — escalating to UNKNOWN per APED-1 loud-malformed "
+                    f"(semantics unclear; manual resolution required)",
+                    file=sys.stderr,
+                )
+                return ()
             u_files.append(path)
     return tuple(u_files)
 
@@ -507,7 +542,10 @@ def _extract_claim_diff(
     # classify_conflict (which is import-time-evaluated when classify is
     # called on a synthetic ConflictDiagnostic in tests).
     try:
-        from tools.slice_queue_claim import parse_queue_text  # noqa: PLC0415
+        from tools.slice_queue_claim import (  # noqa: PLC0415
+            ClaimUsageError,
+            parse_queue_text,
+        )
     except ImportError as exc:
         print(
             f"parallel-conflict-resolver: slice_queue_claim.parse_queue_text "
@@ -516,26 +554,50 @@ def _extract_claim_diff(
         )
         return ({}, {})
 
+    # Narrowed exception (fix m2 / code-review): parse_queue_text's
+    # documented contract per tools/slice_queue_claim.py:218 raises
+    # ClaimUsageError ONLY on partial known claim block. Broader catches
+    # (AttributeError, etc.) would mask programming errors in parse_queue_text
+    # itself + silently compound with the M3 VAULT_CLAIM gate (silent failure
+    # here → claim_history empty → upstream classify gate misses → VAULT_CLAIM
+    # collision silently auto-resolves). The M3 in-helper gate in
+    # _regen_slice_queue is the defense-in-depth backstop; this narrowing is
+    # the upstream fix at root cause.
     try:
         claims_2 = parse_queue_text(text_2) if text_2 else {}
-    except Exception:  # noqa: BLE001 - parser raises ClaimUsageError on partial blocks
+    except ClaimUsageError as exc:
+        print(
+            f"parallel-conflict-resolver: stage 2 queue parse failed "
+            f"(ClaimUsageError, partial claim block): {exc!r}",
+            file=sys.stderr,
+        )
         claims_2 = {}
     try:
         claims_3 = parse_queue_text(text_3) if text_3 else {}
-    except Exception:  # noqa: BLE001
+    except ClaimUsageError as exc:
+        print(
+            f"parallel-conflict-resolver: stage 3 queue parse failed "
+            f"(ClaimUsageError, partial claim block): {exc!r}",
+            file=sys.stderr,
+        )
         claims_3 = {}
     return (claims_2, claims_3)
 
 
 def _regen_slice_queue(
     repo_root: Path, diag: ConflictDiagnostic
-) -> tuple[str, ...]:
+) -> tuple[Path, str]:
     """Regenerate architecture/slice-queue.md via textual claim-overlay.
 
     Per /critique-review M-add-1 ACCEPTED-FIXED option (2): take
     rebase-target's queue text (git show :3:) verbatim as the result
     baseline; overlay merged claims via _overlay_claims_on_queue_text;
     NO write_slice_queue round-trip (avoids the B1 phantom-parser trap).
+
+    Returns (out_path, resolved_content) — does NOT write to disk.
+    Caller (resolve_soft_conflict) accumulates returns from all helpers
+    + batch-writes only if ALL succeed (stage-then-commit atomicity per
+    fix M2 / code-review).
     """
     text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")
     text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")
@@ -552,14 +614,35 @@ def _regen_slice_queue(
     baseline_text = text_3 if text_3 else text_2
 
     claims_2, claims_3 = _extract_claim_diff(text_2, text_3)
+
+    # Defense-in-depth VAULT_CLAIM gate (fix M3 / code-review; per
+    # design.md L136 Resolution algorithm step 3 of 5 + critique.md B4
+    # fix (c) ACCEPTED-FIXED). classify_conflict's upstream gate via
+    # _has_same_candidate_different_identity(diag.claim_history) can be
+    # bypassed if (a) _extract_claim_diff failed silently (partial-claim
+    # ClaimUsageError), or (b) diag was constructed from stale state
+    # (CLI piping --diagnose JSON into separate classify). The design
+    # explicitly mandates this in-helper re-validation:
+    # "defense-in-depth defeats this here". Same-candidate-different-
+    # identity → VAULT_CLAIM (deferred to PCR-2 / slice-077 for
+    # timestamp-winner + light Critic); never silently auto-resolve.
+    for name in set(claims_2) & set(claims_3):
+        cb2 = claims_2[name].get("claimed_by")
+        cb3 = claims_3[name].get("claimed_by")
+        if cb2 and cb3 and cb2 != cb3:
+            raise _SoftResolutionError(
+                f"slice-queue.md candidate {name!r}: same-candidate-different-"
+                f"identity claim collision (Claimed-by stage 2={cb2!r}, "
+                f"stage 3={cb3!r}); VAULT_CLAIM deferred to PCR-2 / slice-077",
+                ConflictClass.VAULT_CLAIM,
+            )
+
     merged_claims = _merge_claim_dicts(claims_2, claims_3)
 
     overlaid = _overlay_claims_on_queue_text(baseline_text, merged_claims)
 
     out_path = repo_root / "architecture" / "slice-queue.md"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(overlaid, encoding="utf-8")
-    return ("architecture/slice-queue.md",)
+    return (out_path, overlaid)
 
 
 def _merge_claim_dicts(claims_2: dict, claims_3: dict) -> dict:
@@ -609,11 +692,19 @@ def _overlay_claims_on_queue_text(
     lines = queue_text.split("\n")
     result_lines: list[str] = []
     current_candidate: str | None = None
+    # Fix m3 / code-review: track candidates seen + candidates with claim
+    # actually inserted. If a candidate's block omits the canonical
+    # `Risk-retired:` line (malformed PSQ-1 5-field shape), the post-emit
+    # insertion hook never fires and the claim is silently dropped. Warn
+    # loudly per APED-1 loud-malformed criterion at end-of-walk.
+    candidates_seen: set[str] = set()
+    claim_inserted_for: set[str] = set()
 
     for line in lines:
         # ### <name> heading -> update tracking, emit line.
         if line.startswith("### "):
             current_candidate = line[4:].strip()
+            candidates_seen.add(current_candidate)
             result_lines.append(line)
             continue
 
@@ -645,17 +736,43 @@ def _overlay_claims_on_queue_text(
             if claimed_by and claimed_at:
                 result_lines.append(f"- **Claimed-by:** {claimed_by}")
                 result_lines.append(f"- **Claimed-at:** {claimed_at}")
+                claim_inserted_for.add(current_candidate)
+
+    # Fix m3 / code-review: warn on silently-dropped claims. A candidate
+    # present in queue_text + in merged_claims but with no `Risk-retired:`
+    # line in its block → claim metadata silently lost. Per APED-1 loud-
+    # malformed: surface to stderr rather than silent drop. Orphan claims
+    # (in merged_claims but candidate not in queue_text at all) remain the
+    # documented behavior per design.md L137 ("dropped — will re-surface
+    # at next /slice regen") and are NOT warned about here.
+    dropped_due_to_malformed_block = (
+        set(merged_claims) & candidates_seen
+    ) - claim_inserted_for
+    for name in sorted(dropped_due_to_malformed_block):
+        print(
+            f"parallel-conflict-resolver: claim for candidate {name!r} "
+            f"silently dropped — candidate block in queue_text is missing the "
+            f"`- **Risk-retired:**` line (post-emit insertion hook never fired). "
+            f"Per APED-1 loud-malformed: this indicates a non-canonical "
+            f"PSQ-1 5-field entry shape; manual review recommended.",
+            file=sys.stderr,
+        )
 
     return "\n".join(result_lines)
 
 
-def _merge_shippability(repo_root: Path) -> tuple[str, ...]:
+def _merge_shippability(repo_root: Path) -> tuple[Path, str]:
     """Row-union merge of architecture/shippability.md by slice number.
 
     Per design.md Resolution algorithm: parse both stages' tables, key
     rows by leading ``| <NN> |`` slice number, union, sort ascending,
     preserve header + non-numeric rows verbatim. Same-slice-number with
     different content escalates to HARD per design.md Edge-cases column.
+
+    Returns (out_path, resolved_content) — does NOT write to disk.
+    Caller (resolve_soft_conflict) accumulates returns from all helpers
+    + batch-writes only if ALL succeed (stage-then-commit atomicity per
+    fix M2 / code-review).
     """
     text_2 = _git_show_stage(repo_root, 2, "architecture/shippability.md")
     text_3 = _git_show_stage(repo_root, 3, "architecture/shippability.md")
@@ -698,9 +815,7 @@ def _merge_shippability(repo_root: Path) -> tuple[str, ...]:
         output_text += "\n"
 
     out_path = repo_root / "architecture" / "shippability.md"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(output_text, encoding="utf-8")
-    return ("architecture/shippability.md",)
+    return (out_path, output_text)
 
 
 def _parse_shippability_rows(text: str) -> tuple[dict[int, str], list[str]]:
@@ -783,11 +898,23 @@ def _append_audit_log(
         + "\n\n"
     )
 
-    if not log_path.exists():
-        log_path.write_text(_AUDIT_LOG_HEADER + entry, encoding="utf-8")
-    else:
-        with log_path.open("a", encoding="utf-8") as f:
-            f.write(entry)
+    # Single-open append (fix m6 / code-review): unified open("a")
+    # for both lazy-create + append branches with conditional header.
+    # Replaces the prior `if exists / write_text else open("a")` TOCTOU
+    # pattern where two parallel writers both saw "not exists" and both
+    # write_text'd (truncate) — losing the first writer's entry. O_APPEND
+    # semantics on POSIX (and Win32 equivalent) preserve entries even
+    # under concurrent writers; the doubled-header TOCTOU window remains
+    # but doubled header is recoverable cosmetic, lost entry is not.
+    # Also fixes M1 / EOL-DRIFT-1 / ADR-033: newline="" prevents Windows
+    # \n → \r\n translation that the sibling PSQ-2 modules
+    # (slice_queue_writer.py:790, slice_queue_claim.py:535) explicitly
+    # use for LF-only byte-deterministic emission.
+    needs_header = not log_path.exists()
+    with log_path.open("a", encoding="utf-8", newline="") as f:
+        if needs_header:
+            f.write(_AUDIT_LOG_HEADER)
+        f.write(entry)
 
 
 # ---------------------------------------------------------------------------

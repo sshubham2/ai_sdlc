@@ -22,8 +22,6 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-import pytest
-
 from tools.parallel_conflict_resolver import (
     ClaimEntry,
     ConflictClass,
@@ -233,3 +231,158 @@ def test_resolve_soft_conflict_returns_stop_on_unknown_class(tmp_path) -> None:
         "UNKNOWN STOP MUST include a non-None reason (diagnostic for "
         "the SOAD-1 fall-through)"
     )
+
+
+def test_resolve_soft_conflict_atomicity_preserves_slice_queue_on_helper_error(
+    tmp_path, monkeypatch
+) -> None:
+    """Regression for M2 / atomicity gap (code-review fix).
+
+    Pre-fix, `resolve_soft_conflict` called `_regen_slice_queue` then
+    `_merge_shippability` in a loop, each writing to disk before returning.
+    If `_merge_shippability` raised `_SoftResolutionError(HARD)` AFTER
+    `_regen_slice_queue` already wrote `slice-queue.md`, the file was
+    silently overwritten with the post-overlay content while the resolver
+    returned STOP — leaving the working tree in a half-resolved state that
+    defeats ADR-069's "atomicity — never partial auto-resolve" contract.
+
+    Post-fix uses stage-then-commit pattern: helpers return `(Path, str)`
+    tuples WITHOUT writing; `resolve_soft_conflict` batch-writes only if
+    ALL helpers succeed. This test patches `_merge_shippability` to raise
+    `_SoftResolutionError(HARD)` for U-files=(slice-queue.md, shippability.md)
+    classified SOFT; asserts the on-disk slice-queue.md is NOT written
+    (preserving conflict markers / pre-resolve state).
+    """
+    import tools.parallel_conflict_resolver as resolver
+    from tools.parallel_conflict_resolver import _SoftResolutionError
+
+    _init_repo(tmp_path)
+
+    # Patch _regen_slice_queue to return a sentinel (Path, content) without
+    # writing — verifies the stage-then-commit refactor isolates writes.
+    out_path_sentinel = tmp_path / "architecture" / "slice-queue.md"
+    sentinel_content = "SHOULD_NOT_BE_ON_DISK_IF_ATOMICITY_WORKS"
+
+    def fake_regen_slice_queue(repo_root, diag):
+        return (out_path_sentinel, sentinel_content)
+
+    def fake_merge_shippability(repo_root):
+        raise _SoftResolutionError(
+            "synthetic shippability HARD escalation for atomicity test",
+            ConflictClass.HARD,
+        )
+
+    monkeypatch.setattr(resolver, "_regen_slice_queue", fake_regen_slice_queue)
+    monkeypatch.setattr(resolver, "_merge_shippability", fake_merge_shippability)
+
+    diag = _diag(u_files=("architecture/slice-queue.md", "architecture/shippability.md"))
+    result = resolve_soft_conflict(diag, repo_root=tmp_path)
+
+    # Result MUST be STOP with HARD class.
+    assert result.action == "STOP", (
+        f"atomicity gap regression: helper raise should produce STOP; "
+        f"got action={result.action!r}"
+    )
+    assert result.conflict_class == ConflictClass.HARD, (
+        f"atomicity gap regression: _merge_shippability HARD escalation "
+        f"should propagate to result.conflict_class; got {result.conflict_class}"
+    )
+
+    # CRITICAL: slice-queue.md MUST NOT exist on disk — _regen_slice_queue
+    # returned content but the batch-write phase never ran because
+    # _merge_shippability raised mid-collection.
+    assert not out_path_sentinel.exists(), (
+        f"ATOMICITY VIOLATION: slice-queue.md was written to disk despite "
+        f"_merge_shippability raising _SoftResolutionError mid-loop. "
+        f"Per ADR-069 atomicity contract: NO files should be written when "
+        f"the resolver returns STOP. On-disk content: "
+        f"{out_path_sentinel.read_text(encoding='utf-8')!r}"
+    )
+
+
+def test_regen_slice_queue_vault_claim_defense_in_depth_gate_fires_on_different_identity(
+    tmp_path, monkeypatch
+) -> None:
+    """Regression for M3 / missing VAULT_CLAIM defense-in-depth gate (code-review fix).
+
+    Per design.md L136 "Resolution algorithm for SOFT class" step 3 of 5
+    + critique.md B4 fix (c) ACCEPTED-FIXED: `_regen_slice_queue` MUST
+    walk both branches' claim dicts; if ANY candidate name appears in
+    BOTH with DIFFERENT `Claimed-by` values, abort with
+    `_SoftResolutionError(VAULT_CLAIM)`. This is defense-in-depth on
+    top of `classify_conflict`'s upstream gate via
+    `_has_same_candidate_different_identity(diag.claim_history)`.
+
+    Simulates the bypass-the-upstream-gate scenario by patching
+    `_git_show_stage` to return queue text with different-identity claims
+    on the same candidate. The upstream gate's input
+    (`diag.claim_history`) is irrelevant here because we call
+    `_regen_slice_queue` directly. Verifies the in-helper gate fires.
+    """
+    import tools.parallel_conflict_resolver as resolver
+    from tools.parallel_conflict_resolver import (
+        _SoftResolutionError,
+        _regen_slice_queue,
+    )
+
+    queue_stage_2 = (
+        "# Slice queue\n\n## Candidates\n\n"
+        "### add-foo\n\n"
+        "- **Source:** R-1\n"
+        "- **Blast-radius:** `tools/foo.py`\n"
+        "- **Parallel-safety:** GRAPH-DISJOINT\n"
+        "- **Effort:** SMALL\n"
+        "- **Risk-retired:** LOW\n"
+        "- **Claimed-by:** alice <alice@example.com>\n"
+        "- **Claimed-at:** 2026-05-28T10:00:00Z\n"
+    )
+    queue_stage_3 = (
+        "# Slice queue\n\n## Candidates\n\n"
+        "### add-foo\n\n"
+        "- **Source:** R-1\n"
+        "- **Blast-radius:** `tools/foo.py`\n"
+        "- **Parallel-safety:** GRAPH-DISJOINT\n"
+        "- **Effort:** SMALL\n"
+        "- **Risk-retired:** LOW\n"
+        "- **Claimed-by:** bob <bob@example.com>\n"
+        "- **Claimed-at:** 2026-05-28T11:00:00Z\n"
+    )
+
+    def fake_git_show_stage(repo_root, stage, path):
+        if path != "architecture/slice-queue.md":
+            return ""
+        if stage == 2:
+            return queue_stage_2
+        if stage == 3:
+            return queue_stage_3
+        return ""
+
+    monkeypatch.setattr(resolver, "_git_show_stage", fake_git_show_stage)
+
+    # Diag.claim_history is empty — simulating the upstream-gate-bypass
+    # case (silent ClaimUsageError or stale diag). The in-helper gate
+    # MUST still fire on the real stage-2/3 differing claims.
+    diag = _diag(u_files=("architecture/slice-queue.md",), claim_history=())
+
+    try:
+        _regen_slice_queue(tmp_path, diag)
+    except _SoftResolutionError as exc:
+        assert exc.conflict_class == ConflictClass.VAULT_CLAIM, (
+            f"M3 defense-in-depth gate fire MUST carry "
+            f"conflict_class=VAULT_CLAIM; got {exc.conflict_class}"
+        )
+        assert "add-foo" in str(exc), (
+            f"VAULT_CLAIM exception MUST name the conflicting candidate; "
+            f"got {exc!s}"
+        )
+        assert "alice" in str(exc) and "bob" in str(exc), (
+            f"VAULT_CLAIM exception MUST surface both Claimed-by identities "
+            f"for diagnostic; got {exc!s}"
+        )
+    else:
+        raise AssertionError(
+            "M3 defense-in-depth gate FAILED to fire: _regen_slice_queue "
+            "returned normally on same-candidate-different-identity input. "
+            "Per design.md L136 step 3 + critique.md B4 fix (c): MUST raise "
+            "_SoftResolutionError(VAULT_CLAIM)."
+        )

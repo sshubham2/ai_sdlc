@@ -16,8 +16,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from tests.methodology.conftest import REPO_ROOT, read_file
 
 

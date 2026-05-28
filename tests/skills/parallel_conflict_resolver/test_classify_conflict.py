@@ -19,8 +19,6 @@ classification algorithm directly given a ConflictDiagnostic input.
 """
 from __future__ import annotations
 
-import pytest
-
 from tools.parallel_conflict_resolver import (
     ClaimEntry,
     ConflictClass,
