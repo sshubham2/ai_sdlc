@@ -2,7 +2,7 @@
 slice: slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen
 stage: build
 updated: 2026-05-28
-next-action: run /build-slice
+next-action: Phase B (test authoring — ~25 PENDING→WRITTEN-FAILING tests). Resume in fresh Claude session via /pulse from worktree C:/Users/sshub/ai_sdlc-wt/slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen
 risk-tier: medium
 critic-required: true
 ---
@@ -21,6 +21,7 @@ critic-required: true
 - [x] /critique — 2026-05-28 — NEEDS-FIXES (4B / 7M / 5m; ACCEPTED-FIXED dispositions applied to design + ADR + mission-brief)
 - [x] /critique-review — 2026-05-28 — EXTEND (0 suspicious / 5 missed / 1 severity-adjustment; all 5 M-add ACCEPTED-FIXED at TRI-1)
 - [x] TRI-1 user ratification — 2026-05-28 — final verdict NEEDS-FIXES (16 ACCEPTED-FIXED + 2 ACCEPTED-PENDING + 1 OVERRIDDEN + 5 M-add ACCEPTED-FIXED = 19 dispositioned findings; 2 ACCEPTED-PENDING apply at /build-slice Phase A: M2 stage-missing catch + m5 R-21 risk-register entry)
+- [ ] /build-slice — IN PROGRESS: Phase A complete (R-21 risk-register entry added + build-log.md scaffold + tools/parallel_conflict_resolver.py skeleton with dataclasses + enum + signatures; m5 ACCEPTED-PENDING discharged). Phase B-G PENDING — resume in fresh Claude session (~7-8 hours estimated remaining work).
 - [ ] /build-slice
 - [ ] /code-review (CRSI-1 v1 walking-skeleton; advisory-only post-build)
 - [ ] /validate-slice
