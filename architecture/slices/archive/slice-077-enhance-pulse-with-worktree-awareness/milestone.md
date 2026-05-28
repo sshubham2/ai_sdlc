@@ -1,16 +1,16 @@
 ---
 slice: slice-077-enhance-pulse-with-worktree-awareness
-stage: validate
+stage: complete
 updated: 2026-05-29
-next-action: run /reflect
+next-action: none (slice complete)
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-077 enhance-pulse-with-worktree-awareness
 
-**Stage**: validate (5/5 ACs PASS; APED-1 13/13; VAL-1 clean; shippability 76/76; aggregate Result: PASS)
-**Next action**: run `/reflect`
+**Stage**: complete
+**Next action**: none — slice shipped. Run `/commit-slice --merge` (user-invoked per PCA-1 terminal contract) to integrate.
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surface `skills/pulse/SKILL.md` + ships new helper `tools/pulse_worktree_resolver.py`; mandatory-Critic trigger fires regardless of tier)
 
@@ -23,7 +23,7 @@ critic-required: true
 - [x] /build-slice — 2026-05-29 — DONE (5/5 ACs PASS evidence; 1061/1061 pytest; 12+ Step-6 audits clean; APED-1 13/13)
 - [x] /code-review — 2026-05-29 — 0B/2M/11m advisory findings; all DEFERRED to slice-079+ bundled-cleanup (voluntary-restraint N=17 cumulative; 3-Critic stack N=13 cumulative — design+meta+code each catch structurally-distinct defect classes)
 - [x] /validate-slice — 2026-05-29 — PASS (5/5 ACs PASS with evidence; APED-1 13/13; VAL-1 clean; SCMD-1/PTFCD-1 clean; shippability runner 76/76 PASS 0 FAIL; witnessed-gap R-22 class empirically closed via real-world classify of slice-077 worktree from main repo)
-- [ ] /reflect
+- [x] /reflect — 2026-05-29 — vault updates: R-22 retired, lessons-learned appended, shippability row #77 (added at Phase E), graphify refreshed. 3-Critic stack N=13 cumulative complementarity stable; voluntary-restraint N=17 cumulative; design→code translation gap N=14+ cumulative (mid-slice smoke is load-bearing 4th catcher).
 
 ## Current focus
 

@@ -1686,3 +1686,26 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 
 
+
+---
+
+## Slice 077 (enhance-pulse-with-worktree-awareness) — 2026-05-29
+
+### Worked
+
+- **MEPD-1 EXCLUDE empirically supported by load-bearing-cross-skill criterion** — slice-077 ships at v0.73.0 unchanged despite scope-twin shape with slice-076 (helper module + 5-inventory + 6 test modules). ADR-070 § Honest precedent inspection correctly identified the differentiator (load-bearing cross-skill contract, NOT helper-module-ships). Validated: no cross-skill consumer of `WorktreeState` emerged during slice work.
+- **Self-validating slice property (methodology-gold pattern, N=1)** — the slice that closes the witnessed-gap (R-22) experienced and closed R-22 during its own /build-slice Phase D mid-slice smoke. The smoke gate ran `--classify` from main repo specifically because R-22 was "main-repo can't see worktree milestone"; the pre-fix `_resolve_milestone_path` scan-root bug surfaced as the gap, fix landed in-band, post-fix smoke returned correct state. Pattern worth promotion at N≥2: when fixing a methodology-internal surface, design the mid-slice smoke gate to deliberately exercise the gap.
+- **3-Critic stack N=13 cumulative complementarity stable** — design-Critic + meta-Critic + code-Critic each caught a structurally-distinct defect class. Plus mid-slice smoke caught the design→code translation gap (R-22 sub-class) that none of the 3 Critic layers reached. Pattern stable; do NOT collapse stack; do NOT skip smoke.
+- **Forward-compat assertion shape (L22==L166 + floor-of-N) is the standard fix for count-pin-in-test stale-anchor class** — slice-077 refactored slice-076's hard-pinned `31` inventory test in-band; same fix shape applies to every BC-PROJ-9 5-inventory consumer-test and prevents TPHD-1 sub-mode (a) recurrence at every count-bumping slice.
+
+### Didn't work
+
+- **Pre-fix substring-anchor `milestone.md FIRST` in test_pulse_skill_worktree_awareness.py** — assumed the literal existed in SKILL.md but the actual text was `\`milestone.md\` FIRST` with backticks. Same RSAD-1 / prose-pin anchor-form class as slice-075. The design.md § Prose-pin discipline (M9 ACCEPTED-FIXED) section was meant to pre-empt this, BUT the discipline was applied to NEW post-fix literals, not to pre-existing anchors. Lesson: prose-pin discipline must apply to BOTH new + existing anchors when asserting "before X" / "after Y" ordering invariants. Slice-077 RSAD-1 sub-class instance N=4 cumulative.
+- **Initial `_resolve_milestone_path` scan-root design** — used `repo_root` parameter name implying scan-from-main-tree; under BRANCH-2 the milestone lives in the WORKTREE's filesystem. The design.md / ADR-070 documentation correctly described "scan from the worktree" but no Critic finding pinpointed the IMPL would diverge. Caught only at mid-slice smoke. Design→code translation gap N=14+ cumulative.
+
+### Pattern
+
+- **Design→code translation gaps are caught by mid-slice smoke, NOT by the 3-Critic stack** — slice-077 adds N=14+ cumulative empirical evidence for this pattern (slice-073 + slice-076 + slice-077). Each Critic layer reads design / cross-doc consistency / code-level call-site; none reads real-world runtime behavior at design-time. Mid-slice smoke is the 4th catcher; SKILL.md mandate to run it on real environments is load-bearing.
+- **Self-validating slice property as methodology pattern** — when fixing a methodology-internal correctness gap, the slice's own build IS the canonical empirical validation case. Promote at N≥2.
+- **Voluntary-restraint discipline N=17 cumulative; bundled-cleanup-at-N+1 disposition stable** — slice-077 inherits the pattern: 0B/2M/11m code-Critic findings all DEFERRED to slice-079+. Pattern is structurally stable across 17 cycles.
+- **TPHD-1 sub-mode (a) count-pin recurrence N=9 cumulative** — every BC-PROJ-9 5-inventory consumer-test that hard-pins a numeric count regresses at the next count-bumping slice. Forward-compat shape (L22==L166 + floor-of-N) is the standard fix. Worth /critic-calibrate promotion at N=10+.

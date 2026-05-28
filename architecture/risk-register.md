@@ -378,9 +378,10 @@ Status `mitigating`, not `retired`: both residual axes are bounded but real. Rev
 
 **Likelihood**: high
 **Impact**: medium
-**Status**: open
+**Status**: retired
 **Reversibility**: cheap
 **Discovered**: slice-077 charter 2026-05-28 — witnessed firsthand during the slice-076 merge sequence (post-merge `/pulse` run reported stage `slice` while the actual slice-076 was fully built / validated / reflected / auto-archived in worktree `C:/Users/sshub/ai_sdlc-wt/slice-076-...`; HEAD = reflect commit; VERSION=0.73.0; 1039/1039 pytest; BC-PROJ-12 promoted). Registered at /design per /critique-review M-add-2 ACCEPTED-FIXED (mirrors slice-076 R-21 registration precedent).
+**Retired**: slice-077-enhance-pulse-with-worktree-awareness (2026-05-29) — closed by `tools/pulse_worktree_resolver.py` library API + CLI + `skills/pulse/SKILL.md` Step 1 + Step 2 + Step 3 prose augmentations. Empirical retirement evidence: real-world smoke `$PY -m tools.pulse_worktree_resolver --classify slice-077-... --json --repo-root C:/Users/sshub/ai_sdlc` returns correct `IN_PROGRESS(stage=code-review)` from MAIN REPO perspective. APED-1 battery 13/13 cases PASS. Slice-077 itself demonstrated the self-validating-slice property: the slice that closes R-22 experienced and closed R-22 during its own /build-slice Phase D mid-slice smoke (pre-fix `_resolve_milestone_path` scanned main repo's filesystem; post-fix scans the worktree's).
 **Mitigation**: slice-077-enhance-pulse-with-worktree-awareness ships:
 - `tools/pulse_worktree_resolver.py` library API + CLI (detection + 4-state classification: IN_PROGRESS / BUILT_BUT_NOT_MERGED / MERGED / UNKNOWN).
 - `skills/pulse/SKILL.md` Step 1 + Step 2 + Step 3 prose enhancements (worktree-aware milestone.md read; deterministic override-precedence resolver in Step 2; drift-flag false-positive suppression in Step 3).
