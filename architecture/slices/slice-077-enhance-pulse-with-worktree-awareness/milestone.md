@@ -1,16 +1,16 @@
 ---
 slice: slice-077-enhance-pulse-with-worktree-awareness
-stage: code-review
+stage: validate
 updated: 2026-05-29
-next-action: run /validate-slice
+next-action: run /reflect
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-077 enhance-pulse-with-worktree-awareness
 
-**Stage**: code-review (0B/2M/11m findings; all DEFERRED per voluntary-restraint N=17 cumulative)
-**Next action**: run `/validate-slice`
+**Stage**: validate (5/5 ACs PASS; APED-1 13/13; VAL-1 clean; shippability 76/76; aggregate Result: PASS)
+**Next action**: run `/reflect`
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surface `skills/pulse/SKILL.md` + ships new helper `tools/pulse_worktree_resolver.py`; mandatory-Critic trigger fires regardless of tier)
 
@@ -22,7 +22,7 @@ critic-required: true
 - [x] /critique-review — 2026-05-28 — EXTEND (3 missed findings M-add-1/M-add-2/M-add-3, all ACCEPTED-FIXED in-band)
 - [x] /build-slice — 2026-05-29 — DONE (5/5 ACs PASS evidence; 1061/1061 pytest; 12+ Step-6 audits clean; APED-1 13/13)
 - [x] /code-review — 2026-05-29 — 0B/2M/11m advisory findings; all DEFERRED to slice-079+ bundled-cleanup (voluntary-restraint N=17 cumulative; 3-Critic stack N=13 cumulative — design+meta+code each catch structurally-distinct defect classes)
-- [ ] /validate-slice
+- [x] /validate-slice — 2026-05-29 — PASS (5/5 ACs PASS with evidence; APED-1 13/13; VAL-1 clean; SCMD-1/PTFCD-1 clean; shippability runner 76/76 PASS 0 FAIL; witnessed-gap R-22 class empirically closed via real-world classify of slice-077 worktree from main repo)
 - [ ] /reflect
 
 ## Current focus
