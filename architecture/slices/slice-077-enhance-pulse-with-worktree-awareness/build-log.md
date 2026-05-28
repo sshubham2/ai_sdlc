@@ -28,6 +28,10 @@
 - 2026-05-28 23:45 BUILD: Phase E start — BC-PROJ-9 5-inventory + shippability row #77
 - 2026-05-28 23:50 BUILD: _CANONICAL_TOOLS bumped 31→32 (`tools.pulse_worktree_resolver` inserted alphabetically after `tools.plugin_manifest_audit`); plugin.yaml tools block extended with `- path: tools/pulse_worktree_resolver.py` rule: ADR-070; INSTALL.md L22 + L166 tool-count `31 → 32` (two-site pin per slice-076 M6 precedent); test_utf8_stdout_regression.py::_ROOT_ONLY_TOOLS extended with `tools.pulse_worktree_resolver` (root-only — uses --repo-root); shippability.md row #77 added
 - 2026-05-28 23:55 TEST: BC-PROJ-9 5-inventory pin PASS (2/2); PMI-1 clean (32 tools, v0.73.0); INST-1 clean (32/32); UTF8-STDOUT-1 clean (32/32); Phase E complete
+- 2026-05-29 00:00 BUILD: Phase F start — APED-1 empirical battery (13 cases enumerated)
+- 2026-05-29 00:05 FINDING: initial battery output used U+2713/U+2717 markers that triggered Windows cp1252 UnicodeEncodeError; replaced with ASCII [PASS]/[FAIL] + added `tools._stdout.reconfigure_stdout_utf8()` shim at run_battery() entry — same UTF8-STDOUT-1 discipline as audit tools.
+- 2026-05-29 00:08 TEST: APED-1 battery 13/13 PASS (6 detect cases + 7 classify cases including all 4 UNKNOWN sub-reasons); Phase F complete
+- 2026-05-29 00:10 BUILD: Phase G start — Step-6 audits + full pytest + Summary
 
 ## Summary (filled at slice end)
 
