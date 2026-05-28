@@ -1,6 +1,6 @@
 # Slice queue
 
-_Generated: 2026-05-28T10:25:21+00:00 by /slice during slice-076 definition_
+_Generated: 2026-05-28T20:30:00+00:00 by /slice during slice-077 definition_
 
 ## Candidates
 
@@ -84,10 +84,10 @@ _Generated: 2026-05-28T10:25:21+00:00 by /slice during slice-076 definition_
 - **Effort:** MEDIUM
 - **Risk-retired:** LOW
 
-### enhance-pulse-with-worktree-awareness
+### bundle-075-code-critic-cleanup
 
-- **Source:** Phase 1 skill-correctness gap surfaced 2026-05-28 during the post-slice-076 `/pulse` run. With BRANCH-2 active, the slice lives in a sibling worktree (`<main-parent>/<main-name>-wt/slice-NNN-<name>` on branch `slice/NNN-<name>`) until `/commit-slice --merge`. `/pulse` reads `architecture/slices/<active>/milestone.md` from the main tree only, so when slice-076 was fully built / validated / reflected / auto-archived in the worktree (HEAD = reflect commit; VERSION=0.73.0; 1039/1039 pytest; BC-PROJ-12 promoted) but master was still at the scaffold commit, `/pulse` reported stage `slice` + recommended `/design-slice` while the real next action was `/commit-slice --merge`. Pulse also raised a false-positive "vault forward-population" drift flag because the installed `~/.claude/methodology-changelog.md` (forward-synced by the worktree's `/reflect` step) didn't match master's stale changelog — same root cause. Enhancement: at Step 1, run `git worktree list`; if a non-main worktree on a `slice/NNN-<name>` branch exists, read that worktree's `milestone.md` (active OR `slices/archive/slice-NNN-<name>/` if already auto-archived) instead of (or in addition to) the main-tree path; compare worktree HEAD vs default-branch tip to classify the slice as `in-progress` / `built-but-not-merged` / `merged`; when `built-but-not-merged`, surface "Recommended next action: `cd <worktree> && /commit-slice --merge`" as the primary suggestion; and suppress drift-flag false positives whose only explanation is an unmerged worktree (master-vs-installed divergence on changelog / VERSION / SKILL.md is expected during this window).
-- **Blast-radius:** `skills/pulse/SKILL.md`, `tools/pulse_worktree_resolver.py` (new), `tests/skills/pulse/test_worktree_awareness.py` (new), `architecture/shippability.md` (new catalog row)
+- **Source:** Phase 1 — re-queued from slice-076 reflection's Deferred section. Closes slice-075's 2 code-Critic findings (m1 substring-vs-line-start anchor analysis on `_extract_substep_2_1_block` helper unanchored `find("2.1.")` substring + m2 file-move stale-anchor sweep in mission-brief.md / design.md). Companion candidate to bundle-074-code-critic-cleanup (same target slice in slice-079+ bundle).
+- **Blast-radius:** `skills/commit-slice/SKILL.md`, `tests/methodology/test_commit_slice_skill_substep_2_1_block.py`, mission-brief.md anchor refs in archived slice-075 vault files
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** SMALL
 - **Risk-retired:** MEDIUM

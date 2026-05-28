@@ -373,3 +373,23 @@ Status `mitigating`, not `retired`: both residual axes are bounded but real. Rev
 - **(c) Fail-closed broader**: lower the SOFT predicate's confidence threshold globally, accepting more SOAD-1 STOPs in exchange for fewer silent-wrong-resolutions.
 
 **Why not slice-076 deliverable**: PCR-1 v1's scope is the canonical SOFT auto-regen path; corner-case discovery is empirical and requires post-codification slices to exercise the soft-resolve. R-21 tracks the residual until empirical refutation drives a slice-077+ candidate fix selection.
+
+## R-22 — `/pulse` mis-reports active-slice state during BRANCH-2 worktree window (built-but-not-merged worktree invisible to main-tree-only milestone.md read)
+
+**Likelihood**: high
+**Impact**: medium
+**Status**: open
+**Reversibility**: cheap
+**Discovered**: slice-077 charter 2026-05-28 — witnessed firsthand during the slice-076 merge sequence (post-merge `/pulse` run reported stage `slice` while the actual slice-076 was fully built / validated / reflected / auto-archived in worktree `C:/Users/sshub/ai_sdlc-wt/slice-076-...`; HEAD = reflect commit; VERSION=0.73.0; 1039/1039 pytest; BC-PROJ-12 promoted). Registered at /design per /critique-review M-add-2 ACCEPTED-FIXED (mirrors slice-076 R-21 registration precedent).
+**Mitigation**: slice-077-enhance-pulse-with-worktree-awareness ships:
+- `tools/pulse_worktree_resolver.py` library API + CLI (detection + 4-state classification: IN_PROGRESS / BUILT_BUT_NOT_MERGED / MERGED / UNKNOWN).
+- `skills/pulse/SKILL.md` Step 1 + Step 2 + Step 3 prose enhancements (worktree-aware milestone.md read; deterministic override-precedence resolver in Step 2; drift-flag false-positive suppression in Step 3).
+- Override-precedence: BUILT_BUT_NOT_MERGED → `cd <worktree> && /commit-slice --merge`; IN_PROGRESS → `cd <worktree> && <stage-derived>`; MERGED → CLEANUP-CANDIDATE WARN; UNKNOWN → WARN-not-silent with enumerated sub-reasons.
+- Drift-flag suppression: 3-surface (methodology-changelog + ai-sdlc-VERSION + installed pulse SKILL.md) all-match + content-equal-modulo-EOL per ADR-033 / EOL-DRIFT-1.
+- ADR-070 captures design choice (MEPD-1 EXCLUDE per honest precedent inspection: slice-077 is structurally a helper-shipping slice but lacks the load-bearing cross-skill rule-axis content of slice-076 / PCR-1 INCLUDE; slice-058 is the closer ADR-only precedent).
+
+**Retirement at /reflect**: when slice-077 ships + /validate-slice passes 5/5 ACs + the witnessed-gap class is empirically confirmed retired via APED-1 battery, /reflect Step 5.2 flips R-22 to `Status: retired` with `Retired: slice-077-enhance-pulse-with-worktree-awareness (2026-05-29)`.
+
+**Promotion trigger**: if N=2 cross-skill consumers of `WorktreeState` emerge (`/drift-check` worktree-awareness; `/build-checks` worktree-window suppression), the convention promotes to PWA-1 (Pulse-Like Worktree-Awareness) on its own methodology axis per ADR-070 § Promotion trigger; supersede ADR-070 via new ADR per SUP-1.
+
+**Why not /slice-time risk-class**: R-22 is a witnessed correctness gap with concrete reproduction path (the slice-076 merge sequence is on record), not a speculative future risk. The slice that closes it is concurrent (slice-077); the RR-1 entry is registered at /design to satisfy the "Risk retired: R-22" mission-brief frontmatter trace-link per RR-1 schema semantics. Mirrors slice-076's R-21 registration precedent (also at /design, also for a witnessed-during-build gap).
