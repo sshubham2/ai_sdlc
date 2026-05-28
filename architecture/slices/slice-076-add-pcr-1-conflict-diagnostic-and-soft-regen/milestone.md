@@ -1,16 +1,16 @@
 ---
 slice: slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen
 stage: build
-updated: 2026-05-28
-next-action: Phase F (PMI-1 5-leg atomic bump 0.72.0 → 0.73.0 + BC-PROJ-9 5-inventory bump 30 → 31 for new tool module). Bump VERSION + plugin.yaml version + pyproject.toml [project].version + ~/.claude/ai-sdlc-VERSION + register tools/parallel_conflict_resolver.py at plugin.yaml tools block + tools/install_audit.py _CANONICAL_TOOLS + INSTALL.md L22 + L166 (30→31 both sites) + tests/methodology/test_utf8_stdout_regression.py _ROOT_ONLY_TOOLS + $PY -m pip install --upgrade . for TVFS-1 + MCFS-1 forward-sync. Resume from worktree C:/Users/sshub/ai_sdlc-wt/slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen.
+updated: 2026-05-29
+next-action: Phase G — 14+ Step-6 audit gauntlet (TF-1 / WIRE-1 / BC-1 / RR-1 / PMI-1 / CAD-1 / INST-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1 / STP-1 / AVFS-1 / TVFS-1 / NAW-1 / BRANCH-2 / LINT-MOCK-1) + APED-1 empirical battery on 4 minted predicates (_SOFT_FILE_SET membership + classify_conflict 5-way + _extract_claim_diff parser + _merge_shippability row-union) per mission-brief must-not-defer + build-log Summary section finalize. After Phase G, /build-slice declares done and hands off to /code-review (CRSI-1 v1 advisory) then /validate-slice then /reflect.
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-076 add-pcr-1-conflict-diagnostic-and-soft-regen
 
-**Stage**: build (Phases A+B+C+D+E complete; Phase F + G pending)
-**Next action**: Phase F — PMI-1 5-leg atomic bump 0.72.0 → 0.73.0 + BC-PROJ-9 5-inventory bump 30 → 31
+**Stage**: build (Phases A+B+C+D+E+F complete; Phase G pending)
+**Next action**: Phase G — 14+ Step-6 audit gauntlet + APED-1 empirical battery + build-log finalize
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surfaces `skills/commit-slice/SKILL.md` + mints new rule PCR-1 + new ADR-069; mandatory-Critic trigger fires)
 
@@ -21,7 +21,7 @@ critic-required: true
 - [x] /critique — 2026-05-28 — NEEDS-FIXES (4B / 7M / 5m; ACCEPTED-FIXED dispositions applied to design + ADR + mission-brief)
 - [x] /critique-review — 2026-05-28 — EXTEND (0 suspicious / 5 missed / 1 severity-adjustment; all 5 M-add ACCEPTED-FIXED at TRI-1)
 - [x] TRI-1 user ratification — 2026-05-28 — final verdict NEEDS-FIXES (16 ACCEPTED-FIXED + 2 ACCEPTED-PENDING + 1 OVERRIDDEN + 5 M-add ACCEPTED-FIXED = 19 dispositioned findings; 2 ACCEPTED-PENDING apply at /build-slice Phase A: M2 stage-missing catch + m5 R-21 risk-register entry)
-- [ ] /build-slice — IN PROGRESS: Phases A+B+C complete (HEAD fc3358e + Phase C uncommitted). TF-1 plan: 25 PASSING / 6 WRITTEN-FAILING (all Phase E+F) / 1 PENDING (manual end-to-end). Full pytest: 1028/1036 PASS; 6 failures are Phase E+F deliverables + 2 are pre-existing Phase-A skeleton-without-registration audits (resolve at Phase F 5-inventory bump). Phases E-G PENDING (D folded into E).
+- [ ] /build-slice — IN PROGRESS: Phases A+B+C+D+E+F complete. TF-1 plan: 31 PASSING / 0 WRITTEN-FAILING / 1 PENDING (manual end-to-end). Full pytest: 1036/1036 PASS — fully green. Phase G remaining (audit gauntlet + APED-1 + finalize).
 - [ ] /code-review (CRSI-1 v1 walking-skeleton; advisory-only post-build)
 - [ ] /validate-slice
 - [ ] /reflect
@@ -63,9 +63,9 @@ The bundle-074-code-critic-cleanup work is re-queued at this slice's scaffold; s
 
 ## On resume
 
-- **Last completed action**: /build-slice Phase E (SKILL.md Step 5b sub-step 2.5 PCR-1 dispatch insertion + v0.73.0 methodology-changelog entry + shippability row #75 + OSDG-1/CAD-1 forward-sync of commit-slice SKILL.md to installed copy; mid-slice smoke gate all 4 PASS; TF-1 plan flipped 4 more rows → PASSING).
-- **Current work**: none — Phase E about to be committed.
-- **Next immediate step**: `/build-slice` Phase F — PMI-1 5-leg atomic bump 0.72.0 → 0.73.0 (leg 1: VERSION file + leg 2: plugin.yaml version field + leg 3: pyproject.toml [project].version + leg 4: methodology-changelog.md ## v0.73.0 header [DONE at Phase E] + leg 5: ~/.claude/ai-sdlc-VERSION installed). BC-PROJ-9 5-inventory bump 30 → 31 for tools/parallel_conflict_resolver.py: plugin.yaml tools block + tools/install_audit.py _CANONICAL_TOOLS tuple + INSTALL.md L22 + L166 tool-count literals 30→31 (TWO-SITE pin per /critique M6 ACCEPTED-FIXED) + tests/methodology/test_utf8_stdout_regression.py _ROOT_ONLY_TOOLS. Plus separate post-bump forward-sync obligations per slice-063 M-add-1 leg-enumeration discipline: $PY -m pip install --upgrade . for TVFS-1 venv ai-sdlc-tools refresh + MCFS-1 forward-sync of in-repo methodology-changelog.md → ~/.claude/methodology-changelog.md. After Phase F all remaining 2 WRITTEN-FAILING tests should PASS. Phase G = 14+ Step-6 audits + APED-1 empirical battery on 4 minted predicates per mission-brief must-not-defer + build-log finalize.
+- **Last completed action**: /build-slice Phase F (PMI-1 5-leg atomic bump 0.72.0 → 0.73.0 + BC-PROJ-9 5-inventory bump 30 → 31 + TVFS-1 venv refresh + MCFS-1 forward-sync + stale-test-deletion `test_version_files_synchronized_at_v_0_72_0` per version-sync convention + R-10 stale-pin fix in slice-073 row #73 machine-cmd + 2 in-band Phase-E pipe-leakage fixes in shippability row #75).
+- **Current work**: none — Phase F about to be committed.
+- **Next immediate step**: `/build-slice` Phase G — 14+ Step-6 audit gauntlet (TF-1 + WIRE-1 + BC-1 + RR-1 + PMI-1 + CAD-1 + INST-1 + UTF8-STDOUT-1 + CRP-1 + PCA-1 + BCI-1 + MCFS-1 + STP-1 + AVFS-1 + TVFS-1 + NAW-1 + BRANCH-2 + LINT-MOCK-1) + APED-1 empirical battery on 4 minted predicates (_SOFT_FILE_SET membership against the 11-input synthetic battery per mission-brief must-not-defer + classify_conflict 5-way classification logic + _extract_claim_diff parser predicate + _merge_shippability row-union predicate) + build-log Summary section finalize (Plan executed + Mid-slice smoke gate + Pre-finish gate + Deferrals + Design deviations + Files changed). After Phase G, /build-slice declares done + hands off via PCA-1 auto-advance to /code-review (CRSI-1 v1 walking-skeleton advisory-only) then /validate-slice then /reflect.
 
 ## Phase artifacts
 

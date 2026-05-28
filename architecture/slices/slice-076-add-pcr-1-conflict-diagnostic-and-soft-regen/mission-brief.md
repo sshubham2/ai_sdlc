@@ -31,7 +31,7 @@ After this slice ships: a 5-session parallel-slice workflow whose only conflict 
 |----|-----------|-----------|---------------|--------|
 | 1 | methodology / v0.73.0 entry-pin | tests/methodology/test_methodology_changelog.py | test_v_0_73_0_pcr_1_entry_present_in_repo | PASSING |
 | 1 | methodology / v0.73.0 shippability | tests/methodology/test_methodology_changelog.py | test_v_0_73_0_pcr_1_shippability_consumer_propagation | PASSING |
-| 1 | methodology / PMI-1 5-part atomic | tests/methodology/test_methodology_changelog.py | test_version_files_synchronized_at_v_0_73_0 | WRITTEN-FAILING |
+| 1 | methodology / PMI-1 5-part atomic | tests/methodology/test_methodology_changelog.py | test_version_files_synchronized_at_v_0_73_0 | PASSING |
 | 1 | methodology / ADR existence | tests/methodology/test_pcr_1_adr_present.py | test_adr_069_parallel_conflict_resolution_mechanism_exists | PASSING |
 | 1 | methodology / taxonomy doc | tests/methodology/test_pcr_1_taxonomy_documented.py | test_three_class_taxonomy_lists_soft_vault_claim_hard | PASSING |
 | 2 | methodology / commit-slice SKILL.md prose | tests/methodology/test_commit_slice_skill_pcr_1_diagnostic.py | test_step_5b_substep_2_5_emits_full_concerned_slice_diagnostic | PASSING |
@@ -58,7 +58,7 @@ After this slice ships: a 5-session parallel-slice workflow whose only conflict 
 | 4 | unit / Windows path normalization | tests/skills/parallel_conflict_resolver/test_soft_file_set.py | test_soft_file_set_membership_uses_forward_slash_keys_on_windows_paths | PASSING |
 | 4 | unit / CLI | tests/skills/parallel_conflict_resolver/test_cli.py | test_cli_emits_json_when_json_flag_passed | PASSING |
 | 4 | unit / CLI | tests/skills/parallel_conflict_resolver/test_cli.py | test_cli_resolve_soft_exits_zero_on_successful_soft_regen | PASSING |
-| 5 | methodology / BC-PROJ-9 5-inventory | tests/methodology/test_parallel_conflict_resolver_tool_inventory.py | test_parallel_conflict_resolver_in_canonical_tools_plugin_manifest_install_md_at_l22_and_l166 | WRITTEN-FAILING |
+| 5 | methodology / BC-PROJ-9 5-inventory | tests/methodology/test_parallel_conflict_resolver_tool_inventory.py | test_parallel_conflict_resolver_in_canonical_tools_plugin_manifest_install_md_at_l22_and_l166 | PASSING |
 | 5 | methodology / CAD-1 commit-slice drift | tests/methodology/test_commit_slice_skill_drift.py | test_in_repo_and_installed_commit_slice_skill_md_are_content_equal | PASSING |
 | 5 | end-to-end regression | (manual) | full pytest + shippability + 14 Step-6 audits | PENDING |
 
