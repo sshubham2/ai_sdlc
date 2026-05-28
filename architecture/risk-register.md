@@ -359,3 +359,17 @@ Status `mitigating`, not `retired`: both residual axes are bounded but real. Rev
 - **(d) Audit gate**: `/build-slice` Phase E mid-slice smoke pre-check that verifies `diagnose-out/backlog.md` exists; if absent, automatically run `cp -r ../<main>/diagnose-out ./` OR WARN with copy instruction. Combines (a) + automation.
 
 **Why not Critic-promotion**: per slice-037 audit-vs-real-artifact law: the gap is a BRANCH-2 worktree + gitignored-derived-artifact interaction, invisible to single-slice review at /critique time. The right tooling is risk-register tracking until N≥3 + slice-072+ dedicated fix slice.
+
+## R-21 — SOFT auto-regen produces semantically-different content from manual-resolve baseline at a corner case
+
+**Likelihood**: medium
+**Impact**: medium
+**Status**: open
+**Reversibility**: cheap
+**Discovered**: slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen (2026-05-28) — registered per /critique-review m5 ACCEPTED-PENDING + ADR-069 § Reversibility anticipated-failure-mode discipline.
+**Mitigation**: not yet active. PCR-1 v1 ships with: (a) explicit fail-closed on UNKNOWN class; (b) defensive post-overlay guard in `_regen_slice_queue` (re-parse + re-verify no same-candidate-different-identity remains); (c) APED-1 empirical-execution battery on 4 minted predicates (`_SOFT_FILE_SET`, `classify_conflict`, `_extract_claim_diff`, `_merge_shippability`); (d) `architecture/parallel-conflict-resolution-log.md` audit trail per soft-resolution event. If a corner case surfaces post-codification where the SOFT auto-regen produces semantically-different content from what a human-with-Critic-stack would have produced (the PCR-2 HARD-class path), the candidate fix classes are:
+- **(a) Tighten `classify_conflict`**: narrow the SOFT predicate to reject additional sub-class shapes; the corner case shifts to HARD/MIXED and routes through PCR-2's Critic stack.
+- **(b) Extend SOFT-set audit**: structural verification that the regenerated content matches a deterministic equivalence class against the input branches' content; abort with STOP if equivalence is unclear.
+- **(c) Fail-closed broader**: lower the SOFT predicate's confidence threshold globally, accepting more SOAD-1 STOPs in exchange for fewer silent-wrong-resolutions.
+
+**Why not slice-076 deliverable**: PCR-1 v1's scope is the canonical SOFT auto-regen path; corner-case discovery is empirical and requires post-codification slices to exercise the soft-resolve. R-21 tracks the residual until empirical refutation drives a slice-077+ candidate fix selection.

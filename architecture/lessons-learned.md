@@ -1648,3 +1648,41 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 - **Voluntary-restraint discipline + bundled-cleanup-at-N+1 canonical disposition shape** continues to function reliably across 16 cycles. The cleanup slice's blast radius is bounded; no scope inflation tracked across the lineage.
 
+## Slice 076 (add-pcr-1-conflict-diagnostic-and-soft-regen) — 2026-05-29
+
+### Worked
+
+- **PCR-1 5-class taxonomy (SOFT / VAULT_CLAIM / HARD / MIXED / UNKNOWN) end-to-end** — APED-1 battery 28/28 cases (11 SOFT-set membership + 9 classify_conflict 5-way + 5 _extract_claim_diff + 3 _merge_shippability row-union) observed=expected; fail-closed UNKNOWN-on-empty + SOFT+non-SOFT=MIXED + same-cand-diff-identity=VAULT_CLAIM all verified. Design intent landed cleanly across mission-brief → design → ADR-069 → impl → tests.
+- **Stage-then-commit atomicity refactor (Phase H)** — fixed code-Critic M2 gap by changing helpers `_regen_slice_queue` + `_merge_shippability` to return `(Path, str)` tuples instead of writing-to-disk; `resolve_soft_conflict` accumulates pending_writes + batch-writes only on all-success. ADR-069's "atomicity — never partial auto-resolve" contract structurally enforced post-fix. Regression test `test_resolve_soft_conflict_atomicity_preserves_slice_queue_on_helper_error` pins it.
+- **3-Critic stack value-validation N=12 cumulative continues** — code-Critic surfaced 3 Major code-level defects (M1 EOL-DRIFT-1, M2 atomicity, M3 missing defense-in-depth VAULT_CLAIM gate) structurally unreachable by design-Critic + meta-Critic stack at design time. CRSI-1 v1 walking-skeleton continues to prove its design-validation premise: each Critic catches structurally-distinct defect classes; do NOT collapse the stack.
+- **User fix-in-band disposition (option-3 override at /code-review)** demonstrated as a viable CRSI-1 v1 path. Voluntary-restraint defer remains default (N=16 cumulative UNCHANGED); fix-in-band warranted when findings are high-confidence + actionable + slice-completion-affordable. Phase H closed 9 findings + added 3 regression tests in ~60 min.
+- **Phase D (mid-slice smoke gate) folded into Phase E** — smoke-gate assertions (rule entry + ADR + diagnostic prose + entry-pin) require Phase E artifacts to be meaningful; running them on Phase-C-only state would all fail vacuously. Folding worked cleanly with no semantic loss.
+
+### Didn't work
+
+- **Phase A R-21 heading-level convention slip (`### R-21` instead of `## R-21`)** — RR-1 audit's H2-only regex misparsed R-21's `**Status**: open` as belonging to R-20, masking R-20's `retired` status. Slice-innocently broke `test_r_20_retired.py`. Caught by Phase B wider-test-suite pass; fixed in-band. Class: heading-level discipline per RR-1 schema; latent bug from non-canonical h3 use.
+- **Design→code translation gap on critique B4 fix (c) VAULT_CLAIM in-helper gate** — critique B4 fix (c) EXPLICITLY mandated the in-helper defense-in-depth gate with the algorithm spelled out; Builder at /build-slice Phase C didn't implement it. Code-Critic M3 caught at Phase G+H. Class: Builder discipline — critique fix prose is contract, not commentary. Strongest evidence to date of the design→code gap.
+- **Phase E SKILL.md initial draft ordering invariant** — first draft included `BEFORE the SOAD-1 STOP block` phrasing in the dispatch header, putting first `SOAD-1` literal BEFORE first `parallel_conflict_resolver` literal → ordering check FAILED. RSAD-1 sub-class: self-introduced-ordering-violation in narration prose. Fixed in-band; pattern continues from slice-074/075 (literal-uniqueness against prospective annotation prose).
+- **Phase F shippability row #75 pipe-leakage** — row contained literal `| <NN> |` + `--diagnose | --classify | --resolve-soft` in prose; broke catalog markdown table parser (14 awk fields instead of 8). SCMD-1 audit caught at sanity check. Class: methodology-prose-pipe-leakage RSAD-1-adjacent; should be caught structurally at row-write time via awk-NF-count pre-write check.
+- **Phase G TF-1 PTFFD-1 + PTFCD-1 caught two Phase B test-plan defects** — (1) AC#5 CAD-1 row cited wrong test fn name (phantom function name guessed at design); (2) AC#5 `(manual)` Test path refused as PASSING. Both fixed in-band. Class: test-plan discipline — function names must be grep-verified against canonical emitter at design time; meta-rows for end-to-end checks should be removed not promoted to PASSING.
+
+### Pattern
+
+- **3-Critic stack value-validation N=12 cumulative** (slice-063 → slice-076) — code-Critic continues to find what design+meta cannot reach. Pattern stable across 12 cycles. Codification candidate: at N≥20, /critic-calibrate proposes formalizing 3-Critic stack as mandatory (currently advisory per CRSI-1 v1 walking-skeleton).
+
+- **Design→code translation gap canonical instance** (slice-076 M3) — when critique fix prose mandates an algorithm with named code change, Builder MUST implement it at /build-slice Phase C. The dispositioned fix is part of the contract. /critic-calibrate proposal target slice-077+: codify a pre-finish grep check that walks critique.md ACCEPTED-FIXED fixes and verifies named code changes exist in the post-build diff. Watch-list count: N=1 (slice-076 only); promote to BC-1 build-check at N≥2.
+
+- **User fix-in-band disposition N=1** (slice-076 option-3 override at /code-review) — first instance of user choosing to address all code-Critic findings in-band rather than defer to bundle. Voluntary-restraint count UNCHANGED at N=16 cumulative. Pattern not yet codified; watch-list for N≥3 to formalize "fix-in-band for high-confidence Majors vs voluntary-restraint defer for Minor-only" disposition heuristic.
+
+- **RSAD-1 self-introduced-pollution N=4 cumulative this-slice-alone** (slice-074 N=0; slice-075 N=3; slice-076 N=1) — slowing rate suggests slice-075 reflection lesson ("literal-uniqueness against prospective annotation prose") had carryover. Continued tracking at slice-077+.
+
+- **TPHD-1 sub-mode (a) HELD at N=8 cumulative** (no new instance this slice) — pattern recurrence rate slows when Builder fix-block discipline is tight (slice-076: 19 design-time fixes applied with 0 meta-Critic-caught regressions). Code-Critic findings are a DIFFERENT class — design→code translation gap, not fix-block regression.
+
+- **Methodology-prose-pipe-leakage RSAD-1-adjacent class N=1** (slice-076 shippability row #75 pipe-leakage at Phase F) — structurally-self-evident at row-write time via `awk -F'|' '{print NF}'` check. /critic-calibrate slice-077+ proposal target: codify pre-write awk-NF-count check at /reflect Step 5.3 shippability-row-write.
+
+- **TF-1 grammar pattern: `(manual)` not PASSING + phantom test fn names refused** — slice-076 caught both in-band via PTFCD-1 + PTFFD-1 audits. Pattern: TF-1 grammar enforces test-plan honesty; meta-rows for end-to-end checks should be removed not promoted; function names must be grep-verified against canonical emitter at design time.
+
+- **Voluntary-restraint discipline + bundled-cleanup-at-N+1 canonical disposition shape** continues to function reliably across 16 cycles UNCHANGED. Slice-076's user fix-all is an alternative disposition path, not a replacement.
+
+
+

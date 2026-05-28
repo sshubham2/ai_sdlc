@@ -12,7 +12,7 @@
 # both documentation and a target for the audit.
 
 name: ai-sdlc
-version: 0.72.0  # synced with VERSION file (PMI-1 audit enforces)
+version: 0.73.0  # synced with VERSION file (PMI-1 audit enforces)
 description: |
   Spec-driven SDLC for AI implementers. Hybrid of phase-driven rigor (for
   knowable domains) and slice-driven iteration (for unknowable ones).
@@ -120,6 +120,8 @@ tools:
     rule: LINT-MOCK-1/2/3
   - path: tools/new_agent_warning_audit.py
     rule: NAW-1
+  - path: tools/parallel_conflict_resolver.py
+    rule: PCR-1
   - path: tools/pipeline_chain_audit.py
     rule: PCA-1
   - path: tools/plugin_manifest_audit.py
