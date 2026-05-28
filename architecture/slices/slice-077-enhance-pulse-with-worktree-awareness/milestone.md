@@ -1,16 +1,16 @@
 ---
 slice: slice-077-enhance-pulse-with-worktree-awareness
-stage: critique
+stage: build
 updated: 2026-05-28
-next-action: run /build-slice
+next-action: Phase A — pulse_worktree_resolver.py skeleton
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-077 enhance-pulse-with-worktree-awareness
 
-**Stage**: critique
-**Next action**: run `/build-slice`
+**Stage**: build (Phase A in progress)
+**Next action**: Phase A — pulse_worktree_resolver.py skeleton
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surface `skills/pulse/SKILL.md` + ships new helper `tools/pulse_worktree_resolver.py`; mandatory-Critic trigger fires regardless of tier)
 
