@@ -114,3 +114,92 @@ None.
 | m4 | Minor | ACCEPTED-FIXED | mission-brief.md TF-1 row 4 cites actual function `test_build_slice_skill_md_in_repo_byte_equal_installed` |
 | m-add-1 | Minor | ACCEPTED-FIXED | design.md test docstring of `test_cp_r_lines_use_if_then_guard_for_source_dir_absence` gains explicit single-line-form-pinned constraint citing RSAD-1 byte-exact-match discipline |
 | m-add-2 | Minor | ACCEPTED-FIXED | design.md §"Bootstrap framing" gains Phase-A/B/C-to-Step-1-7 glossary + slice-075 sequencing-confirmation paragraph |
+
+---
+
+# /critique pass 2 — EXPANSION DELTA (AC#5+AC#6)
+
+**Critic reviewed**: mission-brief.md AC#5+AC#6 + TF-1 plan rows 6+7, design.md §"What's new" switch-commit-switch codification + test contracts for `test_build_slice_skill_dirty_tree_resolution.py`, in-repo `skills/build-slice/SKILL.md` (current pre-edit state at L67-71)
+**Date**: 2026-05-28
+**Result**: NEEDS-FIXES (1B / 2M / 2m; all 5 findings ACCEPTED-FIXED in-band — pending TRI-1-EXT ratification)
+
+## Summary (pass 2)
+
+APED-1 execution against synthetic post-edit prose surfaced **one Blocker** and **two Majors** on the new `test_build_slice_skill_dirty_tree_resolution.py` test contracts. The AC#6 no-`-b` regex is falsified by the canonical codified prose itself (`# no -b; branch exists` trailing comment contains literal `-b`, defeating the `(?!.*-b)` lookahead). The AC#5 order-token search passes on prose-only narrative without the actual codefence. The `_point_4_block` regex has no upper boundary. Two Minors on under-engineering (no cross-reference to slice-070 reflection L127, NO-auto-stash discipline-preservation not structurally pinned). The original AC#1-AC#4 clearance from pass 1 is preserved untouched.
+
+## Findings (pass 2)
+
+### Blockers
+
+#### B1: AC#6 no-`-b` regex falsified by the canonical codified prose's own trailing comment `# no -b; branch exists`
+
+- **Claim under review**: design.md §"test_both_worktree_create_forms_documented_dash_b_and_no_dash_b" — `point_4_no_dash_b_pattern = re.compile(r'git worktree add\s+(?!.*-b)[^\n]*slice/NNN-<slice-name>', re.MULTILINE)`, paired with the canonical codified line: `git worktree add "$wt_base/slice-NNN-<slice-name>" slice/NNN-<slice-name>   # no -b; branch exists`.
+- **Issue**: APED-1 execution — the negative lookahead `(?!.*-b)` forbids `-b` ANYWHERE later on the line. The canonical line's trailing comment `# no -b; branch exists` embeds literal `-b`. AC#6 will FAIL at Phase A red-test verification AND mid-slice smoke AND /validate-slice — no path to PASSING with both the prose AND regex co-existing as drafted.
+- **Evidence**: APED-1 execution via Critic's `re.compile(...).search(...)` on the literal design.md codefence line — match = None.
+- **Proposed fix**: Tighten the no-`-b` lookahead to scope ONLY across operands BEFORE the `#` comment delimiter: `r'git worktree add\s+(?!(?:[^#\n]*?)-b\s)[^#\n]*slice/NNN-<slice-name>'` (excludes the comment from both the lookahead-scope and body match; requires `-b\s` with trailing whitespace to forbid only the actual flag form).
+- **Builder draft**: **ACCEPTED-FIXED** — design.md test contract for AC#6 updated to use `[^#\n]` to scope before-comment + `-b\s` flag-shape; comment-aware negative lookahead forecloses the false-negative.
+
+### Majors
+
+#### M1: AC#5 order-token search PASSES on prose-only narrative without any codefence — token-presence ≠ codefence-presence
+
+- **Claim under review**: design.md §"test_point_4_contains_switch_commit_switch_worktree_sequence_in_order" — uses `point_4.find("git switch -c slice/")` / `point_4.find("git commit", ...)` / `point_4.find('git switch "$default"', ...)` / `point_4.find("git worktree add", ...)`.
+- **Issue**: APED-1 execution — a synthetic point-4 narrative that mentions all 4 tokens in order WITHOUT a `` ```bash ... ``` `` codefence PASSES. A future Builder who reverts point 4 to "STOP, ask user to commit or stash" while keeping a paragraph that NARRATES the sequence as a "this is what you should manually do" warning would still pass AC#5 — the codified contract (an executable bash codefence) would be silently lost. Same failure-mode-class as pass 1's M3 (comment-substring leak; ACCEPTED-FIXED for AC#1/AC#2 but NOT propagated to the new AC#5).
+- **Evidence**: APED-1 execution outputs (Critic CHECK 1: `all tokens found in order: True` against prose-only synthetic; CHECK 2: `all tokens found in order: True` against pre-edit-STOP-prose + warning narrative).
+- **Proposed fix**: Scope AC#5 token-search to INSIDE a `` ```bash ... ``` `` codefence within point 4. Compose with M2's fix by redefining `_point_4_block` to extract ONLY the bash codefence body. Also add the scaffolding-commit body shape `git commit -m "scaffold(slice-NNN):` as a 5th anchor so the assertion discriminates "`git commit` mentioned in narrative" from "`git commit -m \"scaffold(...)\"` inside the codified recipe".
+- **Builder draft**: **ACCEPTED-FIXED** — `_point_4_block` redefined to extract bash codefence body only (composes with M2); 5th anchor token `git commit -m "scaffold(slice-NNN):` added to AC#5 order-token search.
+
+#### M2: `_point_4_block` regex has no upper boundary — currently swallows the `WORKTREE=skip` paragraph and would pollute AC#5 token search if a future point-5 / point-N is added
+
+- **Claim under review**: design.md §"_point_4_block" — `m = re.search(r"^4\. \*\*If working tree is dirty\b.*", section, re.MULTILINE | re.DOTALL)`, with docstring claim "no point 5 exists today; extract to end-of-section".
+- **Issue**: APED-1 execution on the actual SKILL.md — `_point_4_block` extracts 780 chars and INCLUDES the `WORKTREE=skip escape-hatch line shape` paragraph at L71. The docstring claim "no point 5 exists today" is true but brittle. A future point 5 (e.g., stale-branch handling) OR a rewrite of the `WORKTREE=skip` paragraph that mentions `git switch`/`git commit`/`git worktree add` would silently satisfy AC#5 via material OUTSIDE point 4.
+- **Evidence**: APED-1 execution on actual SKILL.md (Critic confirmed: `point_4 length: 780; point_4 contains 'WORKTREE=skip': True`).
+- **Proposed fix**: Redefine `_point_4_block` to extract ONLY the bash codefence WITHIN point 4 (composes with M1's fix; shared mechanism — one regex change covers both). Specifically: `re.search(r"^4\. \*\*If working tree is dirty\b.*?```bash\b(.*?)```", section, re.MULTILINE | re.DOTALL)` returns the codefence body. Add docstring note that the upper boundary IS the codefence close — future point-5 additions outside the codefence cannot pollute AC#5.
+- **Builder draft**: **ACCEPTED-FIXED** — `_point_4_block` redefined to extract bash codefence body via `re.search(r"^4\. \*\*If working tree is dirty\b.*?```bash\b(.*?)```", ...)`; docstring documents the codefence-close as the upper boundary. One mechanism, two findings closed (M1 + M2).
+
+### Minors
+
+#### m1: No cross-reference to slice-070's empirical-provenance reflection L127 in the codified SKILL.md prose comment
+
+- **Claim under review**: design.md §"What's new" — switch-commit-switch codefence comment: `# (N=5 cumulative slice-070/071/072/073/074; post-vault-in-git scaffolding-by-design class)`.
+- **Issue**: The R-20 codification (AC#1) comment cites the risk-register entry as the codification origin. The switch-commit-switch codification comment cites a slice range but no permalink to where the pattern was first articulated. A future Builder wanting to understand "why these 4 specific steps" has to grep N=5 reflection files.
+- **Evidence**: design.md test contract for AC#5 (docstring claims "slice-070 reflection L127's user-ratified pattern") — the design knows the canonical origin but the codified prose doesn't carry it.
+- **Proposed fix**: Edit the codefence comment to include `slice-070 reflection L127` (or equivalent canonical origin). No test change needed.
+- **Builder draft**: **ACCEPTED-FIXED** — design.md codified comment updated to `# (N=5 cumulative slice-070/071/072/073/074; canonical origin: slice-070 reflection L127; post-vault-in-git scaffolding-by-design class)`.
+
+#### m2: NO-auto-stash discipline preservation is documented in out-of-scope (mission-brief.md L75) but NOT structurally pinned
+
+- **Claim under review**: mission-brief.md L75 — "the codified sequence preserves this discipline by requiring the Builder to explicitly stage + commit the scaffolding (not silently shelve it via `git stash`)."
+- **Issue**: AC#5 token search asserts the 4 tokens are present in order, but does NOT assert that `git stash` is ABSENT. A future Builder who "improves" the recipe by inserting `git stash` between `git switch -c` and `git commit` would satisfy AC#5 but violate the discipline declared at mission-brief.md L75. If the discipline is load-bearing enough to declare in out-of-scope, it should be load-bearing enough to pin structurally (slice-022 codify-empirical-discipline axis; cf. AC#1's M3 ACCEPTED-FIXED guard-prefix anchor from pass 1).
+- **Evidence**: mission-brief.md L75 declaration; design.md test contract for AC#5 has no `git stash` exclusion.
+- **Proposed fix**: Add a 3rd structural-pin test to `test_build_slice_skill_dirty_tree_resolution.py`: `test_point_4_codefence_does_not_contain_git_stash` (asserts `"git stash" not in codefence_body` using the M2-fixed `_point_4_block`). Add one new TF-1 plan row tied to AC#5 (multi-test-per-AC permitted; AC#1 already has 2 rows). No new AC needed (the no-stash assertion is a sub-claim of AC#5's discipline-preservation).
+- **Builder draft**: **ACCEPTED-FIXED** — 3rd structural-pin test `test_point_4_codefence_does_not_contain_git_stash` added to `test_build_slice_skill_dirty_tree_resolution.py`; TF-1 plan gains one new row tied to AC#5; test count delta updates from +6 → +7; TF-1 row count from 7 → 8.
+
+## Dimensions checked (pass 2)
+
+- [x] **Unfounded assumptions** — none for the expansion delta. `git switch` (2.23+) + `git worktree add <path> <branch>` positional form both universal on Git for Windows (installed git 2.52.0).
+- [x] **Missing edge cases** — partially addressed: "NOT idempotent by design" clause correctly addresses session-death-mid-scaffolding-commit. Partial-stage failure not addressed but acceptable on bootstrap-grade slice; codify-exactly-what-reality-demanded.
+- [x] **Over-engineering** — none. AC#6 separation from AC#5 is correctly carved-out per slice-072 reflection L97. 2-test split (now 3-test post-m2 fix) in dirty-tree-resolution module gives clearer failure attribution.
+- [x] **Under-engineering** — m1 (no slice-070 reflection L127 citation) and m2 (NO-auto-stash discipline not structurally pinned). TF-1 row coverage: 7 rows for 6 ACs pre-m2-fix; 8 rows post-m2-fix.
+- [x] **Contract gaps** — minor concern (not raised as Major): switch-commit-switch bypasses BRANCH-2 audit's dirty-tree branch by leaving main tree clean before `git worktree add`. Empirically correct (slices 070-074 all followed this path; no WORKTREE=skip documented). Codify-exactly-what-reality-demanded.
+- [x] **Security** — none. `git switch -c slice/NNN-<slice-name>` is constrained-shape; no injection vector.
+- [x] **Drift from vault** — none. MEPD-1 EXCLUDE preserved for the expansion (operationalizes N=5 empirical pattern; no new rule). Rule-mint-vs-surface-class differentiating axis from pass 1's M4 still applies.
+- [x] **Web-known issues** — skipped — `git switch` + positional `git worktree add` both 6+ years stable.
+- [x] **Cross-cutting conformance** — APED-1 execution discipline applied to all 4 new regex shapes — surfaced B1 + M1 + M2 (three findings static-reasoning would have missed). PTFFD-1 / PTFCD-1: new test paths legitimate PENDING. SCPD-1 / FBCD-1 cross-file: mission-brief AC#5+AC#6 anchor strings byte-equal across mission-brief + design.md test contracts. RSAD-1 byte-exact-match correctly cited.
+
+## Triage (pass 2 — EXPANSION DELTA)
+
+**Triaged by**: user (TRI-1-EXT)
+**Date**: 2026-05-28
+**Final verdict (pass 2)**: CLEAN
+**Combined verdict (pass 1 + pass 2)**: CLEAN — slice-074 expanded scope (AC#1-AC#6) fully Critic-cleared.
+
+5 pass-2 dispositions reconciled from BOTH pass-2 Critic + pass-2 meta-Critic per DR-1. All ACCEPTED-FIXED in-band on mission-brief.md + design.md before /build-slice execution. Meta-Critic ACCEPT verdict (0 suspicious / 0 missed / 0 severity adjustments) — calibration on pass-2 first-Critic was exemplary.
+
+| ID | Severity | Disposition | Rationale |
+|----|----------|-------------|-----------|
+| B1 | Blocker | ACCEPTED-FIXED | design.md AC#6 test contract: no-`-b` lookahead tightened to `(?!(?:[^#\n]*?)-b\s)[^#\n]*` (comment-aware + `-b\s` flag-shape); APED-1-verified by meta-Critic against 10 synthetic edge cases including tab + path-with-`-b` variants |
+| M1 | Major | ACCEPTED-FIXED | design.md AC#5 test contract: `_point_4_block` redefined as `_point_4_codefence_body` (extracts bash codefence body only); 5th anchor token `git commit -m "scaffold(slice-NNN):` added; forecloses prose-only-narrative false-pass |
+| M2 | Major | ACCEPTED-FIXED | design.md `_point_4_codefence_body` redefinition (shared mechanism with M1; one regex change, two findings closed); upper boundary IS the codefence close, forecloses future point-5/WORKTREE=skip pollution |
+| m1 | Minor | ACCEPTED-FIXED | design.md codified codefence comment updated to include `canonical origin: slice-070 reflection L127`; symmetric with R-20 codification's risk-register-citation pattern |
+| m2 | Minor | ACCEPTED-FIXED | design.md new 3rd structural-pin test `test_point_4_codefence_does_not_contain_git_stash`; mission-brief.md TF-1 plan gains 1 new row tied to AC#5; test count delta +6→+7; TF-1 row count 7→8; pre-finish gate pytest target 1001→1002 |

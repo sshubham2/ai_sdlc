@@ -1589,3 +1589,36 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **Voluntary-restraint discipline N=13 cumulative** (slice-037/046/050/052/055/056/057/061/065/067/070/071/072) — code-Critic v1 advisory findings consistently route to next-slice bundled cleanup; the pattern is structurally stable across 7+ slices.
 - **BC-1 BC-GLOBAL-2 prose-vs-automation false-positive class N=4 cumulative** (slice-069 + slice-070 + slice-071 + slice-072) — pattern is past the N=3 promotion threshold; `/critic-calibrate` slice-073+ proposal target ready for action (BC-1 negative-anchor refinement to discriminate prose-discussion vs code-automation).
 - **R-20 cp -r tax N=7 cumulative with 2 surfaces** — slice-073+ structural-fix nomination is OVERDUE (user-flagged at slice-071 "we need a better solution"; each subsequent slice adds cumulative pain).
+
+## Slice 074 (codify-cp-r-in-branch-2-skill, expanded) — 2026-05-28
+
+### Worked
+
+- **Two-codification-in-one-slice via plan-mode expansion + re-Critic-the-delta**. User-approved at PCA-1 plan-mode gate (option 2); pass-2 /critique + /critique-review run on AC#5+AC#6 expansion delta only; pass-1 AC#1-AC#4 clearance preserved. New methodology pattern: scope-expansion-at-plan-mode + dual-Critic-on-delta + TRI-1-EXT.
+- **APED-1 execution on regex-shape contracts is the gold-standard rigor** for /critique on prose-as-executable-contract surfaces. Pass-2 first-Critic ran APED-1 on 3 of 5 findings BEFORE filing (B1, M1, M2); meta-Critic ran independent APED-1 against Builder draft B1 fix on 10 synthetic edge cases. Result: pass-2 meta-Critic ACCEPT (0 missed / 0 sus / 0 sev-adj) — the cleanest possible outcome.
+- **MEPD-1 EXCLUDE for codification-of-empirical-pattern slices** held cleanly. Slice-074 operationalizes R-20 candidate (a) + codifies N=5 switch-commit-switch empirical pattern; no methodology rule minted, no PMI-1 bump, ships at v0.72.0 unchanged. Both /critique passes ratified MEPD-1 EXCLUDE at CLEAN.
+- **R-20 cp-r tax structurally RETIRED** via candidate fix (a) — `if [ -d "$repo_root/<dir>" ]; then cp -r "$repo_root/<dir>" ./; fi` set-e-safe guard codified in skills/build-slice/SKILL.md `### Branch state` point 1 bash codefence. N=9 cumulative cp -r tax (slice-067 N=3 → slice-074 N=9) frozen at slice-074.
+- **Switch-commit-switch-worktree pattern N=5 cumulative codified at point 4** — replaces "STOP, ask user to commit or stash" with canonical 4-step recipe in bash codefence. Three structural-pin tests including no-`git stash` discipline pin (per /critique-review pass-2 m2 ACCEPTED-FIXED — first instance of declared-in-out-of-scope-then-pinned-structurally).
+- **Bootstrap exception per CRP-1/ADR-024 slice-026 mirror** correctly framed at /critique pass-1 M1 ACCEPTED-FIXED. Slice-074 is the bootstrap instance for both codifications (installed SKILL.md still pre-slice at Phase A prereq; codified prose lands at Phase B/C OSDG-1 sync). Canonical N+1 first-governed-slice demo is slice-075's Phase A.
+
+### Didn't work
+
+- **Slice-074 design.md L96 claim about MEPD-1 EXCLUDE precluding shippability row was self-justifying and contradicts slice-068's actual practice** (slice-068 reflection shows it added shippability row #67 despite being MEPD-1 EXCLUDE). The design's CLEAN-ratification didn't catch this empirical contradiction. /critic-calibrate signal: MEPD-1 EXCLUDE and shippability-row-obligation are separate axes that should be disentangled in `/reflect` Step 5.3 prose.
+- **Code-Critic M1 (point 4 variable-scope) caught a real semantic defect that pre-build dual-Critic stack missed** — `$wt_base`/`$repo_root`/`$default` referenced inside point 4's codefence but defined only in point 1's codefence (mutually-exclusive branches). The design-Critic stack reviewed the SKILL.md prose before the codefence was written; the gap surfaced only at post-code APED-1 execution. This is the canonical CRSI-1 v1 case: code-Critic adds value the design-Critic stack structurally cannot reach.
+
+### Pattern
+
+- **3-Critic stack value-validation extends to N=10 cumulative** (slice-063 → slice-074 inclusive). Each Critic surfaces distinct + complementary defect classes. Pass-2 meta-Critic ACCEPT (the cleanest possible outcome) + code-Critic M1 (a real semantic defect missed by design stack) are BOTH calibration-positive signals — first because it confirms the design-stack rigor on the expansion delta, second because it confirms the code-Critic catches what the design-stack cannot. Do NOT collapse the 3-Critic stack.
+
+- **Voluntary-restraint discipline extends to N=15 cumulative** (slice-037/046/050/052/055/056/057/061/065/067/070/071/072/073/074) — 9 consecutive cycles deferring code-Critic v1 advisory findings to next-slice bundled cleanup. Slice-075+ `slice-NNN-bundle-074-code-critic-cleanup` is the canonical next-step.
+
+- **BC-1 BC-GLOBAL-2 prose-vs-automation false-positive class N=6 cumulative** (slice-069/070/071/072/073/074) — well past N=3 promotion threshold; `/critic-calibrate` SEVERELY OVERDUE at five simultaneous signals (TPHD-1 N=7 + BC-GLOBAL-2 N=6 + AC-count > 5 N=3 + MEPD-1-EXCLUDE-vs-shippability N=1 + scope-expansion-discipline N=1).
+
+- **For methodology-revision slices that codify shell recipes inside SKILL.md prose**: structural-pin tests MUST anchor to the bash codefence body (not the prose narrative) AND to the executable shape (not the comment). Pass-2 M1 + M3 are both instances. APED-1 execution against synthetic input + canonical-line should be MANDATORY for structural-pin regex on codified shell recipes. Pass-2 first-Critic's gold-standard rigor (APED-1 on 3 of 5 findings) is the model for slice-075+ design-Critic runs on codification slices.
+
+- **AC count > 5 N=3 promotion of slice-067/072 pattern**: slice-067 + slice-072 + slice-074 all have 6 ACs with the 6th being a structural-pin meta-AC. Pattern stable; `/critic-calibrate` slice-075+ proposal target ready: formalize "≤5 (or ≤6 when AC6+ are exclusively additional structural-pin meta-ACs)" in `/slice` SKILL.md.
+
+- **Scope-expansion-at-/build-slice-plan-mode + re-Critic-the-delta + TRI-1-EXT** is the methodology-strict path for any future plan-mode user-approved expansions. Cost ~30 min for dual-Critic pass on the delta; benefit: pass-2 found 5 ACCEPTED-FIXED defects including 1 Blocker that would have stalled Phase A red-test verification. N=1 cumulative — watch-list for N≥3 codification.
+
+- **TPHD-1 sub-mode (a) Builder-fix-block-introduces-N+1-regressions HELD at N=7 cumulative** (no new instance this slice). Pattern recurrence rate slows when Builder fix-block discipline is tight (slice-074: ~17 design-time fixes applied with 0 meta-Critic-caught regressions across both /critique passes).
+

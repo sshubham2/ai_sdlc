@@ -57,3 +57,52 @@ Two minor coverage gaps surface from independent re-review of design.md POST-fix
 ## Notes
 
 Confidence in this review: high. The first Critic applied APED-1 execution to the two regex Majors (M2 + M3) — both empirically demonstrated against synthetic input before filing — which is the gold-standard rigor for prose-as-contract review. M1's bootstrap-order analysis correctly cited CRP-1 / ADR-024 slice-026 precedent at `skills/build-slice/SKILL.md:37` and would have been a real blocker for the Builder at /build-slice Phase A absent the fix. The single severity miscalibration (M4 → Minor) is calibration-grade, not disposition-grade; the Builder draft's ACCEPTED-FIXED is correct regardless of severity. Two missed minors surfaced (m-add-1 single-line if/then/fi constraint not recorded; m-add-2 Phase-A/B/C glossary missing), both documentation-clarity-tier and neither blocking. Overall the first Critic's coverage is genuinely solid on a slice that was always going to be small — single-surface prose addition + structural-pin tests + risk-register status flip. The TPHD-1 sub-mode (a) N=7 cumulative regression-introduction pattern (per slice-073 reflection L26) was checked against the Builder's 8-fix block: no stale `[ -d ... ] && cp -r` references leaked outside narrative-of-the-switch context; the regex tightenings in M2 + M3 are internally consistent with the prose contract in mission-brief AC#1 + AC#2; the cross-impact between m3 (form switch) and M3 (regex anchor) was correctly handled as a single coordinated fix. ADJUST verdict (M4 severity demotion + two Minor missed findings) is intentionally narrow — the Critic's review on this slice is genuinely strong and inflating findings to justify a second pass would be worse than the small adjustments offered here.
+
+---
+
+# /critique-review pass 2 — EXPANSION DELTA META-REVIEW
+
+**Reviewed by**: critique-review agent (DR-1) — pass 2 of 2
+**Date**: 2026-05-28
+**First-Critic verdict (pass 2)**: NEEDS-FIXES
+**Dual-review verdict (pass 2)**: ACCEPT
+
+## Summary (pass 2)
+
+The pass-2 /critique on the expansion delta (AC#5+AC#6) is exemplary. All five findings (B1, M1, M2, m1, m2) are APED-1-grounded against synthetic prose with empirical falsification evidence, the severity calibration is correct, and the Builder draft dispositions resolve each concern with composed mechanisms that minimize cross-impact (M1 + M2 share `_point_4_codefence_body`; B1 lookahead correctly scoped before `#` comment). Independent APED-1 re-execution against the Builder draft regexes confirms all canonical and Builder-mistake forms classify correctly. No suspicious findings, no missed findings, no severity adjustments.
+
+## Confirmed findings (pass 2)
+
+First-Critic pass-2 findings the meta-Critic agrees with (VALID + correct severity):
+
+- **B1** (AC#6 no-`-b` regex falsified by canonical `# no -b; branch exists` comment): **CONFIRMED VALID + Blocker correct**. APED-1 re-execution against the original `(?!.*-b)` regex on the canonical line returns no match — the test would FAIL at Phase A red-test verification with no path to PASSING absent the fix. Blocker is correct calibration: this would have stalled the Builder at Phase A regardless of how trivial the fix is, because the contradiction is between the prose AND the test, not a discoverable bug in either alone (the prose is canonical-correct; the regex is canonical-correct against an idealized line; only their composition fails). Filing as Major would have under-flagged because Major implies "Builder discovers + fixes at red-test"; here, the red-test would FAIL with no obvious-to-Builder cause until comment-aware lookahead is reasoned about. Hendrickson APED-1 / Wiegers severity-discrimination both support Blocker. Builder draft `(?!(?:[^#\n]*?)-b\s)[^#\n]*` is verified empirically.
+
+- **M1** (AC#5 token-search PASSES on prose-only narrative without codefence): **CONFIRMED VALID + Major correct**. APED-1 re-execution confirms: prose-only narrative mentioning all 4 tokens in order satisfies `.find()` chain on the original `_point_4_block` extraction. Same failure-mode-class as pass-1 M3 (comment-substring leak). Major is correct — a future Builder who reverts point 4 to STOP-prose while keeping a narrative paragraph that describes the sequence would silently PASS AC#5 and ship a non-codification. Adding the 5th anchor `git commit -m "scaffold(slice-NNN):` is a sound defense-in-depth tightening on top of the codefence-scoping fix.
+
+- **M2** (`_point_4_block` no upper boundary, swallows trailing paragraphs): **CONFIRMED VALID + Major correct**. APED-1 evidence is correct. Composing the fix with M1 (both share `_point_4_codefence_body`) is the right shape — one mechanism, two findings closed, no fix-block fragmentation. Major is correct — same "false-pass" severity class as M1.
+
+- **m1** (no cross-reference to slice-070 reflection L127): **CONFIRMED VALID + Minor correct**. The R-20 codification's comment cites the risk-register; symmetry says the switch-commit-switch codification should cite its empirical-provenance reflection. No structural failure-mode; just future-maintainer findability. Minor is correct.
+
+- **m2** (NO-auto-stash discipline not structurally pinned): **CONFIRMED VALID + Minor correct**. The pass-2 first-Critic correctly cites slice-022 codify-empirical-discipline + AC#1 M3 ACCEPTED-FIXED guard-prefix anchor as precedent. Filing as Minor (not Major) is correct: the failure mode is a future Builder VOLUNTARILY inserting `git stash`, which has zero empirical precedent (N=5 cumulative shows zero stash insertions). The Minor classification correctly captures "load-bearing-enough-to-pin, not load-bearing-enough-to-block." The 3rd-test addition is cheap and forecloses the regression-class structurally, which is the right cost/benefit at Minor severity.
+
+## Suspicious findings (pass 2)
+
+No suspicious findings. The pass-2 first-Critic ran APED-1 execution against synthetic prose for B1, M1, M2 (three of five findings have direct regex-execution evidence). The remaining two (m1, m2) are structural-discipline observations with clear out-of-scope-vs-pin contrast. No over-reach detected on any finding.
+
+## Missed findings (pass 2)
+
+No missed findings. Independent re-application of the 8 dimensions against the POST-fix mission-brief + design.md surfaced no additional concerns. Specific re-checks performed:
+
+- **TPHD-1 sub-mode (a) cross-surface sweep (test count +6→+7)**: mission-brief.md says `~1002/1002 PASS — 4 cp-r-scope tests + 3 switch-commit-switch-scope tests including no-stash discipline pin`; design.md says `+7 NEW tests` and `expected post-slice pytest count: 995 → 1002`; mid-slice smoke gate says `Expected: 6 PASS`. TF-1 plan has 8 rows. No stale "5 tests" / "+6" / "1001" anchors leaked. Sweep is clean.
+
+- **`_point_4_codefence_body`-as-shared-mechanism (3-test consistency)**: All three tests use `_point_4_codefence_body` consistently. Composition risk (a bug in `_point_4_codefence_body` cascading through 3 tests) is mitigated by the helper's assertion fail-loud — if the codefence is missing, ALL three tests fail with a clear diagnostic at the helper, not three separate cryptic per-test failures. This is the right ergonomics for a shared mechanism.
+
+- **B1 fix regex APED-1 verification** (independent execution against 10 synthetic cases): canonical no-`-b` line MATCHES; Builder-mistake `-b<space>` form does NOT match; `-b<tab>` form does NOT match (`\s` lookahead is permissive enough); no-comment valid form MATCHES; path containing `-b` literal (e.g., `/foo-bar/`) MATCHES (no false-negative on incidental `-b` in path names); `-branch` substring MATCHES. The only edge case where the regex over-matches is `-b=master` no-space, but per [git-worktree(1) — kernel.org](https://www.kernel.org/pub/software/scm/git/docs/git-worktree.html), git's `-b` short option does NOT accept `=` syntax — only `-b <branchname>` with space-separated argument is valid. `-b=master` is not a real Builder mistake form because git itself would reject it; the regex over-match on this synthetic form is therefore not a real-world false-negative. The B1 fix is empirically sound.
+
+## Severity adjustments (pass 2)
+
+No severity adjustments. The B1 Blocker classification is correct (would FAIL Phase A with no path to PASSING absent comment-aware lookahead reasoning); M1 + M2 Major classifications are correct (silent test-pass on non-codified prose is the canonical Major failure mode); m1 + m2 Minor classifications are correct (cheap-fix, no active failure path, discipline-hardening at slice-022 increment-axis).
+
+## Notes (pass 2)
+
+Confidence in this meta-review: high. The pass-2 first-Critic applied APED-1 execution to 3 of 5 findings (B1, M1, M2) with concrete falsification proof — gold-standard rigor for prose-as-contract review on regex-shape contracts. Independent APED-1 re-execution of the Builder draft B1 fix against 10 synthetic edge cases (including tab + no-space variants) confirms the comment-aware lookahead is empirically sound for real-world Builder-mistake forms. The composition of M1 + M2 fixes into a shared `_point_4_codefence_body` mechanism is correctly executed across all 3 consuming tests with consistent diagnostic ergonomics. TPHD-1 sub-mode (a) cross-surface sweep is clean. The pass-2 Critic correctly distinguished pass-1 m2 (PMI-1 contingency anachronism) from pass-2 m2 (no-auto-stash discipline pin) — no conflation. The original AC#1-AC#4 clearance from pass-1 is preserved untouched per scope discipline. ACCEPT verdict is intentional and warranted; manufacturing meta-findings on a genuinely strong pass-2 critique would be worse than the small set of confirmed-valids offered here.
