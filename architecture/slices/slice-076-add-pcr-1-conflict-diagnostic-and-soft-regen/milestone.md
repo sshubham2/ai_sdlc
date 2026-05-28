@@ -1,16 +1,16 @@
 ---
 slice: slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen
-stage: validate
+stage: reflect
 updated: 2026-05-29
-next-action: run `/validate-slice` (PCA-1 auto-advance from /code-review). /code-review surfaced 9 findings (0B / 3M / 6m) — advisory only per CRSI-1 v1 walking-skeleton; voluntary-restraint defer recommended to slice-NNN-bundle-076-code-critic-cleanup per N=16→N=17 cumulative precedent. 3-Critic stack value-validation N=12 cumulative (slice-063 → slice-076). After /validate-slice: /reflect.
+next-action: run `/reflect` (PCA-1 auto-advance from /validate-slice on aggregate PASS). /validate-slice all 5/5 ACs PASS; VAL-1 clean (0 secrets, 0 hallucinated imports); shippability 75/75 PASS; 1039/1039 full pytest PASS; 18 Step-6 audits clean modulo 2 BC-1 Important defer-with-rationale; 0 reality surprises; 0 multi-instance requirements (PCR-1 is cooperative-coordination per ADR-069). All 9 code-Critic findings fixed in-band at fix-in-band commit 90f6976 (user fix-all disposition; 3-Critic stack value-validation N=12 cumulative; voluntary-restraint N=16 UNCHANGED).
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-076 add-pcr-1-conflict-diagnostic-and-soft-regen
 
-**Stage**: validate (/code-review complete; PCA-1 auto-advance to /validate-slice)
-**Next action**: run `/validate-slice`
+**Stage**: reflect (/validate-slice complete; PCA-1 auto-advance to /reflect on aggregate PASS)
+**Next action**: run `/reflect`
 **Updated**: 2026-05-28
 **Risk tier**: medium — Critic required: **yes** (touches in-house methodology surfaces `skills/commit-slice/SKILL.md` + mints new rule PCR-1 + new ADR-069; mandatory-Critic trigger fires)
 
@@ -23,7 +23,7 @@ critic-required: true
 - [x] TRI-1 user ratification — 2026-05-28 — final verdict NEEDS-FIXES (16 ACCEPTED-FIXED + 2 ACCEPTED-PENDING + 1 OVERRIDDEN + 5 M-add ACCEPTED-FIXED = 19 dispositioned findings; 2 ACCEPTED-PENDING apply at /build-slice Phase A: M2 stage-missing catch + m5 R-21 risk-register entry)
 - [x] /build-slice — 2026-05-29 — SHIPPED-WITH-DEFERRALS (2 BC-1 Important defer-with-rationale per slice-074 N=7 cumulative). TF-1 plan: 31/31 PASSING; full pytest 1036/1036; shippability 75/75; 18 Step-6 audits clean; APED-1 4-predicate battery 28/28 expected.
 - [x] /code-review — 2026-05-29 — 9 findings (0B / 3M / 6m); ALL 9 FIXED IN-BAND (user override: option 3 fix-all); 3-Critic stack value-validation N=12 cumulative. Findings: M1 EOL-DRIFT-1 (4 write_text/open sites; newline="" applied + LF-only regression test) / M2 atomicity gap (stage-then-commit refactor in resolve_soft_conflict: helpers now return (Path, str) without writing; batch-write only on all-success + atomicity regression test) / M3 missing defense-in-depth VAULT_CLAIM gate (added in _regen_slice_queue after _extract_claim_diff; VAULT_CLAIM defense-in-depth regression test) / m1 __import__("os") → import os / m2 narrow except Exception → except ClaimUsageError / m3 silent claim-drop warning when block lacks Risk-retired / m4 6 unused pytest imports removed / m5 porcelain rename-with-arrow → fail-closed UNKNOWN / m6 audit log single open("a") + conditional header. Voluntary-restraint N=16 cumulative UNCHANGED (user chose fix-in-band over defer). 1039/1039 pytest PASS (was 1036; +3 regression tests). All 18 Step-6 audits remain clean.
-- [ ] /validate-slice
+- [x] /validate-slice — 2026-05-29 — **PASS** (5/5 ACs PASS with evidence). VAL-1 layered safety clean (0 secrets, 0 hallucinated imports). Shippability runner via SRSC-1 pinned: 75/75 PASS, 0 FAIL (no regressions). 1039/1039 full pytest PASS. WS-1 + ETC-1 default-off (mission-brief Walking-skeleton=false / Exploratory-charter=false). Multi-instance: N/A (PCR-1 is cooperative-coordination convention per ADR-069 § Adversarial model, not a security boundary). 0 reality surprises. R-21 open residual remains tracked for empirical refutation in future parallel-slice usage. PCA-1 auto-advance to /reflect on aggregate PASS.
 - [ ] /reflect
 
 ## Current focus
