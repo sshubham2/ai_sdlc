@@ -300,3 +300,28 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-081 surface.
+
+## Audit 2026-05-30 (slice-083-add-pcr-2b-hard-class-conflict-resolution)
+
+**Trigger**: slice-083 pre-finish gate (/build-slice Step 6)
+**Scope**: full (thin vault — ADR-075 + active slice-083 design.md/mission-brief + methodology-changelog v0.77.0 + shippability)
+**Findings**: 0 blockers, 0 majors
+
+### Blockers
+(none)
+
+### Majors
+(none)
+
+### Verified aligned
+- ADR-075 (`status: accepted`, `reversibility: expensive`, `supersedes: null`) — its decision (mint PCR-2b + TRI-RESOLVE-1; gate-on-hand-resolve; `code-review` agent not the critique agents per M-add-2) matches design.md + mission-brief; refines ADR-069's HARD/MIXED rows WITHOUT editing ADR-069 (verified: ADR-069 HARD/MIXED "Shipped in" cells still read "slice-077 (PCR-2)" — byte-unchanged).
+- design.md "What's new" — every claim verified on disk: `tools/parallel_conflict_resolver.py` now defines `resolve_hard_conflict`, `_verify_resolution_clean`, `_format_hard_audit_entry`, `_record_hard_resolution`, `_CONFLICT_MARKER_OPENER_RE`, and the `--verify-resolution`/`--record-hard-resolution` CLI modes; the HARD/MIXED dispatch branch in `resolve_soft_conflict` routes through `resolve_hard_conflict`; `skills/commit-slice/SKILL.md` sub-step 2.5 carries the PCR-2b gate-on-hand-resolve flow + TRI-RESOLVE-1.
+- B2/M-add-1 fix verified: `_CONFLICT_MARKER_OPENER_RE` keys on `^[ +-]?(?:<{7}|>{7})` — empirically setext `=======` + 30-`=` dividers do NOT match; `<<<<<<<`/`>>>>>>>` openers/closers do (`test_pcr_2b_verify_resolution.py::test_verify_resolution_clean_on_resolved_markdown_setext` PASS).
+- M-add-2 fix verified: SKILL.md spawns `subagent_type: "code-review"` (NOT the critique agents) + records WHY (fail-stop on missing design.md).
+- mission-brief must-not-defer — all addressed: fail-closed at every leg (HARD/MIXED never auto-continue; resolve_hard_conflict NEVER runs `git rebase --continue`); TRI-RESOLVE-1 is SOAD-1 structured-options (pinned); bootstrap fallback to bare SOAD-1 (pinned); audit-log best-effort `## Hard-conflict resolution -`; OSDG-1 forward-sync of commit-slice SKILL.md done; no new module/agent → PMI-1/INST-1 inventory unchanged (33 tools, 6 agents, 26 skills).
+- 5-part PMI-1 bump consistent: `VERSION` = `plugin.yaml.version` = `pyproject.toml [project].version` = `0.77.0`; `## v0.77.0` changelog header present in-repo + forward-synced installed; installed `~/.claude/ai-sdlc-VERSION` = `0.77.0`; venv `ai-sdlc-tools` = `0.77.0` (MCFS-1/AVFS-1/TVFS-1 all PASS).
+- risk-register.md: slice-083 retires no registered risk (R-23/R-24 stay OPEN — remediation venue only, per /slice scope) — STP-1 clean, no stale status pin.
+- No UNSPECIFIED CODE / no STALE CLAIM: additive (new functions + two new rules PCR-2b/TRI-RESOLVE-1); no removed feature; the stale `slice-079`/`PCR-2` forward-refs (m2) were updated to shipped-status in SKILL.md + resolver docstring.
+
+### Resolutions
+- None required — vault and code aligned for the slice-083 surface.

@@ -1723,6 +1723,61 @@ def test_bc_proj_12_has_expected_structural_identity():
     )
 
 
+def test_bc_proj_13_has_expected_structural_identity():
+    """BC-PROJ-13 (slice-083 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity (new-regex/parser APED-1 corpus rule).
+    Canonical fixture = subject; these literal constants = git-tracked oracle
+    (ADR-028). BCI-1 separately asserts the gitignored live build-checks.md
+    matches the fixture.
+
+    Defect class: a silent truncation / mis-author of BC-PROJ-13 would lose
+    the "a newly-minted regex/parser needs an APED-1 adversarial-corpus battery
+    at design time" evergreen check with no loud signal (R-4 class). The rule's
+    promotion threshold was N=3 cumulative — slice-081 anchored matcher,
+    slice-082 heading regex, slice-083 marker regex, each a content-shape bug
+    caught ONLY by the code-Critic executing the regex.
+
+    Rule reference: BC-1 (slice-083 /reflect Step 5b; user-approved promotion of
+    the new-parser-parity / regex-APED-1 discipline at N=3 cumulative threshold).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-13" in p_by_id, "BC-PROJ-13 not parsed from project fixture"
+    p13 = p_by_id["BC-PROJ-13"]
+    assert p13.severity == "Important", f"BC-PROJ-13 severity: {p13.severity!r}"
+    assert p13.applies_to == ("tools/**/*.py",), (
+        f"BC-PROJ-13 applies_to mismatch: got {p13.applies_to!r}"
+    )
+    assert p13.trigger_keywords == (
+        "regex", "re.compile", "matcher", "marker", "anchored", "parser",
+        "conflict-marker", "aped-1",
+    ), f"BC-PROJ-13 trigger_keywords mismatch: got {p13.trigger_keywords!r}"
+    assert p13.trigger_anchors == (
+        "regex", "re.compile", "matcher", "marker", "anchored",
+    ), (
+        f"BC-PROJ-13 trigger_anchors mismatch (anchors MUST be subsets of "
+        f"keywords per BCI-1 anchor-not-in-keywords gate): "
+        f"got {p13.trigger_anchors!r}"
+    )
+    assert p13.negative_anchors == (
+        "aggregated lessons", "meta-discussion", "false positive",
+        "design.md", "mission-brief", "defer-with-rationale",
+    ), f"BC-PROJ-13 negative_anchors mismatch: got {p13.negative_anchors!r}"
+    assert p13.check and p13.check.strip(), "BC-PROJ-13 check must be non-empty"
+    assert "APED-1" in p13.check, (
+        "BC-PROJ-13 check body MUST cite the APED-1 adversarial-corpus discipline"
+    )
+    assert "both" in p13.check.lower() and "direction" in p13.check.lower(), (
+        "BC-PROJ-13 check body MUST require BOTH false-positive AND "
+        "false-negative directions"
+    )
+
+
 def test_bc_global_3_has_expected_structural_identity():
     """BC-GLOBAL-3 (slice-047 /reflect Step-5b global promotion) MUST parse to
     its expected full structural identity. The canonical global fixture is the
