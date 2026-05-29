@@ -1,16 +1,16 @@
 ---
 slice: slice-079-bundle-074-075-077-078-code-critic-cleanup
-stage: code-review
+stage: validate
 updated: 2026-05-29
-next-action: run /validate-slice (code-review complete: 0 blockers, 1 major + 1 minor addressed in-loop, 1 won't-fix, 2 deferred; full suite 1125/1125)
+next-action: HALT (PCA-1 PARTIAL gate) — AC#5 PARTIAL (source-pending-items.txt archived; archive-immutability blocks the text-removal sub-clause); user decides resolution before /reflect
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-079 bundle-074-075-077-078-code-critic-cleanup
 
-**Stage**: code-review COMPLETE (0 blockers; M1 + m2 addressed in-loop; m1 won't-fix; m3/m4 deferred) — next: /validate-slice
-**Next action**: run `/validate-slice` (real-environment AC validation + shippability catalog regression)
+**Stage**: validate — Result PARTIAL (AC#1-4 PASS; AC#5 PARTIAL — spec gap) → HALT per PCA-1; awaiting user decision on AC#5 resolution
+**Next action**: user decides AC#5 resolution (archive-immutability carve-out vs create live source-pending tracker), THEN /reflect. Full suite 1125/1125; shippability 83/83; VAL-1 0/0.
 **Updated**: 2026-05-29
 **Risk tier**: medium — Critic required: yes
 **Worktree**: `C:\Users\sshub\ai_sdlc-wt\slice-079-bundle-074-075-077-078-code-critic-cleanup` on branch `slice/079-bundle-074-075-077-078-code-critic-cleanup`
@@ -35,7 +35,8 @@ critic-required: true
   - [x] Phase H — `tools/slice_queue_writer.py` Fix S structural-pin (2 PASS; codebase already compliant; no source change)
   - [x] Phase I — Pre-finish gate: full suite 1124/1124; BRANCH-2/NAW-1/UTF8-STDOUT-1/PMI-1/CAD-1/BCI-1/MCFS-1/AVFS-1/TVFS-1/STP-1/PCA-1/CRP-1/WIRE-1/BC-1/LINT-MOCK all CLEAN; build-log Summary written
 - [x] /code-review — 2026-05-29 — FINDINGS (0 blockers, 1 major, 4 minors); M1 + m2 addressed in-loop, m1 won't-fix, m3/m4 deferred; full suite 1125/1125
-- [ ] /validate-slice
+- [x] /validate-slice — 2026-05-29 — PARTIAL (AC#1-4 PASS; AC#5 PARTIAL spec-gap; shippability 83/83; VAL-1 0/0) — HALT for user
+- [ ] /reflect
 - [ ] /reflect
 
 ## Current focus
@@ -78,5 +79,5 @@ Phase B next: scaffold the regression test files cited in the catalog rows (writ
 - [critique-review.md](critique-review.md) — EXTEND; 1 missed finding (M-add-1) surfaced + ACCEPTED-FIXED
 - [build-log.md](build-log.md) — Phase A events recorded; Summary pending Phase I
 - [code-review.md](code-review.md) — FINDINGS (0B/1M/4m; M1+m2 addressed, m1 won't-fix, m3/m4 deferred)
-- [validation.md](validation.md) — pending
+- [validation.md](validation.md) — PARTIAL (AC#1-4 PASS; AC#5 PARTIAL spec-gap → user gate)
 - [reflection.md](reflection.md) — pending
