@@ -240,9 +240,18 @@ def resolve_soft_conflict(
         repo_root = Path.cwd()
 
     cls = classify_conflict(diag)
+    # PCR-2a B3 ACCEPTED-FIXED: new VAULT_CLAIM dispatch branch ABOVE the
+    # existing `if cls is not ConflictClass.SOFT:` guard. The CLI path
+    # through --resolve-soft (skills/commit-slice/SKILL.md sub-step 2.5)
+    # calls THIS function first; without this branch VAULT_CLAIM would
+    # short-circuit at L243 to STOP before reaching the defense-in-depth
+    # backstop in _regen_slice_queue.
+    if cls is ConflictClass.VAULT_CLAIM:
+        return resolve_vault_claim_conflict(diag, repo_root)
+
     if cls is not ConflictClass.SOFT:
         reason = (
-            f"non-SOFT class ({cls.value}) - deferred to PCR-2; "
+            f"non-SOFT class ({cls.value}) - deferred to PCR-2b; "
             f"fall through to SOAD-1 STOP per ADR-069 atomicity"
         )
         return ResolutionResult(
@@ -267,6 +276,14 @@ def resolve_soft_conflict(
                 pending_writes.append(_regen_slice_queue(repo_root, diag))
             elif u_file == "architecture/shippability.md":
                 pending_writes.append(_merge_shippability(repo_root))
+    except _VaultClaimDispatch:
+        # PCR-2a B3 ACCEPTED-FIXED: defense-in-depth gate in
+        # _regen_slice_queue detected VAULT_CLAIM via the actual queue
+        # text after upstream classify_conflict had returned SOFT (silent-
+        # classify-bypass corner case). Reroute to the public VAULT_CLAIM
+        # resolver — no SOFT writes occurred (the sentinel raised before
+        # any pending_writes append for slice-queue.md).
+        return resolve_vault_claim_conflict(diag, repo_root)
     except _SoftResolutionError as exc:
         # _regen_slice_queue or _merge_shippability surfaced a structural
         # issue (e.g., both stages missing; same-slice-number-different-
@@ -364,24 +381,78 @@ class _SoftResolutionError(Exception):
         self.conflict_class = conflict_class
 
 
+class _VaultClaimDispatch(Exception):
+    """PCR-2a sentinel: _regen_slice_queue's defense-in-depth gate detected
+    a VAULT_CLAIM collision in the actual queue text after classify_conflict
+    returned SOFT (silent-classify-bypass corner case — e.g., diag's
+    claim_history was constructed without parse_queue_text via ImportError).
+
+    Raised by _regen_slice_queue (replacing the old _SoftResolutionError(
+    VAULT_CLAIM) raise per AC#2). Caught by resolve_soft_conflict's
+    exception loop, which reroutes to resolve_vault_claim_conflict.
+
+    Carries no payload — the dispatch target re-collects collisions from
+    diag.claim_history directly (already populated by diagnose_conflict).
+    """
+
+
+def _collect_same_candidate_different_identity(
+    claim_history: tuple[ClaimEntry, ...] | list[ClaimEntry],
+) -> list[tuple[str, ClaimEntry, ClaimEntry]]:
+    """Enumerate every same-candidate-different-identity collision in claim_history.
+
+    Per PCR-2a m2 ACCEPTED-FIXED: returns the list (not just bool) so
+    resolve_vault_claim_conflict can detect multi-candidate STOP at
+    Resolution algorithm step 1. The PCR-1 _has_same_candidate_different_identity
+    consumer (classify_conflict) is preserved as a thin bool wrapper below.
+
+    Returns list of (candidate_name, stage_2_entry, stage_3_entry) tuples.
+    """
+    by_name: dict[str, dict[int, ClaimEntry]] = {}
+    for entry in claim_history:
+        by_name.setdefault(entry.candidate_name, {})[entry.branch_stage] = entry
+    collisions: list[tuple[str, ClaimEntry, ClaimEntry]] = []
+    for name, stages in by_name.items():
+        e2 = stages.get(2)
+        e3 = stages.get(3)
+        if e2 is not None and e3 is not None and e2.claimed_by != e3.claimed_by:
+            collisions.append((name, e2, e3))
+    return collisions
+
+
 def _has_same_candidate_different_identity(
     claim_history: tuple[ClaimEntry, ...],
 ) -> bool:
-    """Walk claim_history for any candidate-name claimed by different
-    identities across the two branch stages.
-
-    Per /critique B4 ACCEPTED-FIXED: the VAULT_CLAIM gate fires only when
-    the SAME candidate name appears in BOTH stage 2 and stage 3 claim
-    dicts with DIFFERENT Claimed-by values. Same-candidate-same-identity
-    (mere claim refresh) is NOT VAULT_CLAIM.
+    """Thin bool wrapper preserving the classify_conflict consumer API
+    (PCR-1 / /critique B4 ACCEPTED-FIXED). Returns True iff at least one
+    same-candidate-different-identity collision is present.
     """
-    by_name: dict[str, dict[int, str]] = {}
-    for entry in claim_history:
-        by_name.setdefault(entry.candidate_name, {})[entry.branch_stage] = entry.claimed_by
-    for stages in by_name.values():
-        if 2 in stages and 3 in stages and stages[2] != stages[3]:
-            return True
-    return False
+    return bool(_collect_same_candidate_different_identity(claim_history))
+
+
+def _select_timestamp_winner(
+    collisions: list[tuple[str, ClaimEntry, ClaimEntry]],
+) -> tuple[ClaimEntry, ClaimEntry] | None:
+    """Strict-newer Claimed-at winner selection for VAULT_CLAIM resolution.
+
+    Per PCR-2a Resolution algorithm step 2:
+      - len(collisions) > 1 → caller translates to multi-candidate STOP
+        (this helper returns None on that path to keep its contract simple;
+        the caller checks len(collisions) BEFORE calling this helper).
+      - len(collisions) == 1: select winner by strictly-newer claimed_at
+        (ISO-8601 lexicographic ordering, valid for UTC RFC-3339 strings).
+      - Equal claimed_at (tie) → returns None (strict-newer rule yields no winner).
+
+    Returns (winner_entry, loser_entry) on success, or None on tie.
+    """
+    if len(collisions) != 1:
+        return None
+    _name, e2, e3 = collisions[0]
+    if e2.claimed_at == e3.claimed_at:
+        return None
+    if e2.claimed_at > e3.claimed_at:
+        return (e2, e3)
+    return (e3, e2)
 
 
 def _extract_u_files(repo_root: Path) -> tuple[str, ...]:
@@ -630,12 +701,15 @@ def _regen_slice_queue(
         cb2 = claims_2[name].get("claimed_by")
         cb3 = claims_3[name].get("claimed_by")
         if cb2 and cb3 and cb2 != cb3:
-            raise _SoftResolutionError(
-                f"slice-queue.md candidate {name!r}: same-candidate-different-"
-                f"identity claim collision (Claimed-by stage 2={cb2!r}, "
-                f"stage 3={cb3!r}); VAULT_CLAIM deferred to PCR-2 / slice-077",
-                ConflictClass.VAULT_CLAIM,
-            )
+            # PCR-2a B3 ACCEPTED-FIXED: raise _VaultClaimDispatch sentinel
+            # (was: _SoftResolutionError(VAULT_CLAIM)). The defense-in-depth
+            # gate detected a collision the upstream classify_conflict
+            # missed (silent-classify-bypass corner case — e.g., diag's
+            # claim_history was empty due to ImportError in
+            # _extract_claim_diff). resolve_soft_conflict catches the
+            # sentinel and reroutes to resolve_vault_claim_conflict.
+            # The UNKNOWN-class raise leg at L605-609 is UNCHANGED.
+            raise _VaultClaimDispatch()
 
     merged_claims = _merge_claim_dicts(claims_2, claims_3)
 
@@ -761,6 +835,338 @@ def _overlay_claims_on_queue_text(
     return "\n".join(result_lines)
 
 
+def _parse_queue_candidates_for_replacement(
+    text: str,
+) -> list[tuple[str, str, bool]]:
+    """Parse slice-queue.md text → ordered (name, parallel_safety, is_claimed) list.
+
+    Per PCR-2a B1 ACCEPTED-FIXED: tools/slice_queue_writer.py exposes no
+    public parser, and tools.slice_queue_claim.parse_queue_text explicitly
+    strips Parallel-safety (docstring at slice_queue_claim.py:230-234).
+    This file-local helper fills the gap with a regex-based, file-order-
+    preserving parser scoped to (name, parallel_safety, is_claimed).
+
+    File order = priority (top of queue = highest priority candidate).
+    A candidate is `is_claimed=True` iff its block contains a
+    `- **Claimed-by:**` line; `claimed_at` is not surfaced (replacement
+    logic only needs unclaimed-detection).
+    """
+    if not text:
+        return []
+    import re as _re
+
+    out: list[tuple[str, str, bool]] = []
+    current_name: str | None = None
+    current_safety: str | None = None
+    current_claimed: bool = False
+
+    def _flush() -> None:
+        nonlocal current_name, current_safety, current_claimed
+        if current_name is not None:
+            out.append((
+                current_name,
+                current_safety if current_safety is not None else "UNKNOWN-NO-GRAPH",
+                current_claimed,
+            ))
+        current_name = None
+        current_safety = None
+        current_claimed = False
+
+    for line in text.split("\n"):
+        if line.startswith("### "):
+            _flush()
+            current_name = line[4:].strip()
+            current_safety = None
+            current_claimed = False
+            continue
+        m = _re.match(r"- \*\*Parallel-safety:\*\* (\S+)", line)
+        if m and current_name is not None:
+            current_safety = m.group(1)
+            continue
+        if current_name is not None and line.startswith("- **Claimed-by:**"):
+            current_claimed = True
+    _flush()
+    return out
+
+
+def _pick_loser_replacement(
+    queue_text: str,
+    exclude_names: set[str],
+) -> str | None:
+    """Return highest-priority unclaimed NON-OVERLAPPING candidate name, or None.
+
+    Per PCR-2a M-add-2 ACCEPTED-FIXED: reads ONLY the in-memory queue_text
+    arg — does NOT take repo_root, does NOT read from disk. The caller
+    (Resolution algorithm step 4) passes the post-overlay in-memory text
+    from step 3; disk-read during VAULT_CLAIM rebase-in-progress would
+    encounter git's <<<<<<< conflict markers around slice-queue.md (the
+    U-file) and silently parse only the non-conflicted portion → return
+    None even when valid candidates exist.
+
+    Filter: `Parallel-safety: NON-OVERLAPPING` AND `Claimed-by:` absent
+    AND name not in `exclude_names`.
+
+    Returns the first satisfying candidate name (file order = priority),
+    or None when no candidate satisfies (audit-row sentinel `none-available`).
+    """
+    for name, safety, is_claimed in _parse_queue_candidates_for_replacement(queue_text):
+        if name in exclude_names:
+            continue
+        if safety != "NON-OVERLAPPING":
+            continue
+        if is_claimed:
+            continue
+        return name
+    return None
+
+
+def _format_vault_claim_audit_entry(
+    diag: ConflictDiagnostic,
+    result: ResolutionResult,
+    timestamp: str,
+    head_sha: str,
+) -> str:
+    """Build the 8-field VAULT_CLAIM audit-log section.
+
+    Per PCR-2a AC#4 + M2 ACCEPTED-FIXED: section heading is
+    ``## Vault-claim resolution - <ISO-8601 UTC>`` (UNIFORM hyphen-space
+    separator with PCR-1 SOFT row; section-type distinguished at the
+    prefix word `Vault-claim` vs `Soft-conflict`).
+
+    Winner/loser are derived from diag.claim_history via the same
+    `_collect_same_candidate_different_identity` + `_select_timestamp_winner`
+    helpers the resolver itself used (deterministic — same input yields
+    same winner). Replacement is parsed from result.reason via the
+    canonical `replacement=<name>` token; absent → audit-row sentinel
+    `none-available`.
+    """
+    import re as _re
+
+    collisions = _collect_same_candidate_different_identity(diag.claim_history)
+    # Defensive: the resolver only invokes audit with a well-formed result
+    # (single-collision strict-newer winner). If somehow the diag carries 0
+    # or >1 collisions at audit time, fall back to placeholder fields rather
+    # than crash the best-effort audit-log append (resolve_soft_conflict's
+    # contract is that audit failures NEVER block APPLIED return).
+    winner_obj = None
+    loser_obj = None
+    candidate_name = "(unknown)"
+    if len(collisions) == 1:
+        candidate_name = collisions[0][0]
+        winner_loser = _select_timestamp_winner(collisions)
+        if winner_loser is not None:
+            winner_obj, loser_obj = winner_loser
+
+    if winner_obj is not None and loser_obj is not None:
+        winner_by = winner_obj.claimed_by
+        winner_at = winner_obj.claimed_at
+        loser_by = loser_obj.claimed_by
+        loser_at = loser_obj.claimed_at
+    else:
+        winner_by = winner_at = loser_by = loser_at = "(unavailable)"
+
+    # Replacement encoded by resolve_vault_claim_conflict in result.reason
+    # as `replacement=<name>` (or `replacement=none-available`).
+    replacement = "none-available"
+    if result.reason:
+        m = _re.search(r"replacement=(\S+)", result.reason)
+        if m:
+            replacement = m.group(1)
+
+    action_lines: list[str] = []
+    for f in result.regenerated_files:
+        if f == "architecture/slice-queue.md":
+            action_lines.append(
+                f"- `{f}` - winner identity preserved via strict-newer Claimed-at "
+                "+ _overlay_claims_on_queue_text"
+            )
+        else:
+            action_lines.append(f"- `{f}` - regenerated")
+
+    return (
+        f"## Vault-claim resolution - {timestamp}\n"
+        "\n"
+        f"**Repo HEAD SHA pre-resolution**: {head_sha}\n"
+        f"**Candidate name**: {candidate_name}\n"
+        f"**Winner Claimed-by**: {winner_by}\n"
+        f"**Winner Claimed-at**: {winner_at}\n"
+        f"**Loser Claimed-by**: {loser_by}\n"
+        f"**Loser Claimed-at**: {loser_at}\n"
+        f"**Loser auto-re-pick**: {replacement}\n"
+        f"**Resolution actions**:\n"
+        + ("\n".join(action_lines) if action_lines else "(none)")
+        + "\n\n"
+    )
+
+
+def resolve_vault_claim_conflict(
+    diag: ConflictDiagnostic,
+    repo_root: Path | None = None,
+) -> ResolutionResult:
+    """Resolve a VAULT_CLAIM-class conflict via strict-newer timestamp-winner.
+
+    Per PCR-2a (slice-078 / ADR-071), 7-step Resolution algorithm per
+    design.md §Resolution algorithm:
+
+      1. Collect collisions; STOP on multi or empty (caller misuse).
+      2. Select strict-newer winner; STOP on tie.
+      3. Read stage 2/3 baselines; overlay winner identity onto baseline;
+         defensive post-overlay regex verifies the winner's claim landed
+         (M-add-1: catches `_overlay_claims_on_queue_text` silent-drop on
+         malformed candidate blocks).
+      4. Read-only loser-replacement from in-memory overlaid text
+         (M-add-2: NOT disk-read during VAULT_CLAIM rebase-in-progress).
+      5. Atomic write + git add + git rebase --continue.
+      6. Best-effort audit-log append.
+      7. Return APPLIED.
+    """
+    import re as _re
+
+    if repo_root is None:
+        repo_root = Path.cwd()
+
+    # Step 1: Collect collisions
+    collisions = _collect_same_candidate_different_identity(diag.claim_history)
+    if len(collisions) > 1:
+        return ResolutionResult(
+            action="STOP",
+            conflict_class=ConflictClass.VAULT_CLAIM,
+            regenerated_files=(),
+            reason=(
+                "multi-candidate VAULT_CLAIM collision — sequential auto-"
+                "resolution deferred to PCR-2b"
+            ),
+        )
+    if len(collisions) == 0:
+        return ResolutionResult(
+            action="STOP",
+            conflict_class=ConflictClass.UNKNOWN,
+            regenerated_files=(),
+            reason=(
+                "VAULT_CLAIM dispatch without same-candidate-different-"
+                "identity claim collision — diag/class disagree, fail-closed"
+            ),
+        )
+
+    # Step 2: Select winner; STOP on tie
+    winner_loser = _select_timestamp_winner(collisions)
+    if winner_loser is None:
+        return ResolutionResult(
+            action="STOP",
+            conflict_class=ConflictClass.VAULT_CLAIM,
+            regenerated_files=(),
+            reason=(
+                "claimed_at-tie deferred to PCR-2b — strict-newer rule "
+                "yields no winner"
+            ),
+        )
+    winner, loser = winner_loser
+    candidate_name = collisions[0][0]
+
+    # Step 3: Read stage baselines + overlay winner identity onto baseline
+    text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")
+    text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")
+    baseline_text = text_3 if text_3 else text_2
+    if not baseline_text:
+        return ResolutionResult(
+            action="STOP",
+            conflict_class=ConflictClass.UNKNOWN,
+            regenerated_files=(),
+            reason=(
+                "slice-queue.md: both stage 2 and stage 3 missing — "
+                "rebase state unexpected"
+            ),
+        )
+
+    overlaid = _overlay_claims_on_queue_text(
+        baseline_text,
+        {
+            candidate_name: {
+                "claimed_by": winner.claimed_by,
+                "claimed_at": winner.claimed_at,
+            },
+        },
+    )
+
+    # Step 3 (M-add-1): defensive post-overlay verification — silent-drop
+    # protection. If the candidate block in baseline_text lacks the
+    # canonical `- **Risk-retired:**` pivot, _overlay_claims_on_queue_text
+    # logs to stderr but still returns the unchanged baseline → the winner's
+    # claim is silently dropped. Fail-closed STOP rather than ship a stale
+    # claim.
+    verify_pattern = _re.compile(
+        rf"### {_re.escape(candidate_name)}.*?Claimed-by:\*\* "
+        rf"{_re.escape(winner.claimed_by)}",
+        _re.DOTALL,
+    )
+    if not verify_pattern.search(overlaid):
+        return ResolutionResult(
+            action="STOP",
+            conflict_class=ConflictClass.VAULT_CLAIM,
+            regenerated_files=(),
+            reason=(
+                "overlay-silently-dropped — candidate block missing "
+                "Risk-retired pivot; manual intervention required"
+            ),
+        )
+
+    # Step 4: Read-only loser-replacement from in-memory overlaid text.
+    replacement = _pick_loser_replacement(
+        queue_text=overlaid,
+        exclude_names={candidate_name},
+    )
+
+    # Step 5: Atomic write + git add + git rebase --continue.
+    out_path = repo_root / "architecture" / "slice-queue.md"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(overlaid, encoding="utf-8", newline="")
+    try:
+        subprocess.run(
+            ["git", "add", "architecture/slice-queue.md"],
+            cwd=str(repo_root),
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "rebase", "--continue"],
+            cwd=str(repo_root),
+            check=True,
+            capture_output=True,
+            env={**os.environ, "GIT_EDITOR": "true"},
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        return ResolutionResult(
+            action="STOP",
+            conflict_class=ConflictClass.VAULT_CLAIM,
+            regenerated_files=("architecture/slice-queue.md",),
+            reason=(
+                "git stage + rebase --continue failed post vault-claim "
+                f"resolution: {exc!r}"
+            ),
+        )
+
+    result = ResolutionResult(
+        action="APPLIED",
+        conflict_class=ConflictClass.VAULT_CLAIM,
+        regenerated_files=("architecture/slice-queue.md",),
+        # Encode replacement in reason for _format_vault_claim_audit_entry.
+        reason=f"vault-claim-resolved; replacement={replacement or 'none-available'}",
+    )
+
+    # Step 6: Best-effort audit-log append (mirrors SOFT path L338-344).
+    try:
+        _append_audit_log(repo_root, diag, result)
+    except Exception as exc:  # noqa: BLE001 - best-effort by design
+        print(
+            f"parallel-conflict-resolver: audit log append failed "
+            f"(non-blocking): {exc!r}",
+            file=sys.stderr,
+        )
+
+    # Step 7: Return APPLIED.
+    return result
+
+
 def _merge_shippability(repo_root: Path) -> tuple[Path, str]:
     """Row-union merge of architecture/shippability.md by slice number.
 
@@ -865,38 +1271,43 @@ def _append_audit_log(
     except (subprocess.CalledProcessError, FileNotFoundError):
         head_sha = "(unavailable)"
 
-    u_files_csv = ", ".join(diag.u_files) if diag.u_files else "(none)"
-    concerned_ids = sorted({
-        cs.slice_id
-        for u in diag.u_files
-        for cs in diag.concerned_slices.get(u, ())
-    })
-    concerned_csv = ", ".join(concerned_ids) if concerned_ids else "(none)"
+    # PCR-2a: dispatch on result.conflict_class — VAULT_CLAIM gets its own
+    # 8-field section type; SOFT stays on the original section shape verbatim.
+    if result.conflict_class is ConflictClass.VAULT_CLAIM:
+        entry = _format_vault_claim_audit_entry(diag, result, timestamp, head_sha)
+    else:
+        u_files_csv = ", ".join(diag.u_files) if diag.u_files else "(none)"
+        concerned_ids = sorted({
+            cs.slice_id
+            for u in diag.u_files
+            for cs in diag.concerned_slices.get(u, ())
+        })
+        concerned_csv = ", ".join(concerned_ids) if concerned_ids else "(none)"
 
-    action_lines: list[str] = []
-    for f in result.regenerated_files:
-        if f == "architecture/slice-queue.md":
-            action_lines.append(
-                f"- `{f}` - regenerated via _overlay_claims_on_queue_text "
-                "with merged-claims union"
-            )
-        elif f == "architecture/shippability.md":
-            action_lines.append(
-                f"- `{f}` - row-union merge by slice number"
-            )
-        else:
-            action_lines.append(f"- `{f}` - regenerated")
+        action_lines: list[str] = []
+        for f in result.regenerated_files:
+            if f == "architecture/slice-queue.md":
+                action_lines.append(
+                    f"- `{f}` - regenerated via _overlay_claims_on_queue_text "
+                    "with merged-claims union"
+                )
+            elif f == "architecture/shippability.md":
+                action_lines.append(
+                    f"- `{f}` - row-union merge by slice number"
+                )
+            else:
+                action_lines.append(f"- `{f}` - regenerated")
 
-    entry = (
-        f"## Soft-conflict resolution - {timestamp}\n"
-        "\n"
-        f"**Repo HEAD SHA pre-resolution**: {head_sha}\n"
-        f"**U-files resolved**: {u_files_csv}\n"
-        f"**Concerned slices**: {concerned_csv}\n"
-        f"**Resolution actions**:\n"
-        + ("\n".join(action_lines) if action_lines else "(none)")
-        + "\n\n"
-    )
+        entry = (
+            f"## Soft-conflict resolution - {timestamp}\n"
+            "\n"
+            f"**Repo HEAD SHA pre-resolution**: {head_sha}\n"
+            f"**U-files resolved**: {u_files_csv}\n"
+            f"**Concerned slices**: {concerned_csv}\n"
+            f"**Resolution actions**:\n"
+            + ("\n".join(action_lines) if action_lines else "(none)")
+            + "\n\n"
+        )
 
     # Single-open append (fix m6 / code-review): unified open("a")
     # for both lazy-create + append branches with conditional header.

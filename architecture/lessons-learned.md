@@ -1709,3 +1709,24 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **Self-validating slice property as methodology pattern** — when fixing a methodology-internal correctness gap, the slice's own build IS the canonical empirical validation case. Promote at N≥2.
 - **Voluntary-restraint discipline N=17 cumulative; bundled-cleanup-at-N+1 disposition stable** — slice-077 inherits the pattern: 0B/2M/11m code-Critic findings all DEFERRED to slice-079+. Pattern is structurally stable across 17 cycles.
 - **TPHD-1 sub-mode (a) count-pin recurrence N=9 cumulative** — every BC-PROJ-9 5-inventory consumer-test that hard-pins a numeric count regresses at the next count-bumping slice. Forward-compat shape (L22==L166 + floor-of-N) is the standard fix. Worth /critic-calibrate promotion at N=10+.
+
+---
+
+## Slice 078 (add-pcr-2a-vault-claim-resolver) — 2026-05-29
+
+### Worked
+
+- **Meta-Critic finding M-add-2 was load-bearing for AC#1 correctness in practice.** The first-Critic's design pass + APED-1 discipline could not reach the step-3/step-4 disk-read sequencing race; the meta-pass re-interrogated the Builder-added Resolution algorithm and caught the disk-read race that would have silently broken loser-auto-re-pick in every real-world VAULT_CLAIM scenario (`architecture/slice-queue.md` IS the U-file; disk holds conflict markers; helper would return `none-available`). The signature change `_pick_loser_replacement(repo_root, exclude_names)` → `_pick_loser_replacement(queue_text, exclude_names)` makes the disk-read structurally impossible. Pattern: **when a Critic finding triggers a Builder-added algorithm spec in the post-fix design, re-interrogate THAT new spec at meta-pass time.**
+- **3-Critic stack N=13 cumulative complementarity stable.** code-Critic m1-m5 (audit-formatter DRY, PSQ-1 sentinel-overload, atomicity-asymmetry vs PCR-1, design.md stale TF-1 count, sentinel-inheritance documentation) are structurally unreachable by design-Critic + meta-Critic stack which read mission-brief/design at /critique time but don't run line-level code analysis. Do NOT collapse the 3-Critic stack.
+- **Builder fix block in same TPHD-1 round (sub-modes (a)+(b)) closes the design→code lag.** All 18 dispositioned findings (16 first-Critic + 2 meta-Critic) applied to mission-brief / design / ADR-071 before /build-slice entered Phase A. Zero rework at /build-slice from upstream dispositions.
+
+### Didn't work
+
+- **Pin #2 regex over-broad shape required mid-build refinement.** First-Critic M3 spec'd the structural-pin discipline (APED-1 execution) but did not pre-execute the proposed regex against the actual L185-192 prose. The over-broad regex `VAULT_CLAIM[^\n]+fall[- ]closed` matched legitimate post-PCR-2a corner-case prose. APED-1 caught the issue at build time. The first Critic spec'd the APED-1 discipline FOR ITSELF but didn't apply it to its own proposed pin literal. **Design→code translation gap N=15 cumulative.** /critic-calibrate next-run candidate.
+- **PCR-2a sized as "SMALL-MEDIUM" effort but shipped wider surface than initial AC#1 "1 test module" assumption implied.** Reality: 1 sentinel + 6 helpers + 7-step algorithm + 2 site rewires + audit-log dispatch + 5 new test modules + 1 ADR + 1 risk entry + 1 queue candidate + 1 shippability row + 2 stale-test repairs. Effort fit ~1 day but breadth was wider. Worth carrying as sizing signal for PCR-2b.
+
+### Pattern
+
+- **Voluntary-restraint discipline N=18 cumulative** (slices 037/046/050/052/055/056/057/061/065/067/070/071/072/073/074/075/077/078) — code-Critic v1 advisory findings consistently route to next-bundled-cleanup. Pattern stable.
+- **Self-validating-slice property N=2 cumulative** — both slice-077 (worktree-awareness) and slice-078 (PCR-2a vault-claim) touched the parallel-slice family AND structurally dogfooded themselves at /commit-slice --merge. Watch slice-079 PCR-2b for N=3.
+- **MEPD-1 EXCLUDE empirically supported when scope fits an existing rule's axis** — PCR-2a refines PCR-1's class taxonomy in-place on the existing `PCR-N` family axis (not a new axis); methodology-changelog v0.74.0 entry shipped under INCLUDE posture with 5-part PMI-1 atomic bump correctly. Confirms ADR-071's MEPD-1 framing.

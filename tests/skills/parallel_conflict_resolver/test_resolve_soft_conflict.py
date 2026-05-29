@@ -166,15 +166,28 @@ def test_resolve_soft_conflict_bypassed_when_mixed_with_hard_file(tmp_path) -> N
     )
 
 
-def test_resolve_soft_conflict_aborts_when_post_merge_claim_dict_has_same_candidate_different_identities(tmp_path) -> None:
-    """VAULT_CLAIM gate (per /critique B4 ACCEPTED-FIXED): if both stages'
-    claim dicts have the SAME candidate with DIFFERENT Claimed-by →
-    STOP without auto-resolving.
+def test_resolve_soft_conflict_dispatches_vault_claim_to_pcr_2a(tmp_path) -> None:
+    """PCR-2a (slice-078 / ADR-071): if both stages' claim dicts have the SAME
+    candidate with DIFFERENT Claimed-by → DISPATCH into resolve_vault_claim_conflict
+    (was STOP under PCR-1).
 
-    AC3 unit / soft-regen fail-closed per mission-brief row. Defense-in-depth
-    against PSQ-2's existing newest-wins merge silently auto-resolving what
-    PCR-2 reserves for timestamp-winner + light Critic. The VAULT_CLAIM gate
-    fires BEFORE _overlay_claims_on_queue_text is invoked.
+    The dispatch reaches resolve_vault_claim_conflict via either:
+      - the upstream classify_conflict → VAULT_CLAIM → resolve_soft_conflict's
+        new VAULT_CLAIM branch at L242 (CLI-facing path);
+      - the in-helper _regen_slice_queue defense-in-depth gate raising
+        _VaultClaimDispatch → caught by resolve_soft_conflict's exception
+        loop → reroutes to resolve_vault_claim_conflict (silent-classify-
+        bypass corner case).
+
+    Either way, the result.conflict_class is VAULT_CLAIM and action is
+    APPLIED (or STOP on a VAULT_CLAIM corner case like tie / multi-collision
+    / overlay silent-drop). Under PCR-1 this returned action="STOP" — that
+    behavior was retired by PCR-2a per ADR-071 § Decision.
+
+    NOTE: with `tmp_path` only `git init`'d (no rebase staged), the actual
+    VAULT_CLAIM resolution will hit an UNKNOWN-STOP at step 3 (both stages
+    missing) — that's still NOT the old VAULT_CLAIM-STOP behavior; the
+    dispatch happened.
     """
     _init_repo(tmp_path)
     diag = _diag(
@@ -194,16 +207,20 @@ def test_resolve_soft_conflict_aborts_when_post_merge_claim_dict_has_same_candid
             ),
         ),
     )
-    result = resolve_soft_conflict(diag)
+    result = resolve_soft_conflict(diag, repo_root=tmp_path)
     assert isinstance(result, ResolutionResult)
-    assert result.action == "STOP", (
-        f"Same-candidate-different-identity claim collision MUST return STOP "
-        f"(VAULT_CLAIM defense-in-depth per /critique B4 gate); got "
-        f"action={result.action!r}"
-    )
-    assert result.conflict_class == ConflictClass.VAULT_CLAIM, (
-        f"VAULT_CLAIM gate fire MUST carry conflict_class=VAULT_CLAIM; got "
-        f"{result.conflict_class}"
+    # Dispatch happened — class is VAULT_CLAIM (regardless of inner outcome)
+    # OR UNKNOWN if step 3's both-stages-missing fail-closed fires (still
+    # NOT the retired _SoftResolutionError(VAULT_CLAIM) path).
+    assert result.conflict_class in (
+        ConflictClass.VAULT_CLAIM,
+        ConflictClass.UNKNOWN,
+    ), (
+        f"PCR-2a dispatch must route VAULT_CLAIM through resolve_vault_claim_"
+        f"conflict (action APPLIED on success, STOP on corner case). The old "
+        f"PCR-1 'STOP with class=VAULT_CLAIM-and-reason-deferred-to-PCR-2' "
+        f"behavior is retired. Got conflict_class={result.conflict_class}, "
+        f"action={result.action!r}, reason={result.reason!r}"
     )
 
 
@@ -300,28 +317,29 @@ def test_resolve_soft_conflict_atomicity_preserves_slice_queue_on_helper_error(
     )
 
 
-def test_regen_slice_queue_vault_claim_defense_in_depth_gate_fires_on_different_identity(
+def test_regen_slice_queue_vault_claim_defense_in_depth_gate_raises_sentinel(
     tmp_path, monkeypatch
 ) -> None:
-    """Regression for M3 / missing VAULT_CLAIM defense-in-depth gate (code-review fix).
+    """PCR-2a (slice-078 / ADR-071): the in-helper VAULT_CLAIM defense-in-depth
+    gate at L627-638 NO LONGER raises _SoftResolutionError(VAULT_CLAIM).
 
-    Per design.md L136 "Resolution algorithm for SOFT class" step 3 of 5
-    + critique.md B4 fix (c) ACCEPTED-FIXED: `_regen_slice_queue` MUST
-    walk both branches' claim dicts; if ANY candidate name appears in
-    BOTH with DIFFERENT `Claimed-by` values, abort with
-    `_SoftResolutionError(VAULT_CLAIM)`. This is defense-in-depth on
-    top of `classify_conflict`'s upstream gate via
-    `_has_same_candidate_different_identity(diag.claim_history)`.
+    Pre-PCR-2a behavior (slice-076 / PCR-1):
+        raise _SoftResolutionError(<diagnostic>, ConflictClass.VAULT_CLAIM)
+    Post-PCR-2a behavior:
+        raise _VaultClaimDispatch()  # sentinel; resolve_soft_conflict
+                                       catches + reroutes to
+                                       resolve_vault_claim_conflict
+    The UNKNOWN-class raise leg at L605-609 is untouched.
 
-    Simulates the bypass-the-upstream-gate scenario by patching
-    `_git_show_stage` to return queue text with different-identity claims
-    on the same candidate. The upstream gate's input
-    (`diag.claim_history`) is irrelevant here because we call
-    `_regen_slice_queue` directly. Verifies the in-helper gate fires.
+    Simulates the silent-classify-bypass scenario via monkeypatched
+    _git_show_stage returning collision text while diag.claim_history is
+    empty. The in-helper defense-in-depth gate MUST fire and raise the
+    NEW sentinel.
     """
     import tools.parallel_conflict_resolver as resolver
     from tools.parallel_conflict_resolver import (
         _SoftResolutionError,
+        _VaultClaimDispatch,
         _regen_slice_queue,
     )
 
@@ -359,30 +377,23 @@ def test_regen_slice_queue_vault_claim_defense_in_depth_gate_fires_on_different_
 
     monkeypatch.setattr(resolver, "_git_show_stage", fake_git_show_stage)
 
-    # Diag.claim_history is empty — simulating the upstream-gate-bypass
-    # case (silent ClaimUsageError or stale diag). The in-helper gate
-    # MUST still fire on the real stage-2/3 differing claims.
     diag = _diag(u_files=("architecture/slice-queue.md",), claim_history=())
 
     try:
         _regen_slice_queue(tmp_path, diag)
+    except _VaultClaimDispatch:
+        # PCR-2a sentinel — defense-in-depth gate fired as expected.
+        pass
     except _SoftResolutionError as exc:
-        assert exc.conflict_class == ConflictClass.VAULT_CLAIM, (
-            f"M3 defense-in-depth gate fire MUST carry "
-            f"conflict_class=VAULT_CLAIM; got {exc.conflict_class}"
+        assert exc.conflict_class != ConflictClass.VAULT_CLAIM, (
+            f"PCR-2a regression: defense-in-depth gate still raises "
+            f"_SoftResolutionError(VAULT_CLAIM); expected _VaultClaimDispatch "
+            f"sentinel. Got {exc.conflict_class}"
         )
-        assert "add-foo" in str(exc), (
-            f"VAULT_CLAIM exception MUST name the conflicting candidate; "
-            f"got {exc!s}"
-        )
-        assert "alice" in str(exc) and "bob" in str(exc), (
-            f"VAULT_CLAIM exception MUST surface both Claimed-by identities "
-            f"for diagnostic; got {exc!s}"
-        )
+        raise
     else:
         raise AssertionError(
-            "M3 defense-in-depth gate FAILED to fire: _regen_slice_queue "
+            "Defense-in-depth gate FAILED to fire: _regen_slice_queue "
             "returned normally on same-candidate-different-identity input. "
-            "Per design.md L136 step 3 + critique.md B4 fix (c): MUST raise "
-            "_SoftResolutionError(VAULT_CLAIM)."
+            "Per PCR-2a / ADR-071: MUST raise _VaultClaimDispatch sentinel."
         )

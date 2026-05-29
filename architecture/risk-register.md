@@ -394,3 +394,24 @@ Status `mitigating`, not `retired`: both residual axes are bounded but real. Rev
 **Promotion trigger**: if N=2 cross-skill consumers of `WorktreeState` emerge (`/drift-check` worktree-awareness; `/build-checks` worktree-window suppression), the convention promotes to PWA-1 (Pulse-Like Worktree-Awareness) on its own methodology axis per ADR-070 § Promotion trigger; supersede ADR-070 via new ADR per SUP-1.
 
 **Why not /slice-time risk-class**: R-22 is a witnessed correctness gap with concrete reproduction path (the slice-076 merge sequence is on record), not a speculative future risk. The slice that closes it is concurrent (slice-077); the RR-1 entry is registered at /design to satisfy the "Risk retired: R-22" mission-brief frontmatter trace-link per RR-1 schema semantics. Mirrors slice-076's R-21 registration precedent (also at /design, also for a witnessed-during-build gap).
+
+## R-23 — Cross-machine clock-skew in PCR-2a strict-newer rule producing wrong-winner-by-staleness
+
+**Likelihood**: low
+**Impact**: low
+**Status**: open
+**Reversibility**: cheap
+**Discovered**: slice-078-add-pcr-2a-vault-claim-resolver (2026-05-29) — registered at /reflect per m9 ACCEPTED-PENDING + /critique-review M-add-2 ACCEPTED-FIXED precedent.
+
+PCR-2a's strict-newer `Claimed-at` timestamp-winner rule assumes wall-clock timestamps are comparable across the machines that wrote them. When two Claude sessions on different machines (each with its own clock) compete for the same candidate, machine-clock-skew can produce an apparent "strictly-newer" `Claimed-at` that is actually older real-time. The strict-newer rule then favors the wrong session — a wrong-winner-by-staleness corner case.
+
+**Impact in practice**: low — the cooperative-not-adversarial threat model carried from [[ADR-067]] / [[ADR-069]] presumes sessions don't deliberately backdate their clocks (Claude sessions on a single user's machine fleet typically share OS-clock-sync from the same NTP source). The corner case fires only on a meaningfully-skewed clock (minutes-to-hours off-real-time), which is rare for cooperating sessions. No data-loss / no security implication — the loser's work merely needs to be re-picked from the post-resolution audit log.
+
+**Corrigibility hook (observable signal)**: the audit log records BOTH winner and loser `Claimed-at` timestamps in every `## Vault-claim resolution -` section. If the two timestamps appear in unexpected ordering (e.g., loser's `Claimed-at` post-dates winner's `Claimed-at` by minutes-to-hours when both sessions are known to be racing in real-time), the skew is observable forensically. Pattern detection across N≥2 occurrences would trigger remediation.
+
+**Fix candidates** (deferred — open R-23):
+1. **Monotonic claim sequence number** (queue candidate `add-claim-sequence-number-for-clock-skew-detection` per slice-queue.md) — add a `**Claim-seq:**` field to PSQ-2 claim records, monotonically incremented by `tools/slice_queue_claim` per write; PCR-2a switches from strict-newer `Claimed-at` to strict-greater `Claim-seq`. Removes clock-skew dependence. PSQ-2 sub-mechanism change requiring its own slice (forward-compat with already-written second-precision claims).
+2. **PCR-2b Critic-stack adjudication** — slice-079 PCR-2b's full design-Critic + meta-Critic stack on proposed resolution can detect unexpected timestamp orderings as a Critic finding; remediation lands in PCR-2b's resolution path.
+3. **Microsecond-precision `_now_iso8601_utc`** — sub-second resolution narrows the tie window but does NOT address skew. Cosmetic improvement, NOT a fix.
+
+Per cooperative threat model: NOT a security boundary; a malicious local actor can always edit the queue directly to bypass PCR-2a regardless. R-23 tracks the COOPERATING-but-clock-skewed case only.
