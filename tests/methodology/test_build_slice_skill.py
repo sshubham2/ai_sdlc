@@ -1,4 +1,5 @@
 """Pin load-bearing prose in skills/build-slice/SKILL.md."""
+from tests.methodology._skill_parse_helpers import _branch_state_section
 from tests.methodology.conftest import read_file
 
 BUILD = read_file("skills/build-slice/SKILL.md")
@@ -263,18 +264,8 @@ def test_build_slice_step_6_invokes_new_agent_warning_audit():
 
 
 # --- Slice-066 / BRANCH-2 worktree-create prose pins (AC1) ---
-
-def _branch_state_section(content: str) -> str:
-    """Extract the `## Prerequisite check ### Branch state` sub-section."""
-    start = content.find("### Branch state")
-    if start < 0:
-        return ""
-    # End at the next H2 (##) or H3 (###) heading
-    end_h3 = content.find("\n### ", start + 1)
-    end_h2 = content.find("\n## ", start + 1)
-    candidates = [i for i in (end_h2, end_h3) if i > 0]
-    end = min(candidates) if candidates else len(content)
-    return content[start:end]
+# `_branch_state_section` is imported from tests.methodology._skill_parse_helpers
+# (slice-079 Fix E — corpus-wide dedup of the duplicated extractor).
 
 
 def test_branch_state_subsection_invokes_git_worktree_add():

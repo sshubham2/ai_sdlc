@@ -12,12 +12,9 @@ import subprocess
 from pathlib import Path
 from textwrap import dedent
 
-import pytest
-
 from tools.pulse_worktree_resolver import (
     WorktreeInfo,
     WorktreeState,
-    WorktreeStateClassification,
     classify_worktree_state,
 )
 

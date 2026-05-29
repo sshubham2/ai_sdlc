@@ -34,6 +34,8 @@ PASS pre-fix, violating TF-1 WRITTEN-FAILING.
 """
 from __future__ import annotations
 
+import re
+
 from tests.methodology.conftest import read_file
 
 
@@ -79,21 +81,38 @@ def _extract_substep_2_1_block(section: str) -> str:
     Returns the substring `section[two_one_pos:two_five_pos]`. Asserts both
     markers are present with clear diagnostics for the WRITTEN-FAILING state.
     """
-    two_one_pos = section.find("2.1.")
-    assert two_one_pos != -1, (
-        "Step 5b section must contain a `2.1.` sub-step marker "
+    # Fix G (slice-075 m1): anchor on the LINE-START list markers `^2.1. ` / `^2.5. `
+    # (re.MULTILINE), NOT bare `section.find("2.1.")`. The substring form matched the
+    # narration forward-reference "...sub-step 2.1. post-commit guardrail below..." in
+    # the preflight prose, widening the extracted block to include a SECOND
+    # `silent-WT-discard` mention (narration leakage). The line-start anchor pins the
+    # actual ordered-list item.
+    two_one_match = re.search(r"^2\.1\.\s", section, re.MULTILINE)
+    assert two_one_match is not None, (
+        "Step 5b section must contain a line-start `2.1. ` sub-step marker "
         "(post-fix prose required per /critique-review M-add-1 + M-add-2 "
         "ACCEPTED-FIXED; pre-fix Step 5b has no `2.1.` sub-step — this is "
         "the canonical TF-1 WRITTEN-FAILING state for slice-075 pre-prose-change)"
     )
-    two_five_pos = section.find("2.5.", two_one_pos)
-    assert two_five_pos != -1, (
-        "Step 5b section must contain a `2.5.` sub-step marker AFTER `2.1.` "
+    two_one_pos = two_one_match.start()
+    two_five_match = re.search(r"^2\.5\.\s", section[two_one_pos:], re.MULTILINE)
+    assert two_five_match is not None, (
+        "Step 5b section must contain a line-start `2.5. ` sub-step marker AFTER `2.1.` "
         "(PSQ-3 sub-step 2.5 per slice-073 precedent; expected to remain "
         "unchanged by slice-075 — if missing, sub-step 5 ordering may have "
         "regressed which violates ADR-063 §Decision)"
     )
-    return section[two_one_pos:two_five_pos]
+    two_five_pos = two_one_pos + two_five_match.start()
+    block = section[two_one_pos:two_five_pos]
+    # Fix G narration-leakage guard: line-start extraction yields the sub-step 2.1. body
+    # ONLY — exactly one `silent-WT-discard` mention. A count of 2 means the boundary
+    # leaked the preflight narration paragraph (the pre-fix substring-extraction failure).
+    assert block.count("silent-WT-discard") == 1, (
+        f"narration leakage detected: expected exactly 1 `silent-WT-discard` in the "
+        f"sub-step 2.1. block, found {block.count('silent-WT-discard')} "
+        f"(line-start `^2\\.1\\.` anchor must exclude the preflight narration forward-reference)"
+    )
+    return block
 
 
 def test_wt_clean_preflight_does_not_contradict_substep_2_commit() -> None:

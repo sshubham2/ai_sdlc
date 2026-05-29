@@ -709,3 +709,101 @@ Next /critic-calibrate run (after slices 076+ archive, target ~10–20 slices, O
 | Next /critic-calibrate trigger | slices 076+ archive (default ~10–20 slices), OR earlier if (a) Proposal 1 post-application miss-counts need verification, OR (b) TPHD-1 sub-mode (a) starts leaking past meta-Critic backstop, OR (c) FALSE-ALARM Critic-restraint pattern hits N=4, OR (d) AC count > 5 / count-claim hand-verification hits N=3 |
 
 ---
+
+## Calibration run — 2026-05-29 (post-slice-078)
+
+**Window**: last 15 reflections (slice-064 through slice-078)
+**Incremental new evidence**: slices 076, 077, 078 (3 slices beyond the 2026-05-28 post-slice-075 run; slices 064–075 carried for APED-1 scope-extension post-application baseline measurement)
+**Cumulative analysis surface**: 14 slices (064-075 carried + 076-078 incremental; one slice of overlap-window-end with the post-slice-075 run performed at slice-075 archive).
+**Total misses analyzed**: ~15 distinct-slice miss-class instances; ~28 cumulative within-instance signals.
+
+### Pattern summary
+
+| # | Category | Distinct-slice MISSES | Slices | In `agents/critique.md` first-Critic scope? | Disposition |
+|---|---|---|---|---|---|
+| 1 | Design→code translation gap (self-referential sub-class: Critic spec's APED-1-execution for the fix but doesn't apply it to its own proposed pin literal) | N=4 in-window first-Critic MISSES; N=15 cumulative envelope | 070 (`.gitignore` regex blind-spot post-meta-fix), 076 (M3 atomicity gap + M3 defense-in-depth gap), 077 (`_resolve_milestone_path` scan-root), 078 (M3 Pin #2 over-broad shape) | Yes — APED-1 itself; structurally reachable | **Proposal 1** (accepted) |
+| 2 | TPHD-1 sub-mode (a) Builder-fix-block-introduces-N+1-regressions | N=9 cumulative (carryover N=7 + slice-077 + slice-078 partial) | 062, 064, 067, 070, 071, 072, 073, 077, 078 | Out of scope — designed meta-Critic specialization (FBCD-1 sub-mode b) | Routed out — backstop firing as designed |
+| 3 | Critic over-reach FALSE-ALARM ("demands structural-test evidence for structurally-self-evident no-op class") | 4 OVERRIDDEN cumulative | 064 m3, 067 M1, 070 m3, 078 m3 | At threshold but routed out per anti-pattern | At N=4 — revisit at N=5 |
+| 4 | RSAD-1 annotation-literal-pollution | 2 distinct (065 + 075); N=5 within-instance | 065 B1/B2, 075 3× build-time | Out of scope structurally (Phase C build artifact) | Routed to BRANCH-2 / build-slice SKILL.md Builder-discipline addition (prior run) |
+| 5 | BC-1 BC-GLOBAL-2 prose-vs-automation false-positive | 7 cumulative | 069/070/071/072/073/074/075 | Out of `critique.md` scope | Routed to `tools/build_checks.py` negative-anchor filtering |
+| 6 | AC count > 5 on new-mechanism mints | 3 cumulative (slice-074 lessons-cite) | 067, 072, 074 | Yes — Dim 4 candidate | At threshold N=3; pattern slowed in 075-078 — promote at next MISS |
+| 7 | MEPD-1-EXCLUDE-vs-shippability-row disentanglement | 2 cumulative | 068, 075 | Partial | Below threshold (N=2) |
+| 8 | Scope-expansion-at-/build-slice-plan-mode + re-Critic-the-delta | 1 cumulative | 074 | Watch | Below threshold (N=1) |
+| 9 | Count-claim hand-verification at design time | 2 (069 + 071) | 069, 071 | Yes — adjacent to FBCD-1 sub-mode (a) | Below threshold (N=2); partially overlaps Proposal 1 |
+| 10 | Builder-added algorithm spec in post-fix design needs re-interrogation at meta-pass time | 1 (slice-078 M-add-2 disk-read race) | 078 | Yes — meta-Critic dimension | At N=1 watch-list |
+| 11 | Self-validating-slice property | N=2 cumulative (DISCOVERY, not MISS) | 077, 078 | n/a | Promotion candidate at N≥3; NOT a Critic-prompt change |
+| 12 | 3-Critic stack value-validation | N=13 cumulative through 078 | every codification slice | n/a | Stable structural observation; do NOT collapse the stack |
+| 13 | Voluntary-restraint discipline | N=18 cumulative bundled cleanups | window-wide | n/a | Working pattern; do NOT propose collapsing |
+
+### Effectiveness on past proposals
+
+| Proposal / Rule | Applied | Cumulative this window result | Verdict |
+|---|---|---|---|
+| 2026-05-10 Proposal 1 (Dim 1 tooling-doc-vs-impl parity) | 2026-05-10 | 0 source-code-level docstring-vs-implementation MISSES; ~73 consecutive clean slices (6–78) | SUSTAINED STRONGLY EFFECTIVE |
+| 2026-05-10 Proposal 2 (Dim 4 methodology-audit conformance) | 2026-05-10 | 0 MISSES at the three named sub-sub-bullets across 064-078 | SUSTAINED STRONGLY EFFECTIVE |
+| CCC-1 user-override (Dim 9 dimension) | 2026-05-10 | Catch-rate range floor 60–100% UPHELD every slice in window (e.g., 077 19/19, 078 16/16; 4 FALSE-ALARMs in window all correctly OVERRIDDEN) | Qualitatively SUSTAINED; quantitative target stays formally RETIRED |
+| RPCD-1 (Dim 9 #9, slice-016) | slice-016 | 0 first-Critic MISSES sub-modes a/b/c across 064-078 | SUSTAINED EFFECTIVE |
+| FBCD-1 (Dim 9 #10, slice-024) | slice-024 | 0 first-Critic sub-mode (a) MISSES across 064-078; sub-mode (b) meta-Critic catches at N=9 in window (designed division of labor) | SUSTAINED EFFECTIVE at sub-mode (a); sub-mode (b) backstop operating as designed |
+| PTFCD-1 / PTFFD-1 (Dim 9 #11, slice-025/slice-037) | slice-025 / slice-037 | 0 file-level + 0 function-level recurrence; slice-064 B1, slice-065, slice-073 B1, slice-077 catches (internalization) | SUSTAINED EFFECTIVE |
+| APED-1 ORIGINAL scope (Dim 9 #12, slice-039) | slice-039 | 0 first-Critic MISSES on `tools/**` parse-rule core; slice-064 B1 (APED-1 empirical) CATCH | SUSTAINED EFFECTIVE within original scope |
+| **APED-1 scope-extension (2026-05-28 run, applied post-slice-075)** | **2026-05-28** (slice-076+ first governed) | **slice-076 B2 (cp-r regex empirical APED-1 CATCH); slice-077 M8 floor ≥13 APED-1 CATCH; slice-078 M3 spec'd APED-1 but did NOT pre-execute Pin #2 regex (1 NEW MISS post-application — the design→code translation gap class)** | **EFFECTIVE in 2/3 N+1 governed slices; 1 self-referential gap → Proposal 1 this run** |
+| MEPD-1 (Dim 7 checklist, slice-039) | slice-039 | 0 first-Critic MISSES; slice-061 M8, slice-074 M4, slice-077 M1 CATCHES | SUSTAINED EFFECTIVE |
+| STP-1 (slice-044) | slice-044 | 0 obvious recurrences across 064-078 | SUSTAINED EFFECTIVE |
+
+### Proposals
+
+| # | Pattern | Proposed | User action |
+|---|---------|----------|-------------|
+| 1 | Self-application of APED-1 — Critic finding spec'ing APED-1-execution for the proposed fix MUST execute the discipline at /critique time, not defer to build time | New clause (5) inserted into Dim 9 sub-clause #12 / APED-1 (lines 204-206 of `~/.claude/agents/critique.md`), between current clause (4) and `Proposed rule-ID: APED-1...` trailer. In-place refinement; no methodology-changelog entry; no rule-ID lineage change (N=10 stable). | ACCEPTED 2026-05-29 — application instructions provided to user; user applies manually (skill never auto-writes to critique.md) |
+
+### Routed out at analysis time
+
+| # | Category | Reason for routing out |
+|---|----------|------------------------|
+| A | TPHD-1 sub-mode (a) N=9 | Designed meta-Critic specialization (FBCD-1 sub-mode b); backstop firing as designed. Promote only if meta-Critic also misses on slices 079+. |
+| B | Critic over-reach FALSE-ALARM N=4 | Documented anti-pattern routing — adding "be more restrained" prose damages signal density. User OVERRIDE-MISJUDGED disposition is the correct calibration mechanism. Revisit at N=5 narrow recurrence. |
+| C | RSAD-1 annotation-literal-pollution | Phase C build artifact; structurally post-design-Critic. Routed to slice-076+ Builder-discipline addition in `skills/build-slice/SKILL.md` (prior-run carryover). |
+| D | BC-1 BC-GLOBAL-2 prose-vs-automation N=7 | Out of `critique.md` scope; BC-1 audit model refinement, not Critic prompt. Routed to `tools/build_checks.py` negative-anchor filtering. |
+| E | Rule minted in slice N is first-Critic blind spot on slice N+1 (governing-lag) | Designed DR-1 backstop fires as expected. Out-of-scope; backstop IS the design. |
+
+### Watching but not proposing
+
+| Sub-class | N distinct slices in window | Promotion criterion |
+|---|---|---|
+| AC count > 5 on new-mechanism mints | 3 cumulative (067, 072, 074); 0 new in 075-078 | Promote at next first-Critic MISS recurrence as Dim 4 sub-bullet refinement |
+| MEPD-1-EXCLUDE-vs-shippability-row disentanglement | 2 (068 + 075) | Refine MEPD-1 body at N=3 |
+| Count-claim hand-verification at design time | 2 (069 + 071) | Promote at N=3 as FBCD-1 sub-mode (a) refinement; partially overlaps Proposal 1 |
+| Scope-expansion-at-/build-slice-plan-mode | 1 (074) | Decaying anecdote; no recurrence in 075-078 |
+| Spec-prose-claims-a-test-that-isn't-in-TF-1-plan | 1 (068 code-Critic) | Decaying; no recurrence |
+| Builder-added algorithm spec in post-fix design needs re-interrogation at meta-pass time | 1 (slice-078 M-add-2 disk-read race) | Promote if meta-Critic misses a Builder-added-post-fix algorithm spec on a future slice |
+| Self-validating-slice property | 2 cumulative (077 + 078) — DISCOVERY | Methodology-pattern codification candidate at N≥3; NOT a Critic-prompt change |
+
+### Run summary
+
+| Metric | Value |
+|---|---|
+| Window | slices 064–078 (15 reflections; default window) |
+| Cumulative analysis surface | slices 045–078 (last 34 slices) |
+| Proposals generated | **1** |
+| Proposals declined at analysis time (routed out) | 5 (A-E above) |
+| 2026-05-10 Proposal 1 (Dim 1) | SUSTAINED STRONGLY EFFECTIVE — ~73 consecutive clean (6–78) |
+| 2026-05-10 Proposal 2 (Dim 4) | SUSTAINED STRONGLY EFFECTIVE — 0 misses 064–078 |
+| CCC-1 user-override (Dim 9) | Qualitatively SUSTAINED; range floor 60–100% UPHELD; quantitative target stays RETIRED |
+| RPCD-1 / FBCD-1 / PTFCD-1+PTFFD-1 / MEPD-1 / STP-1 | All SUSTAINED EFFECTIVE — 0 first-Critic recurrence in scoped categories |
+| **APED-1 scope-extension (prior run) — FIRST measurement (slices 076-078)** | **EFFECTIVE in 2/3 governed slices (076 + 077 CATCH); 1 self-referential gap (078) → Proposal 1 this run** |
+| Critic-disposition accuracy | ~100% on filed findings every slice in window; 4 OVERRIDDEN FALSE-ALARMs (064 m3, 067 M1, 070 m3, 078 m3) all correctly user-overridden |
+| 3-Critic stack value-validation | N=13 cumulative through 078 — empirically stable; do NOT collapse the stack |
+| Self-validating-slice property | N=2 cumulative (077 + 078) — discovery, not miss |
+| Voluntary-restraint discipline | N=18 cumulative — working pattern; do NOT propose collapsing |
+| Strongest signal | **APED-1 self-application gap** (slice-078 spec'd APED-1 for itself but didn't execute the proposed regex at /critique time) — Proposal 1 closes the discipline-on-itself loop |
+| Honesty note | 1 proposal not 3; 5 of 6 user-flagged "overdue" signals routed out as structurally out-of-scope, designed meta-Critic specialization, or sub-threshold. Manufacturing proposals against an already-dense 12-sub-clause Dim 9 would damage signal density. |
+| Next /critic-calibrate trigger | slices 088+ archive (default ~10–20 slices), OR earlier if (a) Proposal 1 post-application miss-counts need verification (slice-079 will be first governed; check at slice-082+), OR (b) AC count > 5 / count-claim hand-verification / MEPD-1-EXCLUDE-vs-shippability-row hits N=3 new MISS, OR (c) FALSE-ALARM Critic-restraint hits N=5 narrow recurrence, OR (d) self-validating-slice property hits N=3 (methodology-pattern codification candidate) |
+
+### Effectiveness check
+
+Next calibration run (slices 088+) should verify Proposal 1 post-application effectiveness:
+- Count first-Critic MISSES in the "design→code translation gap self-referential sub-class" category in pre-proposal window (slices 064-078, value: N=4) vs post-proposal window (slices 079-088+).
+- Expected outcome: ≤1 MISS post-application. If MISSES ≥2 → Proposal 1 prose was too generic; refine specificity at next calibration.
+- First governed slice: slice-079 (`bundle-074-075-077-078-code-critic-cleanup`).
+
+---

@@ -22,23 +22,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from tests.methodology._skill_parse_helpers import _branch_state_section
+
 SKILL_PATH = Path(__file__).resolve().parents[2] / "skills" / "build-slice" / "SKILL.md"
-
-
-def _branch_state_section() -> str:
-    """Extract '### Branch state' sub-section text up to the next markdown H2 heading.
-
-    Per /critique pass-1 M2 ACCEPTED-FIXED: the lookahead requires `## ` followed by a
-    CAPITAL LETTER (markdown H2-headings convention; shell `## `-prefixed comments
-    inside bash codefences are typically lowercase or arbitrary, so capital-letter
-    anchor disambiguates section-end from in-fence comments). Do NOT relax to
-    bare `(?=^## )` — that misfires on `## `-prefixed shell comments and silently
-    truncates the section, masking real prose changes.
-    """
-    text = SKILL_PATH.read_text(encoding="utf-8")
-    m = re.search(r"^### Branch state\b.*?(?=^## [A-Z])", text, re.MULTILINE | re.DOTALL)
-    assert m is not None, "### Branch state sub-section not found"
-    return m.group(0)
 
 
 def test_branch_state_subsection_contains_cp_r_for_diagnose_out_and_graphify_out_after_cd():
@@ -51,7 +37,7 @@ def test_branch_state_subsection_contains_cp_r_for_diagnose_out_and_graphify_out
     otherwise satisfy the assertion even if the actual functional line were deleted).
     This cross-pins AC#1 + AC#2 in a single regex shape.
     """
-    section = _branch_state_section()
+    section = _branch_state_section(SKILL_PATH.read_text(encoding="utf-8"))
     cd_marker = 'cd "$wt_base/slice-NNN-<slice-name>"'
     point2_marker = "2. **If the worktree already exists**"
     cd_idx = section.find(cd_marker)
@@ -85,7 +71,7 @@ def test_branch_state_subsection_contains_cp_r_for_diagnose_out_and_graphify_out
 def test_cp_r_lines_reference_r_20_in_comment():
     """AC#1: a comment referencing R-20 is co-located with the cp -r lines
     (anchors codification origin)."""
-    section = _branch_state_section()
+    section = _branch_state_section(SKILL_PATH.read_text(encoding="utf-8"))
     r20_match = re.search(r"#[^\n]*R-20", section)
     assert r20_match is not None, "no R-20 reference comment found in ### Branch state"
 
@@ -109,11 +95,17 @@ def test_cp_r_lines_use_if_then_guard_for_source_dir_absence():
     Future Builders refactoring the codefence for "readability" MUST preserve the
     single-line form or update both the prose AND the test in the same fix block.
     """
-    section = _branch_state_section()
+    section = _branch_state_section(SKILL_PATH.read_text(encoding="utf-8"))
     guard_pattern = re.compile(
         r'^\s*if \[ -d[^\n]*\]\s*;\s*then\s+cp -r [^\n]*;\s*fi', re.MULTILINE
     )
     matches = guard_pattern.findall(section)
-    assert len(matches) >= 2, (
-        f"expected >=2 `if [ -d ... ]; then cp -r ...; fi` guarded lines, found {len(matches)}"
+    # Fix C (slice-074 m2): tightened `>= 2` -> `== 4`. There are exactly 4 guarded
+    # cp -r lines — 2 in point 1 (new-branch case) and 2 in point 4 (dirty-tree case),
+    # one each for diagnose-out + graphify-out. The prior `>= 2` tolerance silently
+    # accepted a 5th (e.g. accidental copy-paste) line; the exact `== 4` invariant trips
+    # any drift in the intentional duplication count.
+    assert len(matches) == 4, (
+        f"expected exactly 4 `if [ -d ... ]; then cp -r ...; fi` guarded lines "
+        f"(2 in point 1 + 2 in point 4), found {len(matches)}"
     )

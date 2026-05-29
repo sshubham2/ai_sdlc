@@ -1,0 +1,48 @@
+SOURCE-PENDING ITEMS — live cross-slice handoff tracker
+=========================================================
+
+Stable home (per slice-079 /reflect, user-approved 2026-05-29 archive-immutability
+carve-out / DEFER-6): this LIVE top-level file replaces the prior per-slice-folder
+`source-pending-items.txt` pattern, which archived with its owning slice (slice-075)
+and then collided with archive-immutability whenever a later slice tried to route a
+new item or clear a cleared one (the AC#5 spec-vs-archive tension slice-079 surfaced).
+Future P-item routing edits THIS file; it does not archive.
+
+Historical backlog: the full slice-075-era P-item catalog (P2.x / P3.x / P4.x +
+calibration signals) lives frozen at:
+  architecture/slices/archive/slice-075-close-merge-substep-3-worktree-collision/source-pending-items.txt
+Items there not explicitly closed/superseded below remain candidate backlog; many are
+independently tracked via architecture/slice-queue.md, risk-register.md, and
+critic-calibration-log.md.
+
+---
+
+CLOSED by slice-079 (bundle-074-075-077-078-code-critic-cleanup, 2026-05-29)
+---------------------------------------------------------------------------
+P1.1  code-Critic M1: variable-scope at point 4 of skills/build-slice/SKILL.md
+      → CLOSED. Fix A — repo_root/wt_base extracted to a shared pre-amble above the
+        numbered Branch-state list; point 2 given its own bash codefence. Pinned by
+        tests/methodology/test_build_slice_skill_branch_state_preamble.py.
+P3.10 cp1252 mojibake in PSQ-1 queue helper output
+      → CLOSED as a REFRAME (per /critique B2+M3). Empirical APED-1 grep at /critique
+        time proved tools/slice_queue_writer.py is already UTF-8-explicit at all 9
+        encoded-I/O sites — the mojibake root cause is NOT this helper. slice-079 shipped
+        a structural-pin regression-guard (Fix S; tests/methodology/test_slice_queue_writer_utf8_encoding.py)
+        and routed the real root-cause hunt forward as P3.10' below.
+(P1.2 — /commit-slice --merge sub-step 3 worktree collision — was closed by slice-075 itself.)
+
+---
+
+OPEN — routed forward
+---------------------
+P3.10'  find-real-mojibake-source  (LOW-MEDIUM; routed from P3.10 per /critique B2)
+        The cp1252 mojibake witnessed at slice-074 Step 6.5 is real but does NOT
+        originate in tools/slice_queue_writer.py (proven UTF-8-explicit). Investigate
+        the likely upstream sources:
+          - tools/slice_pick.py subprocess invocations (stdout capture encoding)
+          - PYTHONIOENCODING env defaults at the Windows console codepage layer
+          - the /slice skill's own subprocess invocation of tools.slice_queue_writer
+            (how it captures + re-emits the child's stdout)
+        Acceptance: identify the actual byte-mangling boundary, add a reproduction +
+        regression guard at that boundary. Candidate for a future slice (not slice-080,
+        which is PCR-2b LARGE).

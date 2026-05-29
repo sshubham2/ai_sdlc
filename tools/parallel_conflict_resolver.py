@@ -41,6 +41,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 from tools import _stdout
 
@@ -394,6 +395,13 @@ class _VaultClaimDispatch(Exception):
     Carries no payload — the dispatch target re-collects collisions from
     diag.claim_history directly (already populated by diagnose_conflict).
     """
+
+    # catch-order invariant (Fix R / slice-078 m5): _VaultClaimDispatch is a
+    # SIBLING of _SoftResolutionError — both inherit directly from Exception, with
+    # no inheritance relationship between them. The except-clause order in
+    # resolve_soft_conflict's exception loop is therefore semantically INDEPENDENT
+    # (not load-bearing by inheritance); a future maintainer may reorder those
+    # except clauses without changing behavior.
 
 
 def _collect_same_candidate_different_identity(
@@ -835,9 +843,22 @@ def _overlay_claims_on_queue_text(
     return "\n".join(result_lines)
 
 
+class _QueueCandidate(NamedTuple):
+    """One parsed slice-queue candidate: (name, parallel_safety, is_claimed).
+
+    A NamedTuple (Fix P / slice-078 m2): tuple-compatible (existing equality-based
+    tests + ``_pick_loser_replacement``'s positional unpacking are unaffected) while
+    also exposing ``.name`` / ``.parallel_safety`` / ``.is_claimed`` attribute access.
+    """
+
+    name: str
+    parallel_safety: str
+    is_claimed: bool
+
+
 def _parse_queue_candidates_for_replacement(
     text: str,
-) -> list[tuple[str, str, bool]]:
+) -> list[_QueueCandidate]:
     """Parse slice-queue.md text → ordered (name, parallel_safety, is_claimed) list.
 
     Per PCR-2a B1 ACCEPTED-FIXED: tools/slice_queue_writer.py exposes no
@@ -855,7 +876,7 @@ def _parse_queue_candidates_for_replacement(
         return []
     import re as _re
 
-    out: list[tuple[str, str, bool]] = []
+    out: list[_QueueCandidate] = []
     current_name: str | None = None
     current_safety: str | None = None
     current_claimed: bool = False
@@ -863,9 +884,12 @@ def _parse_queue_candidates_for_replacement(
     def _flush() -> None:
         nonlocal current_name, current_safety, current_claimed
         if current_name is not None:
-            out.append((
+            out.append(_QueueCandidate(
                 current_name,
-                current_safety if current_safety is not None else "UNKNOWN-NO-GRAPH",
+                # Fix P (slice-078 m2): a missing `**Parallel-safety:**` field gets the
+                # distinct `MISSING-FIELD` sentinel — NOT `UNKNOWN-NO-GRAPH`, which is a
+                # real PSQ-1 enumeration value (overloading it conflated two states).
+                current_safety if current_safety is not None else "MISSING-FIELD",
                 current_claimed,
             ))
         current_name = None
@@ -912,7 +936,11 @@ def _pick_loser_replacement(
     for name, safety, is_claimed in _parse_queue_candidates_for_replacement(queue_text):
         if name in exclude_names:
             continue
-        if safety != "NON-OVERLAPPING":
+        # Fix P (slice-078 m2): reject everything outside the NON-OVERLAPPING allow-set —
+        # this rejects `MISSING-FIELD`, `UNKNOWN-NO-GRAPH`, `UNKNOWN-NO-HINT-FILES`, and
+        # `OVERLAPS-WITH-*` identically (semantically equivalent reject; observability gain
+        # from distinguishing the sentinels upstream).
+        if safety not in {"NON-OVERLAPPING"}:
             continue
         if is_claimed:
             continue
@@ -925,6 +953,8 @@ def _format_vault_claim_audit_entry(
     result: ResolutionResult,
     timestamp: str,
     head_sha: str,
+    winner: ClaimEntry | None,
+    loser: ClaimEntry | None,
 ) -> str:
     """Build the 8-field VAULT_CLAIM audit-log section.
 
@@ -933,36 +963,30 @@ def _format_vault_claim_audit_entry(
     separator with PCR-1 SOFT row; section-type distinguished at the
     prefix word `Vault-claim` vs `Soft-conflict`).
 
-    Winner/loser are derived from diag.claim_history via the same
-    `_collect_same_candidate_different_identity` + `_select_timestamp_winner`
-    helpers the resolver itself used (deterministic — same input yields
-    same winner). Replacement is parsed from result.reason via the
-    canonical `replacement=<name>` token; absent → audit-row sentinel
-    `none-available`.
+    Winner/loser are PASSED IN by the single computation site in
+    `_append_audit_log` (Fix O / slice-078 m1 DRY): the formatter no longer
+    re-derives them from `diag.claim_history` via
+    `_collect_same_candidate_different_identity` + `_select_timestamp_winner`.
+    A future selection-semantic change (e.g. R-23 clock-skew tiebreaker via
+    PSQ-2 `Claim-seq`) then updates one site, not two. `diag` is retained as
+    the conflict context for call-site uniformity + future use. Replacement is
+    parsed from result.reason via the canonical `replacement=<name>` token;
+    absent → audit-row sentinel `none-available`.
     """
     import re as _re
 
-    collisions = _collect_same_candidate_different_identity(diag.claim_history)
-    # Defensive: the resolver only invokes audit with a well-formed result
-    # (single-collision strict-newer winner). If somehow the diag carries 0
-    # or >1 collisions at audit time, fall back to placeholder fields rather
-    # than crash the best-effort audit-log append (resolve_soft_conflict's
-    # contract is that audit failures NEVER block APPLIED return).
-    winner_obj = None
-    loser_obj = None
-    candidate_name = "(unknown)"
-    if len(collisions) == 1:
-        candidate_name = collisions[0][0]
-        winner_loser = _select_timestamp_winner(collisions)
-        if winner_loser is not None:
-            winner_obj, loser_obj = winner_loser
-
-    if winner_obj is not None and loser_obj is not None:
-        winner_by = winner_obj.claimed_by
-        winner_at = winner_obj.claimed_at
-        loser_by = loser_obj.claimed_by
-        loser_at = loser_obj.claimed_at
-    else:
+    candidate_name = winner.candidate_name if winner is not None else "(unknown)"
+    if winner is not None and loser is not None:
+        winner_by = winner.claimed_by
+        winner_at = winner.claimed_at
+        loser_by = loser.claimed_by
+        loser_at = loser.claimed_at
+    else:  # pragma: no cover
+        # Defensive fallback: preserves robustness to None inputs for callers
+        # outside the canonical SOFT/VAULT_CLAIM resolve loop. No current caller
+        # exercises this branch (the resolver always passes a well-formed
+        # single-collision strict-newer winner/loser pair), but the defensive
+        # shape documents the contract that the helper IS robust to None inputs.
         winner_by = winner_at = loser_by = loser_at = "(unavailable)"
 
     # Replacement encoded by resolve_vault_claim_conflict in result.reason
@@ -1019,6 +1043,14 @@ def resolve_vault_claim_conflict(
       5. Atomic write + git add + git rebase --continue.
       6. Best-effort audit-log append.
       7. Return APPLIED.
+
+    Step 5 atomicity note (Fix Q / slice-078 m3): this path writes the resolved
+    slice-queue.md inline (single ``write_text`` + ``git add`` + ``git rebase
+    --continue``) rather than batching through PCR-1's pending_writes accumulator.
+    Single-file scope → an inline write is acceptable here; PCR-1's pending_writes
+    batching addressed multi-file partial-resolution windows (the SOFT path
+    regenerates slice-queue.md AND shippability.md) that do not apply to the
+    single-file VAULT_CLAIM path.
     """
     import re as _re
 
@@ -1274,7 +1306,24 @@ def _append_audit_log(
     # PCR-2a: dispatch on result.conflict_class — VAULT_CLAIM gets its own
     # 8-field section type; SOFT stays on the original section shape verbatim.
     if result.conflict_class is ConflictClass.VAULT_CLAIM:
-        entry = _format_vault_claim_audit_entry(diag, result, timestamp, head_sha)
+        # Fix O (slice-078 m1 DRY): compute winner/loser ONCE here — in the same scope as
+        # the already-computed timestamp + head_sha — and pass them to the formatter,
+        # instead of having the formatter re-derive from diag.claim_history. Defensive:
+        # the resolver only invokes audit with a well-formed single-collision result; if
+        # the diag carries 0 or >1 collisions at audit time, pass None (the formatter's
+        # pragma:no-cover branch renders `(unavailable)` rather than crashing the
+        # best-effort append).
+        _vc_collisions = _collect_same_candidate_different_identity(diag.claim_history)
+        _vc_winner_loser = (
+            _select_timestamp_winner(_vc_collisions) if len(_vc_collisions) == 1 else None
+        )
+        if _vc_winner_loser is not None:
+            _vc_winner, _vc_loser = _vc_winner_loser
+        else:
+            _vc_winner = _vc_loser = None
+        entry = _format_vault_claim_audit_entry(
+            diag, result, timestamp, head_sha, _vc_winner, _vc_loser
+        )
     else:
         u_files_csv = ", ".join(diag.u_files) if diag.u_files else "(none)"
         concerned_ids = sorted({

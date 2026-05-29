@@ -29,19 +29,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from tests.methodology._skill_parse_helpers import _branch_state_section
+
 SKILL_PATH = Path(__file__).resolve().parents[2] / "skills" / "build-slice" / "SKILL.md"
-
-
-def _branch_state_section() -> str:
-    """Extract '### Branch state' sub-section text up to the next markdown H2 heading.
-
-    Identical extraction to test_build_slice_skill_cp_r_step.py (per /critique pass-1
-    M2 ACCEPTED-FIXED — single-line constraint pinned via (?=^## [A-Z])).
-    """
-    text = SKILL_PATH.read_text(encoding="utf-8")
-    m = re.search(r"^### Branch state\b.*?(?=^## [A-Z])", text, re.MULTILINE | re.DOTALL)
-    assert m is not None, "### Branch state sub-section not found"
-    return m.group(0)
 
 
 def _point_4_codefence_body(section: str) -> str:
@@ -94,7 +84,7 @@ def test_point_4_contains_switch_commit_switch_worktree_sequence_in_order():
     equivalent forms (e.g., `git switch $default && git worktree add` chained) would
     FAIL.
     """
-    codefence = _point_4_codefence_body(_branch_state_section())
+    codefence = _point_4_codefence_body(_branch_state_section(SKILL_PATH.read_text(encoding="utf-8")))
     token_1 = codefence.find("git switch -c slice/")
     token_2 = (
         codefence.find('git commit -m "scaffold(slice-NNN):', token_1 + 1)
@@ -139,7 +129,7 @@ def test_both_worktree_create_forms_documented_dash_b_and_no_dash_b():
     in the negative lookahead so the comment's `-b;` (no trailing space; semicolon
     follows) is unambiguously excluded.
     """
-    section = _branch_state_section()
+    section = _branch_state_section(SKILL_PATH.read_text(encoding="utf-8"))
     # Point 1's -b form: explicit -b flag before slice/NNN-<slice-name> branch arg + $default
     point_1_dash_b_pattern = re.compile(
         r'git worktree add[^\n]+-b slice/NNN-<slice-name>[^\n]+\$default', re.MULTILINE
@@ -153,6 +143,13 @@ def test_both_worktree_create_forms_documented_dash_b_and_no_dash_b():
     # negative lookahead scoped before `#` comment delimiter (per B1 fix) + `-b\s`
     # flag shape required.
     codefence = _point_4_codefence_body(section)
+    # Fix D (slice-074 m3): the `[^#\n]` character classes (NOT `[^\n]`) scope BOTH the
+    # negative lookahead `(?!...-b\s)` and the trailing match BEFORE the `#` comment
+    # delimiter. This is load-bearing: point 4's canonical line is
+    # `git worktree add "$wt_base/..." slice/NNN-<slice-name>   # no -b; branch exists`
+    # — without the `#`-exclusion the embedded `-b` literal inside `# no -b; branch exists`
+    # would trip the negative lookahead and falsify the assertion. A future Builder
+    # refactoring this regex MUST preserve the `[^#\n]`/`-b\s` comment-exclusion shape.
     point_4_no_dash_b_pattern = re.compile(
         r'git worktree add\s+(?!(?:[^#\n]*?)-b\s)[^#\n]*slice/NNN-<slice-name>',
         re.MULTILINE,
@@ -179,11 +176,39 @@ def test_point_4_codefence_does_not_contain_git_stash():
     `git stash` between `git switch -c` and `git commit` would FAIL this test -
     surfacing the silent discipline regression at /validate-slice mid-slice smoke gate.
     """
-    codefence = _point_4_codefence_body(_branch_state_section())
+    codefence = _point_4_codefence_body(_branch_state_section(SKILL_PATH.read_text(encoding="utf-8")))
     assert "git stash" not in codefence, (
         "point 4's codefence contains `git stash` - but mission-brief.md L75 declares "
         "NO-auto-stash as out-of-scope; the switch-commit-switch sequence MUST require "
         "explicit `git add` + `git commit` of scaffolding, never silent shelve via stash. "
         "Per /critique-review pass-2 m2 ACCEPTED-FIXED, this structural pin elevates the "
         "prose discipline declaration to a regex-anchor."
+    )
+
+
+def test_branch_state_no_bare_git_add_placeholder():
+    """Fix B (slice-074 m1): point 4's codefence uses a CONCRETE `git add` pathspec, not
+    the bare `<scaffolding files>` placeholder.
+
+    Pre-fix: `git add <scaffolding files>` — a non-executable placeholder a Builder would
+    have to guess at. Post-fix: `git add architecture/slices/slice-NNN-<slice-name>/
+    architecture/slice-queue.md` — the canonical scaffolding pathspec, directly runnable
+    (modulo the `slice-NNN-<slice-name>` token substitution).
+    """
+    codefence = _point_4_codefence_body(
+        _branch_state_section(SKILL_PATH.read_text(encoding="utf-8"))
+    )
+    assert "<scaffolding files>" not in codefence, (
+        "Fix B regression: point 4's codefence still contains the bare "
+        "`git add <scaffolding files>` placeholder — replace with the concrete "
+        "`git add architecture/slices/slice-NNN-<slice-name>/ architecture/slice-queue.md` pathspec"
+    )
+    git_add_match = re.search(
+        r"^\s*git add\s+architecture/slices/slice-NNN-<slice-name>/",
+        codefence,
+        re.MULTILINE,
+    )
+    assert git_add_match is not None, (
+        "Fix B regression: point 4's codefence missing the concrete "
+        "`git add architecture/slices/slice-NNN-<slice-name>/ ...` scaffolding pathspec"
     )
