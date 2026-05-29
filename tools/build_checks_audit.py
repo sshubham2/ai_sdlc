@@ -121,12 +121,20 @@ class BuildCheckRule:
 
 @dataclass(frozen=True)
 class BuildCheckViolation:
-    """A finding emitted by the audit (parse error, not applicability)."""
+    """A finding emitted by the audit.
+
+    Usually a parse error (malformed build-checks.md). Under --strict (BCSG-1 /
+    ADR-072) the audit ALSO emits an `unacknowledged-critical` finding per
+    applicable Critical rule absent from --ack-critical — an applicability-derived
+    finding, not a parse error.
+    """
     path: str
     line: int
     rule_id: str  # may be empty for file-level errors
-    kind: str     # "missing-field" | "invalid-severity" | "parse-error"
-    severity: str  # always "Important"
+    kind: str     # parse errors: "missing-field" | "invalid-severity" | "parse-error"
+                  # | "anchor-not-in-keywords" | "negative-anchor-overlaps-positive";
+                  # strict gate (BCSG-1): "unacknowledged-critical"
+    severity: str  # "Important" for parse errors; "Critical" for "unacknowledged-critical"
     message: str
 
     def to_dict(self) -> dict:
@@ -449,6 +457,8 @@ def audit_slice(
     global_checks: Path | None = None,
     changed_files: list[str] | None = None,
     skip_if_carry_over: bool = True,
+    strict: bool = False,
+    ack_critical: tuple[str, ...] = (),
 ) -> AuditResult:
     """Audit a slice against project + global build-checks.
 
@@ -464,6 +474,16 @@ def audit_slice(
             empty list means glob match never fires (keyword-only)
         skip_if_carry_over: if True, slices with pre-rule mission-brief.md
             mtime get an empty result (carry-over exempt)
+        strict: if True (BCSG-1 / ADR-072), each applicable Critical rule whose
+            rule_id is NOT in ack_critical is appended as an
+            `unacknowledged-critical` violation, so main()'s exit code (which is
+            `1 if result.violations else 0`) becomes a gate-failure on
+            unacknowledged Critical rules. Default False → byte-identical legacy
+            behavior (applicable Critical rules stay informational).
+        ack_critical: rule IDs the builder has addressed + attests (the
+            --ack-critical sign-off list). Only consulted when strict=True. An
+            ID that matches no applicable Critical rule is ignored (lenient ack;
+            surfaced as a diagnostic in _format_human, never silently green).
     """
     result = AuditResult()
     changed_files = changed_files or []
@@ -510,10 +530,43 @@ def audit_slice(
             else:
                 result.skipped.append(r)
 
+    # BCSG-1 (ADR-072): under --strict, an applicable Critical rule that is NOT
+    # acknowledged via --ack-critical becomes a violation, so main()'s unchanged
+    # `return 1 if result.violations else 0` yields gate-failure exit 1. Runs ONCE
+    # over the fully-assembled result.applicable (after BOTH the project and global
+    # source loops above), guarded by `if strict:` so the default path is byte-
+    # identical. Unreachable on carry-over-exempt slices (early-returned above).
+    if strict:
+        acked = set(ack_critical)
+        for r in result.applicable:
+            if r.severity.lower() == "critical" and r.rule_id not in acked:
+                # Match the parse-violation convention: path is the real
+                # build-checks file, not the "project"/"global" source label
+                # (both paths are resolved above, before the source loops).
+                rule_path = project_checks if r.source == "project" else global_checks
+                result.violations.append(
+                    BuildCheckViolation(
+                        path=str(rule_path),
+                        line=r.line,
+                        rule_id=r.rule_id,
+                        kind="unacknowledged-critical",
+                        severity="Critical",
+                        message=(
+                            f"applicable Critical rule {r.rule_id} not acknowledged "
+                            f"via --ack-critical; address it (document in build-log.md) "
+                            f"and pass --ack-critical {r.rule_id}"
+                        ),
+                    )
+                )
+
     return result
 
 
-def _format_human(result: AuditResult) -> str:
+def _format_human(
+    result: AuditResult,
+    strict: bool = False,
+    ack_critical: tuple[str, ...] = (),
+) -> str:
     if result.carry_over_exempt:
         return (
             "Build-checks audit: slice is carry-over exempt "
@@ -522,9 +575,18 @@ def _format_human(result: AuditResult) -> str:
 
     out: list[str] = []
 
-    if result.violations:
-        out.append(f"{len(result.violations)} build-checks parse violation(s):\n\n")
-        for v in result.violations:
+    # Parse violations and strict-gate (unacknowledged-critical) findings both
+    # live in result.violations, but they are categorically different (one is a
+    # malformed-build-checks.md error, the other an applicability-derived gate
+    # finding). Render parse violations under the "parse violation(s)" header;
+    # the unacknowledged-critical findings are surfaced by the BCSG-1 diagnostic
+    # block below (by rule ID) so the human output never mislabels them.
+    parse_violations = [
+        v for v in result.violations if v.kind != "unacknowledged-critical"
+    ]
+    if parse_violations:
+        out.append(f"{len(parse_violations)} build-checks parse violation(s):\n\n")
+        for v in parse_violations:
             out.append(
                 f"  [{v.severity}] {v.path}:{v.line} ({v.kind})\n"
                 f"    {v.message}\n\n"
@@ -556,6 +618,33 @@ def _format_human(result: AuditResult) -> str:
             "/build-slice declares the slice done. Important rules surface "
             "here for builder review; defer-with-rationale is allowed.\n"
         )
+
+    # BCSG-1 (ADR-072) strict diagnostic — convert the fail-CLOSED lenient-ack
+    # silent-no-op into a visible diagnostic (M2). Shown only under --strict;
+    # never suppresses the surfaced-rules report above.
+    if strict:
+        applicable_crit_ids = {
+            r.rule_id for r in result.applicable if r.severity.lower() == "critical"
+        }
+        acked = set(ack_critical)
+        unacked = sorted(applicable_crit_ids - acked)
+        acknowledged = sorted(applicable_crit_ids & acked)
+        unmatched = sorted(acked - applicable_crit_ids)
+        out.append("\n--strict (BCSG-1) acknowledgment gate:\n")
+        if acknowledged:
+            out.append(f"  acknowledged Critical rules: {', '.join(acknowledged)}\n")
+        if unacked:
+            out.append(
+                "  UNACKNOWLEDGED applicable Critical rules (gate-failure): "
+                f"{', '.join(unacked)}\n"
+            )
+        else:
+            out.append("  all applicable Critical rules acknowledged (or none apply).\n")
+        for stale in unmatched:
+            out.append(
+                f"  note: --ack-critical '{stale}' matched no applicable Critical "
+                "rule (typo or stale ack?)\n"
+            )
 
     return "".join(out)
 
@@ -593,6 +682,24 @@ def main(argv: list[str] | None = None) -> int:
         "--json", action="store_true",
         help="Output result as JSON (machine-readable)",
     )
+    parser.add_argument(
+        "--strict", action="store_true",
+        help=(
+            "BCSG-1 gate: treat each applicable Critical rule not in "
+            "--ack-critical as a violation (gate-failure exit 1). Opt-in; "
+            "default off = legacy surface-only behavior."
+        ),
+    )
+    parser.add_argument(
+        "--ack-critical", nargs="*", default=[], metavar="RULE-ID",
+        help=(
+            "Critical rule IDs the builder has addressed + attests (e.g. "
+            "--ack-critical BC-PROJ-3 BC-GLOBAL-2). Only consulted with --strict. "
+            "An ID matching no applicable Critical rule is ignored (surfaced as a "
+            "diagnostic). Place LAST or immediately before another --flag "
+            "(nargs='*' would swallow a following bareword; this parser has none)."
+        ),
+    )
     args = parser.parse_args(argv)
 
     slice_folder: Path = args.slice
@@ -606,12 +713,16 @@ def main(argv: list[str] | None = None) -> int:
         global_checks=args.global_checks,
         changed_files=args.changed_files,
         skip_if_carry_over=not args.no_carry_over,
+        strict=args.strict,
+        ack_critical=tuple(args.ack_critical),
     )
 
     if args.json:
         sys.stdout.write(json.dumps(result.to_dict(), indent=2) + "\n")
     else:
-        sys.stdout.write(_format_human(result))
+        sys.stdout.write(
+            _format_human(result, strict=args.strict, ack_critical=tuple(args.ack_critical))
+        )
 
     # Exit 1 only on parse violations (malformed build-checks.md).
     # Applicable rules are informational, not failures — the human/AI builder

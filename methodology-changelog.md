@@ -34,6 +34,33 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.75.0 — 2026-05-29
+
+**BCSG-1 — BC-1 Strict Critical-Gate via acknowledgment** (slice-080; [[ADR-072]] mints a new rule; refines BC-1 in place; supersedes nothing; MEPD-1 posture: **INCLUDE**; 5-part PMI-1 atomic bump 0.74.0 → 0.75.0).
+
+BCSG-1 closes the SC-008 enforcement-correctness gap: `tools/build_checks_audit.py` printed "Per BC-1, Critical rules MUST be addressed" but `main()` ended in `return 1 if result.violations else 0`, where `result.violations` held only parse errors — so an applicable non-deferrable Critical rule produced exit 0, and a consumer treating the exit code as the BC-1 gate signal silently passed a slice violating a Critical rule. The complication BCSG-1 had to solve: BC-1 rules have no per-rule status field (applicability is computed and never disappears once a rule applies), so a naive "exit nonzero whenever `critical_applicable > 0`" would make every slice touching an `always:true` Critical rule un-passable.
+
+**Mechanism** (per ADR-072 § Decision — option 2, the acknowledgment-flag design; options 1 blunt-count + 3 status-row-surface rejected):
+
+- **Opt-in `--strict` flag**: under `--strict`, `audit_slice` appends one `BuildCheckViolation(kind="unacknowledged-critical", severity="Critical")` per applicable Critical rule whose `rule_id` is NOT in the `--ack-critical` set, so the UNCHANGED `return 1 if result.violations else 0` yields gate-failure exit 1. Default off → byte-identical legacy behavior (applicable Critical rules stay informational; every existing caller unaffected — AC3).
+- **`--ack-critical <RULE-ID...>` sign-off list**: the builder addresses each applicable Critical rule, attests it in build-log.md, and passes its ID. Acknowledgment is an attestation, NOT machine proof the rule's check ran (executable per-rule auto-verification remains the deferred BC-1 v2).
+- **Append after BOTH source loops** (project + global), guarded by `if strict:`, run once over the fully-assembled `result.applicable` — so a global-source Critical rule (e.g. BC-GLOBAL-2) is captured, not only project-source ones; unreachable on carry-over-exempt slices (early-returned).
+- **Lenient ack** (fail-CLOSED): an `--ack-critical` ID matching no applicable Critical rule is ignored, but `_format_human` surfaces it as a diagnostic ("matched no applicable Critical rule (typo or stale ack?)") alongside the unacknowledged-firing rule IDs — converting the silent-no-op into a visible signal without changing exit semantics.
+- **Standing consequence**: BC-PROJ-3 + BC-GLOBAL-2 are `always:true` Critical (git-revert-discipline) rules, so wiring `--strict` into `/build-slice` Step 6 means every slice must `--ack-critical BC-PROJ-3 BC-GLOBAL-2` (plus any slice-specific applicable Critical rules) after attesting in build-log.md. Step 6 prose carries the enumerate-then-ack pattern.
+
+**Code surfaces**: `tools/build_checks_audit.py` — `audit_slice` + `_format_human` gain `strict`/`ack_critical` params; `main()` gains `--strict` + `--ack-critical` argparse flags; `BuildCheckViolation` gains the `unacknowledged-critical` kind; exit logic unchanged. `skills/build-slice/SKILL.md` Step 6 BC-1 block — enumerate-then-ack invocation + mechanical refusal semantics + rewritten v1/v2 caveat (OSDG-1 forward-synced to installed copy).
+
+**5-part PMI-1 atomic bump** 0.74.0 → 0.75.0 covers all 5 canonical version-bearing legs per slice-063/064/066/067/069–078 canonical anchor: `VERSION` + `plugin.yaml.version` + `pyproject.toml [project].version` (PVFS-1) + this `## v0.75.0` header + installed `~/.claude/ai-sdlc-VERSION` (AVFS-1). Plus separate post-bump forward-sync obligations (NOT PMI-1 atomic legs): installed `~/.claude/methodology-changelog.md` (MCFS-1) + installed `~/.claude/skills/build-slice/SKILL.md` (OSDG-1) + venv `ai-sdlc-tools` 0.75.0 (TVFS-1 via `$PY -m pip install --upgrade .`). Shippability row #85 is a SEPARATE BC-PROJ-10 paired-entry-pin consumer-propagation surface.
+
+**Critic stack** (slice-080; dual-Critic): first-Critic NEEDS-FIXES (3B/3M/2m = 8 findings, all VALID per meta-Critic, correct severity); meta-Critic EXTEND (0 suspicious, 1 missed Minor m-add-1 — repro docstrings documenting the rejected option-1 design, same class as M1 in a 2nd surface; 0 severity-wrong); TRI-1 user-ratified accept-all 2026-05-29.
+
+### Added
+
+- **BCSG-1 — BC-1 Strict Critical-Gate via acknowledgment**
+  Adds opt-in `--strict` + `--ack-critical <RULE-ID...>` to `tools/build_checks_audit.py`: an applicable Critical rule absent from the ack set becomes an `unacknowledged-critical` violation → gate-failure exit 1 (default-off path byte-unchanged); `_format_human` surfaces unacknowledged-firing + unmatched-ack diagnostics; `/build-slice` Step 6 wires `--strict --ack-critical <ids>` with the enumerate-then-ack pattern.
+  - **Rule reference**: BCSG-1 (slice-080; ADR-072 mints a new rule; refines BC-1 in place; supersedes nothing; methodology v0.75.0).
+  - **Validation**: `tests/bugs/test_bc1_critical_rule_exit_gate.py` (catalogued failing repro — shippability row #85; FAIL→PASS), `tests/methodology/test_build_checks_audit.py` BCSG-1 cases (unacknowledged-project + global-source-captured + ack-clears + no-false-fire + default-path-unchanged + `_format_human` diagnostic), `tests/methodology/test_methodology_changelog.py::test_v_0_75_0_bcsg_1_entry_present_in_repo` + `::test_v_0_75_0_bcsg_1_shippability_consumer_propagation`.
+
 ## v0.74.0 — 2026-05-29
 
 **PCR-2a — Parallel-Conflict-Resolution v2a (vault-claim sub-mechanism)** (slice-078; [[ADR-071]] mints a new rule; refines PCR-1's class taxonomy in-place; supersedes nothing; second rule on the `PCR-N` family axis (parallel-conflict-resolution) sibling to PSQ-N; MEPD-1 posture: **INCLUDE**; 5-part PMI-1 atomic bump 0.73.0 → 0.74.0).

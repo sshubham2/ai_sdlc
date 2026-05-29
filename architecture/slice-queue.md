@@ -1,28 +1,52 @@
 # Slice queue
 
-_Generated: 2026-05-29T04:46:43+00:00 by /slice during slice-079 definition_
+_Generated: 2026-05-29T08:57:24+00:00 by /slice during slice-080 definition_
 
 ## Candidates
 
+### fix-drift-check-enforcement-gap
+
+- **Source:** diagnose-out/backlog.md SC-007 (F-HALF-3a7f1c8e) — HIGH severity: /drift-check mandated before commit but no backing tool/hook/installer
+- **Blast-radius:** `skills/adopt/SKILL.md`, `skills/drift-check/SKILL.md`, `skills/triage/SKILL.md`, `tools/drift_check.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** MEDIUM
+- **Risk-retired:** HIGH
+
+### add-sp-1-slice-pick-auto-pick-via-slice-no-arg
+
+- **Source:** slice-queue + slice-077 reflection; RE-DEMONSTRATED LIVE at slice-080 /slice (no-arg required hand-ranking)
+- **Blast-radius:** `skills/slice/SKILL.md`, `tools/slice_pick.py`, `tools/slice_queue_claim.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** MEDIUM
+- **Risk-retired:** MEDIUM
+
 ### add-pcr-2b-hard-conflict-critic-stack
 
-- **Source:** Phase 1 parallel-slice readiness — promoted from PCR-2 split at slice-078 (2026-05-28). Closes HARD-conflict path: spawns design-Critic + meta-Critic agents on proposed merge resolution + TRI-RESOLVE-1 user triage gate mirroring TRI-1.
+- **Source:** slice-queue Phase 1 — PCR-2 split at slice-078; HARD-conflict Critic-stack path (planned slice-080 in source-pending, deferred)
 - **Blast-radius:** `agents/critique-review.md`, `agents/critique.md`, `skills/commit-slice/SKILL.md`, `tools/parallel_conflict_resolver.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** LARGE
 - **Risk-retired:** HIGH
 
-### add-sp-1-slice-pick-auto-pick-via-slice-no-arg
+### fix-val1-tomllib-silent-disable
 
-- **Source:** Phase 1 ergonomics — slice-077 reflection's slice-079 nomination + RE-DEMONSTRATED LIVE at slice-079 /slice invocation (no-arg /slice required hand-ranking). /slice with no arg → invoke tools/slice_pick.py helper → pick highest-priority unclaimed NON-OVERLAPPING candidate → handle claim-race with structured ask.
-- **Blast-radius:** `skills/slice/SKILL.md`, `tools/slice_pick.py`, `tools/slice_queue_claim.py`
+- **Source:** diagnose-out/backlog.md SC-002 (F-CONFIG-ed3ebdfd) — VAL-1 Layer B silently disabled on Python 3.10 (tomllib 3.11+, no tomli backport)
+- **Blast-radius:** `pyproject.toml`, `tools/validate_slice_layers.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** MEDIUM
+
+### extend-osdg-1-drift-guard-to-slice-candidates
+
+- **Source:** risk-register R-13 (open) — OSDG-1 drift guard not yet extended to /slice-candidates
+- **Blast-radius:** `skills/slice-candidates/SKILL.md`, `tests/methodology/test_slice_candidates_skill_drift.py`, `tools/install_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
 - **Risk-retired:** MEDIUM
 
 ### parallel-slice-family-parity-audit
 
-- **Source:** Phase 1 — slice-077 reflection's Deferred extraction-trigger. N=3 worktree-list-porcelain parsers Python-side post-slice-077; cross-spec parity for BRANCH-2 + PSQ-1/2/3 + PCR-1/2a (now 6-member family). Same default-resolution helper + canonical worktree path + SOAD-1 form + WORKTREE=skip grammar across now-6 SKILL.md surfaces.
+- **Source:** slice-queue Phase 1 — slice-077 reflection extraction-trigger; cross-spec parity for the 6-member parallel-slice family
 - **Blast-radius:** `skills/build-slice/SKILL.md`, `skills/commit-slice/SKILL.md`, `skills/pulse/SKILL.md`, `tools/parallel_slice_family_parity_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
@@ -30,55 +54,31 @@ _Generated: 2026-05-29T04:46:43+00:00 by /slice during slice-079 definition_
 
 ### close-psq-3-conflict-stop-re-entry-semantics
 
-- **Source:** Phase 1 — source-pending-items.txt P2.3. PSQ-3 conflict-STOP at sub-step 2.5 re-entry semantics undefined; user manually resolves + re-invokes /commit-slice --merge → skill should detect rebase-in-progress + SKIP sub-step 2 commit attempt. Orthogonal to PCR-1's auto-regen (different code path).
+- **Source:** slice-queue Phase 1 — source-pending P2.3; PSQ-3 conflict-STOP re-entry semantics undefined
 - **Blast-radius:** `skills/commit-slice/SKILL.md`, `tests/methodology/test_commit_slice_skill_rebase_flag.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** SMALL
 - **Risk-retired:** MEDIUM
 
-### add-psq-4-push-time-rebase
+### find-real-mojibake-source
 
-- **Source:** Phase 2 PR-workflow — source-pending-items.txt P2.1. PSQ-4: --push does NOT rebase slice/NNN onto default before push; PR-based workflows that require clean history will need this — symmetric copy of PSQ-3 sub-step 2.5.
-- **Blast-radius:** `skills/commit-slice/SKILL.md`, `tests/methodology/test_commit_slice_skill_push_rebase_flag.py`
+- **Source:** source-pending-items.txt P3.10' (routed from P3.10 per slice-079 /critique B2) — cp1252 mojibake root cause is upstream of slice_queue_writer
+- **Blast-radius:** `skills/slice/SKILL.md`, `tools/slice_pick.py`, `tools/slice_queue_writer.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
-- **Risk-retired:** MEDIUM
+- **Risk-retired:** LOW
 
 ### bcr-1-dual-tree-replication
 
-- **Source:** Phase 2 BCR-1 — source-pending-items.txt P3.3. BCR-1 round-trip dual-tree replication: diagnose-out/backlog.md edits in worktree don't propagate to main tree via --merge; N=2 cumulative slice-070/071.
+- **Source:** slice-queue Phase 2 — source-pending P3.3; diagnose-out/backlog.md worktree edits don't propagate to main tree via --merge (N=2 slice-070/071)
 - **Blast-radius:** `.gitignore`, `skills/commit-slice/SKILL.md`, `tools/bcr_1_dual_tree_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
 - **Risk-retired:** MEDIUM
 
-### cross-worktree-race-hardening
-
-- **Source:** Phase 3 cross-machine — source-pending-items.txt P3.5. Concurrent /build-slice invocations across worktrees: graphify-out + diagnose-out per-worktree no convergence; slice-queue.md last-write-wins; risk-register.md SAME risk ID conflict. PCR-1's soft-regen auto-resolves most of this for slice-queue.md / _index.md / shippability.md; cross-worktree-race-hardening covers the residual.
-- **Blast-radius:** `skills/build-slice/SKILL.md`, `tools/slice_queue_claim.py`, `tools/slice_queue_writer.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** LARGE
-- **Risk-retired:** MEDIUM
-
-### add-psq-5-rebase-merges-strategy
-
-- **Source:** Phase 3 complex-topology — source-pending-items.txt P3.1. PSQ-5: --rebase-merges strategy for preserving merge-commit topology when rebasing branches that already merged subsidiary lineage.
-- **Blast-radius:** `skills/commit-slice/SKILL.md`, `tests/methodology/test_commit_slice_skill_psq_5.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** LOW
-
-### add-psq-6-merge-driver-registration
-
-- **Source:** Phase 3 generated-files — source-pending-items.txt P3.2. PSQ-6: merge-driver registration for automated handling of specific files during merge conflicts; e.g., always-take-theirs for generated files, custom drivers for serialized state. Largely subsumed by PCR-1 soft-regen for the canonical state-file set; PSQ-6 covers the long-tail custom-driver case.
-- **Blast-radius:** `.gitattributes`, `skills/commit-slice/SKILL.md`, `tools/psq_6_merge_driver_audit.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** LOW
-
 ### add-claim-sequence-number-for-clock-skew-detection
 
-- **Source:** R-23 corrigibility hook per PCR-2a (slice-078) m9 ACCEPTED-PENDING + /critique-review M-add-2 ACCEPTED-FIXED precedent. Adds a monotonic **Claim-seq:** field to PSQ-2 claim records; PCR-2a switches from strict-newer Claimed-at to strict-greater Claim-seq. Removes clock-skew dependence in cross-machine cooperative-not-adversarial parallel-slice workflow.
+- **Source:** risk-register R-23 (open) — PCR-2a clock-skew; add monotonic Claim-seq field
 - **Blast-radius:** `architecture/slice-queue.md`, `tools/parallel_conflict_resolver.py`, `tools/slice_queue_claim.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM

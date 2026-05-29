@@ -1747,3 +1747,18 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - For bundled-cleanup slices: scaffold all regression tests up front (Phase B) BUT treat them as the binding contract — when a committed test disagrees with design prose, widen the fix to satisfy the test and log the delta. And read the mid-slice smoke gate as "all-built-so-far pass + zero pre-existing regression," not literal `-x` exit 0.
 - ACs that mandate edits to ANOTHER slice's artifacts must pre-carve-out the archive-immutability path at /slice time (DEFER-shaped), or they become validate-time PARTIALs. Cross-slice handoff state wants a LIVE top-level home (`architecture/source-pending-items.txt`), not a per-slice-folder file that archives.
 - When a design row promises a BEHAVIORAL test, realize the behavioral test — a structural signature/source-grep pin cannot discriminate the very regression it nominally guards (the Fix O / code-review-M1 lesson).
+
+## Slice 080 (harden-bc1-critical-rules-exit-gate) — 2026-05-29
+
+### Worked
+- The acknowledgment-flag design (ADR-072 option 2) cleanly resolved the "computed applicability never disappears once a rule applies" trap: under `--strict`, an applicable Critical rule absent from `--ack-critical` becomes a violation, reusing the sibling-audit `return 1 if result.violations else 0` idiom with NO new exit branch. Default-off kept every legacy caller byte-identical (47/47 BC-1 tests untouched). The user-facing design fork (asked via structured options before designing) surfaced the un-passability trap that a naive blunt-count gate would have shipped.
+- The dual design-Critic stack was 9/9 VALIDATED (zero FALSE-ALARM), and the code-Critic caught the one defect the design stack structurally couldn't reach (M1: `_format_human` rendered strict findings under the "parse violation(s)" header + `path=r.source` non-path label). Three-persona division of labor worked exactly as CRSI-1 intends.
+- BFRD-1 repro authored to test the UNACKNOWLEDGED case stayed valid across the entire design fork (blunt-count → acknowledgment), because "applicable Critical + no sign-off → nonzero" is true under every candidate design.
+
+### Didn't work
+- The repro docstrings (authored at /repro, before the design fork) documented the eventually-REJECTED blunt-count design — the meta-Critic's m-add-1 caught this as a 2nd surface of the same class the first-Critic's M1 flagged in the shippability catalog. "Found the class, under-swept the surfaces" recurred (N=2 sibling of slice-074/075 RSAD-1 under-sweep). When /repro precedes a design decision, its docstrings are provisional — revisit them post-design.
+
+### Pattern
+- Adding an enforced exit-gate to a computed-applicability audit (no per-item status field): acknowledgment-flag beats blunt-count (un-passable) and status-row-surface (heavyweight). Reusable for future audit-hardening.
+- A new `always:true` Critical build-check imposes a STANDING per-slice acknowledgment cost (every Step 6 must ack it). Weigh Critical+always vs Important-or-glob-scoped before promoting — the enforcement is real but recurring.
+- Output-honesty / contract-consistency-inside-functions (a printed header that contradicts the code's own docstring; a struct field whose semantics silently diverge for a new variant) is a code-Critic surface — the design-Critic reviews intent, the code-Critic reviews what the code actually prints/returns.

@@ -390,13 +390,26 @@ NFR-1 carry-over: slices whose `mission-brief.md` mtime predates 2026-05-06 are 
 
 #### Build-checks audit (BC-1)
 
-Per **BC-1** (`methodology-changelog.md` v0.10.0), every slice's pre-finish runs the build-checks audit to surface evergreen rules promoted from past lessons-learned. The audit reads `architecture/build-checks.md` (project-specific) and `~/.claude/build-checks.md` (global, cross-project), filters rules by applicability, and surfaces matches:
+Per **BC-1** (`methodology-changelog.md` v0.10.0), every slice's pre-finish runs the build-checks audit to surface evergreen rules promoted from past lessons-learned. The audit reads `architecture/build-checks.md` (project-specific) and `~/.claude/build-checks.md` (global, cross-project), filters rules by applicability, and surfaces matches.
 
-```bash
-$PY -m tools.build_checks_audit \
-  --slice architecture/slices/slice-NNN-<name> \
-  --changed-files <list of files changed by this slice>
-```
+Per **BCSG-1** (`methodology-changelog.md` v0.75.0; slice-080; [[ADR-072]]; refines BC-1 in place, supersedes nothing), this gate is **mechanically enforced under `--strict`**: an applicable Critical rule that is NOT acknowledged via `--ack-critical` becomes an `unacknowledged-critical` violation → gate-failure exit 1. The enumerate-then-ack pattern (run EVERY slice — BC-PROJ-3 + BC-GLOBAL-2 are `always:true` Critical rules that apply to every slice):
+
+1. Enumerate applicable Critical rules:
+   ```bash
+   $PY -m tools.build_checks_audit \
+     --slice architecture/slices/slice-NNN-<name> \
+     --changed-files <list of files changed by this slice> --json \
+     | $PY -c "import sys,json; d=json.load(sys.stdin); print([r['rule_id'] for r in d['applicable'] if r['severity'].lower()=='critical'])"
+   ```
+2. Address each applicable Critical rule and attest it in `build-log.md` (e.g. "BC-PROJ-3/BC-GLOBAL-2: this slice performs no destructive `git checkout`/`restore`/`stash` revert of uncommitted work").
+3. Re-run with `--strict` and the acknowledged rule IDs (place `--ack-critical` LAST — `nargs="*"` is greedy):
+   ```bash
+   $PY -m tools.build_checks_audit \
+     --slice architecture/slices/slice-NNN-<name> \
+     --changed-files <list of files changed by this slice> \
+     --strict --ack-critical <addressed Critical rule IDs>
+   ```
+   Exit 0 = all applicable Critical rules acknowledged (or none apply). Exit 1 = ≥1 unacknowledged applicable Critical rule (the human-readable output names which, plus any `--ack-critical` ID that matched no applicable rule — a typo/stale-ack diagnostic).
 
 Applicability is the OR of three signals:
 - `Applies to: always: true` — always fires
@@ -404,15 +417,15 @@ Applicability is the OR of three signals:
 - `Trigger keywords: <words>` — fires when any keyword appears in mission-brief.md or design.md
 
 Refusal semantics:
-- **Critical rule applies**: this slice MUST address the rule before declaring done. Either fix the issue, or escalate (rule is wrong / rule needs scope adjustment) and document in build-log.md. Critical rules are not deferrable.
-- **Important rule applies**: surface to user; defer-with-rationale is allowed and logged in build-log.md (matching the LINT-MOCK Important pattern).
+- **Critical rule applies**: this slice MUST address the rule before declaring done, then acknowledge it via `--ack-critical <rule-id>`. Under `--strict` an unacknowledged applicable Critical rule is a gate-failure (exit 1) — Critical rules are not deferrable, and the gate is now mechanical (BCSG-1), not honor-system. To escalate (rule is wrong / needs scope adjustment) rather than fix: document the escalation in build-log.md AND acknowledge the rule ID so the gate clears; the build-log attestation is the audit trail.
+- **Important rule applies**: surface to user; defer-with-rationale is allowed and logged in build-log.md (matching the LINT-MOCK Important pattern). `--strict` never gates on Important rules.
 - **Parse violations** (malformed `build-checks.md` rule, missing required field, invalid severity): fail the audit with exit code 1; fix the rule's format before continuing.
 
 NFR-1 carry-over: slices whose `mission-brief.md` mtime predates BC-1's release date (2026-05-06) are exempt automatically. The audit returns `carry_over_exempt: true` and zero applicable rules for those.
 
 If neither `architecture/build-checks.md` nor `~/.claude/build-checks.md` exists, the audit returns zero applicable rules. Both files are populated manually at `/reflect` Step 5b when a recurring pattern emerges across slices.
 
-v1 surfaces rules; the human/AI builder addresses them. Auto-verification (executable check command per rule) is deferred to a v2 — the format already includes `Validation hint` so v2 can parse and run it.
+BCSG-1 (slice-080) added exit-code enforcement: under `--strict` the exit code is a gate signal (acknowledgment-based), so an automated/CI consumer no longer gets a false-green on an applicable Critical rule. The acknowledgment is an attestation (the builder asserts the rule was addressed, recorded in build-log.md) — NOT machine proof the rule's required check actually ran. That executable per-rule auto-verification (parse + run each rule's `Validation hint`) remains the deferred BC-1 v2.
 
 #### Wiring matrix audit (WIRE-1)
 
