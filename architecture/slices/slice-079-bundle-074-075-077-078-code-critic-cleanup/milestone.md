@@ -2,15 +2,15 @@
 slice: slice-079-bundle-074-075-077-078-code-critic-cleanup
 stage: build
 updated: 2026-05-29
-next-action: Phase D — `tests/methodology/test_commit_slice_skill_merge_wt_clean_preflight_ordering.py` Fix G (line-start anchor + narration-leakage guard), then MID-SLICE SMOKE GATE
+next-action: Phase E — `tools/pulse_worktree_resolver.py` fixes K-N (_UNKNOWN_REASON_WARN_TEMPLATES constant + bare-repo detect + BOM tolerance + stage exact-key) + OSDG-1 N/A (no SKILL.md edit; pulse SKILL.md consumer reads constant)
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-079 bundle-074-075-077-078-code-critic-cleanup
 
-**Stage**: build (Phases A + B + C complete; Phase D pending)
-**Next action**: Phase D — `tests/methodology/test_commit_slice_skill_merge_wt_clean_preflight_ordering.py` Fix G (line-start `^2\.1\.` / `^2\.5\.` anchors + `silent-WT-discard`==1 narration-leakage guard), then **MID-SLICE SMOKE GATE** (~50%)
+**Stage**: build (Phases A–D complete + MID-SLICE SMOKE GATE passed-in-substance; Phase E pending)
+**Next action**: Phase E — `tools/pulse_worktree_resolver.py` fixes K (`_UNKNOWN_REASON_WARN_TEMPLATES` MAP-ONLY constant) + L (bare-repo detect→empty tuple+WARN) + M (UTF-8 BOM tolerance) + N (`stage:` exact-key match)
 **Updated**: 2026-05-29
 **Risk tier**: medium — Critic required: yes
 **Worktree**: `C:\Users\sshub\ai_sdlc-wt\slice-079-bundle-074-075-077-078-code-critic-cleanup` on branch `slice/079-bundle-074-075-077-078-code-critic-cleanup`
@@ -27,8 +27,8 @@ critic-required: true
   - [x] Phase A — Setup + m6 discharge (shippability rows 79-84 enumerated; milestone + build-log scaffolded)
   - [x] Phase B — Regression test scaffolding (11 FAILING test files committed at cc7a658; pre-fix state empirically verified: 16 FAIL + 6 PASS forward-pins + 2 ImportError pending Phases C/E)
   - [x] Phase C — `skills/build-slice/SKILL.md` fixes A-F + OSDG-1 forward-sync (26 tests PASS; Fix E deduped 4 corpus files not 2 — design→code delta logged; drift clean)
-  - [ ] Phase D — `tests/methodology/test_commit_slice_skill_merge_wt_clean_preflight_ordering.py` Fix G
-  - [ ] **MID-SLICE SMOKE GATE** (after Phase D ~50%)
+  - [x] Phase D — `tests/methodology/test_commit_slice_skill_merge_wt_clean_preflight_ordering.py` Fix G (line-start anchor + narration-leakage guard; 2 tests PASS)
+  - [x] **MID-SLICE SMOKE GATE** (after Phase D ~50%) — passed-in-substance: 984 pass, 8 fail = all Phase-B-prescaffolded WRITTEN-FAILING tests for Phases F+G; zero regressions
   - [ ] Phase E — `tools/pulse_worktree_resolver.py` fixes K-N
   - [ ] Phase F — pulse tests cleanup (fixes H, I, J)
   - [ ] Phase G — `tools/parallel_conflict_resolver.py` fixes O-R
