@@ -49,7 +49,7 @@ import sys
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from tools import _stdout
 from tools.branch_workflow_audit import _resolve_default_branch
@@ -84,6 +84,50 @@ _UNKNOWN_REASONS = (
     "head-unresolvable",
     "slice-folder-name-drift",
 )
+
+
+# Per-UNKNOWN-reason WARN template strings (Fix K, slice-077 m5 — MAP-ONLY shape per
+# /critique B1 + M1 ACCEPTED-FIXED). Closes the slice-077 design.md L181-191 / ADR-070
+# contractual promise of a WARN string per UNKNOWN sub-reason. Pure data exposed at
+# module scope: the `skills/pulse/SKILL.md` Drift & flags consumer reads this constant and
+# performs `_UNKNOWN_REASON_WARN_TEMPLATES.get(reason, <fallback>)` at Haiku-side
+# prose-interpretation time. NO new public helper, NO new JSON state-dict field, NO change
+# to CLI text-mode emission (MEPD-1 EXCLUDE preserved). Keys are byte-equal to
+# `_UNKNOWN_REASONS`; the `{slice}` placeholder is filled by the consumer.
+_UNKNOWN_REASON_WARN_TEMPLATES: Mapping[str, str] = {
+    "fresh-worktree-no-milestone": (
+        "WARN: worktree {slice} has no milestone.md yet (fresh scaffold) — state UNKNOWN; "
+        "run /slice in the worktree or verify the slice folder."
+    ),
+    "milestone-missing-in-active-and-archive": (
+        "WARN: worktree {slice} milestone.md is absent from both the active and archive "
+        "paths — state UNKNOWN; verify the slice folder name."
+    ),
+    "milestone-frontmatter-malformed": (
+        "WARN: worktree {slice} milestone.md frontmatter is malformed (no parseable "
+        "stage:) — state UNKNOWN; repair the YAML frontmatter."
+    ),
+    "detached-head": (
+        "WARN: worktree {slice} is on a detached HEAD — state UNKNOWN; check out the "
+        "slice/NNN-<name> branch."
+    ),
+    "dirty-worktree": (
+        "WARN: worktree {slice} has a dirty working tree — state UNKNOWN; commit or "
+        "inspect before relying on classification."
+    ),
+    "merge-base-error": (
+        "WARN: worktree {slice} `git merge-base --is-ancestor` errored — state UNKNOWN; "
+        "HEAD-vs-default ancestry is indeterminate."
+    ),
+    "head-unresolvable": (
+        "WARN: worktree {slice} HEAD could not be resolved — state UNKNOWN; the worktree "
+        "may be empty or corrupt."
+    ),
+    "slice-folder-name-drift": (
+        "WARN: worktree {slice} branch name and slice folder name disagree — state "
+        "UNKNOWN; reconcile the folder/branch naming."
+    ),
+}
 
 
 class WorktreeState(Enum):
@@ -186,6 +230,10 @@ def _parse_milestone_stage(milestone_path: Path) -> str | None:
         text = milestone_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
+    # Fix M (slice-077 m8): strip a leading UTF-8 BOM. PowerShell's default redirection /
+    # Set-Content writes a BOM; `read_text(encoding="utf-8")` (not utf-8-sig) leaves a
+    # leading U+FEFF that would defeat the `startswith("---")` frontmatter check.
+    text = text.removeprefix("﻿")
     if not text.startswith("---"):
         return None
     # Find closing frontmatter delimiter
@@ -196,8 +244,12 @@ def _parse_milestone_stage(milestone_path: Path) -> str | None:
     frontmatter = rest[:end_idx]
     for line in frontmatter.splitlines():
         stripped = line.strip()
-        if stripped.startswith("stage:"):
-            return stripped[len("stage:"):].strip()
+        # Fix N (slice-077 m9): exact-key match (partition on the FIRST colon, compare the
+        # key) instead of `startswith("stage:")` — the prefix form also matched
+        # hypothetical `stage_owner:` / `stage-history:` keys.
+        key, sep, value = stripped.partition(":")
+        if sep and key.strip() == "stage":
+            return value.strip()
     return None
 
 
@@ -244,6 +296,15 @@ def detect_active_worktrees(repo_root: Path) -> list[WorktreeInfo]:
     if result.returncode != 0:
         return []
     blocks = _parse_worktree_porcelain(result.stdout)
+    # Fix L (slice-077 m6): bare-repo edge case. `git worktree list --porcelain` on a bare
+    # repo emits a first block carrying a `bare` sentinel field; a bare repo has no
+    # checked-out tree, so there is no active slice worktree to classify. Detect via
+    # `"bare" in blocks[0]` (AND-only per /critique m2 ACCEPTED-FIXED — git guarantees
+    # `worktree <path>` as the first line for non-bare, so widening to OR would add an
+    # impossible-state branch). Return an empty tuple + WARN to stderr.
+    if blocks and "bare" in blocks[0]:
+        sys.stderr.write("WARN: bare repo detected; no active worktrees applicable\n")
+        return tuple()
     # First block is the main worktree — skip it.
     candidates = blocks[1:] if blocks else []
     out: list[WorktreeInfo] = []
