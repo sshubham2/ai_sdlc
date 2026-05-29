@@ -1,16 +1,16 @@
 ---
 slice: slice-079-bundle-074-075-077-078-code-critic-cleanup
-stage: build
+stage: code-review
 updated: 2026-05-29
-next-action: run /code-review (build complete — all 9 phases done; pre-finish gate PASS; full suite 1124/1124)
+next-action: run /validate-slice (code-review complete: 0 blockers, 1 major + 1 minor addressed in-loop, 1 won't-fix, 2 deferred; full suite 1125/1125)
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-079 bundle-074-075-077-078-code-critic-cleanup
 
-**Stage**: build COMPLETE (all 9 phases A–I done; pre-finish gate PASS) — next: /code-review
-**Next action**: run `/code-review` (adversarial code-Critic on the slice diff)
+**Stage**: code-review COMPLETE (0 blockers; M1 + m2 addressed in-loop; m1 won't-fix; m3/m4 deferred) — next: /validate-slice
+**Next action**: run `/validate-slice` (real-environment AC validation + shippability catalog regression)
 **Updated**: 2026-05-29
 **Risk tier**: medium — Critic required: yes
 **Worktree**: `C:\Users\sshub\ai_sdlc-wt\slice-079-bundle-074-075-077-078-code-critic-cleanup` on branch `slice/079-bundle-074-075-077-078-code-critic-cleanup`
@@ -34,7 +34,7 @@ critic-required: true
   - [x] Phase G — `tools/parallel_conflict_resolver.py` fixes O-R (28 PCR-2a tests PASS; Fix P needed NamedTuple not just sentinel — design delta logged)
   - [x] Phase H — `tools/slice_queue_writer.py` Fix S structural-pin (2 PASS; codebase already compliant; no source change)
   - [x] Phase I — Pre-finish gate: full suite 1124/1124; BRANCH-2/NAW-1/UTF8-STDOUT-1/PMI-1/CAD-1/BCI-1/MCFS-1/AVFS-1/TVFS-1/STP-1/PCA-1/CRP-1/WIRE-1/BC-1/LINT-MOCK all CLEAN; build-log Summary written
-- [ ] /code-review
+- [x] /code-review — 2026-05-29 — FINDINGS (0 blockers, 1 major, 4 minors); M1 + m2 addressed in-loop, m1 won't-fix, m3/m4 deferred; full suite 1125/1125
 - [ ] /validate-slice
 - [ ] /reflect
 
@@ -77,6 +77,6 @@ Phase B next: scaffold the regression test files cited in the catalog rows (writ
 - [critique.md](critique.md) — NEEDS-FIXES; 11 findings triaged
 - [critique-review.md](critique-review.md) — EXTEND; 1 missed finding (M-add-1) surfaced + ACCEPTED-FIXED
 - [build-log.md](build-log.md) — Phase A events recorded; Summary pending Phase I
-- [code-review.md](code-review.md) — pending
+- [code-review.md](code-review.md) — FINDINGS (0B/1M/4m; M1+m2 addressed, m1 won't-fix, m3/m4 deferred)
 - [validation.md](validation.md) — pending
 - [reflection.md](reflection.md) — pending

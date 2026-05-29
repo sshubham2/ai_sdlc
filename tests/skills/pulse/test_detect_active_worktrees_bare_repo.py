@@ -44,7 +44,10 @@ def test_bare_repo_returns_empty_tuple_without_crashing(
     Post-fix: bare-repo first-block detected via `"bare" in block[0]`; returns tuple() + WARN.
     """
     result = detect_active_worktrees(bare_repo)
-    assert result == () or result == tuple(), (
+    # Container-agnostic empty check (code-review m2): the function is annotated
+    # `-> list[WorktreeInfo]` and returns `[]` for the bare-repo case; assert on
+    # emptiness, not on the concrete container type.
+    assert list(result) == [], (
         f"Fix L regression: detect_active_worktrees on bare-repo returned non-empty result {result!r}; "
         f"bare-repo has no checked-out tree so no active-worktree should be classified"
     )

@@ -43,6 +43,48 @@ def test_append_audit_log_public_3_arg_surface_unchanged() -> None:
     )
 
 
+def test_formatter_uses_passed_winner_loser_not_diag_claim_history() -> None:
+    """Fix O behavioral discriminator (design.md test-plan row O / code-review M1).
+
+    The formatter must render the PASSED-IN winner/loser, never re-derive from
+    diag.claim_history. Constructed with an EMPTY claim_history: a regression that
+    re-introduces `_collect_same_candidate_different_identity(diag.claim_history)` inside
+    the formatter body (re-creating the slice-078 m1 DRY violation Fix O removes) would
+    render candidate_name '(unknown)' + '(unavailable)' here and FAIL — the structural
+    signature/source pins above cannot discriminate the DRY-satisfied state from the
+    DRY-violated state, so this behavioral assertion is the real FAIL→PASS contrast.
+    """
+    diag = pcr.ConflictDiagnostic(u_files=(), concerned_slices={}, claim_history=())
+    result = pcr.ResolutionResult(
+        action="APPLIED",
+        conflict_class=pcr.ConflictClass.VAULT_CLAIM,
+        regenerated_files=("architecture/slice-queue.md",),
+        reason="vault-claim-resolved; replacement=none-available",
+    )
+    winner = pcr.ClaimEntry(
+        candidate_name="add-foo", claimed_by="alice <a@x>",
+        claimed_at="2026-05-29T10:00:00Z", branch_stage=3,
+    )
+    loser = pcr.ClaimEntry(
+        candidate_name="add-foo", claimed_by="bob <b@x>",
+        claimed_at="2026-05-29T09:00:00Z", branch_stage=2,
+    )
+    entry = pcr._format_vault_claim_audit_entry(
+        diag, result, "2026-05-29T10:00:00Z", "abc123de", winner, loser
+    )
+    assert "**Candidate name**: add-foo" in entry, (
+        "Fix O regression: candidate_name must come from winner.candidate_name, NOT be "
+        "re-derived from the (empty) diag.claim_history (which would yield '(unknown)')"
+    )
+    assert "**Winner Claimed-by**: alice <a@x>" in entry, "winner identity must be the passed-in value"
+    assert "**Winner Claimed-at**: 2026-05-29T10:00:00Z" in entry
+    assert "**Loser Claimed-by**: bob <b@x>" in entry
+    assert "(unavailable)" not in entry, (
+        "Fix O regression: passed winner/loser must render real values, not the "
+        "defensive '(unavailable)' fallback (which fires only when winner/loser are None)"
+    )
+
+
 def test_unavailable_branch_kept_with_pragma_no_cover() -> None:
     """Fix O / /critique M2 ACCEPTED-FIXED: defensive `(unavailable)` branch kept with pragma:no-cover."""
     src = inspect.getsource(pcr._format_vault_claim_audit_entry)

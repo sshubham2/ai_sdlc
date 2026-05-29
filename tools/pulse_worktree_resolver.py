@@ -304,7 +304,7 @@ def detect_active_worktrees(repo_root: Path) -> list[WorktreeInfo]:
     # impossible-state branch). Return an empty tuple + WARN to stderr.
     if blocks and "bare" in blocks[0]:
         sys.stderr.write("WARN: bare repo detected; no active worktrees applicable\n")
-        return tuple()
+        return []
     # First block is the main worktree — skip it.
     candidates = blocks[1:] if blocks else []
     out: list[WorktreeInfo] = []
