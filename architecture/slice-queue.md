@@ -1,85 +1,45 @@
 # Slice queue
 
-_Generated: 2026-05-29T08:57:24+00:00 by /slice during slice-080 definition_
+_Generated: 2026-05-29T10:45:08+00:00 by /slice during slice-081 definition_
 
 ## Candidates
 
 ### fix-drift-check-enforcement-gap
 
-- **Source:** diagnose-out/backlog.md SC-007 (F-HALF-3a7f1c8e) — HIGH severity: /drift-check mandated before commit but no backing tool/hook/installer
-- **Blast-radius:** `skills/adopt/SKILL.md`, `skills/drift-check/SKILL.md`, `skills/triage/SKILL.md`, `tools/drift_check.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** HIGH
-
-### add-sp-1-slice-pick-auto-pick-via-slice-no-arg
-
-- **Source:** slice-queue + slice-077 reflection; RE-DEMONSTRATED LIVE at slice-080 /slice (no-arg required hand-ranking)
-- **Blast-radius:** `skills/slice/SKILL.md`, `tools/slice_pick.py`, `tools/slice_queue_claim.py`
+- **Source:** user-reported defect
+- **Blast-radius:** `skills/build-slice/SKILL.md`, `tools/drift_check_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
 - **Risk-retired:** MEDIUM
 
-### add-pcr-2b-hard-conflict-critic-stack
+### harden-pcr-1-soft-regen-corner-case
 
-- **Source:** slice-queue Phase 1 — PCR-2 split at slice-078; HARD-conflict Critic-stack path (planned slice-080 in source-pending, deferred)
-- **Blast-radius:** `agents/critique-review.md`, `agents/critique.md`, `skills/commit-slice/SKILL.md`, `tools/parallel_conflict_resolver.py`
+- **Source:** risk-register R-21
+- **Blast-radius:** `tools/parallel_conflict_resolve.py`, `tools/slice_queue_writer.py`
 - **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** LARGE
-- **Risk-retired:** HIGH
+- **Effort:** MEDIUM
+- **Risk-retired:** MEDIUM
 
-### fix-val1-tomllib-silent-disable
+### extend-osdg-1-to-slice-candidates
 
-- **Source:** diagnose-out/backlog.md SC-002 (F-CONFIG-ed3ebdfd) — VAL-1 Layer B silently disabled on Python 3.10 (tomllib 3.11+, no tomli backport)
-- **Blast-radius:** `pyproject.toml`, `tools/validate_slice_layers.py`
+- **Source:** risk-register R-13
+- **Blast-radius:** `skills/slice-candidates/SKILL.md`, `tests/methodology/skill_drift_equality.py`, `tests/skill_drift_equality.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** SMALL
-- **Risk-retired:** MEDIUM
-
-### extend-osdg-1-drift-guard-to-slice-candidates
-
-- **Source:** risk-register R-13 (open) — OSDG-1 drift guard not yet extended to /slice-candidates
-- **Blast-radius:** `skills/slice-candidates/SKILL.md`, `tests/methodology/test_slice_candidates_skill_drift.py`, `tools/install_audit.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** MEDIUM
-
-### parallel-slice-family-parity-audit
-
-- **Source:** slice-queue Phase 1 — slice-077 reflection extraction-trigger; cross-spec parity for the 6-member parallel-slice family
-- **Blast-radius:** `skills/build-slice/SKILL.md`, `skills/commit-slice/SKILL.md`, `skills/pulse/SKILL.md`, `tools/parallel_slice_family_parity_audit.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** MEDIUM
-
-### close-psq-3-conflict-stop-re-entry-semantics
-
-- **Source:** slice-queue Phase 1 — source-pending P2.3; PSQ-3 conflict-STOP re-entry semantics undefined
-- **Blast-radius:** `skills/commit-slice/SKILL.md`, `tests/methodology/test_commit_slice_skill_rebase_flag.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
-- **Risk-retired:** MEDIUM
-
-### find-real-mojibake-source
-
-- **Source:** source-pending-items.txt P3.10' (routed from P3.10 per slice-079 /critique B2) — cp1252 mojibake root cause is upstream of slice_queue_writer
-- **Blast-radius:** `skills/slice/SKILL.md`, `tools/slice_pick.py`, `tools/slice_queue_writer.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
 - **Risk-retired:** LOW
 
-### bcr-1-dual-tree-replication
+### add-diagnose-cwd-mismatch-runtime-test
 
-- **Source:** slice-queue Phase 2 — source-pending P3.3; diagnose-out/backlog.md worktree edits don't propagate to main tree via --merge (N=2 slice-070/071)
-- **Blast-radius:** `.gitignore`, `skills/commit-slice/SKILL.md`, `tools/bcr_1_dual_tree_audit.py`
+- **Source:** risk-register R-2
+- **Blast-radius:** `skills/diagnose/SKILL.md`
 - **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** MEDIUM
+- **Effort:** SMALL
+- **Risk-retired:** LOW
 
-### add-claim-sequence-number-for-clock-skew-detection
+### harden-pcr-2a-clock-skew-winner
 
-- **Source:** risk-register R-23 (open) — PCR-2a clock-skew; add monotonic Claim-seq field
-- **Blast-radius:** `architecture/slice-queue.md`, `tools/parallel_conflict_resolver.py`, `tools/slice_queue_claim.py`
+- **Source:** risk-register R-23
+- **Blast-radius:** `tools/parallel_conflict_resolve.py`
 - **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
+- **Effort:** SMALL
 - **Risk-retired:** LOW

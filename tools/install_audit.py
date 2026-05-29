@@ -87,6 +87,8 @@ _CANONICAL_METADATA: tuple[str, ...] = (
 # with the /code-review insertion between /build-slice and /validate-slice).
 # Slice-059 added tools.ai_sdlc_tools_version_forward_sync (TVFS-1 — assert the
 # installed ai-sdlc-tools pip-package version equals VERSION).
+# Slice-081 added tools.drift_check_audit (DCE-1 — refuse /build-slice when no
+# /drift-check marker exists for the slice in architecture/drift-log.md).
 _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.ai_sdlc_tools_version_forward_sync",
     "tools.ai_sdlc_version_forward_sync",
@@ -97,6 +99,7 @@ _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.critique_review_audit",
     "tools.critique_review_prerequisite_audit",
     "tools.cross_spec_parity_audit",
+    "tools.drift_check_audit",
     "tools.exploratory_charter_audit",
     "tools.install_audit",
     "tools.methodology_changelog_forward_sync",

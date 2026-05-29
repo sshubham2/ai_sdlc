@@ -252,3 +252,26 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-059 surface.
+
+## Audit 2026-05-29 (slice-081-fix-drift-check-enforcement-gap)
+
+**Trigger**: slice-081 pre-finish gate (/build-slice Step 6)
+**Scope**: full (thin vault — ADRs + risk-register + active slice-081 design.md/mission-brief)
+**Findings**: 0 blockers, 0 majors
+
+### Blockers
+(none)
+
+### Majors
+(none)
+
+### Verified aligned
+- ADR-073 (`status: accepted`, `reversibility: cheap`, `supersedes: null`) — its decision (mint DCE-1 as a procedural was-it-marked gate, CRP-1 pattern, not semantic) matches design.md + mission-brief claims; no contradiction with an existing accepted ADR.
+- design.md "What's new" — every claim verified on disk: `tools/drift_check_audit.py` exists with `main()`; `skills/build-slice/SKILL.md` Step 6 carries the DCE-1 sub-block + checklist item + invokes `tools.drift_check_audit`; Step 7b preserves `drift-check-skip:`; `skills/drift-check/SKILL.md` Trigger template canonicalized `sliceNN`→`slice-NNN`; `templates/milestone.md` documents `drift-check-skip:`; `plugin.yaml` + `tools/install_audit.py` enumerate the tool.
+- mission-brief must-not-defer — all addressed in code: the audit performs a genuine check (NOT a stub); fail-closed exit contract 0/1/2; UTF8-STDOUT-1 conformance (`_stdout.reconfigure_stdout_utf8()` first in `main()`); own unit tests with clean + violation + M-add-1 negative fixtures; new rule DCE-1 + ADR-073 + shippability rows 86/87 + 5-part version bump.
+- 5-part PMI-1 bump consistent: `VERSION` = `plugin.yaml.version` = `pyproject.toml [project].version` = `0.76.0`; `## v0.76.0` changelog header present in-repo + forward-synced installed; installed `~/.claude/ai-sdlc-VERSION` = `0.76.0`; venv `ai-sdlc-tools` = `0.76.0`.
+- risk-register.md: slice-081 retires no registered risk (the gap it closes was a fresh user-reported defect, un-numbered) — STP-1 clean, no stale status pin.
+- No UNSPECIFIED CODE / no STALE CLAIM: the slice is additive (a new tool + the new rule DCE-1); no removed feature, no orphan vault claim.
+
+### Resolutions
+- None required — vault and code aligned for the slice-081 surface.

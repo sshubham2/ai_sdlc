@@ -199,10 +199,13 @@ def test_build_slice_crp_1_step_7b_preserves_skip_key():
     Step 6 CRP-1 defense-in-depth re-run false-refuses a legitimately
     escape-hatched build.
 
-    Rule reference: CRP-1; slice-026 /critique B2; ADR-024.
+    Rule reference: CRP-1; slice-026 /critique B2; ADR-024. Step 7b anchor
+    extended at slice-081 to also preserve the DCE-1 `drift-check-skip:` key
+    (ADR-073); pin realigned in the same fix block per STP-1 / R-10.
     """
-    assert "Preserve the CRP-1 escape-hatch key" in BUILD
+    assert "Preserve the CRP-1 + DCE-1 escape-hatch keys" in BUILD
     assert "critique-review-skip:" in BUILD
+    assert "drift-check-skip:" in BUILD
 
 
 def test_build_slice_successor_is_code_review():

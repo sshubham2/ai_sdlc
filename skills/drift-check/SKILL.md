@@ -111,7 +111,7 @@ Write `architecture/drift-log.md` (append, not overwrite):
 ```markdown
 ## Audit <YYYY-MM-DD HH:MM>
 
-**Trigger**: <pre-commit | manual | sliceNN pre-finish gate>
+**Trigger**: <pre-commit | manual | slice-NNN pre-finish gate>   (use the canonical dashed `slice-NNN` form — the DCE-1 gate `tools/drift_check_audit.py` matches `**Trigger**:` lines on the slice number; per ADR-073 / slice-081 /critique B1)
 **Scope**: <full | path>
 **Findings**: <N blockers, M majors>
 

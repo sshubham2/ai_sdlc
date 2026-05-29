@@ -41,7 +41,7 @@ def test_pulse_worktree_resolver_in_canonical_tools_plugin_manifest_install_md_a
 
     1. _CANONICAL_TOOLS contains `tools.pulse_worktree_resolver`
     2. plugin.yaml tools block contains `- path: tools/pulse_worktree_resolver.py`
-    3. INSTALL.md L22 + L166 both contain literal `32` (post-bump tool count)
+    3. INSTALL.md L22 + L166 both contain literal `33` (post-bump tool count)
     4. shippability.md contains a row `| 77 |` referencing slice-077
     5. _ROOT_ONLY_TOOLS contains `tools.pulse_worktree_resolver`
     """
@@ -57,19 +57,19 @@ def test_pulse_worktree_resolver_in_canonical_tools_plugin_manifest_install_md_a
         "tools/pulse_worktree_resolver.py missing from plugin.yaml tools block"
     )
 
-    # 3. INSTALL.md tool-count literal `32` at L22 AND L166
+    # 3. INSTALL.md tool-count literal `33` at L22 AND L166
     install_md_lines = _INSTALL_MD.read_text(encoding="utf-8").splitlines()
     assert len(install_md_lines) >= 166, (
         f"INSTALL.md has only {len(install_md_lines)} lines; expected ≥166 for the L166 pin"
     )
     l22 = install_md_lines[21]  # 1-indexed line 22 → 0-indexed [21]
     l166 = install_md_lines[165]  # 1-indexed line 166 → 0-indexed [165]
-    assert "32" in l22, (
-        f"INSTALL.md L22 missing post-bump tool-count `32` (slice-076 precedent: 30→31 two-site bump); "
+    assert "33" in l22, (
+        f"INSTALL.md L22 missing post-bump tool-count `33` (slice-081 DCE-1 bump 32→33, two-site); "
         f"actual line content: {l22!r}"
     )
-    assert "32" in l166, (
-        f"INSTALL.md L166 missing post-bump tool-count `32`; actual line content: {l166!r}"
+    assert "33" in l166, (
+        f"INSTALL.md L166 missing post-bump tool-count `33`; actual line content: {l166!r}"
     )
 
     # 4. shippability.md row #77

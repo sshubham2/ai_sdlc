@@ -20,6 +20,8 @@ risk-tier: low | medium | high
 critic-required: true | false (derived from risk-tier + mission-brief scan)
 # OPTIONAL — omit entirely unless deliberately skipping a mandatory /critique-review:
 # critique-review-skip: "skip — rationale: <text>"
+# OPTIONAL — omit entirely unless deliberately skipping /drift-check for this slice (DCE-1, ADR-073):
+# drift-check-skip: "skip — rationale: <text>"
 ---
 
 # Milestone: slice-NNN <name>
