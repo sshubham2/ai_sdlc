@@ -1,31 +1,15 @@
 # Slice queue
 
-_Generated: 2026-05-29T17:20:55+00:00 by /slice during slice-083 definition_
+_Generated: 2026-05-29T20:10:03+00:00 by /slice during slice-084 definition_
 
 ## Candidates
 
-### add-pcr-2b-hard-class-conflict-resolution
+### harden-pcr-1-truncated-baseline-r24
 
-- **Source:** slice-queue top / deferred ADR-069 ADR-071 PCR-2 HARD-class path
-- **Blast-radius:** `skills/commit-slice/SKILL.md`, `tools/parallel_conflict_resolver.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** LARGE
-- **Risk-retired:** NONE
-
-### add-claim-sequence-number-for-clock-skew-detection
-
-- **Source:** risk-register R-23
-- **Blast-radius:** `tools/parallel_conflict_resolver.py`, `tools/slice_queue_claim.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
-- **Risk-retired:** LOW
-
-### harden-pcr-2a-clock-skew-winner
-
-- **Source:** risk-register R-23
+- **Source:** risk-register R-24
 - **Blast-radius:** `tools/parallel_conflict_resolver.py`
 - **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
+- **Effort:** MEDIUM
 - **Risk-retired:** LOW
 
 ### extend-osdg-1-to-slice-candidates
@@ -54,8 +38,8 @@ _Generated: 2026-05-29T17:20:55+00:00 by /slice during slice-083 definition_
 
 ### add-index-md-soft-promotion-or-light-hard-path
 
-- **Source:** deferred ADR-075 Consequences (slice-083 /critique M4) — `_index.md`-sole HARD conflict is high-frequency; two-pass Critic cost is heavy for the dominant case
-- **Blast-radius:** `tools/parallel_conflict_resolver.py`, `skills/commit-slice/SKILL.md`, `skills/archive/SKILL.md`
+- **Source:** deferred ADR-075 Consequences (slice-083 /critique M4)
+- **Blast-radius:** `skills/archive/SKILL.md`, `skills/commit-slice/SKILL.md`, `tools/parallel_conflict_resolver.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
 - **Risk-retired:** NONE
