@@ -1,16 +1,16 @@
 ---
 slice: slice-080-harden-bc1-critical-rules-exit-gate
-stage: code-review
+stage: validate
 updated: 2026-05-29
-next-action: run /validate-slice
+next-action: run /reflect
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-080 harden-bc1-critical-rules-exit-gate
 
-**Stage**: code-review
-**Next action**: run `/validate-slice`
+**Stage**: validate
+**Next action**: run `/reflect`
 **Updated**: 2026-05-29
 **Risk tier**: medium — Critic required: yes (touches `tools/build_checks_audit.py` + `skills/build-slice/SKILL.md` — in-house methodology surfaces, always-mandatory Critic trigger)
 
@@ -22,7 +22,7 @@ critic-required: true
 - [x] /critique — 2026-05-29 — NEEDS-FIXES (first-Critic 3B/3M/2m all VALID + meta-Critic EXTEND: 0 suspicious, 1 missed Minor; dual-review verdict EXTEND; user-ratified TRI-1)
 - [x] /build-slice — 2026-05-29 — SHIPPED (1136 pytest PASS; 14 Step-6 audits clean; BC-1 self-dogfood --strict --ack-critical BC-PROJ-3 BC-GLOBAL-2 exit 0)
 - [x] /code-review — 2026-05-29 — FINDINGS (0B/1M/2m; M1+m1 fixed in-band, m2 deferred-cosmetic)
-- [ ] /validate-slice
+- [x] /validate-slice — 2026-05-29 — PASS (5/5 ACs; VAL-1 clean; shippability 84/84)
 - [ ] /reflect
 
 ## Current focus
