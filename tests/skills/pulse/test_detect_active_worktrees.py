@@ -11,8 +11,6 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-import pytest
-
 from tools.pulse_worktree_resolver import WorktreeInfo, detect_active_worktrees
 
 

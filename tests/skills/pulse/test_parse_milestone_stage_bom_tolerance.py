@@ -12,8 +12,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from tools.pulse_worktree_resolver import _parse_milestone_stage
 
 

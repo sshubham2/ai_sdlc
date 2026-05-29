@@ -23,6 +23,10 @@ def _collect_imported_names(tree: ast.AST) -> dict[str, int]:
                 local = alias.asname or alias.name.split(".")[0]
                 out[local] = node.lineno
         elif isinstance(node, ast.ImportFrom):
+            # `from __future__ import ...` are compiler directives, not runtime names —
+            # they are never "used" and must not be flagged as unused imports.
+            if node.module == "__future__":
+                continue
             for alias in node.names:
                 local = alias.asname or alias.name
                 out[local] = node.lineno
