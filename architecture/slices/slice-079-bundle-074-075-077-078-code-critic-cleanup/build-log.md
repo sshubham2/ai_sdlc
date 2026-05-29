@@ -1,7 +1,7 @@
 # Build log: Slice 079 bundle-074-075-077-078-code-critic-cleanup
 
 **Date**: 2026-05-29
-**Result**: IN-PROGRESS (Phase A of I complete)
+**Result**: SHIPPED
 
 ## Events (append-only — written DURING build per Step 7c; one line per significant action)
 
@@ -20,9 +20,6 @@
 - 2026-05-29 TEST: Phase B5 verification — pytest on 11 new test files reports 16 FAIL + 6 PASS (forward-pin / hypothetical-hardening / sanity backstop) + 2 ImportError pending Phases C/E. Canonical pre-fix FAIL→PASS contrast empirically established for: A (2F), L (1F), M (1F BOM), I+J (1F), O (2F + 1P M-add-1 surface-unchanged guard), P (2F), Q (2F), R (1F). Forward-pins (PASS pre-fix by design): S (2P — codebase already correct; fixture-mutation discriminator), N (2P — hypothetical-future-hardening). ImportError pending: E (helper module added at Phase C), K (constant added at Phase E).
 - 2026-05-29 BUILD: Phase B complete (2/9 phases ≈ 22%); committed cc7a658; pending: Phase C — skills/build-slice/SKILL.md fixes A-F + OSDG-1 forward-sync
 
-## Summary (filled at slice end)
-
-(Phase I will populate the canonical Summary section: Plan executed / Mid-slice smoke gate / Pre-finish gate / Deferrals / Design deviations / Files changed.)
 - 2026-05-29 BUILD: Phase C start — baseline pytest confirms Fix A 2 FAIL (vars not in pre-amble; numbered codefences==2, test wants >=3) + Fix E ImportError (helper module absent); slice-074 B/C/D/F tests PASS pre-fix against old prose
 - 2026-05-29 FINDING: Fix E corpus-grep invariant (test_skill_parse_helpers.py::test_helper_defined_only_once_in_test_corpus) is GLOBAL across tests/methodology/test_*.py — 4 files define _branch_state_section (test_build_slice_skill.py:267 + branch_state_preamble.py:18 + cp_r_step.py:28 + dirty_tree_resolution.py:35), NOT the 2 the design.md Fix E names. Honoring committed test (code-is-truth): all 4 deduped to shared helper. DEVIATION logged for build-log Summary §Design deviations.
 - 2026-05-29 BUILD: Phase C — Fix A (build-slice SKILL.md: repo_root/wt_base extracted to shared pre-amble above numbered list; point 2 given its own bash codefence so numbered-codefence count >=3) + Fix B (point 4 `git add <scaffolding files>` placeholder -> concrete `git add architecture/slices/slice-NNN-<slice-name>/ architecture/slice-queue.md`)
@@ -44,3 +41,60 @@
 - 2026-05-29 FINDING: Fix P test required .name/.parallel_safety ATTRIBUTE access while design said only sentinel-string change; reality = parser returned plain tuples. Resolved by NamedTuple (satisfies BOTH the new attr-access test AND existing test_pcr_2a_vault_claim_resolver tuple-equality assertion at L161). Logged for Summary §Design deviations.
 - 2026-05-29 TEST: Phase G verification — 28 PCR-2a tests PASS (O/P/Q/R + existing test_pcr_2a_vault_claim_resolver no-regression). Code-only; no SKILL.md edit; no OSDG-1 sync
 - 2026-05-29 BUILD: Phase G complete (7/9 phases); pending Phase H — tools/slice_queue_writer.py Fix S UTF-8 encoding structural-pin (AST-walk all encoded-I/O sites carry encoding="utf-8")
+- 2026-05-29 TEST: Phase H — Fix S structural-pin tests/methodology/test_slice_queue_writer_utf8_encoding.py = 2 PASS (test_no_encoded_io_site_lacks_encoding_kwarg against real source already UTF-8-compliant + test_fixture_mutation_triggers_failure proving FAIL->PASS contrast). NO source change to tools/slice_queue_writer.py — Fix S is REFRAMED regression-guard-only per /critique B2+M3; root-cause mojibake investigation DEFERRED to source-pending P3.10'.
+- 2026-05-29 BUILD: Phase H complete (8/9 phases; no code delta — test was committed Phase B). Entering Phase I pre-finish gate.
+
+## Summary
+
+**Date**: 2026-05-29
+**Result**: SHIPPED
+
+### Plan executed
+9-phase plan A–I (user-approved). All phases complete:
+- Phase A — shippability rows 79-84 enumerated.
+- Phase B — 11 FAILING regression test files scaffolded (cc7a658).
+- Phase C — build-slice SKILL.md Fix A (var pre-amble + point-2 codefence) + Fix B (concrete `git add` pathspec) + Fix E (shared `_skill_parse_helpers._branch_state_section`, deduped 4 corpus files) + Fix C (cp-r count ==4) + Fix D (regex doc) + Fix F (subprocess stderr surface + new failure test); OSDG-1 forward-sync; 26 tests PASS.
+- Phase D — Fix G (commit-slice preflight test: line-start `^2.1.`/`^2.5.` anchors + narration-leakage guard); 2 tests PASS.
+- Phase E — pulse_worktree_resolver Fix K (`_UNKNOWN_REASON_WARN_TEMPLATES`) + L (bare-repo) + M (BOM) + N (stage exact-key); 27 pulse tests PASS.
+- Phase F — pulse tests Fix H/I/J + meta-test `__future__` fix; 29 tests PASS.
+- Phase G — parallel_conflict_resolver Fix O (6-arg DRY formatter) + P (`_QueueCandidate` NamedTuple + MISSING-FIELD) + Q (atomicity docstring) + R (catch-order comment); 28 PCR-2a tests PASS.
+- Phase H — slice_queue_writer Fix S structural-pin (already green; no source change).
+- Phase I — pre-finish gate.
+
+### Mid-slice smoke gate
+**Result**: PASS (in substance). `pytest tests/methodology` after Phase D = 984 pass / 8 fail; all 8 were Phase-B-prescaffolded WRITTEN-FAILING tests for the not-yet-built Phases F+G (Fix O/P/Q/R + I/J). Zero regressions; every built fix passed. The `-x` literal halt is an all-tests-scaffolded-in-Phase-B vs phase-by-phase-build artifact, not a broken base.
+
+### Pre-finish gate
+- [x] All 5 ACs PASS with regression evidence (52 new tests; full suite 1124 pass / 0 fail; slice-078 baseline 1072 + 52).
+- [x] Must-not-defer addressed (regression test per fix + OSDG-1 lock-step sync on build-slice SKILL.md + UTF-8 explicit pin via Fix S).
+- [x] Drift clean (CAD-1 / OSDG-1 build-slice+pulse skill-drift / MCFS-1 / AVFS-1 / TVFS-1 / BCI-1 all PASS).
+- [x] Mid-slice smoke regression check — no regression.
+- [x] No new TODO/FIXME/debug-print (scan clean).
+- [x] LINT-MOCK — no mock-budget violations on changed test files.
+- [x] WIRE-1 clean (1 new module `_skill_parse_helpers.py` with consumer + test).
+- [x] BC-1 — 5 rules apply (2 Critical). BC-PROJ-3 + BC-GLOBAL-2 (Critical, git-revert discipline): ADDRESSED — no destructive `git checkout/restore/stash` added to code; build-slice Fix A/B edits preserve the NO-auto-stash discipline (pinned by `test_point_4_codefence_does_not_contain_git_stash`). BC-PROJ-4 (gate-on-real-artifact): satisfied — mid-slice smoke + all Step-6 audits run on the real slice artifact, all ENGAGED. BC-PROJ-5 (rename/carve-out hash): defer-with-rationale — not a rename-family slice; Fix E dedup guarded by the regex-independent corpus-grep invariant. BC-PROJ-11 (no hardcoded version literal): n/a — no INSTALL.md/README.md edit, no version literal added.
+- [x] BRANCH-2 / NAW-1 / UTF8-STDOUT-1 / PMI-1 / INST-1 / CAD-1 / BCI-1 / MCFS-1 / AVFS-1 / TVFS-1 / STP-1 / PCA-1 / CRP-1 / TF-1(n/a) all CLEAN.
+
+### Deferrals
+- 6 design-time DEFER entries (DEFER-1..5; archive-immutability + extraction-trigger-slice) carried per design.md §Decisions made (deferrals). No new build-time deferrals.
+- P3.10' (real mojibake-source root cause) routed to source-pending for a future slice (Fix S reframed to structural-pin guard).
+
+### Design deviations
+- **Fix E scope (4 files, not 2)**: design.md named cp_r_step + dirty_tree_resolution for dedup, but the committed Phase-B corpus-grep invariant (`test_helper_defined_only_once_in_test_corpus`) is GLOBAL — `test_build_slice_skill.py` + `test_build_slice_skill_branch_state_preamble.py` also defined `_branch_state_section`. Honored the committed test (code-is-truth): all 4 deduped to the shared helper.
+- **Fix P shape (NamedTuple, not just sentinel-string)**: design.md framed Fix P as a sentinel-string change only, but the committed Phase-B test accesses `.name`/`.parallel_safety` attributes while `_parse_queue_candidates_for_replacement` returned plain tuples. Resolved with `_QueueCandidate` NamedTuple — satisfies BOTH the new attribute-access test AND the existing `test_pcr_2a_vault_claim_resolver` tuple-equality assertion.
+- **Meta-test `__future__` bug**: `test_pulse_tests_have_no_unused_imports.py` (Phase-B scaffold) counted `from __future__ import annotations` as unused; fixed the AST walker to skip `__future__`. Also removed a stray unused `import pytest` in the Phase-B file `test_parse_milestone_stage_bom_tolerance.py`.
+
+### Files changed
+- `skills/build-slice/SKILL.md` (Fix A+B; OSDG-1-synced to installed)
+- `tools/pulse_worktree_resolver.py` (Fix K/L/M/N)
+- `tools/parallel_conflict_resolver.py` (Fix O/P/Q/R)
+- `tests/methodology/_skill_parse_helpers.py` (NEW — Fix E)
+- `tests/methodology/test_build_slice_skill{,_branch_state_preamble,_cp_r_step,_dirty_tree_resolution}.py` (Fix C/D/E + B-test)
+- `tests/methodology/test_r_20_retired.py` (Fix F)
+- `tests/methodology/test_commit_slice_skill_merge_wt_clean_preflight_ordering.py` (Fix G)
+- `tests/methodology/test_pulse_tests_have_no_unused_imports.py` (Fix I/J meta + `__future__` fix)
+- `tests/skills/pulse/test_{cli,classify_worktree_state,detect_active_worktrees,parse_milestone_stage_bom_tolerance}.py` (Fix H/I/J)
+- `architecture/shippability.md` (rows 79-84), `architecture/slice-queue.md`, slice scaffolding (mission-brief/design/critique/critique-review/milestone/build-log)
+- 2026-05-29 TEST: Phase I pre-finish — full pytest 1124 passed / 0 failed (slice-078 baseline 1072 + 52 new regression tests). 19 fixes A-S all green.
+- 2026-05-29 BUILD: Phase I — Step 6 audits all CLEAN: BRANCH-2 / NAW-1 / UTF8-STDOUT-1(32 tools) / PMI-1(0.74.0) / CAD-1 / BCI-1 / MCFS-1 / AVFS-1 / TVFS-1 / STP-1 / PCA-1(9 skills) / CRP-1 / WIRE-1 / TF-1(not-enabled) / LINT-MOCK(no violations). BC-1: 2 Critical (BC-PROJ-3/BC-GLOBAL-2) ADDRESSED (no destructive git-revert added; NO-auto-stash discipline preserved) + 3 Important reviewed (BC-PROJ-4 satisfied; BC-PROJ-5 + BC-PROJ-11 n/a). No TODO/debug-print.
+- 2026-05-29 BUILD: Phase I complete (9/9 phases) — pre-finish gate PASS; build-log Summary written; milestone /build-slice box checked. SHIPPED. Next: /code-review.

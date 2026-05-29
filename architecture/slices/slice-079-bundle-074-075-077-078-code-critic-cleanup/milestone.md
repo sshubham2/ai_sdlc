@@ -2,15 +2,15 @@
 slice: slice-079-bundle-074-075-077-078-code-critic-cleanup
 stage: build
 updated: 2026-05-29
-next-action: Phase H — `tools/slice_queue_writer.py` Fix S UTF-8 encoding structural-pin (the encoding=utf-8 invariant; root-cause mojibake investigation DEFERRED to source-pending P3.10'), then Phase I pre-finish gate
+next-action: run /code-review (build complete — all 9 phases done; pre-finish gate PASS; full suite 1124/1124)
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-079 bundle-074-075-077-078-code-critic-cleanup
 
-**Stage**: build (Phases A–G complete + MID-SLICE SMOKE GATE passed-in-substance; Phase H pending)
-**Next action**: Phase H — `tools/slice_queue_writer.py` Fix S UTF-8 encoding structural-pin, then Phase I pre-finish gate (Step 6 audits + full pytest + build-log Summary)
+**Stage**: build COMPLETE (all 9 phases A–I done; pre-finish gate PASS) — next: /code-review
+**Next action**: run `/code-review` (adversarial code-Critic on the slice diff)
 **Updated**: 2026-05-29
 **Risk tier**: medium — Critic required: yes
 **Worktree**: `C:\Users\sshub\ai_sdlc-wt\slice-079-bundle-074-075-077-078-code-critic-cleanup` on branch `slice/079-bundle-074-075-077-078-code-critic-cleanup`
@@ -23,7 +23,7 @@ critic-required: true
 - [x] /critique — 2026-05-29 NEEDS-FIXES (first-Critic 2B+3M+6m all VALID; APED-1 clause-5 first-governed-slice empirically effective)
 - [x] /critique-review — 2026-05-29 EXTEND (+1 MISSED Minor M-add-1 signature-citation drift)
 - [x] TRI-1 — 2026-05-29 (user accept-all 12 dispositions; final verdict NEEDS-FIXES)
-- [ ] /build-slice — in progress: Phases A + B + C of I complete (3/9 phases ≈ 33%)
+- [x] /build-slice — COMPLETE: all 9 phases A–I done (pre-finish gate PASS; full suite 1124/1124)
   - [x] Phase A — Setup + m6 discharge (shippability rows 79-84 enumerated; milestone + build-log scaffolded)
   - [x] Phase B — Regression test scaffolding (11 FAILING test files committed at cc7a658; pre-fix state empirically verified: 16 FAIL + 6 PASS forward-pins + 2 ImportError pending Phases C/E)
   - [x] Phase C — `skills/build-slice/SKILL.md` fixes A-F + OSDG-1 forward-sync (26 tests PASS; Fix E deduped 4 corpus files not 2 — design→code delta logged; drift clean)
@@ -32,8 +32,8 @@ critic-required: true
   - [x] Phase E — `tools/pulse_worktree_resolver.py` fixes K-N (27 pulse tests PASS; MAP-ONLY constant; no SKILL.md edit)
   - [x] Phase F — pulse tests cleanup fixes H, I, J (29 PASS; also fixed meta-test `__future__` bug + a stray Phase-B unused import)
   - [x] Phase G — `tools/parallel_conflict_resolver.py` fixes O-R (28 PCR-2a tests PASS; Fix P needed NamedTuple not just sentinel — design delta logged)
-  - [ ] Phase H — `tools/slice_queue_writer.py` Fix S structural-pin
-  - [ ] Phase I — Pre-finish gate (Step 6 audits + full pytest + build-log Summary)
+  - [x] Phase H — `tools/slice_queue_writer.py` Fix S structural-pin (2 PASS; codebase already compliant; no source change)
+  - [x] Phase I — Pre-finish gate: full suite 1124/1124; BRANCH-2/NAW-1/UTF8-STDOUT-1/PMI-1/CAD-1/BCI-1/MCFS-1/AVFS-1/TVFS-1/STP-1/PCA-1/CRP-1/WIRE-1/BC-1/LINT-MOCK all CLEAN; build-log Summary written
 - [ ] /code-review
 - [ ] /validate-slice
 - [ ] /reflect
