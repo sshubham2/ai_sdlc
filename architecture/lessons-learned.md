@@ -1797,3 +1797,21 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **A Critic's own proposed fix is a fresh claim** — re-interrogate it at the meta-pass (slice-078 step-3/4 race, slice-082 M-add-1 over-inclusion both fit). The meta-Critic's structural value is reviewing the DELTA the first Critic's fix introduces, not just the original design.
 - **Rebase stage assignment is inverted vs ours/theirs intuition** (stage 2 = rebase-target, stage 3 = replayed-branch baseline); `_merge_claim_dicts` is asymmetric on absent `claimed_at`. PCR test authors: verify the stage→branch mapping empirically.
 - **Self-validating-slice property N=3 on the parallel-slice family** (slice-077/078/082) — codification candidate for PCR-2b ("parallel-family slices dogfood their own /commit-slice --merge").
+
+## Slice 083 (add-pcr-2b-hard-class-conflict-resolution) — 2026-05-30
+
+### Worked
+- Gate-on-hand-resolve (not auto-propose) kept a LARGE slice bounded to ~1 day: HARD/MIXED conflicts STOP carrying gate context, and the Critic+user gate is SKILL.md-prose-orchestrated (Python can't spawn skill agents) — the testable Python surface stayed focused (dispatch + git-native marker scan + audit format), pinned by real tmp-repo `git rebase` APED-1 fixtures.
+- The 3-Critic stack delivered its clearest single-slice complementarity proof yet — three personas, three defect classes none of the others could structurally reach (see Pattern). The meta-Critic's two MISSED findings were load-bearing: both of the Builder's first-round design fixes were wrong (the git-native "fix" reproduced the setext defect; the named-agents approach was unbuildable), and the meta-pass caught both before build.
+- Choosing the existing `code-review` agent (diff-calibrated, slice-060) over the design-calibrated `critique` agents for the HARD-resolution review — surfaced only because the meta-Critic proved the critique agents fail-stop on a missing slice design.md. Reusing an existing diff-reviewer kept scope tight (no new agent file / CAD-1 / PMI-1 surface).
+
+### Didn't work
+- The `--verify-resolution` marker detector was WRONG TWICE before it was right: substring scan (design-Critic B2) → `git diff --cached --check` (meta-Critic M-add-1: same `≥7-=` setext false-positive) → finally the `<<<<<<<`/`>>>>>>>`/`|||||||` opener scan (code-Critic M2 also added the diff3 base marker + `{7,}`). Three passes to converge on a content-shape regex — because none of design/meta could EXECUTE it; only the code-Critic ran it against a corpus.
+- The code-Critic's own M2 fix (which the Builder applied) put a `\|` in a non-raw docstring → `SyntaxWarning`, caught by the pytest run, not by any Critic. "A fix is a fresh claim" fired a THIRD time in one slice.
+- ADR-075 shipped through /critique with an orphaned duplicate option list (two `2.`/`3.` entries) from an in-place Option-B rewrite — a within-slice ADR-authoring drift the design stack didn't catch; only the code-Critic (m1) reading the rendered ADR did.
+
+### Pattern
+- **3-Critic stack complementarity — strongest single-slice evidence (N+1, do NOT collapse)**: design-Critic catches design-level (B2 setext at the substring-scan layer) → meta-Critic catches the Builder's design-fix DELTA (M-add-1 the fix reproduced the defect; M-add-2 the fix was unbuildable) → code-Critic catches runtime-execution properties (M2 a regex false-negative on diff3 markers). Distinct, non-overlapping reach.
+- **"A Critic's own fix is a fresh claim" fired N=3 in ONE slice** (M-add-1, M-add-2, the docstring SyntaxWarning) — strongest /critic-calibrate signal yet for systematically re-interrogating Builder fix-deltas at the meta-pass, at /code-review, AND via the full-suite run.
+- **New-parser-parity / regex-APED-1 now N=3** (slice-081 anchored matcher, slice-082 heading regex, slice-083 marker regex) — every instance caught ONLY by executing the regex against an adversarial corpus, never by reading the design. **At N=3 this is a build-check / /critique-dimension promotion candidate** (the slice-082 entry pre-registered "at N=3").
+- **Self-validating-slice property N=4 on the parallel-slice family** (slice-077/078/082/083) — codification candidate ("parallel-family slices dogfood their own `/commit-slice --merge`").

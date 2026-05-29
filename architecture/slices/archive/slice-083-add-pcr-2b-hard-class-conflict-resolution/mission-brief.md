@@ -25,17 +25,19 @@ Mint **PCR-2b** (parallel-conflict-resolution v2b — HARD + MIXED sub-mechanism
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | structural | tests/methodology/test_methodology_changelog.py | test_v_0_77_0_pcr_2b_tri_resolve_1_entry_present_in_repo | PENDING |
-| 2 | integration | tests/methodology/test_pcr_2b_hard_conflict_dispatch.py | test_hard_conflict_fail_closes_to_stop_when_unratified | PENDING |
-| 2 | integration | tests/methodology/test_pcr_2b_hard_conflict_dispatch.py | test_hard_path_preserves_bare_stop_when_helper_missing | PENDING |
-| 2 | integration | tests/methodology/test_pcr_2b_hard_conflict_dispatch.py | test_soft_to_hard_shippability_escalation_enters_gate | PENDING |
-| 2 | integration | tests/methodology/test_pcr_2b_verify_resolution.py | test_verify_resolution_clean_on_resolved_markdown_setext | PENDING |
-| 3 | unit | tests/methodology/test_pcr_2b_tri_resolve_gate.py | test_tri_resolve_1_fail_closed_on_ambiguous_outcome | PENDING |
-| 3 | structural | tests/methodology/test_commit_slice_skill_tri_resolve_gate.py | test_tri_resolve_1_soad1_structured_options_form_pinned | PENDING |
-| 4 | integration | tests/methodology/test_pcr_2b_mixed_routes_to_hard.py | test_mixed_class_routes_through_hard_no_partial_soft | PENDING |
-| 5 | integration | tests/methodology/test_pcr_2b_repro_hard_gate_closed.py | test_hard_gate_closed_returns_stop_resolution_result | PENDING |
-| 5 | integration | tests/methodology/test_parallel_conflict_resolution_log_hard.py | test_hard_conflict_audit_section_appended | PENDING |
-| 5 | integration | tests/methodology/test_parallel_conflict_resolution_log_hard.py | test_index_md_sole_hard_scenario_drives_gate | PENDING |
+| 1 | structural | tests/methodology/test_methodology_changelog.py | test_v_0_77_0_pcr_2b_tri_resolve_1_entry_present_in_repo | PASSING |
+| 2 | integration | tests/methodology/test_pcr_2b_hard_conflict_dispatch.py | test_hard_conflict_fail_closes_to_stop_when_unratified | PASSING |
+| 2 | integration | tests/methodology/test_pcr_2b_hard_conflict_dispatch.py | test_resolve_hard_conflict_returns_gate_context_stop | PASSING |
+| 2 | integration | tests/methodology/test_pcr_2b_hard_conflict_dispatch.py | test_soft_to_hard_shippability_escalation_enters_gate | PASSING |
+| 2 | integration | tests/methodology/test_pcr_2b_verify_resolution.py | test_verify_resolution_clean_on_resolved_markdown_setext | PASSING |
+| 2 | integration | tests/methodology/test_pcr_2b_verify_resolution.py | test_verify_resolution_stop_on_diff3_base_marker_leftover | PASSING |
+| 2 | integration | tests/methodology/test_pcr_2b_verify_resolution.py | test_verify_resolution_clean_on_committed_marker_context_line | PASSING |
+| 3 | structural | tests/methodology/test_commit_slice_skill_tri_resolve_gate.py | test_tri_resolve_1_fail_closed_no_silent_continue_pinned | PASSING |
+| 3 | structural | tests/methodology/test_commit_slice_skill_tri_resolve_gate.py | test_tri_resolve_1_soad1_structured_options_form_pinned | PASSING |
+| 4 | integration | tests/methodology/test_pcr_2b_mixed_routes_to_hard.py | test_mixed_class_routes_through_hard_no_partial_soft | PASSING |
+| 5 | integration | tests/methodology/test_pcr_2b_repro_hard_gate_closed.py | test_hard_gate_closed_returns_stop_resolution_result | PASSING |
+| 5 | integration | tests/methodology/test_parallel_conflict_resolution_log_hard.py | test_hard_conflict_audit_section_appended | PASSING |
+| 5 | integration | tests/methodology/test_parallel_conflict_resolution_log_hard.py | test_index_md_sole_hard_scenario_drives_gate | PASSING |
 
 ## Verification plan
 

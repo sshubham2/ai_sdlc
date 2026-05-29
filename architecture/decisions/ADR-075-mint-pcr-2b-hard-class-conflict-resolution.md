@@ -44,10 +44,6 @@ A third decision (the Critic-mechanism shape) was locked at `/design-slice`: see
 3. **New dedicated diff-calibrated two-pass agent** *(considered at TRI-1; not chosen)* — author a `merge-resolution-critic` (+ meta) agent.
    - Why not: preserves the true two-pass but expands scope (new agent file + CAD-1 drift guard + PMI-1/INST-1 inventory + agent-count bump) — tips the slice past 1 day; deferred as a future option if single-pass proves insufficient.
 4. **Inline SKILL.md-prose review (no agent)** *(considered; not chosen)* — tightest scope but sacrifices two-persona separation; weakest.
-2. **`/code-review` agent on the diff** — single adversarial code-Critic pass (the artifact IS a diff).
-   - Cons: drops the meta-Critic leg the taxonomy specifies; the user gate would be the only backstop against first-Critic misses. Rejected for divergence from the "Critic + meta-Critic + user" contract.
-3. **Single critique pass + TRI-RESOLVE-1** — lightest.
-   - Cons: same meta-Critic-drop objection, more severe. Rejected.
 
 ### C. Where the Critic + user orchestration lives
 1. **SKILL.md prose drives the Critic agents + TRI-RESOLVE-1; Python resolver provides only the structural pre/post hooks** *(chosen)* — Python cannot spawn skill agents, so the resolver ships a `--verify-resolution` structural preflight (no remaining conflict markers) + `resolve_hard_conflict` STOP-dispatch + `--record-hard-resolution` audit-append; the Critic-pass + TRI-RESOLVE-1 gate are prose in `skills/commit-slice/SKILL.md` sub-step 2.5, pinned by skill-drift + prose-structural tests (mirrors PCR-2a's L185/L192 pin discipline).
@@ -61,7 +57,7 @@ A third decision (the Critic-mechanism shape) was locked at `/design-slice`: see
 At `/commit-slice --merge` sub-step 2.5, when the resolver classifies HARD or MIXED, the skill (instead of the bare SOAD-1 fall-through):
 1. surfaces the existing full-detail STOP diagnostic;
 2. lets the user — or Claude at the user's instruction — resolve the conflict markers in the working tree;
-3. runs `python -m tools.parallel_conflict_resolver --verify-resolution` (STOP if any `<<<<<<<`/`=======`/`>>>>>>>` marker remains in a U-file — the resolution is incomplete);
+3. runs `python -m tools.parallel_conflict_resolver --verify-resolution` (STOP if any path is still unmerged OR a line-anchored `<<<<<<<`/`>>>>>>>` opener/closer or `|||||||` diff3 base-marker survives in the staged resolution — keyed on the openers, deliberately NOT `=======`, which false-STOPs on Markdown setext H1 underlines per the B2/M-add-1 fix);
 4. spawns the **`code-review` agent** (`subagent_type: "code-review"`, single pass) against the *resolved merge diff* + conflict context (the named `critique`/`critique-review` agents were rejected at TRI-1 — M-add-2 — for fail-stopping on missing slice artifacts);
 5. presents **TRI-RESOLVE-1** — a SOAD-1 structured-options user-triage gate (apply / re-resolve / abort) making the user the sole apply authority;
 6. **only on explicit user apply with a non-blocking Critic verdict** → `git rebase --continue` + `--record-hard-resolution` audit append. Any other outcome (verify STOP, Critic BLOCKED, non-apply triage, unanswered) → STOP, no continue.

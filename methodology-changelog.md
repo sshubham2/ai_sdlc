@@ -34,6 +34,32 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.77.0 — 2026-05-30
+
+**PCR-2b — HARD/MIXED conflict resolution via gate-on-hand-resolve + TRI-RESOLVE-1 user-triage gate** (slice-083; [[ADR-075]] mints two new rules; supersedes nothing — refines [[ADR-069]]'s HARD/MIXED taxonomy rows in place; MEPD-1 posture: **INCLUDE** — `PCR-2b` is a new rule on the existing `PCR-N` parallel-conflict-resolution family axis sibling to PCR-1 / PCR-2a, and `TRI-RESOLVE-1` is a new rule on a triage-gate axis sibling to TRI-1; 5-part PMI-1 atomic bump 0.76.0 → 0.77.0).
+
+PCR-2b closes the last two open conflict-classes in the PCR-N taxonomy. PCR-1 (slice-076 / ADR-069) shipped SOFT auto-regen; PCR-2a (slice-078 / ADR-071) shipped VAULT_CLAIM timestamp-winner; HARD (any source/ADR/SKILL.md/`_index.md`/`methodology-changelog.md` U-file) and MIXED (SOFT + non-SOFT coexist) remained bare-STOP-only — `/commit-slice --merge` fell straight through to PSQ-3's SOAD-1 ask with NO Critic adjudication on the contested resolution. PCR-2b replaces that bare STOP with a **gate-on-hand-resolve** flow.
+
+**Mechanism** (per ADR-075 § Decision — Option-A1 gate-on-hand-resolve, NOT auto-propose):
+- At `/commit-slice --merge` Step 5b sub-step 2.5, when the resolver classifies HARD or MIXED, the skill: surfaces the full-detail STOP diagnostic → lets the user (or Claude at the user's instruction) hand-resolve the conflict markers → runs `python -m tools.parallel_conflict_resolver --verify-resolution` → spawns the **`code-review` agent** (`subagent_type: "code-review"`, single pass) on the resolved diff → presents the **TRI-RESOLVE-1** SOAD-1 user-triage gate → only on an explicit `Apply` selection AND a non-blocking `code-review` verdict does `git rebase --continue` fire (+ `--record-hard-resolution` audit append). Any other outcome fail-closes to STOP.
+- **Critic mechanism = the `code-review` agent** (NOT the `/critique` + `/critique-review` agents): the named critique agents are design-calibrated and fail-stop on a missing slice `design.md` (slice-083 /critique-review M-add-2); the `code-review` agent (slice-060) is already diff-calibrated and reviews exactly a code/content diff.
+- **`--verify-resolution`** keys on the **line-anchored `<<<<<<<`/`>>>>>>>` openers** (`git diff --name-only --diff-filter=U` empty + no `^<{7}`/`^>{7}` in `git diff --cached`) — deliberately NOT a `=======` scan and NOT `git diff --cached --check`, both of which inherit git's `≥7-=` heuristic that false-STOPs on Markdown setext H1 underlines (slice-083 /critique B2 + /critique-review M-add-1; HARD U-files ARE markdown).
+- **MIXED** routes through the HARD path with no partial SOFT auto-resolve (atomicity per ADR-069 MIXED row). Two HARD-entry paths (upfront `classify_conflict`; mid-loop `_SoftResolutionError(HARD)` shippability escalation) are both caught because the skill keys the gate-entry on `action=="STOP" AND conflict_class in {HARD, MIXED}`.
+- **TRI-RESOLVE-1** is structured-options (SOAD-1, never free-text); fail-closed — every non-`Apply` option + any interrupt/no-selection maps to STOP-no-continue; the user is the sole apply authority.
+
+**Code surfaces**: `tools/parallel_conflict_resolver.py` gains `resolve_hard_conflict` (HARD/MIXED dispatch) + `_verify_resolution_clean` + `_format_hard_audit_entry` + `_record_hard_resolution` + `_CONFLICT_MARKER_OPENER_RE` + `--verify-resolution`/`--record-hard-resolution` CLI modes; `architecture/parallel-conflict-resolution-log.md` gains a `## Hard-conflict resolution - <ISO>` section-type (uniform hyphen-space separator). `skills/commit-slice/SKILL.md` sub-step 2.5 gains the HARD/MIXED gate branch + TRI-RESOLVE-1; OSDG-1 forward-synced. No new tool module / agent → PMI-1 inventory unchanged. R-23 / R-24 remediation venue now exists (the `code-review` agent can flag unexpected orderings / baseline-shrink) but no dedicated detection ships; both stay OPEN. A lighter-path follow-up for the high-frequency `_index.md`-sole HARD case is queued (`add-index-md-soft-promotion-or-light-hard-path`).
+
+- **PCR-2b — HARD/MIXED parallel-conflict resolution (gate-on-hand-resolve)**
+  - **Rule reference**: PCR-2b (new rule on the `PCR-N` parallel-conflict-resolution family axis; [[ADR-075]]; refines ADR-069 HARD/MIXED rows)
+  - **Defect class**: HARD/MIXED parallel-slice merge conflicts auto-merged silently OR resolved with no Critic adjudication (re-opens silent-semantic-regression; defeats the 3-Critic discipline at merge time)
+  - **Validation**: `tests/methodology/test_pcr_2b_hard_conflict_dispatch.py` + `test_pcr_2b_verify_resolution.py` + `test_pcr_2b_mixed_routes_to_hard.py` + `test_pcr_2b_repro_hard_gate_closed.py` + `test_parallel_conflict_resolution_log_hard.py` (APED-1 tmp-repo rebase battery) + entry-pin `test_v_0_77_0_pcr_2b_tri_resolve_1_entry_present_in_repo`
+- **TRI-RESOLVE-1 — user-triage gate for proposed HARD/MIXED merge resolutions**
+  - **Rule reference**: TRI-RESOLVE-1 (new rule on a triage-gate axis sibling to TRI-1; [[ADR-075]])
+  - **Defect class**: a contested HARD/MIXED merge resolution applied (`git rebase --continue`) without explicit user ratification; silent auto-continue on an ambiguous/unanswered gate
+  - **Validation**: `tests/methodology/test_commit_slice_skill_tri_resolve_gate.py` (SOAD-1 structured-options form pin + fail-closed-no-silent-continue prose pin)
+
+---
+
 ## v0.76.0 — 2026-05-29
 
 **DCE-1 — Drift-Check Enforcement gate** (slice-081; [[ADR-073]] mints a new rule; supersedes nothing; MEPD-1 posture: **INCLUDE** — a new audit-enforced gate on the existing pre-finish-gate family axis; 5-part PMI-1 atomic bump 0.75.0 → 0.76.0).

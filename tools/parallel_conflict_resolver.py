@@ -13,10 +13,13 @@ surface at /commit-slice --merge Step 5b sub-step 2.5 git rebase time.
                   different-identity claim collision. STOP (deferred to
                   PCR-2 for timestamp-winner + light Critic).
   HARD          - any U-file is source/ADR/SKILL.md/_index.md/
-                  methodology-changelog.md/etc. STOP (deferred to PCR-2
-                  for full Critic stack + TRI-RESOLVE-1).
-  MIXED         - SOFT + non-SOFT coexist. STOP (deferred to PCR-2;
-                  atomicity - never partially auto-resolve).
+                  methodology-changelog.md/etc. STOP via resolve_hard_conflict;
+                  gate-on-hand-resolve (code-review agent + TRI-RESOLVE-1)
+                  orchestrated by skills/commit-slice/SKILL.md sub-step 2.5
+                  (PCR-2b / slice-083 / ADR-075). Never auto-merged.
+  MIXED         - SOFT + non-SOFT coexist. STOP via resolve_hard_conflict;
+                  routed through the HARD gate-on-hand-resolve path
+                  (atomicity - never partially auto-resolve the SOFT portion).
   UNKNOWN       - classify_conflict cannot determine class. STOP loud
                   (APED-1 silent-disable / default-off-on-malformed).
 
@@ -38,6 +41,7 @@ import datetime
 import enum
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -77,6 +81,32 @@ _AUDIT_LOG_HEADER: str = (
     "\n"
 )
 """Header content written once on lazy-create first append."""
+
+_CONFLICT_MARKER_OPENER_RE = re.compile(r"(?m)^[ +-]?(?:<{7,}|>{7,}|\|{7,})(?:\s|$)")
+r"""PCR-2b (slice-083 / ADR-075) HARD-resolution leftover-marker detector.
+
+Per the B2 + M-add-1 /critique fixes: keys on the line-anchored ``<<<<<<<``
+opener / ``>>>>>>>`` closer (runs of ``<``/``>``), which have NO legitimate
+Markdown/source analog — DELIBERATELY NOT ``=======`` (the merge separator),
+because a 7-or-more ``=`` run also matches a Markdown setext H1 underline and
+``=======`` dividers, and ``git diff --cached --check`` inherits that same
+``>=7-=`` false-positive heuristic. HARD U-files ARE markdown (ADR / SKILL.md /
+changelog), so a ``=======``-based scan would false-STOP correct resolutions.
+
+Per the slice-083 /code-review M2 fix: the run quantifier is ``{7,}`` (git's
+own rule — a marker is SEVEN OR MORE of the char, not exactly seven), and the
+``diff3`` / ``zdiff3`` base-section separator ``|||||||`` (``\|{7,}``) is in the
+alternation — a user with ``merge.conflictStyle=diff3`` who removes the
+``<<<<<<<`` / ``>>>>>>>`` lines but leaves the ``|||||||`` base block staged
+would otherwise pass verify CLEAN with a leftover base-marker block. ``|||||||``
+(7+ consecutive pipes) has no legitimate Markdown/source analog either (a
+Markdown table separator is ``| --- | --- |``, never a 7-pipe run).
+
+The optional leading ``[ +-]`` consumes the single ``git diff`` body column so a
+marker on an added/context line (``+<<<<<<<`` / `` <<<<<<<``) is detected; diff
+meta lines (``+++ b/…`` / ``--- a/…`` / ``@@ …``) do not match because the
+char after the column is not a 7+-run of ``<``/``>``/``|``.
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -250,10 +280,19 @@ def resolve_soft_conflict(
     if cls is ConflictClass.VAULT_CLAIM:
         return resolve_vault_claim_conflict(diag, repo_root)
 
+    # PCR-2b (slice-083 / ADR-075): HARD + MIXED dispatch to the gate-on-hand-
+    # resolve path. resolve_hard_conflict returns a STOP carrying gate context;
+    # it NEVER auto-merges or runs git rebase --continue. The skill
+    # (skills/commit-slice/SKILL.md sub-step 2.5) drives the resolution flow.
+    # MIXED routes here too (atomicity per ADR-069 MIXED row).
+    if cls in (ConflictClass.HARD, ConflictClass.MIXED):
+        return resolve_hard_conflict(diag, repo_root)
+
     if cls is not ConflictClass.SOFT:
+        # Only UNKNOWN reaches here (VAULT_CLAIM / HARD / MIXED dispatched above).
         reason = (
-            f"non-SOFT class ({cls.value}) - deferred to PCR-2b; "
-            f"fall through to SOAD-1 STOP per ADR-069 atomicity"
+            f"non-SOFT class ({cls.value}) - fall through to SOAD-1 STOP "
+            f"per ADR-069 fail-closed (never silent-default to SOFT)"
         )
         return ResolutionResult(
             action="STOP",
@@ -1221,6 +1260,194 @@ def resolve_vault_claim_conflict(
     return result
 
 
+# ---------------------------------------------------------------------------
+# PCR-2b: HARD + MIXED gate-on-hand-resolve (slice-083 / ADR-075)
+# ---------------------------------------------------------------------------
+
+def resolve_hard_conflict(
+    diag: ConflictDiagnostic,
+    repo_root: Path | None = None,
+) -> ResolutionResult:
+    """Dispatch target for HARD- and MIXED-class conflicts (PCR-2b).
+
+    Per PCR-2b (slice-083 / ADR-075): HARD and MIXED conflicts are NEVER
+    auto-merged (the rejected ADR-069 Option 2). This function returns a STOP
+    carrying gate context; the actual resolution flow — resolve markers ->
+    ``--verify-resolution`` -> the ``code-review`` agent on the resolved diff
+    -> the TRI-RESOLVE-1 user gate -> ``git rebase --continue`` ->
+    ``--record-hard-resolution`` — is orchestrated by ``skills/commit-slice/
+    SKILL.md`` sub-step 2.5 (Python cannot spawn skill agents). This function
+    NEVER mutates rebase state and NEVER runs ``git rebase --continue``.
+
+    MIXED routes here too (atomicity per ADR-069 MIXED row — never partially
+    auto-resolve the SOFT portion when a non-SOFT U-file coexists).
+
+    Two HARD-entry paths exist (design.md M2 fix): (1) ``classify_conflict``
+    returns HARD/MIXED upfront -> ``resolve_soft_conflict`` dispatches here;
+    (2) ``resolve_soft_conflict`` escalates a SOFT-looking shippability conflict
+    to HARD mid-loop via ``_SoftResolutionError(..., HARD)`` -> returns its own
+    bare STOP with ``conflict_class=HARD`` WITHOUT passing through this function.
+    ``skills/commit-slice/SKILL.md`` keys the gate-flow entry on
+    (``action=="STOP"`` AND ``conflict_class in {HARD, MIXED}``) so BOTH entry
+    paths are covered uniformly.
+    """
+    if repo_root is None:
+        repo_root = Path.cwd()
+
+    cls = classify_conflict(diag)
+    if cls not in (ConflictClass.HARD, ConflictClass.MIXED):
+        # Caller misuse / diag-class disagreement — fail-closed (never pretend
+        # a non-HARD/MIXED conflict is gate-resolvable).
+        return ResolutionResult(
+            action="STOP",
+            conflict_class=ConflictClass.UNKNOWN,
+            regenerated_files=(),
+            reason=(
+                f"resolve_hard_conflict invoked on non-HARD/MIXED class "
+                f"({cls.value}) — diag/class disagree, fail-closed"
+            ),
+        )
+
+    return ResolutionResult(
+        action="STOP",
+        conflict_class=cls,
+        regenerated_files=(),
+        reason=(
+            f"{cls.value}-class conflict — gate-on-hand-resolve via "
+            "/commit-slice sub-step 2.5 (resolve markers -> --verify-resolution "
+            "-> code-review agent -> TRI-RESOLVE-1 user gate -> git rebase "
+            "--continue). PCR-2b never auto-merges HARD/MIXED."
+        ),
+    )
+
+
+def _verify_resolution_clean(repo_root: Path) -> tuple[bool, str | None]:
+    """Verify a hand-resolved HARD/MIXED rebase has no unresolved conflicts.
+
+    Per PCR-2b (slice-083 / ADR-075) B2 + M-add-1 /critique fixes. Two
+    git-native + line-anchored-opener checks (NOT a ``=======`` scan, NOT
+    ``git diff --cached --check`` — both inherit git's ``>=7-=`` heuristic that
+    false-STOPs on Markdown setext H1 underlines; HARD U-files ARE markdown):
+
+      (a) ``git diff --name-only --diff-filter=U`` MUST be empty (git itself
+          considers every path resolved/staged), and
+      (b) no line-anchored ``<<<<<<<`` opener / ``>>>>>>>`` closer survives in
+          the staged resolution (``git diff --cached``) — keyed on the 7-char
+          ``<``/``>`` runs that have no legitimate Markdown/source analog.
+
+    Conservative fail-closed: a doc that legitimately starts a line with
+    ``<<<<<<<`` / ``>>>>>>>`` (rare — e.g. a code-fence demonstrating a
+    conflict) false-STOPs, which is SAFE (refuses to continue and routes the
+    user to re-resolve/abort; it NEVER silently continues).
+
+    Returns ``(clean, reason)``; ``reason`` is ``None`` when clean.
+    """
+    # (a) any path still unmerged?
+    try:
+        u_proc = subprocess.run(
+            ["git", "diff", "--name-only", "--diff-filter=U"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        return (False, f"git-state-unreadable: {exc!r}")
+    if u_proc.stdout.strip():
+        unmerged = ", ".join(u_proc.stdout.split())
+        return (False, f"paths-still-unmerged: {unmerged}")
+
+    # (b) leftover line-anchored opener/closer in the staged resolution?
+    try:
+        d_proc = subprocess.run(
+            ["git", "diff", "--cached"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        return (False, f"git-state-unreadable: {exc!r}")
+    if _CONFLICT_MARKER_OPENER_RE.search(d_proc.stdout):
+        return (False, "unresolved-markers-present")
+
+    return (True, None)
+
+
+def _format_hard_audit_entry(
+    diag: ConflictDiagnostic,
+    timestamp: str,
+    head_sha: str,
+    verdict: str,
+    disposition: str,
+) -> str:
+    """Build the HARD/MIXED audit-log section (PCR-2b / slice-083 / ADR-075).
+
+    Section heading ``## Hard-conflict resolution - <ISO-8601 UTC>`` — UNIFORM
+    hyphen-space separator (PCR-2a ADR-071 discipline); section-type
+    distinguished by the prefix word ``Hard-conflict`` (vs ``Soft-conflict`` /
+    ``Vault-claim``), NOT by trailing dash decoration.
+    """
+    u_files_csv = ", ".join(diag.u_files) if diag.u_files else "(none)"
+    concerned_ids = sorted({
+        cs.slice_id
+        for u in diag.u_files
+        for cs in diag.concerned_slices.get(u, ())
+    })
+    concerned_csv = ", ".join(concerned_ids) if concerned_ids else "(none)"
+
+    return (
+        f"## Hard-conflict resolution - {timestamp}\n"
+        "\n"
+        f"**Repo HEAD SHA pre-resolution**: {head_sha}\n"
+        f"**U-files resolved**: {u_files_csv}\n"
+        f"**Concerned slices**: {concerned_csv}\n"
+        "**Resolution mechanism**: gate-on-hand-resolve (PCR-2b) — "
+        "hand-resolved + code-review agent + TRI-RESOLVE-1 user gate\n"
+        f"**code-review verdict**: {verdict}\n"
+        f"**TRI-RESOLVE-1 disposition**: {disposition}\n"
+        "\n"
+    )
+
+
+def _record_hard_resolution(
+    repo_root: Path,
+    diag: ConflictDiagnostic,
+    verdict: str,
+    disposition: str,
+) -> None:
+    """Append a HARD-conflict audit section. Best-effort (caller catches).
+
+    Invoked by the ``--record-hard-resolution`` CLI mode after a ratified
+    TRI-RESOLVE-1 apply, while still mid-rebase (so ``diag`` carries the U-files
+    + concerned slices), immediately before ``git rebase --continue``. Reuses
+    the single-open append + lazy-header pattern from ``_append_audit_log``.
+    """
+    log_path = repo_root / _AUDIT_LOG_PATH
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    try:
+        head_proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        head_sha = head_proc.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        head_sha = "(unavailable)"
+
+    entry = _format_hard_audit_entry(diag, timestamp, head_sha, verdict, disposition)
+
+    needs_header = not log_path.exists()
+    with log_path.open("a", encoding="utf-8", newline="") as f:
+        if needs_header:
+            f.write(_AUDIT_LOG_HEADER)
+        f.write(entry)
+
+
 def _merge_shippability(repo_root: Path) -> tuple[Path, str]:
     """Row-union merge of architecture/shippability.md by slice number.
 
@@ -1624,8 +1851,20 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--diagnose", action="store_true", help="Emit ConflictDiagnostic")
     mode.add_argument("--classify", action="store_true", help="Emit ConflictClass")
     mode.add_argument("--resolve-soft", action="store_true", help="Attempt SOFT-class resolution")
+    mode.add_argument(
+        "--verify-resolution",
+        action="store_true",
+        help="PCR-2b: verify a hand-resolved HARD/MIXED rebase has no unresolved conflicts",
+    )
+    mode.add_argument(
+        "--record-hard-resolution",
+        action="store_true",
+        help="PCR-2b: append a HARD-conflict audit-log section (post-ratification, pre-continue)",
+    )
     parser.add_argument("--json", action="store_true", help="Machine-readable output")
     parser.add_argument("--repo-root", type=Path, default=Path("."), help="Repo root (default: cwd)")
+    parser.add_argument("--verdict", default=None, help="code-review verdict (--record-hard-resolution)")
+    parser.add_argument("--disposition", default=None, help="TRI-RESOLVE-1 disposition (--record-hard-resolution)")
 
     args = parser.parse_args(argv)
     repo_root = args.repo_root.resolve()
@@ -1682,6 +1921,49 @@ def main(argv: list[str] | None = None) -> int:
         #   1 on UNKNOWN (resolver could not classify; defer to SOAD-1)
         if result.conflict_class is ConflictClass.UNKNOWN:
             return 1
+        return 0
+
+    if args.verify_resolution:
+        # PCR-2b (slice-083 / ADR-075): git-native + line-anchored-opener check.
+        clean, reason = _verify_resolution_clean(repo_root)
+        action = "CLEAN" if clean else "STOP"
+        if args.json:
+            print(json.dumps(
+                {"action": action, "reason": reason}, indent=2, ensure_ascii=False
+            ))
+        else:
+            print(f"Action: {action}" + (f" ({reason})" if reason else ""))
+        # exit 1 ONLY on unreadable git state (UNKNOWN-equivalent fail-closed);
+        # a clean CLEAN or a coherent STOP (paths-still-unmerged /
+        # unresolved-markers-present) is exit 0 per the design.md contract.
+        if not clean and reason and reason.startswith("git-state-unreadable"):
+            return 1
+        return 0
+
+    if args.record_hard_resolution:
+        # PCR-2b: best-effort HARD audit append (mirrors PCR-1/PCR-2a audit
+        # error model — write failure logs to stderr but NEVER blocks).
+        verdict = args.verdict or "(unspecified)"
+        disposition = args.disposition or "(unspecified)"
+        recorded = True
+        err: str | None = None
+        try:
+            _record_hard_resolution(repo_root, diag, verdict, disposition)
+        except Exception as exc:  # noqa: BLE001 - best-effort by design
+            recorded = False
+            err = repr(exc)
+            print(
+                f"parallel-conflict-resolver: HARD audit append failed "
+                f"(non-blocking): {err}",
+                file=sys.stderr,
+            )
+        action = "RECORDED" if recorded else "RECORD-FAILED"
+        if args.json:
+            print(json.dumps(
+                {"action": action, "reason": err}, indent=2, ensure_ascii=False
+            ))
+        else:
+            print(f"Action: {action}")
         return 0
 
     # argparse's mutually_exclusive_group(required=True) prevents this.

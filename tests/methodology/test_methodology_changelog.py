@@ -5361,40 +5361,114 @@ def test_v_0_73_0_pcr_1_shippability_consumer_propagation():
     )
 
 
-def test_version_files_synchronized_at_v_0_76_0():
-    """AC — 5-part PMI-1 atomic bump 0.75.0 → 0.76.0 (slice-081).
+def test_v_0_77_0_pcr_2b_tri_resolve_1_entry_present_in_repo():
+    """methodology-changelog v0.77.0 / PCR-2b + TRI-RESOLVE-1 entry-pin
+    (content-bearing per slice-073/076/078/080/081 precedent).
+
+    Asserts the load-bearing substring anchors:
+      (a) `## v0.77.0` dated header
+      (b) `PCR-2b` rule reference (one of the two new RULE-IDs)
+      (c) `TRI-RESOLVE-1` rule reference (the other new RULE-ID)
+      (d) `ADR-075` reference
+      (e) `parallel-conflict-resolution` canonical family-axis phrase
+      (f) `mints two new rules` (PCR-2b + TRI-RESOLVE-1; supersedes nothing)
+      (g) `5-part PMI-1 atomic bump`
+      (h) `Rule reference` literal (META-1 mandatory enforcing-assertion)
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.77.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.77.0 entry header — "
+        "slice-083 PCR-2b entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.77.0")
+    assert "PCR-2b" in body, (
+        "v0.77.0 entry body missing the 'PCR-2b' rule reference (new rule on "
+        "the parallel-conflict-resolution family axis sibling to PCR-1/PCR-2a)"
+    )
+    assert "TRI-RESOLVE-1" in body, (
+        "v0.77.0 entry body missing the 'TRI-RESOLVE-1' rule reference (new "
+        "user-triage gate sibling to TRI-1)"
+    )
+    assert "ADR-075" in body, (
+        "v0.77.0 entry body must reference ADR-075 (the new ADR minting PCR-2b + TRI-RESOLVE-1)"
+    )
+    assert "parallel-conflict-resolution" in body, (
+        "v0.77.0 entry body missing the 'parallel-conflict-resolution' family-axis phrase"
+    )
+    assert "mints two new rules" in body, (
+        "v0.77.0 entry must state 'mints two new rules' (PCR-2b + TRI-RESOLVE-1; "
+        "supersedes nothing per ADR-075)"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.77.0 entry body missing the '5-part PMI-1 atomic bump' anchor"
+    )
+    assert "Rule reference" in body, (
+        "v0.77.0 entry missing the literal 'Rule reference' line — META-1 entry-pin obligation unmet"
+    )
+
+
+def test_v_0_77_0_pcr_2b_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the PCR-2b consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #83) so the slice-083 critical path can never silently regress.
+
+    Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability.
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "slice-083-add-pcr-2b-hard-class-conflict-resolution" in catalog, (
+        "architecture/shippability.md must contain a slice-083 row (catalog row #83)"
+    )
+    row_start = catalog.find("slice-083-add-pcr-2b-hard-class-conflict-resolution")
+    row_end = catalog.find("\n| ", row_start)
+    row = catalog[row_start:row_end] if row_end > 0 else catalog[row_start:row_start + 8000]
+    assert "PCR-2b" in row, "shippability.md row #83 must cite PCR-2b (the new RULE-ID)"
+    assert "TRI-RESOLVE-1" in row, "shippability.md row #83 must cite TRI-RESOLVE-1"
+    assert "ADR-075" in row, "shippability.md row #83 must cite ADR-075 (the new ADR)"
+    assert "test_v_0_77_0_pcr_2b_tri_resolve_1_entry_present_in_repo" in row, (
+        "shippability.md row #83 must cite the entry-pin test function by canonical name"
+    )
+    assert "test_v_0_77_0_pcr_2b_shippability_consumer_propagation" in row, (
+        "shippability.md row #83 must cite the shippability-consumer-propagation test function"
+    )
+    assert "parallel_conflict_resolver" in row, (
+        "shippability.md row #83 must reference 'parallel_conflict_resolver' (the touched module)"
+    )
+
+
+def test_version_files_synchronized_at_v_0_77_0():
+    """AC — 5-part PMI-1 atomic bump 0.76.0 → 0.77.0 (slice-083).
 
     Verifies the 5 canonical version-bearing legs are synchronized at
     `0.76.0` post-bump:
       (1) `VERSION` file
       (2) `plugin.yaml` version field
       (3) `pyproject.toml [project].version` field (PVFS-1)
-      (4) `## v0.76.0` header in `methodology-changelog.md`
+      (4) `## v0.77.0` header in `methodology-changelog.md`
       (5) installed `~/.claude/ai-sdlc-VERSION` (AVFS-1; verified separately
           by the AVFS-1 audit; this test asserts legs 1-4 only — leg 5 is
           environment-dependent and may be absent on a fresh checkout,
           where AVFS-1 returns WARN per slice-030A meta-M3 parity)
 
-    Renamed from `_at_v_0_75_0` at slice-081 per the slice-067/072/073/078/080 etc.
+    Renamed from `_at_v_0_76_0` at slice-083 per the slice-067/072/073/078/080/081 etc.
     rename precedent (the version-files test follows live version; the
-    historical v0.75.0 entry persists in the methodology-changelog body).
+    historical v0.76.0 entry persists in the methodology-changelog body).
     """
     version = read_file("VERSION").strip()
-    assert version == "0.76.0", (
-        f"VERSION file must equal '0.76.0' post-bump; got {version!r}. "
+    assert version == "0.77.0", (
+        f"VERSION file must equal '0.77.0' post-bump; got {version!r}. "
         "5-part PMI-1 leg 1 broken — re-run the bump or fix VERSION manually."
     )
     plugin_yaml = read_file("plugin.yaml")
-    assert "version: 0.76.0" in plugin_yaml or 'version: "0.76.0"' in plugin_yaml, (
-        "plugin.yaml must contain 'version: 0.76.0' post-bump (5-part PMI-1 leg 2)"
+    assert "version: 0.77.0" in plugin_yaml or 'version: "0.77.0"' in plugin_yaml, (
+        "plugin.yaml must contain 'version: 0.77.0' post-bump (5-part PMI-1 leg 2)"
     )
     pyproject = read_file("pyproject.toml")
-    assert 'version = "0.76.0"' in pyproject, (
-        "pyproject.toml [project].version must equal '0.76.0' post-bump (PVFS-1; "
+    assert 'version = "0.77.0"' in pyproject, (
+        "pyproject.toml [project].version must equal '0.77.0' post-bump (PVFS-1; "
         "5-part PMI-1 leg 3)"
     )
     changelog = read_file("methodology-changelog.md")
-    assert "## v0.76.0" in changelog, (
-        "methodology-changelog.md must contain '## v0.76.0' header post-bump "
+    assert "## v0.77.0" in changelog, (
+        "methodology-changelog.md must contain '## v0.77.0' header post-bump "
         "(5-part PMI-1 leg 4)"
     )
