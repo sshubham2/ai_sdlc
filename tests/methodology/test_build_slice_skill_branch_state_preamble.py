@@ -11,19 +11,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from tests.methodology._skill_parse_helpers import _branch_state_section
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILL_MD = REPO_ROOT / "skills" / "build-slice" / "SKILL.md"
-
-
-def _branch_state_section() -> str:
-    text = SKILL_MD.read_text(encoding="utf-8")
-    m = re.search(
-        r"### Branch state\n(.*?)(?=\n## |\n### [A-Za-z]|\Z)",
-        text,
-        re.DOTALL,
-    )
-    assert m is not None, "Branch state section not found in build-slice SKILL.md"
-    return m.group(1)
 
 
 def _numbered_codefences(section: str) -> list[str]:
@@ -41,7 +32,7 @@ def test_var_assignments_appear_in_shared_preamble_above_numbered_list() -> None
     Pre-fix: assignments inside point-1 codefence only -> dirty-tree branch (point 4) hits unbound vars.
     Post-fix: pre-amble executes regardless of which numbered branch fires.
     """
-    section = _branch_state_section()
+    section = _branch_state_section(SKILL_MD.read_text(encoding="utf-8"))
     list_start = re.search(r"^1\. \*\*If on default branch\*\*", section, re.MULTILINE)
     assert list_start is not None, "Numbered list (point 1) not found"
     preamble = section[: list_start.start()]
@@ -58,7 +49,7 @@ def test_var_assignments_appear_in_shared_preamble_above_numbered_list() -> None
 
 def test_numbered_point_codefences_do_not_redefine_shared_vars() -> None:
     """Fix A: numbered point codefences must NOT redefine the shared-pre-amble vars."""
-    section = _branch_state_section()
+    section = _branch_state_section(SKILL_MD.read_text(encoding="utf-8"))
     codefences = _numbered_codefences(section)
     assert len(codefences) >= 3, f"Expected ≥3 numbered codefences, got {len(codefences)}"
     for i, code in enumerate(codefences, start=1):
