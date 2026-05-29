@@ -1730,3 +1730,20 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **Voluntary-restraint discipline N=18 cumulative** (slices 037/046/050/052/055/056/057/061/065/067/070/071/072/073/074/075/077/078) — code-Critic v1 advisory findings consistently route to next-bundled-cleanup. Pattern stable.
 - **Self-validating-slice property N=2 cumulative** — both slice-077 (worktree-awareness) and slice-078 (PCR-2a vault-claim) touched the parallel-slice family AND structurally dogfooded themselves at /commit-slice --merge. Watch slice-079 PCR-2b for N=3.
 - **MEPD-1 EXCLUDE empirically supported when scope fits an existing rule's axis** — PCR-2a refines PCR-1's class taxonomy in-place on the existing `PCR-N` family axis (not a new axis); methodology-changelog v0.74.0 entry shipped under INCLUDE posture with 5-part PMI-1 atomic bump correctly. Confirms ADR-071's MEPD-1 framing.
+
+## Slice 079 (bundle-074-075-077-078-code-critic-cleanup) — 2026-05-29
+
+### Worked
+- Bundled-cleanup-at-N+1 pattern scaled cleanly to N+4-slice fan-in (19 fixes A–S, 52 new regression tests, full suite 1124→1125). Phase-by-phase commit chain (9 commits) gave durable checkpoints.
+- APED-1 clause-5 (first governed slice) gave the design-Critic empirical-grep teeth — B1 (Fix K cited keys from the wrong tool) + B2 (Fix S premise empirically false) were caught at /critique time, before any code was written. Both would have produced unsatisfiable ACs.
+- The 3-Critic stack complementarity held at N=14: the code-Critic caught Fix O's behavioral-test gap (M1) that the design+meta stack structurally cannot reach (it reads design.md, not realized test bodies). Addressed in-loop.
+
+### Didn't work
+- Design→code translation gap recurred N=15: three Phase-B-committed tests were stricter/different than design.md prose (Fix E corpus invariant spanned 4 files not 2; Fix P needed a NamedTuple not a sentinel-string; the unused-imports meta-test had a `__future__` false-positive). Each cost a build-time reconciliation. Code-is-truth resolved all three.
+- The `-x` mid-slice smoke gate mis-fires for all-tests-scaffolded-up-front bundled slices: it halts at the first not-yet-built phase's WRITTEN-FAILING test, masquerading as a gate FAIL. Required manual diagnosis (984 pass / 8 fail = exactly the un-built Phase F+G tests).
+- AC#5 was written at /slice time against a live `source-pending-items.txt` that archived before build, making its text-removal sub-clause structurally unsatisfiable (archive-immutability) → surfaced as a validate-time PARTIAL requiring a user gate.
+
+### Pattern
+- For bundled-cleanup slices: scaffold all regression tests up front (Phase B) BUT treat them as the binding contract — when a committed test disagrees with design prose, widen the fix to satisfy the test and log the delta. And read the mid-slice smoke gate as "all-built-so-far pass + zero pre-existing regression," not literal `-x` exit 0.
+- ACs that mandate edits to ANOTHER slice's artifacts must pre-carve-out the archive-immutability path at /slice time (DEFER-shaped), or they become validate-time PARTIALs. Cross-slice handoff state wants a LIVE top-level home (`architecture/source-pending-items.txt`), not a per-slice-folder file that archives.
+- When a design row promises a BEHAVIORAL test, realize the behavioral test — a structural signature/source-grep pin cannot discriminate the very regression it nominally guards (the Fix O / code-review-M1 lesson).

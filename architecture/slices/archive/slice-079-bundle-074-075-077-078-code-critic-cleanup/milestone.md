@@ -1,16 +1,16 @@
 ---
 slice: slice-079-bundle-074-075-077-078-code-critic-cleanup
-stage: validate
+stage: complete
 updated: 2026-05-29
-next-action: run /reflect (validate PASS — AC#5 resolved by user via archive-immutability carve-out / DEFER-6; /reflect must author the forward handoff: P3.10' + still-open slice-075 P-items into a fresh live source-pending tracker)
+next-action: none (slice complete) — run /commit-slice to generate the audit-grade commit
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-079 bundle-074-075-077-078-code-critic-cleanup
 
-**Stage**: validate COMPLETE — Result PASS (AC#1-4 PASS; AC#5 PASS via user-approved archive-immutability carve-out / DEFER-6) → next: /reflect
-**Next action**: run `/reflect` (capture learnings + author forward handoff for P3.10' + open P-items). Full suite 1125/1125; shippability 83/83; VAL-1 0/0.
+**Stage**: COMPLETE — shipped with deferrals; lessons captured; forward handoff authored. Auto-archiving next.
+**Next action**: none (slice complete) — run `/commit-slice` to generate the audit-grade commit (user-invoked; HARD-STOP per PCA-1)
 **Updated**: 2026-05-29
 **Risk tier**: medium — Critic required: yes
 **Worktree**: `C:\Users\sshub\ai_sdlc-wt\slice-079-bundle-074-075-077-078-code-critic-cleanup` on branch `slice/079-bundle-074-075-077-078-code-critic-cleanup`
@@ -36,8 +36,7 @@ critic-required: true
   - [x] Phase I — Pre-finish gate: full suite 1124/1124; BRANCH-2/NAW-1/UTF8-STDOUT-1/PMI-1/CAD-1/BCI-1/MCFS-1/AVFS-1/TVFS-1/STP-1/PCA-1/CRP-1/WIRE-1/BC-1/LINT-MOCK all CLEAN; build-log Summary written
 - [x] /code-review — 2026-05-29 — FINDINGS (0 blockers, 1 major, 4 minors); M1 + m2 addressed in-loop, m1 won't-fix, m3/m4 deferred; full suite 1125/1125
 - [x] /validate-slice — 2026-05-29 — PASS (AC#1-4 PASS; AC#5 PASS via user-approved DEFER-6 carve-out; shippability 83/83; VAL-1 0/0)
-- [ ] /reflect
-- [ ] /reflect
+- [x] /reflect — 2026-05-29 — shipped-with-deferrals; reflection.md + lessons-learned + forward handoff (architecture/source-pending-items.txt) written; Critic calibration scored (3-Critic stack N=14; APED-1 clause-5 first-governed-slice N=1 catch)
 
 ## Current focus
 
@@ -80,4 +79,4 @@ Phase B next: scaffold the regression test files cited in the catalog rows (writ
 - [build-log.md](build-log.md) — Phase A events recorded; Summary pending Phase I
 - [code-review.md](code-review.md) — FINDINGS (0B/1M/4m; M1+m2 addressed, m1 won't-fix, m3/m4 deferred)
 - [validation.md](validation.md) — PASS (AC#5 resolved: user-approved archive-immutability carve-out / DEFER-6)
-- [reflection.md](reflection.md) — pending
+- [reflection.md](reflection.md) — shipped-with-deferrals (DEFER-1..6; 3-Critic stack N=14; design→code gap N=15)
