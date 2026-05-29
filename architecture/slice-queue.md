@@ -1,24 +1,32 @@
 # Slice queue
 
-_Generated: 2026-05-29T10:45:08+00:00 by /slice during slice-081 definition_
+_Generated: 2026-05-29T14:44:52+00:00 by /slice during slice-082 definition_
 
 ## Candidates
 
-### fix-drift-check-enforcement-gap
+### add-pcr-2b-hard-class-conflict-resolution
 
-- **Source:** user-reported defect
-- **Blast-radius:** `skills/build-slice/SKILL.md`, `tools/drift_check_audit.py`
+- **Source:** deferred ADR-068/ADR-071 - PCR-2 HARD-class path
+- **Blast-radius:** `skills/commit-slice/SKILL.md`, `tools/parallel_conflict_resolver.py`
 - **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** MEDIUM
+- **Effort:** LARGE
+- **Risk-retired:** NONE
 
-### harden-pcr-1-soft-regen-corner-case
+### add-claim-sequence-number-for-clock-skew-detection
 
-- **Source:** risk-register R-21
-- **Blast-radius:** `tools/parallel_conflict_resolve.py`, `tools/slice_queue_writer.py`
+- **Source:** risk-register R-23
+- **Blast-radius:** `tools/parallel_conflict_resolver.py`, `tools/slice_queue_claim.py`
 - **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** MEDIUM
+- **Effort:** SMALL
+- **Risk-retired:** LOW
+
+### harden-pcr-2a-clock-skew-winner
+
+- **Source:** risk-register R-23
+- **Blast-radius:** `tools/parallel_conflict_resolver.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** LOW
 
 ### extend-osdg-1-to-slice-candidates
 
@@ -36,10 +44,10 @@ _Generated: 2026-05-29T10:45:08+00:00 by /slice during slice-081 definition_
 - **Effort:** SMALL
 - **Risk-retired:** LOW
 
-### harden-pcr-2a-clock-skew-winner
+### add-psq-4-push-time-rebase
 
-- **Source:** risk-register R-23
-- **Blast-radius:** `tools/parallel_conflict_resolve.py`
+- **Source:** deferred ADR-068 Options-#2
+- **Blast-radius:** `skills/commit-slice/SKILL.md`
 - **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
-- **Risk-retired:** LOW
+- **Effort:** MEDIUM
+- **Risk-retired:** NONE
