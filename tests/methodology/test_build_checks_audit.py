@@ -19,6 +19,7 @@ import pytest
 from tests.methodology.conftest import REPO_ROOT
 from tools.build_checks_audit import (
     _BC_1_RELEASE_DATE,
+    _format_human,
     _matches_glob,
     audit_slice,
 )
@@ -1767,3 +1768,131 @@ def test_bc_global_3_has_expected_structural_identity():
         "meta-discussion", "methodology-changelog",
     ), f"BC-GLOBAL-3 negative_anchors mismatch: got {g3.negative_anchors!r}"
     assert g3.check and g3.check.strip(), "BC-GLOBAL-3 check must be non-empty"
+
+
+# --- BCSG-1 strict acknowledgment gate (slice-080 / ADR-072) ---
+#
+# Every test pins global_checks=CLEAN_CHECKS (0 rules) to isolate from the real
+# ~/.claude/build-checks.md (which carries BC-GLOBAL-2, a Critical always-rule)
+# and skip_if_carry_over=False for determinism. CRITICAL_CHECKS is the project
+# fixture one_always_applies.md (BC-PROJ-1, Severity: Critical, Applies to: always).
+
+CRITICAL_CHECKS = FIXTURES / "one_always_applies.md"
+CLEAN_CHECKS = FIXTURES / "clean_project_checks.md"
+
+
+def _unack_violations(result):
+    return [v for v in result.violations if v.kind == "unacknowledged-critical"]
+
+
+def test_strict_unacknowledged_project_critical_becomes_violation(tmp_path: Path):
+    """BCSG-1: under --strict with no ack, an applicable project-source Critical
+    rule becomes an `unacknowledged-critical` violation (severity Critical).
+
+    Defect class (SC-008): without this the exit code never reflected an
+    applicable Critical rule — a consumer treating it as the gate signal passed.
+    Rule reference: BCSG-1 / BC-1.
+    """
+    result = audit_slice(
+        _make_slice(tmp_path),
+        project_checks=CRITICAL_CHECKS,
+        global_checks=CLEAN_CHECKS,
+        skip_if_carry_over=False,
+        strict=True,
+    )
+    viols = _unack_violations(result)
+    assert len(viols) == 1, f"expected 1 unacknowledged-critical violation, got {viols!r}"
+    assert viols[0].rule_id == "BC-PROJ-1"
+    assert viols[0].severity == "Critical"
+
+
+def test_strict_global_source_critical_captured(tmp_path: Path):
+    """M3: the strict append runs after BOTH source loops, so a GLOBAL-source
+    Critical rule is captured (not only project-source ones).
+
+    Defect class: appending inside the project loop would miss global Criticals
+    (e.g. BC-GLOBAL-2). Rule reference: BCSG-1.
+    """
+    result = audit_slice(
+        _make_slice(tmp_path),
+        project_checks=CLEAN_CHECKS,
+        global_checks=CRITICAL_CHECKS,  # Critical rule sourced from the GLOBAL leg
+        skip_if_carry_over=False,
+        strict=True,
+    )
+    viols = _unack_violations(result)
+    assert len(viols) == 1, f"global-source Critical not captured: {viols!r}"
+    assert viols[0].rule_id == "BC-PROJ-1"  # the fixture's rule ID (sourced as global here)
+
+
+def test_strict_ack_clears_applicable_critical(tmp_path: Path):
+    """BCSG-1: an applicable Critical rule whose ID is in --ack-critical does NOT
+    become a violation (the green path)."""
+    result = audit_slice(
+        _make_slice(tmp_path),
+        project_checks=CRITICAL_CHECKS,
+        global_checks=CLEAN_CHECKS,
+        skip_if_carry_over=False,
+        strict=True,
+        ack_critical=("BC-PROJ-1",),
+    )
+    assert _unack_violations(result) == [], "acknowledged Critical rule must not fire"
+
+
+def test_strict_no_applicable_critical_no_violation(tmp_path: Path):
+    """AC2: under --strict, no applicable Critical rule → no unacknowledged-critical
+    violation (no false-fire)."""
+    result = audit_slice(
+        _make_slice(tmp_path),
+        project_checks=CLEAN_CHECKS,
+        global_checks=CLEAN_CHECKS,
+        skip_if_carry_over=False,
+        strict=True,
+    )
+    assert _unack_violations(result) == []
+
+
+def test_default_path_critical_informational_no_violation(tmp_path: Path):
+    """AC3: WITHOUT --strict, an applicable Critical rule stays informational —
+    it appears in result.applicable but produces NO violation (byte-identical
+    legacy behavior; the default path is unchanged)."""
+    result = audit_slice(
+        _make_slice(tmp_path),
+        project_checks=CRITICAL_CHECKS,
+        global_checks=CLEAN_CHECKS,
+        skip_if_carry_over=False,
+        strict=False,
+    )
+    assert any(r.rule_id == "BC-PROJ-1" and r.severity == "Critical"
+               for r in result.applicable), "Critical rule should still be surfaced"
+    assert _unack_violations(result) == [], "default path must emit NO strict violations"
+
+
+def test_format_human_strict_surfaces_unmatched_and_unacked(tmp_path: Path):
+    """M2: the strict diagnostic in _format_human lists the unacknowledged-firing
+    Critical rule AND a typo'd/stale ack that matched no applicable Critical rule
+    (converts the fail-CLOSED silent-no-op into a visible diagnostic)."""
+    result = audit_slice(
+        _make_slice(tmp_path),
+        project_checks=CRITICAL_CHECKS,
+        global_checks=CLEAN_CHECKS,
+        skip_if_carry_over=False,
+        strict=True,
+        ack_critical=("BOGUS-ID",),
+    )
+    out = _format_human(result, strict=True, ack_critical=("BOGUS-ID",))
+    assert "UNACKNOWLEDGED" in out and "BC-PROJ-1" in out
+    assert "matched no applicable Critical rule" in out and "BOGUS-ID" in out
+
+
+def test_format_human_default_path_has_no_strict_diagnostic(tmp_path: Path):
+    """AC3: _format_human without strict emits no BCSG-1 diagnostic block."""
+    result = audit_slice(
+        _make_slice(tmp_path),
+        project_checks=CRITICAL_CHECKS,
+        global_checks=CLEAN_CHECKS,
+        skip_if_carry_over=False,
+        strict=False,
+    )
+    out = _format_human(result)
+    assert "BCSG-1" not in out and "acknowledgment gate" not in out
