@@ -1804,6 +1804,11 @@ def test_strict_unacknowledged_project_critical_becomes_violation(tmp_path: Path
     assert len(viols) == 1, f"expected 1 unacknowledged-critical violation, got {viols!r}"
     assert viols[0].rule_id == "BC-PROJ-1"
     assert viols[0].severity == "Critical"
+    # M1: the violation's path is the real build-checks file, not the
+    # "project"/"global" source label (consistent with parse-error violations).
+    assert viols[0].path.endswith("one_always_applies.md"), (
+        f"strict violation path must be the real checks file, got {viols[0].path!r}"
+    )
 
 
 def test_strict_global_source_critical_captured(tmp_path: Path):
@@ -1883,6 +1888,12 @@ def test_format_human_strict_surfaces_unmatched_and_unacked(tmp_path: Path):
     out = _format_human(result, strict=True, ack_critical=("BOGUS-ID",))
     assert "UNACKNOWLEDGED" in out and "BC-PROJ-1" in out
     assert "matched no applicable Critical rule" in out and "BOGUS-ID" in out
+    # M1: an unacknowledged-critical finding must NOT be rendered under the
+    # "parse violation(s)" header (the fixture has no parse errors) — it is
+    # surfaced only by the BCSG-1 diagnostic block.
+    assert "parse violation" not in out, (
+        "unacknowledged-critical must not be mislabeled as a parse violation"
+    )
 
 
 def test_format_human_default_path_has_no_strict_diagnostic(tmp_path: Path):

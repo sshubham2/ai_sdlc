@@ -540,9 +540,13 @@ def audit_slice(
         acked = set(ack_critical)
         for r in result.applicable:
             if r.severity.lower() == "critical" and r.rule_id not in acked:
+                # Match the parse-violation convention: path is the real
+                # build-checks file, not the "project"/"global" source label
+                # (both paths are resolved above, before the source loops).
+                rule_path = project_checks if r.source == "project" else global_checks
                 result.violations.append(
                     BuildCheckViolation(
-                        path=r.source,
+                        path=str(rule_path),
                         line=r.line,
                         rule_id=r.rule_id,
                         kind="unacknowledged-critical",
@@ -571,9 +575,18 @@ def _format_human(
 
     out: list[str] = []
 
-    if result.violations:
-        out.append(f"{len(result.violations)} build-checks parse violation(s):\n\n")
-        for v in result.violations:
+    # Parse violations and strict-gate (unacknowledged-critical) findings both
+    # live in result.violations, but they are categorically different (one is a
+    # malformed-build-checks.md error, the other an applicability-derived gate
+    # finding). Render parse violations under the "parse violation(s)" header;
+    # the unacknowledged-critical findings are surfaced by the BCSG-1 diagnostic
+    # block below (by rule ID) so the human output never mislabels them.
+    parse_violations = [
+        v for v in result.violations if v.kind != "unacknowledged-critical"
+    ]
+    if parse_violations:
+        out.append(f"{len(parse_violations)} build-checks parse violation(s):\n\n")
+        for v in parse_violations:
             out.append(
                 f"  [{v.severity}] {v.path}:{v.line} ({v.kind})\n"
                 f"    {v.message}\n\n"
@@ -683,7 +696,8 @@ def main(argv: list[str] | None = None) -> int:
             "Critical rule IDs the builder has addressed + attests (e.g. "
             "--ack-critical BC-PROJ-3 BC-GLOBAL-2). Only consulted with --strict. "
             "An ID matching no applicable Critical rule is ignored (surfaced as a "
-            "diagnostic). Place LAST on the command line (nargs greedy)."
+            "diagnostic). Place LAST or immediately before another --flag "
+            "(nargs='*' would swallow a following bareword; this parser has none)."
         ),
     )
     args = parser.parse_args(argv)
