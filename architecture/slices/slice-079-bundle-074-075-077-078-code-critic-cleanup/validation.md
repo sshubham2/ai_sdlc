@@ -1,7 +1,9 @@
 # Validation: Slice 079 bundle-074-075-077-078-code-critic-cleanup
 
 **Date**: 2026-05-29
-**Result**: PARTIAL
+**Result**: PASS (AC#5 resolved by user decision 2026-05-29 — archive-immutability carve-out; see AC5 below)
+
+> **User decision (2026-05-29, validate-slice PCA-1 PARTIAL gate)**: AC#5's source-pending-items.txt text-removal sub-clause is accepted as a documented non-actionable deferral (**DEFER-6**, archive-immutability — same basis as DEFER-1/3/4/5). AC#5's substantive obligation (fix + regression test for P1.1 + P3.10) is fully met, so AC#5 is treated as PASS-with-carve-out and the aggregate result is PASS. The forward handoff (routing P3.10' `find-real-mojibake-source` + still-open slice-075 P-items into a fresh live tracker) is delegated to /reflect, where handoff-file authorship naturally belongs.
 
 This is a self-hosting methodology slice — "real environment" = running the actual audits + regression tests against the real repo artifacts (not synthetic fixtures). Full pytest suite: **1125 passed / 0 failed**. Shippability catalog: **83 rows, 83 PASS, 0 FAIL** (no regression). VAL-1 layers: 0 secrets, 0 import findings.
 
@@ -24,11 +26,11 @@ This is a self-hosting methodology slice — "real environment" = running the ac
 - **Evidence**: Fix O (m1 6-arg formatter DRY — incl. the in-loop-added behavioral discriminator `test_formatter_uses_passed_winner_loser_not_diag_claim_history` closing code-review M1), Fix P (m2 `_QueueCandidate` NamedTuple + MISSING-FIELD), Fix Q (m3 atomicity docstring), Fix R (m5 catch-order comment) → `tests/methodology/test_pcr_2a_*` (4 files; existing `test_pcr_2a_vault_claim_resolver.py` no-regression). m4 (archived design.md stale `4 tests` claim) DEFERRED per DEFER-5 (archive-immutability). Shippability row 83.
 
 ### AC5: P1.1 + P3.10 each have a fix/reframe + regression test; both entries' current text removed from source-pending-items.txt
-- **Status**: **PARTIAL**
-- **Cause**: **spec gap** — the AC's text-removal sub-clause references a `source-pending-items.txt` that has since been **archived**.
+- **Status**: **PASS** (substantive obligation met; text-removal sub-clause = DEFER-6 archive-immutability carve-out, user-approved 2026-05-29)
+- **Cause (of the sub-clause carve-out)**: **spec gap** — the AC's text-removal sub-clause references a `source-pending-items.txt` that has since been **archived**.
 - **Evidence (substantive part — MET)**: P1.1 (build-slice point-4 variable-scope footgun) shipped a full fix via Fix A (vars extracted to shared pre-amble above the numbered Branch-state list), pinned by `test_build_slice_skill_branch_state_preamble.py`. P3.10 (slice_queue_writer mojibake) reframed per /critique B2+M3 to a structural-pin regression-guard (Fix S), pinned by `test_slice_queue_writer_utf8_encoding.py` (2 tests; FAIL→PASS via fixture-mutation; real source already UTF-8-compliant at all 9 I/O sites).
 - **Evidence (unmet sub-clause)**: "both entries' current text removed from source-pending-items.txt" + "route P3.10' to source-pending-items" cannot be performed. The ONLY `source-pending-items.txt` in the repo is `architecture/slices/archive/slice-075-.../source-pending-items.txt` (where P1.1 @L37 + P3.10 @L291 live). slice-075 is archived; editing its frozen handoff file violates archive-immutability (the same convention design.md DEFER-1/3/4/5 rely on). No live source-pending-items.txt exists for slice-079 (git confirms it never existed in the slice-079 folder). The AC was written at /slice time assuming a live handoff file (as slice-075 had); reality archived it before build.
-- **Action**: HALT for user decision (PCA-1 PARTIAL gate). The substantive fix+test obligation is fully met; the bookkeeping sub-clause is structurally blocked by archive-immutability. Recommended resolution surfaced via structured options. Do NOT auto-advance to /reflect.
+- **Action**: RESOLVED — user selected the archive-immutability carve-out (2026-05-29). Recorded as DEFER-6; AC#5 PASS-with-carve-out; aggregate PASS; PCA-1 gate cleared → /reflect proceeds. /reflect authors the forward handoff (P3.10' + open P-items into a fresh tracker).
 
 ## Multi-instance validation
 **Required?**: no (methodology/self-hosting slice — no multi-user/device/account surface)
