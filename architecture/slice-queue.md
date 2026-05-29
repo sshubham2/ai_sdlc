@@ -83,3 +83,11 @@ _Generated: 2026-05-28T18:22:26+00:00 by /slice during slice-078 definition_
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
 - **Risk-retired:** LOW
+
+### add-claim-sequence-number-for-clock-skew-detection
+
+- **Source:** R-23 corrigibility hook per PCR-2a (slice-078) m9 ACCEPTED-PENDING + /critique-review M-add-2 ACCEPTED-FIXED precedent. Adds a monotonic `**Claim-seq:**` field to PSQ-2 claim records; PCR-2a switches from strict-newer `Claimed-at` to strict-greater `Claim-seq`. Removes clock-skew dependence in cross-machine cooperative-not-adversarial parallel-slice workflow. PSQ-2 sub-mechanism change requiring its own slice (forward-compat with already-written second-precision claims).
+- **Blast-radius:** `tools/slice_queue_claim.py`, `tools/parallel_conflict_resolver.py`, `architecture/slice-queue.md` (format extension)
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** MEDIUM
+- **Risk-retired:** LOW

@@ -1,16 +1,16 @@
 ---
 slice: slice-078-add-pcr-2a-vault-claim-resolver
-stage: critique
+stage: complete
 updated: 2026-05-29
-next-action: run /build-slice
+next-action: none (slice complete)
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-078 add-pcr-2a-vault-claim-resolver
 
-**Stage**: critique (TRI-1 ratified; NEEDS-FIXES verdict)
-**Next action**: run `/build-slice`
+**Stage**: complete (SHIPPED; auto-archived next)
+**Next action**: none — slice complete; user invokes `/commit-slice` to generate the audit commit
 **Updated**: 2026-05-29
 **Risk tier**: medium — Critic required: **yes** (in-house methodology surfaces)
 
@@ -21,8 +21,10 @@ critic-required: true
 - [x] /critique — 2026-05-29 — first-Critic NEEDS-FIXES (3B/4M/9m; Builder ACCEPTED-FIXED 13, OVERRIDDEN 1, DEFERRED 1, ACCEPTED-PENDING 1 in same fix block per TPHD-1 sub-mode (a))
 - [x] /critique-review — 2026-05-29 — meta-Critic EXTEND (0 SUSPICIOUS, 2 MISSED, 0 SEVERITY-WRONG; M-add-1 Minor + M-add-2 Major; both ACCEPTED-FIXED in same fix block per TPHD-1 sub-mode (b))
 - [x] TRI-1 user ratification — 2026-05-29 — accept-all; verdict **NEEDS-FIXES** (m9 ACCEPTED-PENDING applies during /build-slice; 16 ACCEPTED-FIXED + 1 OVERRIDDEN + 1 DEFERRED already applied; triage_audit exit 0)
-- [ ] /build-slice
-- [ ] /code-review
+- [x] /build-slice — 2026-05-29 — SHIPPED (Phases A-G; mid-slice smoke 22/22; pre-finish gate 15/15 audits PASS; full pytest 1072/1072 PASS)
+- [x] /code-review — 2026-05-29 — 5 findings (0B/0M/5m advisory per CRSI-1 v1; voluntary-restraint N=17 routes all to `bundle-074-075-077-078-code-critic-cleanup`)
+- [x] /validate-slice — 2026-05-29 — **PASS** (5/5 ACs PASS; VAL-1 clean; SCMD-1/PTFCD-1/PTFFD-1 clean; shippability 77/77 PASS — no past-slice regression)
+- [x] /reflect — 2026-05-29 — reflection.md written; R-23 added; MCFS-1/AVFS-1/TVFS-1 forward-sync gates PASS; BCR-1 no-op clean; 3-Critic stack N=13 cumulative; voluntary-restraint N=18 cumulative; design→code translation gap N=15 cumulative; self-validating-slice property N=2 cumulative
 - [ ] /validate-slice
 - [ ] /reflect
 

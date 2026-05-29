@@ -26,26 +26,26 @@ Mint **PCR-2a** (parallel-conflict-resolution v2a — vault-claim sub-mechanism)
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_timestamp_winner_when_newer_in_stage_3 | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_timestamp_winner_when_newer_in_stage_2 | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_loser_auto_re_pick_skips_claimed_candidates | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_loser_auto_re_pick_skips_non_parallel_safe_candidates | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_no_available_when_queue_empty | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_no_available_when_all_overlapping | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_no_available_when_all_claimed | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_claimed_at_tie_returns_stop | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_multi_candidate_collision_returns_stop | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_overlay_silently_dropped_returns_stop | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_pick_loser_replacement_reads_resolved_text_not_disk | PENDING |
-| 2 | integration | tests/methodology/test_pcr_2a_regen_slice_queue_dispatch.py | test_resolve_soft_conflict_dispatches_vault_claim_into_pcr_2a | PENDING |
-| 2 | integration | tests/methodology/test_pcr_2a_regen_slice_queue_dispatch.py | test_regen_slice_queue_dispatches_into_vault_claim_resolver | PENDING |
-| 2 | integration | tests/methodology/test_pcr_2a_regen_slice_queue_dispatch.py | test_unknown_class_still_fail_closed | PENDING |
-| 3 | unit | tests/methodology/test_commit_slice_skill_vault_claim_dispatch.py | test_substep_2_5_l185_pins_vault_claim_in_apply_block | PENDING |
-| 3 | unit | tests/methodology/test_commit_slice_skill_vault_claim_dispatch.py | test_substep_2_5_l192_drops_vault_claim_from_fall_closed_enumeration | PENDING |
-| 3 | unit | tests/methodology/test_commit_slice_skill_vault_claim_dispatch.py | test_in_repo_and_installed_forward_synced | PENDING |
-| 4 | unit | tests/methodology/test_parallel_conflict_resolution_log_vault_claim.py | test_vault_claim_event_row_format | PENDING |
-| 4 | unit | tests/methodology/test_parallel_conflict_resolution_log_vault_claim.py | test_log_is_append_only_across_section_types | PENDING |
-| 5 | regression | tests/methodology/test_pcr_2a_repro_vault_claim_gate_closed.py | test_vault_claim_gate_closed_returns_resolution_result | PENDING |
+| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_timestamp_winner_when_newer_in_stage_3 | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_timestamp_winner_when_newer_in_stage_2 | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_loser_auto_re_pick_skips_claimed_candidates | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_loser_auto_re_pick_skips_non_parallel_safe_candidates | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_no_available_when_queue_empty | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_no_available_when_all_overlapping | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_no_available_when_all_claimed | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_claimed_at_tie_returns_stop | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_multi_candidate_collision_returns_stop | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_overlay_silently_dropped_returns_stop | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_vault_claim_resolver.py | test_pick_loser_replacement_reads_resolved_text_not_disk | PASSING |
+| 2 | integration | tests/methodology/test_pcr_2a_regen_slice_queue_dispatch.py | test_resolve_soft_conflict_dispatches_vault_claim_into_pcr_2a | PASSING |
+| 2 | integration | tests/methodology/test_pcr_2a_regen_slice_queue_dispatch.py | test_regen_slice_queue_dispatches_into_vault_claim_resolver | PASSING |
+| 2 | integration | tests/methodology/test_pcr_2a_regen_slice_queue_dispatch.py | test_unknown_class_still_fail_closed | PASSING |
+| 3 | unit | tests/methodology/test_commit_slice_skill_vault_claim_dispatch.py | test_substep_2_5_l185_pins_vault_claim_in_apply_block | PASSING |
+| 3 | unit | tests/methodology/test_commit_slice_skill_vault_claim_dispatch.py | test_substep_2_5_l192_drops_vault_claim_from_fall_closed_enumeration | PASSING |
+| 3 | unit | tests/methodology/test_commit_slice_skill_vault_claim_dispatch.py | test_in_repo_and_installed_forward_synced | PASSING |
+| 4 | unit | tests/methodology/test_parallel_conflict_resolution_log_vault_claim.py | test_vault_claim_event_row_format | PASSING |
+| 4 | unit | tests/methodology/test_parallel_conflict_resolution_log_vault_claim.py | test_log_is_append_only_across_section_types | PASSING |
+| 5 | regression | tests/methodology/test_pcr_2a_repro_vault_claim_gate_closed.py | test_vault_claim_gate_closed_returns_resolution_result | PASSING |
 
 ## Verification plan
 
