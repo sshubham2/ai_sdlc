@@ -2,6 +2,31 @@
 
 Append-only audit trail of `/drift-check` runs. Each entry records vault-vs-code divergence findings + resolutions.
 
+## Audit 2026-05-29 (slice-082)
+
+**Trigger**: slice-082 pre-finish gate (/build-slice Step 6)
+**Scope**: full (thin vault — ADR-074 + risk-register R-21 + active slice-082 design.md/mission-brief)
+**Findings**: 0 blockers, 0 majors, 1 minor (slice-local design.md line citations now approximate post-insertion — non-behavioral)
+
+### Blockers
+(none)
+
+### Majors
+(none)
+
+### Minors
+- `design.md` cites absolute line numbers in `tools/parallel_conflict_resolver.py` (e.g. write loop `:316`, helper internals `:666-727`/`:1242`). The guard insertion shifted these (empty-check unchanged at `:302`; write loop now `:339`; new `_verify_soft_equivalence` + `_append_equivalence_stop_audit` added ~150 lines so downstream helpers moved down). The LOGICAL/behavioral claims are accurate (guard runs after the empty-check, before the write loop, read-only; invariants #1-3 as specified; reuses `_SoftResolutionError`). Treated as expected self-insertion offset, NOT behavioral drift; the citations remain useful approximate anchors. Not churned per thin-vault.
+
+### Verified aligned
+- ADR-074 (`status: accepted`, `reversibility: cheap`, `supersedes: null`) — its decision (SOFT equivalence guard, R-21 fix-class (b)) matches design.md + mission-brief; selects the fix-class R-21's own register entry enumerates; contradicts no existing accepted ADR (refines ADR-069/PCR-1 in place, supersedes nothing).
+- design.md "What's new" behavioral claims verified on disk: `_verify_soft_equivalence` exists in `tools/parallel_conflict_resolver.py`, is read-only, raises the reused `_SoftResolutionError(..., ConflictClass.UNKNOWN)`, is called from `resolve_soft_conflict` after the `if not pending_writes` empty-check and before the write loop; `_append_equivalence_stop_audit` writes the `(equivalence-guard STOP)` section variant; the 3 invariants (claimed-subset claim-preservation / numbered-row completeness / symmetric prelude set-equality) are implemented as designed; M2 cross-stage-claim-drop is a stderr warn, not a STOP.
+- mission-brief must-not-defer all addressed in code: fail-closed default (unprovable → STOP); no partial writes (guard sits strictly before first `write_text`/`git add`/`rebase --continue`; STOP leaves U-files + index + rebase untouched — pinned by `test_stop_leaves_repo_state_unmutated`); audit trail (`_append_equivalence_stop_audit`, best-effort); happy-path preservation (`test_happy_path_*` + full PCR suite 159/159 green); APED-1 empirical battery (8 tests drive the real resolver against real tmp-repo rebase fixtures).
+- shippability.md row 88 pins `tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py` (AC-5) — `test_shippability_pins_equivalence_guard` asserts it.
+- MEPD-1 EXCLUDE: slice-082 mints no new RULE-ID (hardens PCR-1's SOFT path via ADR-074); no VERSION bump (slice-077/079 EXCLUDE precedent). VERSION stays `0.76.0`; PMI-1/AVFS-1/MCFS-1/TVFS-1 all PASS unchanged. risk-register R-21 retirement happens at /reflect (STP-1 clean now — no test pins R-21 status).
+
+### Resolutions
+- None required — vault and code aligned for the slice-082 surface (the one minor is cosmetic line-citation offset, intentionally not churned).
+
 ## Audit 2026-05-15 14:40
 
 **Trigger**: slice-024 pre-finish gate (/build-slice Phase 6)

@@ -5,7 +5,8 @@
 **Risk retired**: R-21 (SOFT auto-regen produces semantically-different content from manual-resolve baseline at a corner case) — top open risk, score 4, medium band
 **Test-first**: true  (per TF-1 — the corner case is constructed as a failing test before the guard is written)
 **Walking-skeleton**: false
-**Exploratory-charter**: true  (per ETC-1 — R-21 explicitly states corner-case discovery is *empirical*; one timeboxed charter hunts the divergence case)
+**Exploratory-charter**: true
+<!-- per ETC-1 — R-21 explicitly states corner-case discovery is *empirical*; one timeboxed charter hunts the divergence case. NOTE: ETC-1's field regex is `$`-anchored so the value must be exactly `true` with no trailing prose (unlike TF-1's looser parser). -->
 
 ## Intent
 
@@ -25,11 +26,13 @@ PCR-1's SOFT auto-resolve (`tools/parallel_conflict_resolver.py`) silently regen
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_corner_case_soft_regen_diverges_from_baseline | PENDING |
-| 2 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_equivalence_guard_stops_on_unprovable_equivalence | PENDING |
-| 2 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_stop_leaves_repo_state_unmutated | PENDING |
-| 3 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_guard_stop_logged_with_structured_reason | PENDING |
-| 4 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_happy_path_equivalence_holds_guard_transparent | PENDING |
+| 1 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_corner_case_soft_regen_diverges_from_baseline | PASSING |
+| 2 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_equivalence_guard_stops_on_unprovable_equivalence | PASSING |
+| 2 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_trailing_whitespace_heading_still_stops | PASSING |
+| 2 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_stop_leaves_repo_state_unmutated | PASSING |
+| 3 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_guard_stop_logged_with_structured_reason | PASSING |
+| 4 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_happy_path_equivalence_holds_guard_transparent | PASSING |
+| 5 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_shippability_pins_equivalence_guard | PASSING |
 
 ## Exploratory test charter
 
@@ -37,7 +40,7 @@ PCR-1's SOFT auto-resolve (`tools/parallel_conflict_resolver.py`) silently regen
 
 | # | Mission | Timebox | Status | Findings |
 |---|---------|---------|--------|----------|
-| 1 | Explore SOFT auto-regen using adversarial `slice-queue.md` / `shippability.md` branch pairs (concurrent claim+drop, reordered candidates, near-duplicate rows, unicode/EOL-skewed cells) to find semantic-divergence cases the equivalence guard must catch | 60min | PENDING | — |
+| 1 | Explore SOFT auto-regen using adversarial `slice-queue.md` / `shippability.md` branch pairs (concurrent claim+drop, reordered candidates, near-duplicate rows, unicode/EOL-skewed cells) to find semantic-divergence cases the equivalence guard must catch | 60min | COMPLETED | Surfaced **5 divergence/edge cases**, all now covered: (1) **malformed-block claim drop** (baseline `### name` block missing `Risk-retired:` → overlay drops the claim) — designed vector 1, reproduced + STOPped. (2) **discarded-prelude / non-numbered-row drop** (`_merge_shippability` keeps only stage-3 prelude; `\| 5,6 \|` / `\| 030C \|` split/combined rows land in prelude and escape the bare-int numbered regex) — designed vector 2, caught by symmetric invariant #3. (3) **rebase-stage inversion** — empirically `git show :2:`=master, `:3:`=branchA(baseline), and `_merge_claim_dicts` keeps the stage-2 entry when stage-3 `claimed_at` is absent; drove the fixture branch-side design (helper renamed `branchA=`/`master=`). (4) **trailing-whitespace heading bypass** (`### add-foo ` → guard's un-stripped regex name never intersected the rstripped `claimed_names`, silently bypassing invariant #1) — found by the code-Critic (M1), FIXED in-loop with `test_trailing_whitespace_heading_still_stops`. (5) **CRLF/EOL-skewed cells** — investigated; mitigated because `_git_show_stage` uses `subprocess.run(text=True)` universal-newline decoding (CRLF→LF before the regex). No further divergence class left uncovered for the canonical SOFT 2-file set; the genuinely-corrupt-baseline (truncated stage) case remains a named R-21 residual deferred to PCR-2b (warn-not-STOP per M2). |
 
 COMPLETED rows MUST have non-empty Findings. DEFERRED rows MUST carry a rationale.
 

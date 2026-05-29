@@ -41,7 +41,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, NoReturn
 
 from tools import _stdout
 
@@ -305,6 +305,28 @@ def resolve_soft_conflict(
             conflict_class=ConflictClass.UNKNOWN,
             regenerated_files=(),
             reason="SOFT classification but no files regenerated - rebase state unexpected",
+        )
+
+    # ADR-074 / R-21 fix-class (b): SOFT equivalence guard. Read-only structural
+    # verification that the regenerated pending content is in a deterministic
+    # equivalence class against both rebase stages. Runs ONLY on the all-SOFT-
+    # helpers-succeeded path (the _VaultClaimDispatch / _SoftResolutionError handlers
+    # above already returned; the empty-check above already returned), strictly
+    # BEFORE the first write_text / git add / git rebase --continue — so a guard-STOP
+    # mutates no tracked conflict state (atomicity per ADR-069). It reuses
+    # _SoftResolutionError (NOT a new exception class — m1) caught by this local
+    # try/except: the original loop-try (L274-300) has already closed before the
+    # empty-check, so the guard's pinned post-empty-check call-site (M3) needs its
+    # own catch. _verify_soft_equivalence appends a best-effort audit-log STOP entry
+    # before raising (AC-3).
+    try:
+        _verify_soft_equivalence(repo_root, diag, pending_writes)
+    except _SoftResolutionError as exc:
+        return ResolutionResult(
+            action="STOP",
+            conflict_class=exc.conflict_class,
+            regenerated_files=(),
+            reason=str(exc),
         )
 
     # Commit phase: all helpers succeeded — write all resolved content
@@ -1275,6 +1297,202 @@ def _parse_shippability_rows(text: str) -> tuple[dict[int, str], list[str]]:
         else:
             prelude.append(line)
     return (numbered, prelude)
+
+
+def _verify_soft_equivalence(
+    repo_root: Path,
+    diag: ConflictDiagnostic,
+    pending_writes: list[tuple[Path, str]],
+) -> None:
+    """ADR-074 / R-21 fix-class (b): SOFT auto-regen equivalence guard.
+
+    Read-only. Proves the regenerated *pending* content is in a deterministic
+    equivalence class against BOTH rebase stages along three invariants; if any is
+    unprovable (or a re-derivation/re-parse fails), raises
+    ``_SoftResolutionError(reason, ConflictClass.UNKNOWN)`` after a best-effort
+    audit-log STOP entry. The caller (``resolve_soft_conflict``) translates the raise
+    into a fail-closed STOP with NO writes — closing R-21's silent-wrong-resolution class.
+
+    Invariants (see design.md / ADR-074):
+      #1 Queue claim-preservation (CLAIMED subset only, M-add-1): every CLAIMED
+         candidate present as a ``### <name>`` heading in the baseline MUST carry its
+         claim in the regenerated queue. Orphan claims (absent from baseline) are an
+         expected top-10-churn drop and are NOT a STOP — but a claimed orphan that had a
+         heading in the *discarded* stage gets a LOUD cross-stage-claim-drop warning
+         (M2: truncated-baseline observability without false-STOPping legitimate churn).
+      #2 Shippability row-completeness: numbered-row set == union of both stages'.
+      #3 Shippability prelude set-equality (symmetric, M1): non-blank prelude lines are
+         equal across both stages AND preserved in the output — catches non-numbered
+         (split/combined) row content-mutation in EITHER stage.
+    """
+    import re as _re  # noqa: PLC0415
+
+    pending: dict[str, str] = {}
+    for out_path, content in pending_writes:
+        try:
+            rel = out_path.relative_to(repo_root).as_posix()
+        except ValueError:  # pragma: no cover - defensive; pending paths are repo-rooted
+            rel = out_path.as_posix()
+        pending[rel] = content
+
+    def _fail(reason: str) -> NoReturn:  # m2: NoReturn — always raises; lets a type-checker
+        # prove the post-_fail code (e.g. the pending_claims read) is unreachable.
+        try:
+            _append_equivalence_stop_audit(repo_root, diag, reason)
+        except Exception as exc:  # noqa: BLE001 - audit is best-effort, never blocks the STOP
+            print(
+                f"parallel-conflict-resolver: equivalence-guard audit append failed "
+                f"(non-blocking): {exc!r}",
+                file=sys.stderr,
+            )
+        raise _SoftResolutionError(reason, ConflictClass.UNKNOWN)
+
+    # --- Invariant #1: queue claim-preservation -------------------------------
+    qrel = "architecture/slice-queue.md"
+    if qrel in pending:
+        text_2 = _git_show_stage(repo_root, 2, qrel)
+        text_3 = _git_show_stage(repo_root, 3, qrel)
+        claims_2, claims_3 = _extract_claim_diff(text_2, text_3)
+        merged_claims = _merge_claim_dicts(claims_2, claims_3)
+        baseline_is_stage3 = bool(text_3)  # m3: explicit stage identity (not full-text ==)
+        baseline_text = text_3 if baseline_is_stage3 else text_2
+        # M1 (code-Critic): .strip() each captured heading to match the canonical
+        # parse_queue_text parser (slice_queue_claim.py:113 rstrips before its
+        # `^### (?P<name>\S.*)$` match). Without the strip, a baseline heading carrying
+        # a trailing space (`### add-foo `) yields `'add-foo '`, which never intersects
+        # the rstripped `claimed_names` — silently bypassing the fail-closed invariant #1.
+        baseline_headings = {m.strip() for m in _re.findall(r"^### (.+)$", baseline_text, _re.MULTILINE)}
+        # M-add-1: domain is the CLAIMED subset of merged_claims, NOT all keys
+        # (merged_claims includes unclaimed candidates; checking them would false-STOP
+        # the happy path since the overlay only emits claim lines for claimed entries).
+        claimed_names = {n for n, d in merged_claims.items() if d.get("claimed_by")}
+
+        try:
+            from tools.slice_queue_claim import (  # noqa: PLC0415
+                ClaimUsageError,
+                parse_queue_text,
+            )
+            pending_claims = parse_queue_text(pending[qrel])
+        except ImportError as exc:
+            _fail(
+                f"equivalence-guard: cannot verify invariant #1 — "
+                f"slice_queue_claim.parse_queue_text unavailable: {exc!r}"
+            )
+        except ClaimUsageError as exc:
+            _fail(
+                f"equivalence-guard: invariant #1 unprovable — regenerated slice-queue.md "
+                f"has a partial/unparseable claim block: {exc!r}"
+            )
+
+        for name in sorted(claimed_names & baseline_headings):
+            pc = pending_claims.get(name) or {}
+            if not pc.get("claimed_by"):
+                _fail(
+                    f"equivalence-guard: invariant #1 claim-preservation unprovable — "
+                    f"claimed candidate {name!r} is present in the baseline queue but its "
+                    f"claim is ABSENT from the regenerated slice-queue.md (malformed-block "
+                    f"drop / semantic divergence vs manual-resolve baseline; R-21)"
+                )
+
+        # M2: loud (non-STOP) cross-stage-claim-drop warning for claimed orphans that
+        # existed as a heading in the discarded stage (truncated-baseline observability).
+        stage2_headings = {m.strip() for m in _re.findall(r"^### (.+)$", text_2, _re.MULTILINE)}
+        stage3_headings = {m.strip() for m in _re.findall(r"^### (.+)$", text_3, _re.MULTILINE)}
+        discarded_headings = stage2_headings if baseline_is_stage3 else stage3_headings
+        for name in sorted(claimed_names - baseline_headings):
+            if name in discarded_headings:
+                print(
+                    f"parallel-conflict-resolver: cross-stage-claim-drop: claimed candidate "
+                    f"{name!r} present in a discarded rebase stage but absent from the "
+                    f"baseline — verify the baseline is not truncated (expected on legitimate "
+                    f"top-10 churn; a genuinely-corrupt baseline is a narrow R-21 residual "
+                    f"deferred to PCR-2b)",
+                    file=sys.stderr,
+                )
+
+    # --- Invariants #2 + #3: shippability -------------------------------------
+    srel = "architecture/shippability.md"
+    if srel in pending:
+        s2 = _git_show_stage(repo_root, 2, srel)
+        s3 = _git_show_stage(repo_root, 3, srel)
+        numbered_2, prelude_2 = _parse_shippability_rows(s2) if s2 else ({}, [])
+        numbered_3, prelude_3 = _parse_shippability_rows(s3) if s3 else ({}, [])
+        numbered_out, prelude_out = _parse_shippability_rows(pending[srel])
+
+        # #2 row-completeness. NOTE (m1 / code-Critic): this is a round-trip-STABILITY
+        # backstop, NOT a stage-divergence check — `_merge_shippability` builds the output
+        # as `numbered_2 | numbered_3` by construction, so the key-set equality is near-
+        # tautological on the happy path. It still earns its place: it catches a lossy
+        # re-parse (a future writer emitting a slice-number `_parse_shippability_rows` no
+        # longer matches on `^\|\s*(\d+)\s*\|`). Same-number content-mutation is caught
+        # upstream at `_merge_shippability` (HARD escalation); content-mutation lives in
+        # invariant #3's prelude check for non-numbered rows.
+        expected_nums = set(numbered_2) | set(numbered_3)
+        if set(numbered_out) != expected_nums:
+            _fail(
+                f"equivalence-guard: invariant #2 row-completeness unprovable — regenerated "
+                f"shippability.md numbered rows {sorted(set(numbered_out))} != union of both "
+                f"stages {sorted(expected_nums)}"
+            )
+
+        # #3 symmetric prelude set-equality + output preservation
+        def _nonblank(lines: list[str]) -> set[str]:
+            return {ln for ln in lines if ln.strip()}
+
+        nb2, nb3, nbo = _nonblank(prelude_2), _nonblank(prelude_3), _nonblank(prelude_out)
+        if nb2 != nb3:
+            _fail(
+                f"equivalence-guard: invariant #3 prelude set-equality unprovable — non-numbered "
+                f"shippability lines differ between rebase stages (possible non-numbered/split-row "
+                f"content-mutation): {sorted(nb2 ^ nb3)}"
+            )
+        if nbo != nb2:
+            _fail(
+                f"equivalence-guard: invariant #3 prelude-preservation unprovable — regenerated "
+                f"shippability prelude diverges from the input stages: {sorted(nbo ^ nb2)}"
+            )
+
+
+def _append_equivalence_stop_audit(
+    repo_root: Path, diag: ConflictDiagnostic, reason: str
+) -> None:
+    """Append a guard-STOP entry to the audit log (best-effort; ADR-074 / AC-3).
+
+    Distinct section variant ``## Soft-conflict resolution (equivalence-guard STOP) - <ts>``
+    so a guard-STOP is recoverable from the audit trail. The SOFT/VAULT_CLAIM APPLIED
+    section shapes (``_append_audit_log``) are unchanged.
+    """
+    log_path = repo_root / _AUDIT_LOG_PATH
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    try:
+        head_proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        head_sha = head_proc.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        head_sha = "(unavailable)"
+
+    u_files_csv = ", ".join(diag.u_files) if diag.u_files else "(none)"
+    entry = (
+        f"## Soft-conflict resolution (equivalence-guard STOP) - {timestamp}\n"
+        "\n"
+        f"**Repo HEAD SHA pre-resolution**: {head_sha}\n"
+        f"**U-files**: {u_files_csv}\n"
+        "**Outcome**: STOP (fail-closed, no writes) per ADR-074 SOFT equivalence guard\n"
+        f"**Reason**: {reason}\n\n"
+    )
+
+    needs_header = not log_path.exists()
+    with log_path.open("a", encoding="utf-8", newline="") as f:
+        if needs_header:
+            f.write(_AUDIT_LOG_HEADER)
+        f.write(entry)
 
 
 def _append_audit_log(
