@@ -2,15 +2,15 @@
 slice: slice-079-bundle-074-075-077-078-code-critic-cleanup
 stage: build
 updated: 2026-05-29
-next-action: Phase G — `tools/parallel_conflict_resolver.py` fixes O (`_format_vault_claim_audit_entry` 6-arg DRY + pragma:no-cover branch) + P (`MISSING-FIELD` sentinel) + Q (Step-5 atomicity docstring) + R (`_VaultClaimDispatch` catch-order comment)
+next-action: Phase H — `tools/slice_queue_writer.py` Fix S UTF-8 encoding structural-pin (the encoding=utf-8 invariant; root-cause mojibake investigation DEFERRED to source-pending P3.10'), then Phase I pre-finish gate
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-079 bundle-074-075-077-078-code-critic-cleanup
 
-**Stage**: build (Phases A–F complete + MID-SLICE SMOKE GATE passed-in-substance; Phase G pending)
-**Next action**: Phase G — `tools/parallel_conflict_resolver.py` fixes O (6-arg formatter DRY) + P (MISSING-FIELD sentinel) + Q (Step-5 atomicity docstring) + R (_VaultClaimDispatch comment)
+**Stage**: build (Phases A–G complete + MID-SLICE SMOKE GATE passed-in-substance; Phase H pending)
+**Next action**: Phase H — `tools/slice_queue_writer.py` Fix S UTF-8 encoding structural-pin, then Phase I pre-finish gate (Step 6 audits + full pytest + build-log Summary)
 **Updated**: 2026-05-29
 **Risk tier**: medium — Critic required: yes
 **Worktree**: `C:\Users\sshub\ai_sdlc-wt\slice-079-bundle-074-075-077-078-code-critic-cleanup` on branch `slice/079-bundle-074-075-077-078-code-critic-cleanup`
@@ -31,7 +31,7 @@ critic-required: true
   - [x] **MID-SLICE SMOKE GATE** (after Phase D ~50%) — passed-in-substance: 984 pass, 8 fail = all Phase-B-prescaffolded WRITTEN-FAILING tests for Phases F+G; zero regressions
   - [x] Phase E — `tools/pulse_worktree_resolver.py` fixes K-N (27 pulse tests PASS; MAP-ONLY constant; no SKILL.md edit)
   - [x] Phase F — pulse tests cleanup fixes H, I, J (29 PASS; also fixed meta-test `__future__` bug + a stray Phase-B unused import)
-  - [ ] Phase G — `tools/parallel_conflict_resolver.py` fixes O-R
+  - [x] Phase G — `tools/parallel_conflict_resolver.py` fixes O-R (28 PCR-2a tests PASS; Fix P needed NamedTuple not just sentinel — design delta logged)
   - [ ] Phase H — `tools/slice_queue_writer.py` Fix S structural-pin
   - [ ] Phase I — Pre-finish gate (Step 6 audits + full pytest + build-log Summary)
 - [ ] /code-review
