@@ -89,6 +89,7 @@ _POSITIONAL_SLICE_TOOLS = [
     "tools.cross_spec_parity_audit",
     "tools.supersede_audit",
     "tools.critique_review_prerequisite_audit",
+    "tools.drift_check_audit",  # slice-081 / DCE-1 (positional slice-folder arg, CRP-1 shape)
 ]
 
 # Tools with --root only

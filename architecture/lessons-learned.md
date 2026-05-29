@@ -1762,3 +1762,20 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - Adding an enforced exit-gate to a computed-applicability audit (no per-item status field): acknowledgment-flag beats blunt-count (un-passable) and status-row-surface (heavyweight). Reusable for future audit-hardening.
 - A new `always:true` Critical build-check imposes a STANDING per-slice acknowledgment cost (every Step 6 must ack it). Weigh Critical+always vs Important-or-glob-scoped before promoting — the enforcement is real but recurring.
 - Output-honesty / contract-consistency-inside-functions (a printed header that contradicts the code's own docstring; a struct field whose semantics silently diverge for a new variant) is a code-Critic surface — the design-Critic reviews intent, the code-Critic reviews what the code actually prints/returns.
+
+## Slice 081 (fix-drift-check-enforcement-gap) — 2026-05-29
+
+### Worked
+- Cloning CRP-1 (`tools/critique_review_prerequisite_audit.py`) as the DCE-1 template: byte-faithful reuse of `_frontmatter_*` / `_resolve_mode` / `_SKIP_VALUE_RE` / exit-mapping made the new gate small, low-risk, and instantly conformant (UTF8-STDOUT-1, mode-resolution, escape-hatch lifecycle all inherited). Procedural "was-an-artifact-produced" gates (CRP-1 critique-review.md, DCE-1 drift-log marker) are a reusable family.
+- Choosing the procedural was-it-marked scope (ADR-073 Option A) over mechanical re-verification (B) or both (C): closed the actual reported gap (silent skip) with zero false-positive surface, SMALL effort, and honest residual-gap disclosure — and the honesty survived code review.
+- The 3-Critic stack earned its cost cleanly: design-Critic caught the producer/consumer token mismatch (B1) + the undelivered Step-7b preservation (B2); meta-Critic caught the symmetric false-ACCEPT (M-add-1, the gate-defeating bug) + re-graded a hallucinated-premise Major (M1) to Minor; code-Critic caught the left-anchor regex gap (m1) the other two missed. Three personas, three distinct defect classes.
+- BFRD-1 → /repro → /slice → full chain ran end-to-end autonomously with HALTs only at the genuine user-input gates (BFRD-1 confirm, TRI-1 triage, plan approval).
+
+### Didn't work
+- The matcher shipped right-anchored-only despite the docstring claiming "slice-anchored" — caught at code-review (m1), not at design/critique. A single "anchored" claim hid two obligations (left + right boundary); the test battery only parametrized right-side collisions until m1 added left-prefix rows.
+- 8 second-order drift realignments fired from one new-audit-tool + version-bump slice. All caught (STP-1 + full suite), but BC-PROJ-7's enumerated checklist covers only 2 of ~6 such sites — the rest were caught late by the full-suite rather than by an upfront checklist.
+
+### Pattern
+- For any matcher/regex claiming to be "anchored", assert BOTH boundaries in the adversarial test battery — and have the code-Critic read the actual regex (the design/meta layers reasoned about the matcher but neither inspected the literal left boundary).
+- A new VAULT_ROOT-consuming + version-bumping audit-tool slice touches a wide, partly-unenumerated drift surface (cp1252 list, VAULT_ROOT migration allowlist, INSTALL count, per-slice version-sync test rename, changelog entry-pin, orphan-literal markers). BC-PROJ-7 enumerates 2; extending it to the full fan-out would convert "caught-late" into "caught-upfront". Candidate for a future slice.
+- The meta-Critic's highest-value catch (M-add-1) and the code-Critic's catch (m1) were the same class from opposite directions — "anchoring asserted in prose, not fully delivered/tested". Watch at /critic-calibrate whether matcher slices recur here.

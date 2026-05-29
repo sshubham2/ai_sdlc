@@ -5196,6 +5196,69 @@ def test_v_0_75_0_bcsg_1_shippability_consumer_propagation():
     )
 
 
+def test_v_0_76_0_dce_1_entry_present_in_repo():
+    """methodology-changelog v0.76.0 / DCE-1 Drift-Check Enforcement gate
+    entry-pin (content-bearing per slice-076/078/080 precedent).
+
+    Asserts the load-bearing substring anchors:
+      (a) `## v0.76.0` dated header
+      (b) `DCE-1` rule reference (the new RULE-ID this entry mints)
+      (c) `ADR-073` reference
+      (d) `mints a new rule` (supersedes nothing per ADR-073 frontmatter)
+      (e) `5-part PMI-1 atomic bump` (canonical anchor)
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.76.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.76.0 entry header — "
+        "slice-081 DCE-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.76.0")
+    assert "DCE-1" in body, (
+        "v0.76.0 entry body missing the 'DCE-1' rule reference — "
+        "entry-pin broken at the rule-reference layer"
+    )
+    assert "ADR-073" in body, (
+        "v0.76.0 entry body must reference ADR-073 (the new ADR minting DCE-1)"
+    )
+    assert "mints a new rule" in body, (
+        "v0.76.0 entry must state 'mints a new rule' (DCE-1 supersedes nothing per ADR-073)"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.76.0 entry body missing the '5-part PMI-1 atomic bump' anchor"
+    )
+
+
+def test_v_0_76_0_dce_1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the DCE-1 consumer
+    reference MUST propagate into `architecture/shippability.md` so the
+    slice-081 DCE-1 gate can never silently regress.
+
+    The DCE-1 gate row is located by its entry-pin test name (NOT the bare
+    slice-081 slug — that also matches the BFRD-1 repro row #86).
+
+    Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability.
+    """
+    catalog = read_file("architecture/shippability.md")
+    anchor = "test_v_0_76_0_dce_1_entry_present_in_repo"
+    assert anchor in catalog, (
+        "architecture/shippability.md must contain a DCE-1 gate row citing the "
+        "entry-pin test by canonical name (BC-PROJ-10 paired-pin schema)"
+    )
+    row_start = catalog.rfind("\n| ", 0, catalog.find(anchor)) + 1
+    row_end = catalog.find("\n| ", catalog.find(anchor))
+    row = catalog[row_start:row_end] if row_end > 0 else catalog[row_start:row_start + 8000]
+    assert "DCE-1" in row, "DCE-1 gate row must cite DCE-1 (the new RULE-ID)"
+    assert "ADR-073" in row, "DCE-1 gate row must cite ADR-073 (the new ADR)"
+    assert "test_v_0_76_0_dce_1_shippability_consumer_propagation" in row, (
+        "DCE-1 gate row must cite the shippability-consumer-propagation test "
+        "function by canonical name (BC-PROJ-10 paired-pin schema)"
+    )
+    assert "drift_check_audit" in row, (
+        "DCE-1 gate row must reference 'drift_check_audit' (the touched module) "
+        "for catalog-runner discoverability"
+    )
+
+
 def test_v_0_73_0_pcr_1_entry_present_in_repo():
     """methodology-changelog v0.73.0 / PCR-1 parallel-conflict-resolution v1
     entry-pin (content-bearing per slice-073 PSQ-3 / slice-072 PSQ-2 / slice-067
@@ -5298,40 +5361,40 @@ def test_v_0_73_0_pcr_1_shippability_consumer_propagation():
     )
 
 
-def test_version_files_synchronized_at_v_0_75_0():
-    """AC — 5-part PMI-1 atomic bump 0.74.0 → 0.75.0 (slice-080).
+def test_version_files_synchronized_at_v_0_76_0():
+    """AC — 5-part PMI-1 atomic bump 0.75.0 → 0.76.0 (slice-081).
 
     Verifies the 5 canonical version-bearing legs are synchronized at
-    `0.75.0` post-bump:
+    `0.76.0` post-bump:
       (1) `VERSION` file
       (2) `plugin.yaml` version field
       (3) `pyproject.toml [project].version` field (PVFS-1)
-      (4) `## v0.75.0` header in `methodology-changelog.md`
+      (4) `## v0.76.0` header in `methodology-changelog.md`
       (5) installed `~/.claude/ai-sdlc-VERSION` (AVFS-1; verified separately
           by the AVFS-1 audit; this test asserts legs 1-4 only — leg 5 is
           environment-dependent and may be absent on a fresh checkout,
           where AVFS-1 returns WARN per slice-030A meta-M3 parity)
 
-    Renamed from `_at_v_0_74_0` at slice-080 per the slice-067/072/073/078 etc.
+    Renamed from `_at_v_0_75_0` at slice-081 per the slice-067/072/073/078/080 etc.
     rename precedent (the version-files test follows live version; the
-    historical v0.74.0 entry persists in the methodology-changelog body).
+    historical v0.75.0 entry persists in the methodology-changelog body).
     """
     version = read_file("VERSION").strip()
-    assert version == "0.75.0", (
-        f"VERSION file must equal '0.75.0' post-bump; got {version!r}. "
+    assert version == "0.76.0", (
+        f"VERSION file must equal '0.76.0' post-bump; got {version!r}. "
         "5-part PMI-1 leg 1 broken — re-run the bump or fix VERSION manually."
     )
     plugin_yaml = read_file("plugin.yaml")
-    assert "version: 0.75.0" in plugin_yaml or 'version: "0.75.0"' in plugin_yaml, (
-        "plugin.yaml must contain 'version: 0.75.0' post-bump (5-part PMI-1 leg 2)"
+    assert "version: 0.76.0" in plugin_yaml or 'version: "0.76.0"' in plugin_yaml, (
+        "plugin.yaml must contain 'version: 0.76.0' post-bump (5-part PMI-1 leg 2)"
     )
     pyproject = read_file("pyproject.toml")
-    assert 'version = "0.75.0"' in pyproject, (
-        "pyproject.toml [project].version must equal '0.75.0' post-bump (PVFS-1; "
+    assert 'version = "0.76.0"' in pyproject, (
+        "pyproject.toml [project].version must equal '0.76.0' post-bump (PVFS-1; "
         "5-part PMI-1 leg 3)"
     )
     changelog = read_file("methodology-changelog.md")
-    assert "## v0.75.0" in changelog, (
-        "methodology-changelog.md must contain '## v0.75.0' header post-bump "
+    assert "## v0.76.0" in changelog, (
+        "methodology-changelog.md must contain '## v0.76.0' header post-bump "
         "(5-part PMI-1 leg 4)"
     )

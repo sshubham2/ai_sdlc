@@ -173,7 +173,7 @@ Before declaring slice done, ALL of these must be true:
 
 - [ ] All acceptance criteria PASS with evidence
 - [ ] All must-not-defer items addressed (no TODO, no stub, no silent except)
-- [ ] `/drift-check` passes (vault and code aligned)
+- [ ] `/drift-check` passes (vault and code aligned) — run in **full mode**, which appends the slice's `**Trigger**:` entry to `architecture/drift-log.md` (the marker the DCE-1 gate verifies)
 - [ ] Mid-slice smoke still passes (no regression)
 - [ ] No new TODOs / FIXMEs / debug prints / console.logs
 - [ ] **Mock-budget lint passes (LINT-MOCK-1)** — see "Mock-budget lint" below
@@ -190,8 +190,32 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **ai-sdlc-VERSION forward-sync audit passes (AVFS-1)** — see "ai-sdlc-VERSION forward-sync audit" below
 - [ ] **ai-sdlc-tools version forward-sync audit passes (TVFS-1)** — see "ai-sdlc-tools version forward-sync audit" below
 - [ ] **New-agent session-restart warning (NAW-1)** — see "New-agent warning audit" below
+- [ ] **Drift-check enforcement audit passes (DCE-1)** — see "Drift-check enforcement audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
+
+#### Drift-check enforcement audit (DCE-1)
+
+Per **DCE-1** (`methodology-changelog.md` v0.76.0; slice-081; [[ADR-073]]; mints a new rule; supersedes nothing): `/drift-check` was the only pipeline discipline preached (CLAUDE.md "Run /drift-check before commit") and listed in this checklist yet enforced by nothing — no `tools/drift_check_audit.py`, no installed pre-commit hook, only the honor-system checkbox above (the R-7 / slice-022 silent-disable failure class). DCE-1 converts the drift-check checkbox into an audit-enforced gate.
+
+**Order is load-bearing**: run `/drift-check` **in full mode** FIRST (only full mode appends the `**Trigger**: slice-NNN pre-finish gate` entry to `architecture/drift-log.md`; `--fast` writes stdout only and leaves NO marker), THEN run the audit:
+
+```bash
+$PY -m tools.drift_check_audit architecture/slices/slice-NNN-<name>
+```
+
+The audit is a procedural *was-it-marked* gate (ADR-073 § Scope honesty): it verifies a slice-referencing drift-log marker exists — NOT that the semantic comparison was performed (that stays Claude's irreducible judgement via the `/drift-check` skill). The match is **line-anchored** to lines beginning `**Trigger**:` AND slice-number-anchored (`slice[- ]?0*<N>\b`) — a cross-mention of the slice number in another entry's `**Scope**` / Notes / heading does NOT satisfy the gate (per /critique-review M-add-1, mirroring CRP-1's keyed-not-substring discipline per ADR-024).
+
+Refusal semantics:
+- `drift-check-not-run` (Important, exit 1): mode ∈ {STANDARD, HEAVY} AND no `**Trigger**:` line in `drift-log.md` references the slice number AND no canonical `drift-check-skip` milestone.md frontmatter key. A missing/empty `drift-log.md` is "no marker" → refuse (NOT usage-error).
+- `escape-hatch-malformed` (Important, exit 1): `drift-check-skip:` key present but value ≠ `^skip — rationale: .+`.
+- `usage-error` / `mode-unresolvable` (exit 2): slice folder / milestone.md missing, slice-folder name off-shape, or mode unresolvable from `architecture/triage.md` frontmatter `mode:` → `CLAUDE.md` `**Mode**:` fallback. Fail-visible, never a false refuse.
+
+Accept (exit 0): a slice-referencing `**Trigger**:` line present, OR canonical `drift-check-skip` value present, OR resolved mode == MINIMAL (drift-check is skipped-by-default in Minimal).
+
+Escape-hatch: to deliberately skip drift-check for a slice, add `drift-check-skip: "skip — rationale: <text>"` to milestone.md frontmatter (Step 7b preserves it verbatim — see Step 7b). DCE-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1 / STP-1 / AVFS-1 / TVFS-1 / NAW-1) — its programmatic gate is `tools/drift_check_audit.py`.
+
+Bootstrap (slice-081 only): slice-081 authors DCE-1. At slice-081's own Step 6 the build runs `/drift-check` full mode (writing a `**Trigger**: slice-081 pre-finish gate` line to `architecture/drift-log.md`) BEFORE the audit, which must then exit 0 (self-application discharge). A non-zero before that drift-check run is the EXPECTED signal to run `/drift-check` first — NOT a slice defect; re-run until exit 0. Every slice after 081 inherits a self-gating DCE-1. (Same bootstrap shape as CRP-1 slice-026 / PCA-1 slice-027 / NAW-1 slice-063.)
 
 #### Branch workflow audit (BRANCH-1)
 
@@ -491,7 +515,7 @@ Updates during build:
 - At mid-slice smoke gate: record pass/fail in "Current focus"
 - At pre-finish gate: check the build-slice box, set `next-action: run /validate-slice`
 
-**Preserve the CRP-1 escape-hatch key (per ADR-024).** If `milestone.md` frontmatter carries a `critique-review-skip:` key, the continuous rewrite MUST preserve it verbatim. It is a deliberate per-slice skip record the Step 6 CRP-1 defense-in-depth re-run reads; dropping it would false-refuse a legitimately escape-hatched build. Treat `critique-review-skip:` like `critic-required:` / `risk-tier:` — a frontmatter field that survives every rewrite, never a regenerated-from-template field.
+**Preserve the CRP-1 + DCE-1 escape-hatch keys (per ADR-024 + ADR-073).** If `milestone.md` frontmatter carries a `critique-review-skip:` key (CRP-1) and/or a `drift-check-skip:` key (DCE-1), the continuous rewrite MUST preserve each verbatim. They are deliberate per-slice skip records the Step 6 defense-in-depth re-runs read (CRP-1 reads `critique-review-skip:`; DCE-1 reads `drift-check-skip:`); dropping either would false-refuse a legitimately escape-hatched build. Treat `critique-review-skip:` and `drift-check-skip:` like `critic-required:` / `risk-tier:` — frontmatter fields that survive every rewrite, never regenerated-from-template fields.
 
 **Critical for session resume**: if session dies mid-build, `milestone.md` tells Claude (or the user) EXACTLY where to pick up: task number, files being edited, specific next step. Don't skimp on these fields.
 

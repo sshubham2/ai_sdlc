@@ -46,6 +46,7 @@ _MIGRATION_SITE_ALLOWLIST: frozenset[str] = frozenset({
     "tools/build_checks_integrity.py",
     "tools/critique_review_prerequisite_audit.py",
     "tools/cross_spec_parity_audit.py",
+    "tools/drift_check_audit.py",  # slice-081 / DCE-1 — new VAULT_ROOT consumer (drift-log + triage routing)
     "tools/risk_register_audit.py",
     "tools/slice_queue_claim.py",  # slice-072 / PSQ-2 — new VAULT_ROOT consumer
     "tools/slice_queue_writer.py",

@@ -34,6 +34,34 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.76.0 — 2026-05-29
+
+**DCE-1 — Drift-Check Enforcement gate** (slice-081; [[ADR-073]] mints a new rule; supersedes nothing; MEPD-1 posture: **INCLUDE** — a new audit-enforced gate on the existing pre-finish-gate family axis; 5-part PMI-1 atomic bump 0.75.0 → 0.76.0).
+
+DCE-1 closes a user-reported defect: `/drift-check` was the only pipeline discipline preached (CLAUDE.md "Run /drift-check before commit") and listed in `/build-slice` Step 6 yet enforced by nothing — every sibling discipline (BC-1, PMI-1, CRP-1, PCA-1, NAW-1, MCFS-1, STP-1, AVFS-1, TVFS-1, WIRE-1, BCI-1) ships a `tools/*_audit.py` HALT gate, but `/drift-check` had no `tools/drift_check_audit.py` and no installed pre-commit hook (`.git/hooks/` held only `.sample` files), only an honor-system `- [ ] /drift-check passes` checkbox. A slice could finish AND commit with the drift-check gate entirely unenforced (the R-7 / slice-022 silent-disable failure class). Routed through `/repro` (BFRD-1): `tests/bugs/test_drift_check_enforcement_gap.py` failed until the gate existed.
+
+**Core constraint**: `/drift-check`'s work is a *semantic* vault-vs-code comparison that cannot be replicated in pure Python. The mechanizable question is therefore "was a drift-check *marked* for this slice?", not "is the vault correct?".
+
+**Mechanism** (per ADR-073 § Decision — option 1, the procedural was-it-marked gate; options 2 mechanical-subset + 3 both rejected):
+
+- **New `tools/drift_check_audit.py`** — a CRP-1-shaped procedural gate (byte-faithful clone of `tools/critique_review_prerequisite_audit.py`'s `_frontmatter_block` / `_frontmatter_value` / `_resolve_mode` ladder + VAULT_ROOT routing + `_SKIP_VALUE_RE` em-dash + exit mapping + `_stdout` UTF8-STDOUT-1 conformance). Invoked at `/build-slice` Step 6 AFTER a `/drift-check` full-mode run.
+- **Line-anchored + slice-anchored matcher** (per slice-081 /critique B1 + /critique-review M-add-1): scans `architecture/drift-log.md` ONLY on `**Trigger**:`-prefixed lines, matching the slice number via `slice[- ]?0*<N>\b`. The `**Trigger**:` line-anchor is load-bearing — a bare whole-file scan would false-ACCEPT a slice merely cross-mentioned in another entry's `**Scope**` / Notes / heading (the M-add-1 false-ACCEPT surface). Mirrors CRP-1's keyed-not-substring discipline (ADR-024).
+- **Scope honesty** (per /critique M2): a *was-it-marked* gate, not a was-it-run gate — it proves a slice-referencing marker exists, not that the semantic check ran; residual gap disclosed (NAW-1-style). The producer `**Trigger**:` template at `skills/drift-check/SKILL.md` was canonicalized from `sliceNN` → `slice-NNN` so producer and consumer agree.
+- **Escape-hatch**: `drift-check-skip: "skip — rationale: <text>"` milestone.md frontmatter key (DCE-1), added to `skills/build-slice/SKILL.md` Step 7b verbatim-preserved keys (B2) + documented in `templates/milestone.md`. Mode resolution `triage.md` → `CLAUDE.md` → exit 2; MINIMAL accepted (drift-check skipped-by-default).
+
+**Code surfaces**: NEW `tools/drift_check_audit.py` + `tests/methodology/test_drift_check_audit.py` (clean/refuse/escape-hatch/mode/usage + APED-1 marker-anchoring + M-add-1 negative fixture); `skills/build-slice/SKILL.md` Step 6 DCE-1 sub-block + checklist item + Step 7b preserved-key edit; `skills/drift-check/SKILL.md:114` Trigger-template canonicalization; `templates/milestone.md` skip-key doc; `plugin.yaml` + `tools/install_audit.py` enumerate the tool. OSDG-1 forward-synced installed `build-slice` + `drift-check` SKILL.md copies.
+
+**5-part PMI-1 atomic bump** 0.75.0 → 0.76.0: `VERSION` + `plugin.yaml.version` + `pyproject.toml [project].version` (PVFS-1) + this `## v0.76.0` header + installed `~/.claude/ai-sdlc-VERSION` (AVFS-1). Plus post-bump forward-sync: installed `~/.claude/methodology-changelog.md` (MCFS-1) + installed `~/.claude/skills/{build-slice,drift-check}/SKILL.md` (OSDG-1) + venv `ai-sdlc-tools` 0.76.0 (TVFS-1 via `$PY -m pip install --upgrade .`).
+
+**Critic stack** (slice-081; dual-Critic): first-Critic NEEDS-FIXES (2B/3M/3m = 8 findings; B1/B2/M2/M3/m2/m3 VALID, M1 filed on a false premise); meta-Critic EXTEND (M1 re-graded SUSPICIOUS/Minor; missed M-add-1 false-ACCEPT MAJOR + m-add-1 bootstrap Minor); TRI-1 user-ratified accept-all 2026-05-29.
+
+**Rule reference**: DCE-1 (this entry mints it); [[ADR-073]]; BFRD-1 (repro prelude — `tests/bugs/test_drift_check_enforcement_gap.py`); R-7 / slice-022 (silent-disable defect class closed). **Validation method**: `tools/drift_check_audit.py` audit-enforced gate at `/build-slice` Step 6 + `tests/methodology/test_drift_check_audit.py` + entry-pin pair `test_v_0_76_0_dce_1_*` + shippability rows 86/87.
+
+### Added
+
+- **DCE-1 — Drift-Check Enforcement gate**
+  New `tools/drift_check_audit.py` audit-enforced gate at `/build-slice` Step 6: refuses (`drift-check-not-run`, exit 1) when mode ∈ {STANDARD, HEAVY} and no `**Trigger**:` line in `architecture/drift-log.md` references the slice number and no canonical `drift-check-skip` milestone key; accepts on a slice-referencing Trigger marker / documented skip / MINIMAL mode. Closes the R-7/slice-022 silent-disable class for `/drift-check`.
+
 ## v0.75.0 — 2026-05-29
 
 **BCSG-1 — BC-1 Strict Critical-Gate via acknowledgment** (slice-080; [[ADR-072]] mints a new rule; refines BC-1 in place; supersedes nothing; MEPD-1 posture: **INCLUDE**; 5-part PMI-1 atomic bump 0.74.0 → 0.75.0).
