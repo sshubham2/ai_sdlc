@@ -2,15 +2,15 @@
 slice: slice-079-bundle-074-075-077-078-code-critic-cleanup
 stage: build
 updated: 2026-05-29
-next-action: Phase B — regression test scaffolding (write FAILING tests for fixes A-S)
+next-action: Phase C — `skills/build-slice/SKILL.md` fixes A-F + OSDG-1 forward-sync
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-079 bundle-074-075-077-078-code-critic-cleanup
 
-**Stage**: build (Phase A complete; Phase B pending)
-**Next action**: Phase B — regression test scaffolding (write FAILING tests for fixes A-S; verify all FAIL pre-fix)
+**Stage**: build (Phases A + B complete; Phase C pending)
+**Next action**: Phase C — `skills/build-slice/SKILL.md` fixes A-F (variable-scope pre-amble + concrete pathspec + cp-r exact-count test tighten + regex docstring + shared helper extraction + subprocess stderr surface) + OSDG-1 lock-step forward-sync to `~/.claude/skills/build-slice/SKILL.md`
 **Updated**: 2026-05-29
 **Risk tier**: medium — Critic required: yes
 **Worktree**: `C:\Users\sshub\ai_sdlc-wt\slice-079-bundle-074-075-077-078-code-critic-cleanup` on branch `slice/079-bundle-074-075-077-078-code-critic-cleanup`
@@ -23,9 +23,9 @@ critic-required: true
 - [x] /critique — 2026-05-29 NEEDS-FIXES (first-Critic 2B+3M+6m all VALID; APED-1 clause-5 first-governed-slice empirically effective)
 - [x] /critique-review — 2026-05-29 EXTEND (+1 MISSED Minor M-add-1 signature-citation drift)
 - [x] TRI-1 — 2026-05-29 (user accept-all 12 dispositions; final verdict NEEDS-FIXES)
-- [ ] /build-slice — in progress: Phase A of I complete (1/9 phases ≈ 11%)
+- [ ] /build-slice — in progress: Phases A + B of I complete (2/9 phases ≈ 22%)
   - [x] Phase A — Setup + m6 discharge (shippability rows 79-84 enumerated; milestone + build-log scaffolded)
-  - [ ] Phase B — Regression test scaffolding (write FAILING for fixes A-S)
+  - [x] Phase B — Regression test scaffolding (11 FAILING test files committed at cc7a658; pre-fix state empirically verified: 16 FAIL + 6 PASS forward-pins + 2 ImportError pending Phases C/E)
   - [ ] Phase C — `skills/build-slice/SKILL.md` fixes A-F + OSDG-1 forward-sync
   - [ ] Phase D — `tests/methodology/test_commit_slice_skill_merge_wt_clean_preflight_ordering.py` Fix G
   - [ ] **MID-SLICE SMOKE GATE** (after Phase D ~50%)
