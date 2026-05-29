@@ -364,9 +364,10 @@ Status `mitigating`, not `retired`: both residual axes are bounded but real. Rev
 
 **Likelihood**: medium
 **Impact**: medium
-**Status**: open
+**Status**: retired
 **Reversibility**: cheap
 **Discovered**: slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen (2026-05-28) — registered per /critique-review m5 ACCEPTED-PENDING + ADR-069 § Reversibility anticipated-failure-mode discipline.
+**Retired**: slice-082-harden-pcr-1-soft-regen-corner-case (2026-05-29) — closed by fix-class **(b)** "Extend SOFT-set audit" ([[ADR-074]]): `_verify_soft_equivalence` in `tools/parallel_conflict_resolver.py` proves the regenerated SOFT content is in a deterministic equivalence class vs both rebase stages along 3 invariants (queue claim-preservation over the claimed subset; shippability numbered-row completeness; symmetric prelude set-equality), fail-closing to STOP when unprovable. Empirical retirement evidence: the 9-test APED-1 battery `tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py` drives the real resolver against real tmp-repo rebase conflicts — the two concrete divergence vectors (malformed-block claim drop; discarded-prelude / non-numbered-row drop) plus the code-Critic's trailing-whitespace-heading bypass (M1) all route to STOP; happy path stays transparent (full PCR suite 161 PASS, full repo suite 1173 PASS); shippability row 88 pins the guard. The genuinely-corrupt/truncated-baseline sub-case (indistinguishable from legitimate top-10 churn at the name level) is NOT covered by the guard — carved out as the narrower [[risk-register#R-24]] (warn-not-STOP per M2), deferred to PCR-2b. R-21's named class (the regen LOGIC emitting divergent content) is structurally closed.
 **Mitigation**: not yet active. PCR-1 v1 ships with: (a) explicit fail-closed on UNKNOWN class; (b) defensive post-overlay guard in `_regen_slice_queue` (re-parse + re-verify no same-candidate-different-identity remains); (c) APED-1 empirical-execution battery on 4 minted predicates (`_SOFT_FILE_SET`, `classify_conflict`, `_extract_claim_diff`, `_merge_shippability`); (d) `architecture/parallel-conflict-resolution-log.md` audit trail per soft-resolution event. If a corner case surfaces post-codification where the SOFT auto-regen produces semantically-different content from what a human-with-Critic-stack would have produced (the PCR-2 HARD-class path), the candidate fix classes are:
 - **(a) Tighten `classify_conflict`**: narrow the SOFT predicate to reject additional sub-class shapes; the corner case shifts to HARD/MIXED and routes through PCR-2's Critic stack.
 - **(b) Extend SOFT-set audit**: structural verification that the regenerated content matches a deterministic equivalence class against the input branches' content; abort with STOP if equivalence is unclear.
@@ -415,3 +416,21 @@ PCR-2a's strict-newer `Claimed-at` timestamp-winner rule assumes wall-clock time
 3. **Microsecond-precision `_now_iso8601_utc`** — sub-second resolution narrows the tie window but does NOT address skew. Cosmetic improvement, NOT a fix.
 
 Per cooperative threat model: NOT a security boundary; a malicious local actor can always edit the queue directly to bypass PCR-2a regardless. R-23 tracks the COOPERATING-but-clock-skewed case only.
+
+## R-24 — PCR-1 SOFT equivalence guard cannot distinguish a genuinely-truncated/corrupt baseline from legitimate top-10 churn
+
+**Likelihood**: low
+**Impact**: low
+**Status**: open
+**Reversibility**: cheap
+**Discovered**: slice-082-harden-pcr-1-soft-regen-corner-case (2026-05-29) — carved out from R-21 at /reflect; surfaced by /critique M2 (the orphan-claim-exemption bound) + confirmed correct by /critique-review (the Builder's loud-audit-not-STOP remedy).
+
+The R-21 equivalence guard ([[ADR-074]] / `_verify_soft_equivalence`) exempts *orphan claims* — a claimed candidate present in a discarded rebase stage but absent from the baseline — from STOP, because that pattern is the COMMON, legitimate case: the rebase-target's top-10 queue churned and a stale candidate fell off (per ADR-069 / design.md L137). At the candidate-name level this legitimate drop is indistinguishable from a pathological case where the baseline (`text_3`/`text_2`) is itself truncated or corrupt and lost the candidate by corruption rather than churn. STOPping on every cross-stage drop would false-STOP nearly every real SOFT merge (defeating the auto-resolve mechanism — the meta-Critic confirmed the Builder's rejection of that fix). So the guard does NOT STOP; instead it emits a **loud `cross-stage-claim-drop` stderr warning** (M2) so the truncated-baseline case is forensically observable.
+
+**Impact in practice**: low — `_git_show_stage` reads `git show :N:<path>`, which returns a complete staged blob (not a working-tree file with conflict markers), so a "truncated stage" requires a branch that genuinely committed a corrupt/partial queue — rare under the cooperative threat model ([[ADR-067]]). No data loss: the dropped claim's owner re-picks from the `cross-stage-claim-drop` warning + the queue's next `/slice` regen.
+
+**Fix candidates** (deferred):
+1. **PCR-2b HARD-class Critic-stack adjudication** — the full design-Critic + meta-Critic stack on a proposed HARD resolution can flag an unexpected baseline-shrink as a finding; remediation lands in PCR-2b's resolution path. (Primary.)
+2. **Baseline sanity-floor** — heuristic STOP if the baseline candidate-count drops below a configurable fraction of the discarded stage's count. Rejected for now: arbitrary threshold, false-STOP risk on a legitimate large-churn cycle.
+
+Per cooperative threat model: NOT a security boundary. R-24 tracks the cooperating-but-corrupt-baseline case only; warn-not-STOP is the deliberate happy-path-preserving choice (R-21 retirement § + slice-082 M2 disposition).
