@@ -78,6 +78,13 @@ Return the agent's complete `critique-review.md` content. Do not re-prompt for d
 
 **If the meta-Critic's findings look generic** ("the first Critic could be sharper"): the meta-Critic prompt may have degraded. Request a re-run with: "Findings must reference specific finding IDs (B1, M2, m3) AND specific design.md sections — re-review with specificity."
 
+**Await the real agent — never fabricate its output.**
+
+- The `Agent` tool may return an **asynchronous acknowledgment** ("Async agent launched…"), NOT the finished review.
+- That acknowledgment is **NOT** the deliverable.
+- STOP and wait for the `task-notification`; write `critique-review.md` ONLY from the agent's **actual returned content**.
+- NEVER self-author a placeholder, and never write the file from your own main-thread reasoning, while the agent runs — doing so silently defeats the meta-Critic (DR-1) separation this skill exists to provide (the R-25 failure mode observed live in slice-085).
+
 ### Step 3: Receive meta-Critic findings
 
 Take the agent's output and write it to `architecture/slices/slice-NNN-<name>/critique-review.md` using the format the agent emits.

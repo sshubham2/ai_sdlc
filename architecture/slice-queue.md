@@ -1,6 +1,6 @@
 # Slice queue
 
-_Generated: 2026-05-30T05:17:53+00:00 by /slice during slice-085 definition_
+_Generated: 2026-05-30T13:04:31+00:00 by /slice during slice-086 definition_
 
 ## Candidates
 
@@ -43,3 +43,11 @@ _Generated: 2026-05-30T05:17:53+00:00 by /slice during slice-085 definition_
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** SMALL
 - **Risk-retired:** LOW
+
+### extend-osdg-1-to-critique-review
+
+- **Source:** slice-086 out-of-scope follow-up (R-13-class)
+- **Blast-radius:** `skills/critique-review/SKILL.md`, `tests/methodology/skill_drift_equality.py`, `tests/skill_drift_equality.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** NONE

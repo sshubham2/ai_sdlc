@@ -148,6 +148,13 @@ Return the agent's complete `code-review.md` content. Do not re-prompt for dimen
 - `agent-empty-output` (agent returns zero-length output): write `code-review.md` with `Result: AGENT-EMPTY — re-run with verbosity`; exit 1; do NOT auto-advance. This catches the rubber-stamp footgun from `/critique`'s failure-mode-to-watch list.
 - `agent-malformed-output` (agent returns text but required sections — Blockers/Majors/Minors/Dimensions checked — are missing): write the raw output verbatim into `code-review.md`; surface a warning to the user; auto-advance proceeds (advisory mode; slice-061 hardens this).
 
+**Await the real agent — never fabricate its output.**
+
+- The `Agent` tool may return an **asynchronous acknowledgment** ("Async agent launched…"), NOT the finished review.
+- That acknowledgment is **NOT** the deliverable.
+- STOP and wait for the `task-notification`; write `code-review.md` ONLY from the agent's **actual returned content**.
+- NEVER self-author a placeholder, and never write the file from your own main-thread reasoning, while the agent runs — doing so silently defeats the Builder↔code-Critic separation this skill exists to provide (the R-25 failure mode observed live in slice-085).
+
 ### Step 3: Receive code-Critic findings and write `code-review.md`
 
 Take the agent's output and write it to `architecture/slices/slice-NNN-<name>/code-review.md` using the template below. v1 has NO `## Triage` section (slice-062 owns the TRI-1 extension); findings are advisory.

@@ -2,6 +2,23 @@
 
 Append-only audit trail of `/drift-check` runs. Each entry records vault-vs-code divergence findings + resolutions.
 
+## Audit 2026-05-30 (slice-086)
+
+**Trigger**: slice-086 pre-finish gate (/build-slice Step 6)
+**Scope**: full (thin vault — ADR-078 + active slice-086 design.md/mission-brief + risk-register R-25 + shippability row 92 vs code/prose)
+**Result**: CLEAN — no drift.
+
+- design.md/ADR-078 claims all present in code: the canonical guard block (`**Await the real agent — never fabricate its output.**`, U+2014) is authored at the spawn→write seam (between `### Step 2` and `### Step 3`) of all three `skills/{critique,critique-review,code-review}/SKILL.md`; verified by `tests/methodology/test_r25_await_real_agent_guard.py` (7/7 green: seam-scoped heading + body pins across 3 skills + the relocate-fixture proving placement enforcement). APED-1: heading file_count=1 + seam_count=1 per skill, body seam_count=1.
+- AC-3 install: installed `~/.claude/skills/{critique,critique-review,code-review}/SKILL.md` synced to the worktree edits; `test_code_review_skill_drift.py` green (the only OSDG-1 content-equality drift test among the three — critique/critique-review have none per B1/B2). critique/critique-review prose-pins + both agent-drift tests green.
+- AC-4: global `~/.claude/CLAUDE.md` `# Spawned-agent output` stopgap removed (grep count → 0), performed only AFTER AC-1/2/3 verified (ordering invariant per ADR-078 §Consequences). The migration is recorded here + in build-log.md; full reflection-record deferred to /reflect.
+- shippability.md row 92 references `tests/methodology/test_r25_await_real_agent_guard.py`, which exists + passes; `shippability_path_audit` CLEAN.
+- R-25 stays **open** this slice (register flip to retired is a /reflect action, consistent with the slice-077/082/084/085 pattern); no STP-1 stale-pin (no test claims R-25 retired). The pre-existing CLAUDE.md:42 OSDG-1 inventory drift (B2) is logged as the out-of-scope follow-up `reconcile-osdg-1-inventory-claude-md-L42` — NOT a slice-086 surface.
+- MEPD-1 EXCLUDE confirmed: `VERSION` unchanged at `0.77.0`; no `methodology-changelog.md` entry; no new RULE-ID. PMI-1 inventory gains one file (the new test) — manifest unaffected (tests/ not manifested). MCFS-1/AVFS-1/TVFS-1 all expected PASS with VERSION unchanged.
+- No removed feature; no UNSPECIFIED CODE; no STALE CLAIM.
+
+### Resolutions
+- None required — vault and code aligned for the slice-086 surface.
+
 ## Audit 2026-05-30 (slice-085)
 
 **Trigger**: slice-085 pre-finish gate (/build-slice Step 6)
