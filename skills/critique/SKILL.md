@@ -102,6 +102,13 @@ Return the agent's complete critique.md content. Do not re-prompt for dimensions
 
 **If the agent's findings look generic** ("consider error handling" without a file ref): the Critic prompt has degraded. Note this for `/critic-calibrate` and request a re-run with: "Findings must reference specific files / ADRs / endpoints — re-attack with specificity."
 
+**Await the real agent — never fabricate its output.**
+
+- The `Agent` tool may return an **asynchronous acknowledgment** ("Async agent launched…"), NOT the finished review.
+- That acknowledgment is **NOT** the deliverable.
+- STOP and wait for the `task-notification`; write `critique.md` ONLY from the agent's **actual returned content**.
+- NEVER self-author a placeholder, and never write the file from your own main-thread reasoning, while the agent runs — doing so silently defeats the Builder↔Critic separation this skill exists to provide (the R-25 failure mode observed live in slice-085).
+
 ### Step 3: Receive Critic findings
 
 Take the Critic's output and write it to `architecture/slices/slice-NNN-<name>/critique.md` using the template below.

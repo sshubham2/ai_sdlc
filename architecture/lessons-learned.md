@@ -1854,3 +1854,23 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **Pin the STOP *cause*, not just the STOP.** A multi-condition atomicity test can go green on the wrong condition; make every non-target conflict benign so only the target gate can fire.
 - **Self-validating-slice property N=6 on the parallel-slice family** (slice-077/078/082/083/084/085) — very ripe `/critic-calibrate` codification candidate.
 - **MEPD-1 EXCLUDE for a risk-narrowing fix-slice with an ADR + no new RULE-ID is N≥4** (077/079/082/084 → 085) — stable precedent; itself a codification candidate.
+
+---
+
+## Slice 086 (harden-agent-spawn-skills-await-real-output) — 2026-05-30
+
+### Worked
+- **The slice dogfooded its own thesis end-to-end.** This slice closes R-25 (skills don't guard against main-thread fabrication of async-spawned agent output), and every one of its own three Agent-spawned reviews (/critique, /critique-review, /code-review) waited for the real `task-notification` and wrote the artifact ONLY from the agent's returned content. Fabricating any would have re-committed the exact defect being closed — the strongest possible validation of the guard.
+- **Verify-against-disk at /critique turned two design claims into real Blockers.** B1 (a cited `test_critique_skill_drift.py` that doesn't exist) + B2 (design claimed code-review is "ALREADY in the OSDG-1 set", contradicting CLAUDE.md:42) were both confirmed by `Glob` before the Builder drafted dispositions; the meta-Critic re-verified independently. The design had inherited a false premise; disk-truth caught it.
+- **Seam-scoping made the pin enforce placement, not just presence.** The meta-Critic's M-add-1 (file-global `.count()` would stay green on a guard relocated out of the spawn→write seam) was confirmed by the code-Critic's mutation battery — relocate-out-of-seam FAILS. The `_step2_to_step3_region` extractor + the in-test relocate fixture realize this.
+- **Fixing code-review m1 in-slice closed a self-violation.** The pin test's own region extractor shipped using bare `.find("### Step 2")` — the exact substring-vs-anchored fragility the slice exists to defend against. User elected to fix in-slice (line-anchored regex + 2 regression tests) rather than defer.
+
+### Didn't work
+- **The design re-stated a vault claim it never checked.** "critique + code-review ALREADY in the OSDG-1 guarded set / `test_critique_skill_drift.py`" was authored from memory of the CLAUDE.md prose, not from disk — and CLAUDE.md:42 ITSELF is drifted (names critique/diagnose with no drift-test file; omits code-review/pulse which have them). A design claim about file existence is a fresh claim that wants a `Glob`, not recall.
+- **The pin test author reproduced the slice's own anti-pattern.** Writing a test whose purpose is "be precise, don't substring-match" while using `.find()` substring matching for its own heading detection — the slice-022 self-violation law fired again (N+1). Caught only by the code-Critic executing the parse rule against adversarial input.
+
+### Pattern
+- **Pin-precision family now N≥3 (075/085/086): unique-to-invocation literal (075) + presence-regex ≠ shape-check (085) + seam-scoped + line-anchored-not-substring (086).** A structural-pin test on prose-as-executable-contract must (a) pin a literal unique to the invocation, (b) assert the element's SHAPE not a bare presence substring, AND (c) scope the assertion to the section/seam where the contract is load-bearing, matching headings line-anchored. Strong /critic-calibrate + build-check promotion candidate (the three sub-rules now have distinct slices each).
+- **3-Critic stack complementarity held on a review-integrity slice (do NOT collapse).** design-Critic → vault-truth (B1/B2) + design-level (M1/M2/M3); meta-Critic → internal design inconsistency + placement gap (M-add-1, the SOAD-1-cited-but-not-honored catch); code-Critic → runtime-execution property (m1 substring fragility) by EXECUTING the parse rule. Zero defects missed by all three.
+- **Self-violation law N+1 on a guard-shipping slice** — a slice that ships guard X should not ship X's own test embodying the defect class X defends against. Budget a code-Critic pass that runs the slice's own parse rule against its own fragility class.
+- **MEPD-1 EXCLUDE for a risk-CLOSING (not just narrowing) fix-slice with an ADR + no new RULE-ID is N≥5** (077/079/082/084/085 → 086) — VERSION unchanged at 0.77.0; MCFS-1/AVFS-1/TVFS-1 no-op. Very stable precedent.

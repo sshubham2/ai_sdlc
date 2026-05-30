@@ -1778,6 +1778,61 @@ def test_bc_proj_13_has_expected_structural_identity():
     )
 
 
+def test_bc_proj_14_has_expected_structural_identity():
+    """BC-PROJ-14 (slice-086 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity (pin-precision rule for structural-pin
+    tests on prose-as-executable-contract). Canonical fixture = subject; these
+    literal constants = git-tracked oracle (ADR-028). BCI-1 separately asserts
+    the gitignored live build-checks.md matches the fixture.
+
+    Defect class: a silent truncation / mis-author of BC-PROJ-14 would lose the
+    "a structural-pin test must pin a unique-to-invocation literal, assert shape,
+    and seam/section-scope its assertion" evergreen check with no loud signal
+    (R-4 class). The rule's promotion threshold was N=3 cumulative — slice-075
+    (literal not unique-to-invocation), slice-085 (presence regex not a shape
+    check), slice-086 (file-global + substring `.find` region extractor) — each
+    a pin-precision bug that reported GREEN while the contract regressed.
+
+    Rule reference: BC-1 (slice-086 /reflect Step 5b; user-approved promotion of
+    the pin-precision discipline at N=3 cumulative threshold).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-14" in p_by_id, "BC-PROJ-14 not parsed from project fixture"
+    p14 = p_by_id["BC-PROJ-14"]
+    assert p14.severity == "Important", f"BC-PROJ-14 severity: {p14.severity!r}"
+    assert p14.applies_to == ("tests/**/*.py",), (
+        f"BC-PROJ-14 applies_to mismatch: got {p14.applies_to!r}"
+    )
+    assert p14.trigger_keywords == (
+        "structural-pin", "pin", "literal", "prose", "seam",
+        "section-scoped", "anchored", "substring",
+    ), f"BC-PROJ-14 trigger_keywords mismatch: got {p14.trigger_keywords!r}"
+    assert p14.trigger_anchors == (
+        "structural-pin", "pin", "literal", "seam", "anchored",
+    ), (
+        f"BC-PROJ-14 trigger_anchors mismatch (anchors MUST be subsets of "
+        f"keywords per BCI-1 anchor-not-in-keywords gate): "
+        f"got {p14.trigger_anchors!r}"
+    )
+    assert p14.negative_anchors == (
+        "aggregated lessons", "meta-discussion", "false positive",
+        "design.md", "mission-brief", "defer-with-rationale",
+    ), f"BC-PROJ-14 negative_anchors mismatch: got {p14.negative_anchors!r}"
+    assert p14.check and p14.check.strip(), "BC-PROJ-14 check must be non-empty"
+    assert "unique-to-invocation" in p14.check, (
+        "BC-PROJ-14 check body MUST cite the unique-to-invocation sub-rule"
+    )
+    assert "seam-scoped" in p14.check, (
+        "BC-PROJ-14 check body MUST cite the section/seam-scoped sub-rule"
+    )
+
+
 def test_bc_global_3_has_expected_structural_identity():
     """BC-GLOBAL-3 (slice-047 /reflect Step-5b global promotion) MUST parse to
     its expected full structural identity. The canonical global fixture is the
