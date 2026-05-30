@@ -1833,3 +1833,24 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **Undetectable-by-design residual is a legitimate slice outcome** — narrowing a low/low risk to its detectable sub-case + honestly documenting the open residual (staler-but-past, undetectable from one clock) beats forcing a false "retired". Model for future partial-mitigation slices.
 - **ISO-8601 parsing is a checklist, not a one-liner** (naive / case / cross-version) — build-check promotion candidate.
 - **Self-validating-slice property N=5 on the parallel-slice family** (slice-077/078/082/083/084) — the codification candidate ("parallel-family slices dogfood their own `/commit-slice --merge`") is now well past N=3; strong /critic-calibrate promotion signal.
+
+---
+
+## Slice 085 (harden-pcr-1-truncated-baseline) — 2026-05-30
+
+### Worked
+- **The 3-persona stack caught a false-negative the author + design-Critic both missed.** The slice mints a label-presence regex (`^<label>` per-line search). The design-Critic reviewed the literal but cannot run it; the build-time APED-1 battery (written by the regex author) passed; the independent code-Critic ran its OWN adversarial probe corpus against the live helper and surfaced M1-code: a value/continuation line beginning with the exact missing field-label literal masks the tail-truncation → no STOP. Recorded as R-24 residual (iv).
+- **Smoke-gate self-catch on a wrong-reason green.** The AC-4b atomicity fixture initially used same-number shippability rows, which trigger a `_merge_shippability` HARD escalation STOP independent of the truncation gate — the test passed pre-wiring (green without exercising the wiring). Noticing AC-4b passed at the pre-wiring smoke gate exposed it; fixed to distinct row numbers so the only STOP cause is the truncation gate.
+- **Genuine SSoT closure, verified empirically.** `_RENDERED_FIELD_LABELS` is rendered-FROM by the writer (`_format_entry` zip) and read by the resolver at call time — the code-Critic confirmed both ends read the same object via monkeypatch, not a parallel copy.
+- **Worktree editable-install discipline.** `import tools` resolves to the MAIN tree under an editable install unless cwd==worktree; every pytest/python/audit ran with `Set-Location $wt` first. Caught early (a 31-pass run that had silently tested stale main-tree code), recorded in build-log.
+
+### Didn't work
+- **An author-written APED-1 battery has a correlated blind spot.** Writing the failing tests AND the regex from the same mental model produced a battery that covered CRLF/empty/placeholder/trailing-space but not the value-line-starting-with-label-literal false-negative. The discipline "write an adversarial battery" is necessary but not sufficient — it wants an *independently-authored* second pass (which the code-Critic supplied).
+- **A presence check masqueraded as a shape check.** `^<literal>` per-line search answers "does any line start with this literal" — NOT "is this a genuine field line." For a gate whose purpose is detecting a *missing* structural element, that is the wrong question; assert the element's SHAPE.
+
+### Pattern
+- **A label/field *presence* regex is not a field-line *shape* check.** When a gate exists to detect a missing structural element, assert the element's shape (`^- \*\*\w[\w -]*:\*\*`), not the presence of a specific literal — a value/continuation line beginning with the literal masks the absence. (Promotion candidate; durable M1(a) fix logged.)
+- **The APED-1 battery author ≠ the regex author.** A newly-minted content-scanning regex wants an independently-authored adversarial corpus (the code-Critic's pass is that second author); the build-time battery written by the regex author shares its blind spot. Sharpens BC-PROJ-13.
+- **Pin the STOP *cause*, not just the STOP.** A multi-condition atomicity test can go green on the wrong condition; make every non-target conflict benign so only the target gate can fire.
+- **Self-validating-slice property N=6 on the parallel-slice family** (slice-077/078/082/083/084/085) — very ripe `/critic-calibrate` codification candidate.
+- **MEPD-1 EXCLUDE for a risk-narrowing fix-slice with an ADR + no new RULE-ID is N≥4** (077/079/082/084 → 085) — stable precedent; itself a codification candidate.
