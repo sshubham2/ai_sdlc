@@ -893,3 +893,34 @@ Next calibration run should verify:
 - If "found the class, under-swept surfaces" hits a 3rd design-Critic MISS, propose the "swept-all-surfaces?" sub-clause.
 
 ---
+
+## Calibration run — 2026-05-30 (post-slice-086, + live slice-087)
+
+**Window**: last 8 reflections (slice-079 through slice-086) + 1 live not-yet-reflected miss (slice-087)
+**Total misses analyzed**: window 079–086 dominated by code-Critic-structural / regex-APED-1 family (already codified BC-PROJ-13); slice-086 a clean full-stack reach; 1 live structurally-new class (slice-087).
+
+### Pattern summary
+
+- **Strategic/direction-fit + architectural-concurrency** — NEW class, N=1 (slice-087): both first-Critic (NEEDS-FIXES) AND meta-Critic (EXTEND) missed that the stranded-detector's "flag all unmerged `slice/*`" design cry-wolfs on every in-flight parallel slice under PSQ-1/PSQ-2/BRANCH-2 → R-7 silent-disable + undermines the active parallel direction. Clue was on-page (ADR-079 Option-1 rejection said the hard-gate "breaks PSQ-1/PSQ-2"); neither layer generalized it to the advisory variant. USER caught it. Design-Critic-reachable; no existing dimension covers forward-trajectory fit.
+- All other window misses (085 label-as-value-line; 079/082/084 regex-execution) = designed code-Critic complementarity, already routed out (BC-PROJ-13). slice-086 clean.
+
+### Effectiveness on past proposals
+
+All prior `critique.md`-targeted proposals SUSTAINED EFFECTIVE — 0 in-scope first-Critic recurrence: 2026-05-10 Dim-1 doc-vs-impl + Dim-4 methodology-audit-conformance (strongly effective, ~81 clean slices); RPCD-1; FBCD-1; 2026-05-17 audit-parse-rule + entry-pin; APED-1 + 2026-05-28 non-audit-regex scope-extension; 2026-05-29 APED-1 clause-5 (sustained, 0 recurrence). None failing or creeping back.
+
+### Proposals
+
+| # | Pattern | Proposed | User action |
+|---|---------|----------|-------------|
+| 1 | Strategic-direction fit + architectural-concurrency (slice-087; N=1 but structurally-new, high-impact, both-layers-missed, clue-on-page) | **Part B**: new Dim-7 sub-bullet "Strategic-direction fit + architectural-concurrency" with two probes (a) direction-fit / generalize-rejected-option-warnings; (b) architectural-concurrency / is-N-concurrent-the-normal-state-then-flag-all-cry-wolfs. **Part A**: ephemeral project-frame input fed to /design-slice + /critique + /critique-review (the user's bigger idea). | **Part B ACCEPTED + APPLIED 2026-05-30** (in-repo `agents/critique.md` Dim-7 + forward-synced; CAD-1 clean, sha256 8074b89f…). **Part A → dedicated slice** (project-frame synthesizer; to be defined). |
+
+### Watching but not proposing
+
+- Independent-persona APED-1 battery (085 M1-code) — build-slice/code-Critic discipline, NOT a `critique.md` change. Route to skills/build-slice or agents/critique-review.
+- Clause-5 string-normalization generalization (084, N=1) — promote at N=3.
+- "Found-the-class-under-swept-surfaces" (080 + 074/075, N=2) — promote at 3rd MISS.
+- Self-validating-slice property (N=6) + MEPD-1-EXCLUDE-for-risk-fix (N≥4) — DISCOVERY/precedent, /reflect or build-check level, not `critique.md`.
+
+### Effectiveness check
+
+Next run: verify Part B reduces the strategic-direction-fit miss class (target 0 recurrence). Once Part A (project-frame synthesizer slice) ships, the Dim-7 probe is handed the frame directly rather than reading trajectory artifacts itself — measure whether that further sharpens catch-rate.
