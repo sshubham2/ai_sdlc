@@ -82,6 +82,18 @@ _AUDIT_LOG_HEADER: str = (
 )
 """Header content written once on lazy-create first append."""
 
+_CLOCK_SKEW_TOLERANCE_SECONDS: int = 300
+"""PCR-2a clock-skew guard tolerance (slice-084 / ADR-076).
+
+A strict-newer VAULT_CLAIM winner whose ``Claimed-at`` exceeds the resolver's own
+wall-clock by MORE than this many seconds is judged clock-skew-suspicious (its
+claiming machine's clock runs ahead → the strict-newer win is untrustworthy) and
+fails closed to a STOP that escalates to the PCR-2b gate. 300 s (5 min) absorbs
+benign NTP jitter + in-flight claim->merge delay while staying well below R-23's
+minutes-to-hours skew regime. Tunable; see ADR-076 for the over-trigger/under-detect
+tradeoff. Pinned by test_tolerance_boundary_at_30{0,1}s_* (strict ``>``).
+"""
+
 _CONFLICT_MARKER_OPENER_RE = re.compile(r"(?m)^[ +-]?(?:<{7,}|>{7,}|\|{7,})(?:\s|$)")
 r"""PCR-2b (slice-083 / ADR-075) HARD-resolution leftover-marker detector.
 
@@ -522,6 +534,122 @@ def _select_timestamp_winner(
     if e2.claimed_at > e3.claimed_at:
         return (e2, e3)
     return (e3, e2)
+
+
+def _winner_clock_skew_suspect(
+    winner: ClaimEntry,
+    now: datetime.datetime,
+    tolerance_seconds: int,
+) -> str | None:
+    """PCR-2a Step 2.5 clock-skew guard (slice-084 / ADR-076).
+
+    Returns a human-readable STOP reason if the strict-newer ``winner``'s
+    ``Claimed-at`` is implausible relative to ``now`` (the resolver's own trusted
+    wall-clock), else ``None`` (plausible — caller proceeds to strict-newer resolution).
+
+    Three fail-closed outcomes (per /critique B1/B2 APED-1 findings):
+      - **unparseable** as ISO-8601 → STOP (cannot verify).
+      - **tz-naive** (offset-less — ``fromisoformat`` parses it *successfully* as a
+        naive datetime, after which ``naive > aware`` would raise ``TypeError`` mid-
+        rebase) → STOP, treated identically to unparseable. NEVER a crash.
+      - **future-dated** beyond ``tolerance_seconds`` (a claim is made before it is
+        merged, so a winner stamped in the future of ``now`` reveals an ahead-running
+        claiming clock) → STOP, the skew-suspicious case.
+
+    Only the *selected winner* is checked: if the skewed entry is the loser, the winner
+    is the genuinely-newer non-skewed claim → correct result → no flag. This catches the
+    future-dated sub-case of R-23; the staler-but-past case is undetectable from a single
+    trusted clock and remains an explicit R-23 residual (ADR-076 §Consequences).
+    """
+    raw = winner.claimed_at.strip()
+    # B2: datetime.fromisoformat did not accept the RFC-3339 `Z`/`z` UTC designator until
+    # Python 3.11; project floor is >=3.10 (pyproject.toml). Normalize the `Z` token so the
+    # gate treats it identically on every >=3.10 interpreter. RFC-3339 §5.6 makes the
+    # designator case-INsensitive, so accept lowercase `z` too (/code-review M1). Scope note
+    # (/code-review M2): this normalization covers ONLY the `Z`/`z` token — it does NOT make
+    # the broader `fromisoformat` acceptance surface version-uniform (3.11 relaxed parsing of
+    # offset-without-colon `+0000` + space-separated stamps, cpython#115783), so on a 3.10
+    # interpreter those relaxed forms hit the except branch below and fail-closed STOP. That
+    # is the SAFE direction (no crash, no skewed write); PSQ-2's canonical writer emits a
+    # `+00:00` second-precision stamp that parses identically on all >=3.10.
+    if raw[-1:] in ("Z", "z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        parsed = datetime.datetime.fromisoformat(raw)
+    except (ValueError, TypeError):
+        return (
+            f"clock-skew guard: winner Claimed-at unparseable as ISO-8601 "
+            f"({winner.claimed_at!r}) — cannot verify against resolver-now; fail-closed "
+            f"STOP, escalate to PCR-2b hand-resolve + TRI-RESOLVE-1"
+        )
+    # B1: an offset-less timestamp parses as a naive datetime; comparing naive > aware
+    # raises TypeError. Treat naive identically to unparseable → fail-closed (no crash).
+    if parsed.tzinfo is None:
+        return (
+            f"clock-skew guard: winner Claimed-at lacks a timezone offset "
+            f"({winner.claimed_at!r}) — cannot compare against the timezone-aware "
+            f"resolver-now; fail-closed STOP, escalate to PCR-2b hand-resolve + TRI-RESOLVE-1"
+        )
+    if parsed > now + datetime.timedelta(seconds=tolerance_seconds):
+        return (
+            f"clock-skew suspected: winner Claimed-at {winner.claimed_at} is future-dated "
+            f"vs resolver-now {now.isoformat()} beyond {tolerance_seconds}s tolerance — the "
+            f"claiming machine's clock runs ahead, so the strict-newer win is untrustworthy; "
+            f"escalate to PCR-2b hand-resolve + TRI-RESOLVE-1"
+        )
+    return None
+
+
+def _append_skew_stop_audit(
+    repo_root: Path,
+    reason: str,
+    winner: ClaimEntry,
+    loser: ClaimEntry,
+    now: datetime.datetime,
+) -> None:
+    """Append a clock-skew guard-STOP entry to the audit log (best-effort; ADR-076 / AC-2).
+
+    Distinct section variant ``## Vault-claim resolution (clock-skew STOP) - <ts>`` so a
+    skew-STOP is recoverable from the audit trail. Records BOTH claims' Claimed-by/Claimed-at
+    (R-23 corrigibility hook) + the resolver-now signal rendered via ``now.isoformat()``
+    (aware `+00:00`, byte-comparable to the canonical Claimed-at format — /critique-review
+    m-add-2). Mirrors ``_append_equivalence_stop_audit`` (ADR-074 / slice-082).
+    """
+    log_path = repo_root / _AUDIT_LOG_PATH
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    try:
+        head_proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        head_sha = head_proc.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        head_sha = "(unavailable)"
+
+    entry = (
+        f"## Vault-claim resolution (clock-skew STOP) - {timestamp}\n"
+        "\n"
+        f"**Repo HEAD SHA pre-resolution**: {head_sha}\n"
+        f"**Candidate name**: {winner.candidate_name}\n"
+        f"**Winner Claimed-by**: {winner.claimed_by}\n"
+        f"**Winner Claimed-at**: {winner.claimed_at}\n"
+        f"**Loser Claimed-by**: {loser.claimed_by}\n"
+        f"**Loser Claimed-at**: {loser.claimed_at}\n"
+        f"**Resolver-now signal**: {now.isoformat()}\n"
+        "**Outcome**: STOP (fail-closed, no writes) per ADR-076 PCR-2a clock-skew guard\n"
+        f"**Reason**: {reason}\n\n"
+    )
+
+    needs_header = not log_path.exists()
+    with log_path.open("a", encoding="utf-8", newline="") as f:
+        if needs_header:
+            f.write(_AUDIT_LOG_HEADER)
+        f.write(entry)
 
 
 def _extract_u_files(repo_root: Path) -> tuple[str, ...]:
@@ -1028,8 +1156,11 @@ def _format_vault_claim_audit_entry(
     `_append_audit_log` (Fix O / slice-078 m1 DRY): the formatter no longer
     re-derives them from `diag.claim_history` via
     `_collect_same_candidate_different_identity` + `_select_timestamp_winner`.
-    A future selection-semantic change (e.g. R-23 clock-skew tiebreaker via
-    PSQ-2 `Claim-seq`) then updates one site, not two. `diag` is retained as
+    A future selection-semantic change then updates one site, not two. (The R-23
+    clock-skew corner case was addressed at slice-084 / ADR-076 NOT by a PSQ-2
+    `Claim-seq` tiebreaker — rejected: a per-machine seq is not cross-machine
+    comparable — but by a resolver-now future-dating guard at Step 2.5 that STOPs
+    *before* this APPLIED-path formatter runs.) `diag` is retained as
     the conflict context for call-site uniformity + future use. Replacement is
     parsed from result.reason via the canonical `replacement=<name>` token;
     absent → audit-row sentinel `none-available`.
@@ -1087,14 +1218,19 @@ def _format_vault_claim_audit_entry(
 def resolve_vault_claim_conflict(
     diag: ConflictDiagnostic,
     repo_root: Path | None = None,
+    now: datetime.datetime | None = None,
 ) -> ResolutionResult:
     """Resolve a VAULT_CLAIM-class conflict via strict-newer timestamp-winner.
 
-    Per PCR-2a (slice-078 / ADR-071), 7-step Resolution algorithm per
-    design.md §Resolution algorithm:
+    Per PCR-2a (slice-078 / ADR-071) + the slice-084 / ADR-076 clock-skew guard,
+    Resolution algorithm per design.md §Resolution algorithm:
 
       1. Collect collisions; STOP on multi or empty (caller misuse).
       2. Select strict-newer winner; STOP on tie.
+      2.5. Clock-skew guard (ADR-076): if the winner's Claimed-at is future-dated
+         vs the resolver's own wall-clock (``now``) beyond tolerance, or is
+         unparseable / tz-naive, STOP fail-closed + escalate to PCR-2b. ``now``
+         defaults to the real UTC wall-clock; injectable for tests.
       3. Read stage 2/3 baselines; overlay winner identity onto baseline;
          defensive post-overlay regex verifies the winner's claim landed
          (M-add-1: catches `_overlay_claims_on_queue_text` silent-drop on
@@ -1117,6 +1253,8 @@ def resolve_vault_claim_conflict(
 
     if repo_root is None:
         repo_root = Path.cwd()
+    if now is None:
+        now = datetime.datetime.now(datetime.timezone.utc)
 
     # Step 1: Collect collisions
     collisions = _collect_same_candidate_different_identity(diag.claim_history)
@@ -1155,6 +1293,29 @@ def resolve_vault_claim_conflict(
         )
     winner, loser = winner_loser
     candidate_name = collisions[0][0]
+
+    # Step 2.5: Clock-skew guard (slice-084 / ADR-076). Runs strictly BEFORE the Step 3
+    # overlay/write so a skew-STOP mutates no rebase state (atomicity per ADR-069). A winner
+    # future-dated vs the resolver's trusted wall-clock (or unparseable / tz-naive) is NOT
+    # auto-resolved — fail-closed STOP escalating to the PCR-2b gate (the existing
+    # commit-slice SKILL.md VAULT_CLAIM-STOP → SOAD-1 fall-through surfaces it). Best-effort
+    # audit entry recording both claims + resolver-now is appended first (R-23 corrigibility).
+    skew_reason = _winner_clock_skew_suspect(winner, now, _CLOCK_SKEW_TOLERANCE_SECONDS)
+    if skew_reason is not None:
+        try:
+            _append_skew_stop_audit(repo_root, skew_reason, winner, loser, now)
+        except Exception as exc:  # noqa: BLE001 - best-effort by design (mirrors L1249-1257)
+            print(
+                f"parallel-conflict-resolver: skew-STOP audit append failed "
+                f"(non-blocking): {exc!r}",
+                file=sys.stderr,
+            )
+        return ResolutionResult(
+            action="STOP",
+            conflict_class=ConflictClass.VAULT_CLAIM,
+            regenerated_files=(),
+            reason=skew_reason,
+        )
 
     # Step 3: Read stage baselines + overlay winner identity onto baseline
     text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")
