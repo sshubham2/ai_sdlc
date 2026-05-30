@@ -301,3 +301,31 @@ def test_shippability_pins_equivalence_guard() -> None:
     assert any("test_pcr_1_soft_regen_equivalence_guard.py" in ln for ln in rows), (
         "slice-082 shippability row(s) do not pin the equivalence-guard test"
     )
+
+
+# ---------------------------------------------------------------------------
+# slice-085 / AC-5 — the new truncation gate does NOT false-STOP a healthy,
+# full-size, well-formed baseline (set-equal + claim-preserving regen unchanged)
+# ---------------------------------------------------------------------------
+
+def test_existing_healthy_setequal_and_claim_preservation_unchanged(tmp_path) -> None:
+    """slice-085 regression pin: a healthy full-size WELL-FORMED baseline (all blocks
+    complete, clean ending) whose claim is preserved across a faithful regen must STILL
+    APPLY — the new claim-loss-by-truncation gate is transparent on a healthy queue."""
+    claim = dict(claimed_by="alice <a@example.com>", claimed_at="2026-05-29T12:00:00+00:00")
+    branchA = _queue(
+        _candidate("add-foo", **claim),   # well-formed claimed
+        _candidate("add-bar"),
+        _candidate("add-baz"),            # complete tail block — NOT truncation-shaped
+    )
+    master = _queue(
+        _candidate("add-foo", **claim),
+        _candidate("add-bar"),
+        _candidate("add-qux"),            # differing trailing candidate → conflict
+    )
+    _stage_rebase(tmp_path, "architecture/slice-queue.md", branchA=branchA, master=master)
+    diag, result = _resolve(tmp_path)
+    assert classify_conflict(diag) is ConflictClass.SOFT
+    assert result.action == "APPLIED", "a healthy well-formed baseline must not false-STOP"
+    resolved = (tmp_path / "architecture" / "slice-queue.md").read_text(encoding="utf-8")
+    assert "alice <a@example.com>" in resolved

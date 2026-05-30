@@ -1687,6 +1687,59 @@ def _parse_shippability_rows(text: str) -> tuple[dict[int, str], list[str]]:
     return (numbered, prelude)
 
 
+def _baseline_is_truncation_shaped(queue_text: str | None) -> tuple[bool, str | None]:
+    """Detect whether a `slice-queue.md` baseline blob looks tail-truncated/corrupt.
+
+    slice-085 / R-24 / ADR-077. The discriminating signal the name-level orphan-claim
+    comparison lacked: a truncation cuts the FILE TAIL, so the LAST ``### <name>`` block
+    is the one that goes incomplete. Truncation-suspect iff the last candidate block is
+    missing >=1 of the 5 canonical on-disk PSQ-1 field labels (which also covers a file
+    cut mid-field-line — the partial label line never matches its full prefix).
+
+    Deliberately **tail-specific** (per /critique M1): a complete-but-noncanonical block
+    EARLIER in the file (legacy format / hand-edit) does NOT trip the gate — only the tail.
+
+    The required label set is sourced FROM ``slice_queue_writer._RENDERED_FIELD_LABELS``
+    (genuine SSoT per /critique M3) read at call time, so writer + reader never disagree.
+
+    Mirrors ``slice_queue_claim.parse_queue_text`` (slice_queue_claim.py:236-240): CRLF is
+    normalized and an empty / ``_(no candidates)_`` placeholder baseline (no ``### `` block)
+    is NOT truncation-shaped (else a legitimate empty queue false-STOPs — /critique m3).
+
+    Returns ``(suspect, reason)``: ``reason`` is a human-readable string when suspect,
+    else ``None``. Bounded O(blocks x labels); blocks <= top-10 per SOFT merge (/critique
+    m2 — re-review if a future PSQ extension lifts the top-10 cap).
+    """
+    import re as _re  # noqa: PLC0415
+
+    from tools import slice_queue_writer  # noqa: PLC0415
+
+    if not queue_text:
+        return (False, None)
+    text = queue_text.replace("\r\n", "\n")  # CRLF-normalize (parse_queue_text parity)
+
+    heading_positions = [m.start() for m in _re.finditer(r"^### .+$", text, _re.MULTILINE)]
+    if not heading_positions:
+        # No candidate blocks at all (empty / `_(no candidates)_` placeholder / header-only)
+        # — a legitimate queue shape, NOT a truncation. Fail-open here (the harm gate is
+        # claim-loss, and no block means no claimed block to lose by corruption).
+        return (False, None)
+
+    last_block = text[heading_positions[-1]:]
+    labels = slice_queue_writer._RENDERED_FIELD_LABELS
+    missing = [
+        label for label in labels
+        if not _re.search("^" + _re.escape(label), last_block, _re.MULTILINE)
+    ]
+    if missing:
+        return (
+            True,
+            f"last candidate block is missing field label(s) {missing} — baseline appears "
+            f"tail-truncated/corrupt (file does not end at a clean PSQ-1 block boundary)",
+        )
+    return (False, None)
+
+
 def _verify_soft_equivalence(
     repo_root: Path,
     diag: ConflictDiagnostic,
@@ -1782,21 +1835,47 @@ def _verify_soft_equivalence(
                     f"drop / semantic divergence vs manual-resolve baseline; R-21)"
                 )
 
-        # M2: loud (non-STOP) cross-stage-claim-drop warning for claimed orphans that
-        # existed as a heading in the discarded stage (truncated-baseline observability).
+        # slice-085 / R-24 / ADR-077 (Option 4, orphan-gated): an orphan claim — a claimed
+        # candidate ABSENT from the baseline — is normally legitimate top-10 churn (WARN, not
+        # STOP; the slice-082 M2 / ADR-074 anti-false-STOP decision). But when the baseline is
+        # TRUNCATION-SHAPED, the drop is claim-loss-by-corruption (the R-24 hole) → escalate to
+        # a fail-closed STOP via `_fail` (best-effort audit row first). Well-formed baseline →
+        # preserve the existing cross-stage-claim-drop WARN (no false-STOP on healthy churn).
+        # Tail-truncation-shape is the discriminating signal the name-level check lacked.
         stage2_headings = {m.strip() for m in _re.findall(r"^### (.+)$", text_2, _re.MULTILINE)}
         stage3_headings = {m.strip() for m in _re.findall(r"^### (.+)$", text_3, _re.MULTILINE)}
         discarded_headings = stage2_headings if baseline_is_stage3 else stage3_headings
-        for name in sorted(claimed_names - baseline_headings):
-            if name in discarded_headings:
-                print(
-                    f"parallel-conflict-resolver: cross-stage-claim-drop: claimed candidate "
-                    f"{name!r} present in a discarded rebase stage but absent from the "
-                    f"baseline — verify the baseline is not truncated (expected on legitimate "
-                    f"top-10 churn; a genuinely-corrupt baseline is a narrow R-21 residual "
-                    f"deferred to PCR-2b)",
-                    file=sys.stderr,
+        orphan_claims = sorted(claimed_names - baseline_headings)
+        if orphan_claims:
+            # Fail-closed on uncertainty (mission-brief must-not-defer): if the integrity
+            # check itself raises, treat the baseline as suspect → STOP in this claim-
+            # threatened branch (never silently auto-merge an uncheckable baseline that
+            # already dropped a claim).
+            try:
+                truncation_shaped, trunc_reason = _baseline_is_truncation_shaped(baseline_text)
+            except Exception as exc:  # noqa: BLE001 - any parse failure → suspect → fail-closed
+                truncation_shaped = True
+                trunc_reason = f"baseline integrity check raised {exc!r} — treated as suspect"
+            if truncation_shaped:
+                dropped = ", ".join(repr(n) for n in orphan_claims)
+                _fail(
+                    f"equivalence-guard: claim-loss-by-corruption — claimed candidate(s) "
+                    f"{dropped} dropped from a TRUNCATION-SHAPED baseline slice-queue.md "
+                    f"({trunc_reason}); refusing to auto-merge a corrupt baseline that lost a "
+                    f"durable claim (R-24 / ADR-077 Option 4 — hand-resolve the rebase). "
+                    f"NOTE: the M1 case (a claim that existed ONLY on the truncated branch) is "
+                    f"invisible to merged_claims and remains a documented R-24 residual."
                 )
+            # Well-formed baseline: legitimate churn → existing loud WARN, no STOP.
+            for name in orphan_claims:
+                if name in discarded_headings:
+                    print(
+                        f"parallel-conflict-resolver: cross-stage-claim-drop: claimed candidate "
+                        f"{name!r} present in a discarded rebase stage but absent from a "
+                        f"WELL-FORMED baseline — expected on legitimate top-10 churn (the "
+                        f"baseline passed the slice-085 truncation-shape integrity check)",
+                        file=sys.stderr,
+                    )
 
     # --- Invariants #2 + #3: shippability -------------------------------------
     srel = "architecture/shippability.md"
