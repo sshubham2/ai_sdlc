@@ -1,16 +1,16 @@
 ---
 slice: slice-085-harden-pcr-1-truncated-baseline
-stage: build
+stage: code-review
 updated: 2026-05-30
-next-action: run /code-review
+next-action: run /validate-slice
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-085 harden-pcr-1-truncated-baseline
 
-**Stage**: build (complete — pre-finish gate green)
-**Next action**: run `/code-review`
+**Stage**: code-review (complete — advisory findings recorded)
+**Next action**: run `/validate-slice`
 **Updated**: 2026-05-30
 **Risk tier**: medium — Critic required: yes (touches `tools/parallel_conflict_resolver.py`, an in-house methodology surface — mandatory trigger)
 
@@ -20,7 +20,7 @@ critic-required: true
 - [x] /design-slice — 2026-05-30
 - [x] /critique — 2026-05-30 — NEEDS-FIXES (dual-review EXTEND; 0 blockers, 3 majors, 5 minors; all triaged)
 - [x] /build-slice — 2026-05-30 — SHIPPED (134-test PCR/queue suite green; APED-1 battery; all Step 6 audits exit 0; MEPD-1 EXCLUDE)
-- [ ] /code-review
+- [x] /code-review — 2026-05-30 — FINDINGS (0 blockers, 2 majors, 4 minors; M1(b)+M2 applied this slice, m1-m4 + M1(a) durable-fix logged for /reflect)
 - [ ] /validate-slice
 - [ ] /reflect
 
@@ -30,9 +30,9 @@ Dual-Critic complete (first Critic NEEDS-FIXES + meta-Critic EXTEND), TRI-1 rati
 
 ## On resume
 
-- **Last completed action**: /build-slice complete — Phases A–E shipped; pre-finish gate fully green (134-test suite, APED-1 battery, all Step 6 audits exit 0). Build changes NOT yet committed to the slice branch (commit pending below).
+- **Last completed action**: /code-review — code-Critic returned 0 blockers, 2 majors, 4 minors. M2 (stale design.md MEPD-1 contradiction) + M1(b) (4th R-24 residual: label-as-value-line false-negative) APPLIED this slice as vault-truth fixes. m1-m4 + M1(a) durable field-shape tightening logged for /reflect. code-review.md written.
 - **Current work**: none.
-- **Next immediate step**: run `/code-review` on the slice diff (in-loop adversarial code-Critic between build and validate).
+- **Next immediate step**: run `/validate-slice` (real-environment AC validation + shippability regression check).
 - **WORKTREE NOTE**: this slice runs in the BRANCH-2 worktree `C:\Users\sshub\ai_sdlc-wt\slice-085-...`. `ai-sdlc-tools` is editable-installed pointing at the MAIN tree, so `import tools` resolves to the main tree UNLESS cwd == worktree. ALL pytest/python/audit invocations MUST set cwd to the worktree (`Set-Location $wt`) or they test stale main-tree code.
 
 ## Phase artifacts
@@ -43,5 +43,6 @@ Dual-Critic complete (first Critic NEEDS-FIXES + meta-Critic EXTEND), TRI-1 rati
 - [critique.md](critique.md) — NEEDS-FIXES (0 blockers, 3 majors, 5 minors)
 - [critique-review.md](critique-review.md) — dual-review EXTEND (confirmed all, +2 missed minors)
 - [build-log.md](build-log.md) — SHIPPED (Events + Summary)
+- [code-review.md](code-review.md) — FINDINGS (0 blockers, 2 majors, 4 minors)
 - [validation.md](validation.md) — pending
 - [reflection.md](reflection.md) — pending

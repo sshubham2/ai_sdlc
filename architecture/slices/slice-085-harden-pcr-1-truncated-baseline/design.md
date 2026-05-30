@@ -43,7 +43,7 @@ Consequence: the only **non-self-healing** harm a truncated/corrupt baseline cau
 
 ## Contracts added or changed
 
-None — no endpoints/events/CLI-surface changes. The `parallel_conflict_resolver` CLI (`--resolve-soft`) behavior is unchanged except that a previously-WARN-then-AUTO_MERGE claim-loss-on-truncated-baseline now returns `action="STOP"`. This is a **behavior change** (a SOFT merge acceptable yesterday is refused today) → methodology-changelog entry + ADR (per MEPD-1).
+None — no endpoints/events/CLI-surface changes. The `parallel_conflict_resolver` CLI (`--resolve-soft`) behavior is unchanged except that a previously-WARN-then-AUTO_MERGE claim-loss-on-truncated-baseline now returns `action="STOP"`. This is a **behavior change** (a SOFT merge acceptable yesterday is refused today) → recorded via [[ADR-077]] + the R-24 `**Narrowed:**` annotation; **MEPD-1 EXCLUDE** per ADR-077 §Consequences (risk-narrowing fix-slice, no new RULE-ID, in-place edit to the already-manifested `parallel_conflict_resolver.py` — NO methodology-changelog entry, NO VERSION bump, NO PMI-1 manifest bump). _(Corrected per /code-review M2 — the earlier "methodology-changelog entry + ADR" clause was a stale draft remnant predating the /critique-review m-add-2 EXCLUDE determination.)_
 
 ## Data model deltas
 
