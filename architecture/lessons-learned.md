@@ -1815,3 +1815,21 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **"A Critic's own fix is a fresh claim" fired N=3 in ONE slice** (M-add-1, M-add-2, the docstring SyntaxWarning) — strongest /critic-calibrate signal yet for systematically re-interrogating Builder fix-deltas at the meta-pass, at /code-review, AND via the full-suite run.
 - **New-parser-parity / regex-APED-1 now N=3** (slice-081 anchored matcher, slice-082 heading regex, slice-083 marker regex) — every instance caught ONLY by executing the regex against an adversarial corpus, never by reading the design. **At N=3 this is a build-check / /critique-dimension promotion candidate** (the slice-082 entry pre-registered "at N=3").
 - **Self-validating-slice property N=4 on the parallel-slice family** (slice-077/078/082/083) — codification candidate ("parallel-family slices dogfood their own `/commit-slice --merge`").
+
+## Slice 084 (harden-pcr-2a-clock-skew-winner) — 2026-05-30
+
+### Worked
+- Picking the **honest signal over the named-in-the-register signal**: the risk-register pre-named `Claim-seq` (fix-candidate #1) as the R-23 fix, but a code read at /slice showed a per-machine counter isn't cross-machine comparable. Rejecting it at /slice (not discovering it mid-build) and choosing resolver-now future-dating instead set the whole slice on a sound footing — and made "R-23 narrowed not retired" the honest framing from the start.
+- **Detect-and-escalate into freshly-shipped machinery**: the guard escalates to the slice-083 PCR-2b gate — a venue R-23's own fix-candidate #2 named but that didn't exist until last slice. Leaning on just-shipped sibling-axis work kept the slice tiny (single file, no skill edit) while genuinely closing the detectable sub-case.
+- Test-first against an injectable `now` made the entire skew surface unit-testable with zero clock-mocking — `now` is a real `datetime` value passed in, so the 13-row APED-1 battery + boundary pins run deterministically.
+
+### Didn't work
+- **The design-Critic's B2 `Z`-fix shipped defective** — case-sensitive `endswith("Z")` fail-closed STOPped a valid lowercase-`z` past stamp (code-Critic M1). The design-Critic correctly identified "Z unsupported on 3.10" but the *fix it prompted* was itself a fresh parser claim that only corpus-execution caught.
+- The same `# B2` comment over-claimed "version-independent" — true only for the `Z` token, not the broader 3.10-vs-3.11 `fromisoformat` acceptance split (code-Critic M2). Docstring-overclaim atop a real version-conformance gap.
+- `datetime.fromisoformat` turned out to be a THREE-trap function (naive-parse → `TypeError`; `Z`/`z` case; 3.10/3.11 acceptance) all inside one ~10-line helper — more edge surface than a one-line parse suggests.
+
+### Pattern
+- **"A Critic's own fix is a fresh claim" + regex/parser-APED-1 (BC-PROJ-13), FUSED across personas**: design-Critic caught the timestamp-parsing class (B1/B2) → its B2 fix introduced a fresh defect (case-sensitivity, version-overclaim) → code-Critic caught the fix's defect by EXECUTING the corpus. The same finding-family propagated design → defective-fix → code-catch. Reinforces both standing patterns simultaneously; 3-Critic stack complementarity held (do NOT collapse).
+- **Undetectable-by-design residual is a legitimate slice outcome** — narrowing a low/low risk to its detectable sub-case + honestly documenting the open residual (staler-but-past, undetectable from one clock) beats forcing a false "retired". Model for future partial-mitigation slices.
+- **ISO-8601 parsing is a checklist, not a one-liner** (naive / case / cross-version) — build-check promotion candidate.
+- **Self-validating-slice property N=5 on the parallel-slice family** (slice-077/078/082/083/084) — the codification candidate ("parallel-family slices dogfood their own `/commit-slice --merge`") is now well past N=3; strong /critic-calibrate promotion signal.

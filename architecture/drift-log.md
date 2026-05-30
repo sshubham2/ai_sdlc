@@ -2,6 +2,22 @@
 
 Append-only audit trail of `/drift-check` runs. Each entry records vault-vs-code divergence findings + resolutions.
 
+## Audit 2026-05-30 (slice-084)
+
+**Trigger**: slice-084 pre-finish gate (/build-slice Step 6)
+**Scope**: full (thin vault — ADR-076 + active slice-084 design.md/mission-brief + risk-register R-23 + shippability row 90 vs code)
+**Result**: CLEAN — no drift.
+
+- design.md claims all present in `tools/parallel_conflict_resolver.py`: `_CLOCK_SKEW_TOLERANCE_SECONDS = 300`, `_winner_clock_skew_suspect(winner, now, tolerance_seconds)`, `_append_skew_stop_audit(repo_root, diag, reason, winner, loser, now)`, the Step 2.5 guard wired into `resolve_vault_claim_conflict` with the new `now` param, and the L1154 `_format_vault_claim_audit_entry` docstring touch-up (Claim-seq → resolver-now guard). Verified by reading the live source + 20-test suite green.
+- ADR-076 claims align with code: resolver-now future-dating detection (NOT Claim-seq); defensive parse (Z→+00:00, unparseable→STOP, tz-naive→STOP, except(ValueError,TypeError)); mints no RULE-ID (MEPD-1 EXCLUDE — no VERSION bump, confirmed by MCFS-1/AVFS-1/TVFS-1 PASS with VERSION unchanged at 0.77.0).
+- `_select_timestamp_winner` (:502) unchanged — stays a pure strict-newer comparator (no drift to the DRY audit-site at L1761).
+- shippability.md row 90 references `tests/methodology/test_pcr_2a_clock_skew_winner.py`, which exists + passes (20 items).
+- risk-register R-23 stays OPEN this slice (narrowed, NOT retired — /critique M1); downgrade + residual registration deferred to /reflect. No status-pin drift (STP-1 clean).
+- No removed feature; no UNSPECIFIED CODE; no STALE CLAIM (the L1154 Claim-seq forward-ref was updated to the shipped resolver-now approach in the same edit).
+
+### Resolutions
+- None required — vault and code aligned for the slice-084 surface.
+
 ## Audit 2026-05-29 (slice-082)
 
 **Trigger**: slice-082 pre-finish gate (/build-slice Step 6)

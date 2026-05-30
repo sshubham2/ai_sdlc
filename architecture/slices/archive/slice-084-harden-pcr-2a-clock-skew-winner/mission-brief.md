@@ -61,18 +61,18 @@ are provisional — `/design-slice` finalizes them against the chosen helper sha
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_suspicious_ordering_yields_no_auto_winner | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_suspicious_ordering_returns_stop_with_skew_reason | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_naive_offsetless_claimed_at_stops_not_crashes | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_unparseable_claimed_at_stops_fail_closed | PENDING |
-| 1 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_z_suffix_claimed_at_handled_version_independently | PENDING |
-| 2 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_skew_stop_audit_records_both_claims_and_signal | PENDING |
-| 2 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_skew_stop_reason_routes_to_pcr_2b_gate | PENDING |
-| 3 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_plausible_ordering_still_auto_resolves_strict_newer | PENDING |
-| 3 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_gate_does_not_overtrigger_on_normal_skew_within_threshold | PENDING |
-| 3 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_tolerance_boundary_at_300s_not_suspicious | PENDING |
-| 3 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_tolerance_boundary_at_301s_suspicious | PENDING |
-| 4 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_aped1_battery_future_dated_winner_caught_past_resolves | PENDING |
+| 1 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_suspicious_ordering_yields_no_auto_winner | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_suspicious_ordering_returns_stop_with_skew_reason | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_naive_offsetless_claimed_at_stops_not_crashes | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_unparseable_claimed_at_stops_fail_closed | PASSING |
+| 1 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_z_suffix_claimed_at_handled_version_independently | PASSING |
+| 2 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_skew_stop_audit_records_both_claims_and_signal | PASSING |
+| 2 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_skew_stop_reason_routes_to_pcr_2b_gate | PASSING |
+| 3 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_plausible_ordering_still_auto_resolves_strict_newer | PASSING |
+| 3 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_gate_does_not_overtrigger_on_normal_skew_within_threshold | PASSING |
+| 3 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_tolerance_boundary_at_300s_not_suspicious | PASSING |
+| 3 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_tolerance_boundary_at_301s_suspicious | PASSING |
+| 4 | unit | tests/methodology/test_pcr_2a_clock_skew_winner.py | test_aped1_battery_future_dated_winner_caught_past_resolves | PASSING |
 
 ## Verification plan
 
