@@ -807,3 +807,89 @@ Next calibration run (slices 088+) should verify Proposal 1 post-application eff
 - First governed slice: slice-079 (`bundle-074-075-077-078-code-critic-cleanup`).
 
 ---
+
+## Calibration run — 2026-05-30 (post-slice-084)
+
+**Window**: last 15 reflections (slice-070 through slice-084); NEW miss data analyzed = slices 079–084 (070–078 settled in the post-075 + post-078 runs, not re-litigated).
+**Total misses analyzed**: 6 NEW "Missed by Critic" datapoints (079 M1, 080 M1, 081 m1, 082 M1, 083 M2, 084 M1/M2) — every one a code-Critic catch of a defect the design+meta stack structurally cannot reach.
+
+### Pattern summary
+
+| # | Category | Distinct-slice MISSES (079–084) | Slices | Design-Critic-reachable? | Disposition |
+|---|---|---|---|---|---|
+| 1 | Clause-5 self-application as a STRING-NORMALIZATION transform (Critic-prompted fix is a parse/normalize transform shipped without executing it against input-class variants — case/format) | 1 | 084 (B2 `Z`→`+00:00` fix shipped case-sensitive; missed lowercase `z`) | Yes (the fix literal existed at meta-pass) | **Watching** — N=1; clause (5) scope is narrower than the class but evidence is one slice |
+| 2 | New-parser-parity / regex-APED-1 (slice MINTS a new parser; content-shape bug reachable only by executing the literal post-build) | 3 | 082, 083, 084 | No — slice's own new parser body isn't a design literal; code-Critic's structural job | **Routed out** — already codified as BC-PROJ-13 + designed code-Critic backstop |
+| 3 | "A Critic's own fix is a fresh claim" (re-interrogate Builder/Critic fix-deltas) | 3 | 082, 083, 084 | Partial — meta-Critic's designed job | **Routed out** — meta-Critic CAUGHT it at 082/083 (M-add-*); designed division of labor |
+| 4 | Code-Critic-only realization gaps (DRY/behavioral-test absence; output-honesty inside functions; regex anchor) | 3 | 079, 080, 081 | No — structurally post-design (reads realized code) | **Routed out** — designed 3-Critic complementarity (N=19 cumulative) |
+| 5 | "Found the class, under-swept its surfaces" | 2 | 080 (+074/075 prior) | Partial (meta-Critic) | **Watching** — N=2 |
+| 6 | Anchoring-claim under-tested in both directions (left+right anchor) | 1 | 081 | Partial | **Watching** — N=1; subsumed by BC-PROJ-13 for minted regex |
+| 7 | 3-Critic stack value-validation (each persona a distinct class) | DISCOVERY (N=19) | all 6 | n/a | Stable; do NOT collapse the stack |
+
+**No category reaches ≥3 distinct slices as an uncodified, design-Critic-reachable, first-Critic MISS.** The three N=3 categories (rows 2/3/4) are each already codified (BC-PROJ-13) or the designed meta-/code-Critic backstop firing as intended.
+
+### Effectiveness on past proposals
+
+| Proposal / Rule | Window 079–084 result | Verdict |
+|---|---|---|
+| **2026-05-29 Proposal 1 (APED-1 clause 5 — self-application of the APED-1 discipline to the proposed fix)** — FIRST measurement | 0 recurrences of the exact class clause (5) governs (target ≤1, baseline N=4 at 064–078). slice-079 B1 was the CATCH mechanism (grep caught cited keys belonged to a different tool). 080/081 had no clause-5-triggering event (081 design-Critic M1 was an OVERRIDDEN FALSE-ALARM). | **EFFECTIVE** (0 ≤ 1) |
+| 2026-05-10 Proposal 1 (Dim 1 doc-vs-impl parity) | ~79 consecutive clean slices (6–84) | SUSTAINED STRONGLY EFFECTIVE |
+| 2026-05-10 Proposal 2 (Dim 4 methodology-audit conformance) | 0 misses | SUSTAINED STRONGLY EFFECTIVE |
+| CCC-1 (Dim 9) / RPCD-1 / FBCD-1(a) / PTFCD-1+PTFFD-1 / MEPD-1 / STP-1 | 0 first-Critic recurrence in scoped categories | SUSTAINED EFFECTIVE |
+| APED-1 ORIGINAL + scope-extension (non-audit regex/pathspec/glob) | 083 B2 (`/critique`-time setext APED-1 execution) + 084 B1 (corpus-executed) = in-scope CATCHES | SUSTAINED EFFECTIVE |
+| BC-PROJ-13 (newly-minted-parser adversarial-corpus battery; promoted slice-083) | Just promoted; absorbed the row-2 new-parser-parity class | Effectiveness measurable at slices 085+ |
+
+**Scope-edge finding** (the slice-084 question): slice-084 M1 is NOT a recurrence of the clause-5 class as written — B2's fix did not *spec* an APED-1 discipline; it was a Builder string-normalization (`Z`→`+00:00`) nobody corpus-executed against `z`/offset variants. It is the SAME shape as clause (5) but the transform is a string-normalization, whereas clause (5)'s literal is scoped to "a regex literal targeting concrete file coordinates (e.g. 'L185', 'step 2.1.', `<helper>.py:NNN`)". So clause (5) is genuinely NARROWER than the class — verdict (a) too-narrow — but the string-normalization variant is N=1 → below the proposal bar. Watch-listed for a clause-5 generalization at N=3.
+
+### Proposals
+
+**ZERO PROPOSALS THIS RUN** (honest-zero per the ≥3-distinct-slice + anti-bloat rules).
+
+| # | Pattern | User action |
+|---|---------|-------------|
+| — | (no proposals) | n/a |
+
+Rationale: the three N=3 window categories are each already codified (BC-PROJ-13) or the designed meta-/code-Critic backstop firing exactly as intended (3-Critic complementarity N=19 — do NOT collapse). The one genuinely-design-Critic-reachable clause-5 scope gap (string-normalization fix not corpus-executed) is N=1 (slice-084 only); generalizing clause (5) against an already 12-sub-clause, 3-paragraph-APED-1 Dim 9 at N=1 would violate both the ≥3-distinct-slice bar and the anti-bloat rule. Proposal 1's first measurement is EFFECTIVE — the expected result one calibration after a proactive in-place refinement.
+
+### Routed out at analysis time
+
+| # | Category | Reason |
+|---|----------|--------|
+| A | New-parser-parity / regex-APED-1 N=3 (081/082/083) | Slice's own minted parser body isn't a design-time literal; code-Critic's structural job. Already codified as BC-PROJ-13 (promoted slice-083). |
+| B | "A Critic's own fix is a fresh claim" N=3 (082/083/084) | Meta-Critic's designed job — CAUGHT at 082 M-add-1, 083 M-add-1/2. Routes to `critique-review.md` (different agent), not `critique.md`. |
+| C | Code-Critic-only realization gaps N=3 (079/080/081) | Structurally post-design (reads realized code). Designed 3-Critic complementarity; do NOT collapse. |
+| D | Governing-lag (rule minted slice N → blind spot slice N+1) | Designed DR-1 backstop. Out-of-scope; backstop IS the design. |
+
+### Watching but not proposing
+
+| Sub-class | N distinct slices | Promotion criterion |
+|---|---|---|
+| **Clause-5 self-application as a STRING-NORMALIZATION transform** | 1 (084) | STRONGEST watch-item. At N=3, sharpen clause (5) of APED-1 (Dim 9 #12, ~line 206): broaden "regex literal targeting concrete file coordinates" → "any minted parse/normalize transform in the proposed fix (regex, string-normalization, `fromisoformat`/ISO-8601 parse, token-canonicalize) — execute it against case/format/version variants of the input class". Anchor ready: slice-084 B2-fix `Z`→`+00:00` case-sensitive + `fromisoformat` 3.10/3.11 split. (Partially pre-empted by BC-PROJ-13's "run the corpus against the FIX" at build time → narrow gap.) |
+| "Found the class, under-swept its surfaces" | 2 (074/075 + 080) | At N=3 design-Critic MISS, propose a Dim 9 "swept-all-surfaces-of-the-flagged-class?" sub-clause (reflection-080 self-flagged this). |
+| Anchoring-claim under-tested in both directions | 1 (081) | Subsumed by BC-PROJ-13 for minted regex; promote only if it recurs as a design-Critic MISS outside a minted-parser context. |
+| Carryover sub-threshold (AC count > 5; count-claim hand-verification; MEPD-1-EXCLUDE-vs-shippability-row) | 3 / 2 / 2 cumulative | No new 079–084 occurrences. Promote per prior-run criteria. |
+| Self-validating-slice property (PCR family) | N=5 (077/078/082/083/084) — DISCOVERY | Methodology-pattern codification candidate at the /reflect or /build-slice level; NOT a `critique.md` change. |
+
+### Run summary
+
+| Metric | Value |
+|---|---|
+| Window | slices 070–084 (NEW = 079–084) |
+| Proposals generated | **0** (honest-zero) |
+| Proposals routed out at analysis | 4 (A–D) |
+| 2026-05-29 Proposal 1 (APED-1 clause 5) | EFFECTIVE — 0 ≤ 1 target; first measurement |
+| All prior sustained proposals (Dim 1/Dim 4/CCC-1/RPCD-1/FBCD-1/PTFCD-1+PTFFD-1/MEPD-1/STP-1/APED-1) | SUSTAINED EFFECTIVE — 0 in-scope first-Critic recurrence |
+| 3-Critic stack value-validation | N=19 cumulative — do NOT collapse the stack |
+| Self-validating-slice property | N=5 (DISCOVERY, not a Critic-prompt change) |
+| Strongest signal | Clause-5 string-normalization scope-narrowness (N=1; watch-listed for N=3 generalization) |
+| Honesty note | 1 effective-measurement confirmation, 0 proposals. The slice-084 string-normalization edge is real + design-Critic-reachable but N=1 and partially covered by BC-PROJ-13; manufacturing a clause-5 generalization at N=1 would damage signal density. |
+| Next trigger | slices ~094+ (default 10–20), OR earlier if the clause-5 string-normalization variant recurs (→ N=2/N=3), OR "found the class, under-swept surfaces" hits a 3rd design-Critic MISS. |
+
+### Effectiveness check
+
+Next calibration run should verify:
+- Proposal 1 (clause 5) sustains 0 recurrences across 085+.
+- BC-PROJ-13 (first measurement, slices 085+) suppresses new-parser-parity code-Critic catches at design time.
+- If the **string-normalization clause-5 variant** recurs at 085+ (→ N=2, then N=3), promote the clause-5 generalization (anchor: slice-084 B2-fix).
+- If "found the class, under-swept surfaces" hits a 3rd design-Critic MISS, propose the "swept-all-surfaces?" sub-clause.
+
+---
