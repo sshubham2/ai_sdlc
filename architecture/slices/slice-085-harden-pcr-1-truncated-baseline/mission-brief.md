@@ -27,17 +27,17 @@ PCR-1's SOFT-class auto-merge (`tools/parallel_conflict_resolver.py::_resolve_so
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_soft_stops_on_orphan_claim_drop_from_tail_truncated_baseline | PENDING |
-| 1 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_baseline_truncation_helper_is_tail_specific_not_whole_file_scan | PENDING |
-| 2 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_orphan_claim_drop_from_wellformed_baseline_warns_and_automerges | PENDING |
-| 3 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_wellformed_short_baseline_automerges_no_false_stop | PENDING |
-| 4a | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_overlay_silent_drop_still_stops_1775_1783 | PENDING |
-| 4b | integration | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_stop_is_atomic_via_resolve_soft_conflict_both_soft_files_pending | PENDING |
-| 4d | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_empty_and_placeholder_baseline_not_truncation_shaped | PENDING |
-| 4d | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_truncation_helper_normalizes_crlf_and_trailing_space_heading | PENDING |
-| 5 | unit | tests/methodology/test_slice_queue_writer.py | test_format_entry_renders_from_rendered_field_labels_constant | PENDING |
-| 5 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_baseline_truncation_helper_uses_writer_field_label_constant | PENDING |
-| 5 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_existing_healthy_setequal_and_claim_preservation_unchanged | PENDING |
+| 1 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_soft_stops_on_orphan_claim_drop_from_tail_truncated_baseline | PASSING |
+| 1 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_baseline_truncation_helper_is_tail_specific_not_whole_file_scan | PASSING |
+| 2 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_orphan_claim_drop_from_wellformed_baseline_warns_and_automerges | PASSING |
+| 3 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_wellformed_short_baseline_automerges_no_false_stop | PASSING |
+| 4 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_overlay_silent_drop_still_stops_1775_1783 | PASSING |
+| 4 | integration | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_stop_is_atomic_via_resolve_soft_conflict_both_soft_files_pending | PASSING |
+| 4 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_empty_and_placeholder_baseline_not_truncation_shaped | PASSING |
+| 4 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_truncation_helper_normalizes_crlf_and_trailing_space_heading | PASSING |
+| 5 | unit | tests/methodology/test_slice_queue_writer.py | test_format_entry_renders_from_rendered_field_labels_constant | PASSING |
+| 5 | unit | tests/methodology/test_parallel_conflict_resolver_truncated_baseline.py | test_baseline_truncation_helper_uses_writer_field_label_constant | PASSING |
+| 5 | unit | tests/methodology/test_pcr_1_soft_regen_equivalence_guard.py | test_existing_healthy_setequal_and_claim_preservation_unchanged | PASSING |
 
 > **TRI-1 ratified (2026-05-30)**: Option 4 (m1, orphan-gated) + (a) document M1 as residual (NOT (b) close-it). AC-1 is the orphan-branch claim-loss STOP (claimed candidate dropped from a tail-truncation-shaped baseline); AC-2 is the orphan-on-well-formed WARN; AC-3 is the no-false-STOP guard for a legitimately-short well-formed baseline. The M1 invisible-claim case (claim only on the truncated branch) is a documented R-24 residual, not a tested STOP.
 

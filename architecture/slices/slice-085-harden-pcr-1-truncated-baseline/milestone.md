@@ -1,16 +1,16 @@
 ---
 slice: slice-085-harden-pcr-1-truncated-baseline
-stage: critique
+stage: build
 updated: 2026-05-30
-next-action: run /build-slice
+next-action: run /code-review
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-085 harden-pcr-1-truncated-baseline
 
-**Stage**: critique
-**Next action**: run `/build-slice`
+**Stage**: build (complete — pre-finish gate green)
+**Next action**: run `/code-review`
 **Updated**: 2026-05-30
 **Risk tier**: medium — Critic required: yes (touches `tools/parallel_conflict_resolver.py`, an in-house methodology surface — mandatory trigger)
 
@@ -19,7 +19,7 @@ critic-required: true
 - [x] /slice — 2026-05-30
 - [x] /design-slice — 2026-05-30
 - [x] /critique — 2026-05-30 — NEEDS-FIXES (dual-review EXTEND; 0 blockers, 3 majors, 5 minors; all triaged)
-- [ ] /build-slice
+- [x] /build-slice — 2026-05-30 — SHIPPED (134-test PCR/queue suite green; APED-1 battery; all Step 6 audits exit 0; MEPD-1 EXCLUDE)
 - [ ] /code-review
 - [ ] /validate-slice
 - [ ] /reflect
@@ -30,9 +30,10 @@ Dual-Critic complete (first Critic NEEDS-FIXES + meta-Critic EXTEND), TRI-1 rati
 
 ## On resume
 
-- **Last completed action**: /critique + /critique-review + TRI-1 triage (verdict NEEDS-FIXES; critique.md + critique-review.md written; audits clean)
-- **Current work**: none
-- **Next immediate step**: run `/build-slice` (apply the 3 ACCEPTED-PENDING fixes; test-first per TF-1)
+- **Last completed action**: /build-slice complete — Phases A–E shipped; pre-finish gate fully green (134-test suite, APED-1 battery, all Step 6 audits exit 0). Build changes NOT yet committed to the slice branch (commit pending below).
+- **Current work**: none.
+- **Next immediate step**: run `/code-review` on the slice diff (in-loop adversarial code-Critic between build and validate).
+- **WORKTREE NOTE**: this slice runs in the BRANCH-2 worktree `C:\Users\sshub\ai_sdlc-wt\slice-085-...`. `ai-sdlc-tools` is editable-installed pointing at the MAIN tree, so `import tools` resolves to the main tree UNLESS cwd == worktree. ALL pytest/python/audit invocations MUST set cwd to the worktree (`Set-Location $wt`) or they test stale main-tree code.
 
 ## Phase artifacts
 
@@ -41,6 +42,6 @@ Dual-Critic complete (first Critic NEEDS-FIXES + meta-Critic EXTEND), TRI-1 rati
 - [ADR-077](../../decisions/ADR-077-scope-pcr-1-baseline-integrity-to-claim-loss.md)
 - [critique.md](critique.md) — NEEDS-FIXES (0 blockers, 3 majors, 5 minors)
 - [critique-review.md](critique-review.md) — dual-review EXTEND (confirmed all, +2 missed minors)
-- [build-log.md](build-log.md) — pending
+- [build-log.md](build-log.md) — SHIPPED (Events + Summary)
 - [validation.md](validation.md) — pending
 - [reflection.md](reflection.md) — pending

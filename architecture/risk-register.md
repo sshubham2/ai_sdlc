@@ -436,6 +436,8 @@ The R-21 equivalence guard ([[ADR-074]] / `_verify_soft_equivalence`) exempts *o
 
 Per cooperative threat model: NOT a security boundary. R-24 tracks the cooperating-but-corrupt-baseline case only; warn-not-STOP is the deliberate happy-path-preserving choice (R-21 retirement § + slice-082 M2 disposition).
 
+**Narrowed:** slice-085 (2026-05-30) — claim-loss where a claimed candidate's whole block is truncated out of a tail-truncation-shaped baseline now STOPs (orphan-branch-gated, [[decisions/ADR-077]] Option 4: `_baseline_is_truncation_shaped` flags a last `### ` block missing ≥1 of the 5 PSQ-1 field labels; a well-formed baseline keeps the WARN). Status stays **open** (downgraded, low/low) — NOT retired — because three residuals remain undetected: (i) a baseline truncated EXACTLY at a clean block boundary (last surviving block complete) → indistinguishable from legitimate churn; (ii) the M1 case — a claim that existed ONLY on the truncated baseline branch, claim lines cut, invisible to `merged_claims` (TRI-1-ratified disposition (a): documented, not closed); (iii) the VAULT_CLAIM sibling path (`resolve_vault_claim_conflict`) carries the same exposure and never runs the SOFT-path truncation check — deferred to a future PCR-2a hardening. Mirrors the [[decisions/ADR-076]]/R-23 partial-mitigation-with-residual precedent.
+
 ## R-25 — Agent-spawning skills don't guard against main-thread fabrication of async-spawned agent output
 
 **Likelihood**: medium

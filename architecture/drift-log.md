@@ -2,6 +2,20 @@
 
 Append-only audit trail of `/drift-check` runs. Each entry records vault-vs-code divergence findings + resolutions.
 
+## Audit 2026-05-30 (slice-085)
+
+**Trigger**: slice-085 pre-finish gate (/build-slice Step 6)
+**Scope**: full (thin vault — ADR-077 + active slice-085 design.md/mission-brief + risk-register R-24 narrowing + slice-queue/shippability claims vs code)
+**Result**: CLEAN — no drift.
+
+- ADR-077 / design.md claims all present in code: `tools/slice_queue_writer.py:129` `_RENDERED_FIELD_LABELS` constant; `_format_entry` (`:650-667`) renders the 5 PSQ-1 field lines FROM it via zip (genuine SSoT, M3); `tools/parallel_conflict_resolver.py:1690` `_baseline_is_truncation_shaped(queue_text)` (tail-specific last-block scan; CRLF-normalized; empty/`_(no candidates)_` placeholder fail-open; labels read from `slice_queue_writer._RENDERED_FIELD_LABELS` at `:1729`); orphan-branch Option-4 wiring at `:1848-1865` (orphan_claims + truncation-shaped → `_fail` STOP, audit row first; fail-closed on helper raise; well-formed → existing WARN). Verified by reading the live source + 134-test PCR/queue/writer suite green + APED-1 executed battery.
+- R-24 carries the `**Narrowed:** slice-085` annotation; Status stays **open** (downgraded, low/low) — RR-1 parses status from the `**Status**:` field (unchanged), no STP-1 stale-pin (no test claims R-24 retired).
+- MEPD-1 EXCLUDE confirmed: `VERSION` unchanged at `0.77.0`; no `methodology-changelog.md` entry; PMI-1 inventory unchanged (in-place edits to already-manifested `slice_queue_writer.py` + `parallel_conflict_resolver.py`, no new file). MCFS-1/AVFS-1/TVFS-1 all PASS with VERSION unchanged.
+- No removed feature; no UNSPECIFIED CODE; no STALE CLAIM (the pre-existing `:1775-1783` overlay-silent-drop STOP is untouched and pinned by AC-4a `test_overlay_silent_drop_still_stops_1775_1783`).
+
+### Resolutions
+- None required — vault and code aligned for the slice-085 surface.
+
 ## Audit 2026-05-30 (slice-084)
 
 **Trigger**: slice-084 pre-finish gate (/build-slice Step 6)

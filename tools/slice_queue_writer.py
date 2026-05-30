@@ -115,6 +115,25 @@ _WARN_NO_GRAPH_LINE = (
 )
 _NO_CANDIDATES_PLACEHOLDER = "_(no candidates)_"
 
+# The 5 canonical on-disk PSQ-1 field labels, in render order. This is the
+# SINGLE render source: `_format_entry` (below) emits these verbatim via zip
+# (slice-085 / ADR-077 / M3) so the constant IS the contract, not a parallel
+# copy. `tools/parallel_conflict_resolver._baseline_is_truncation_shaped`
+# imports this tuple to detect a truncation-shaped baseline (a tail block
+# missing ≥1 of these labels), keeping writer + reader on one source of truth.
+# NOTE (M3, no fourth copy): element [4] ("- **Risk-retired:**") is the same
+# literal as `slice_queue_claim._RISK_RETIRED_PREFIX` (:109), which exists for
+# the orthogonal purpose of marking the post-Risk-retired claim-line pivot in
+# `parse_queue_text`. They are kept byte-identical by intent; do not add a
+# third representation of these labels.
+_RENDERED_FIELD_LABELS: tuple[str, ...] = (
+    "- **Source:**",
+    "- **Blast-radius:**",
+    "- **Parallel-safety:**",
+    "- **Effort:**",
+    "- **Risk-retired:**",
+)
+
 
 # ---------------------------------------------------------------------
 # Active-slice blast-radius derivation
@@ -628,15 +647,25 @@ def _format_entry(item: dict) -> list[str]:
         blast_cell = "`unknown`"
     else:
         blast_cell = ", ".join(f"`{f}`" for f in sorted(blast))
+    # Render the 5 PSQ-1 field lines FROM `_RENDERED_FIELD_LABELS` (slice-085 /
+    # M3): the constant is the single render source, so the truncation-shape
+    # reader and this writer can never disagree on the label set. Values are
+    # zipped in the same fixed order as the labels.
+    field_values = (
+        item["source"],
+        blast_cell,
+        item["parallel_safety"],
+        item["effort"],
+        item["risk_retired"],
+    )
     lines = [
         f"### {name}",
         "",
-        f"- **Source:** {item['source']}",
-        f"- **Blast-radius:** {blast_cell}",
-        f"- **Parallel-safety:** {item['parallel_safety']}",
-        f"- **Effort:** {item['effort']}",
-        f"- **Risk-retired:** {item['risk_retired']}",
     ]
+    lines.extend(
+        f"{label} {value}"
+        for label, value in zip(_RENDERED_FIELD_LABELS, field_values)
+    )
     # PSQ-2 (slice-072): optional claim-line emission INSERT at [-2] before
     # the trailing empty-line separator (per Critic m1 ACCEPTED-FIXED —
     # preserves entry-block separation). Both claim keys present-or-absent
