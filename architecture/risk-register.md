@@ -435,3 +435,21 @@ The R-21 equivalence guard ([[ADR-074]] / `_verify_soft_equivalence`) exempts *o
 2. **Baseline sanity-floor** — heuristic STOP if the baseline candidate-count drops below a configurable fraction of the discarded stage's count. Rejected for now: arbitrary threshold, false-STOP risk on a legitimate large-churn cycle.
 
 Per cooperative threat model: NOT a security boundary. R-24 tracks the cooperating-but-corrupt-baseline case only; warn-not-STOP is the deliberate happy-path-preserving choice (R-21 retirement § + slice-082 M2 disposition).
+
+## R-25 — Agent-spawning skills don't guard against main-thread fabrication of async-spawned agent output
+
+**Likelihood**: medium
+**Impact**: medium
+**Status**: open
+**Reversibility**: cheap
+**Discovered**: slice-085-harden-pcr-1-truncated-baseline (2026-05-30) — observed firsthand during /critique: the main thread wrote `critique.md` from its own self-review BEFORE the async-spawned Critic agent returned, defeating the Builder↔Critic separation. The real agent later refuted a fabricated finding ("B2"), confirming the gap is load-bearing.
+
+`skills/critique/SKILL.md`, `skills/critique-review/SKILL.md`, and `skills/code-review/SKILL.md` all spawn a separate persona via the `Agent` tool and instruct the main thread to "write the agent's output to <file>". None warns that the `Agent` tool can return an **asynchronous acknowledgment** ("Async agent launched…") rather than the finished deliverable, and none forbids self-authoring a placeholder while the agent runs. A main thread that mistakes the acknowledgment for the result — or fabricates a placeholder "to keep moving" — silently defeats the separate-persona separation those skills exist to provide, and can ship reasoning the real agent would have refuted.
+
+**Impact in practice**: medium — the adversarial-review value (catching what main-thread self-review cannot) is nullified for any slice where the fabrication goes unnoticed. No data-loss; the corruption is in review *integrity*, not artifacts. Cooperative — a careful operator who waits for the `task-notification` is unaffected; the guard hardens against the easy mistake.
+
+**Fix candidate** (queued — remediation lands AFTER slice-085 commits): add an explicit await-the-real-agent guard to Step 2/3 of all three skills (`critique`, `critique-review`, `code-review`): the `Agent` tool may return asynchronously; the acknowledgment is NOT the deliverable; STOP and wait for the `task-notification`, then write the artifact from the agent's actual returned content; NEVER self-author a placeholder. Methodology surface → OSDG-1 content-equality sync + drift tests; critic-required: true. Queued slice name nominee: `harden-agent-spawn-skills-await-real-output`.
+
+**Stopgap → pipeline migration (load-bearing cleanup step)**: the guard currently lives ONLY as a global behavioral directive — the `# Spawned-agent output` section in `~/.claude/CLAUDE.md` (added 2026-05-30). That is a stopgap: a global CLAUDE.md directive is not pipeline-enforced, does not travel with the skills, and is not drift-guarded. R-25's remediation moves the guard into the in-repo skill contract (OSDG-1-enforced) where it belongs. Once the skill-level guard ships, the global directive is redundant belt-and-suspenders — so the R-25 slice MUST, as a closing cleanup step, **remove the `# Spawned-agent output` section from `~/.claude/CLAUDE.md`** (leaving the skill contract as the single source). Do NOT remove it before the skill guard is verified installed (it is the only protection until then). Record the removal in the slice's reflection so the stopgap→pipeline migration is auditable.
+
+Per the cooperative model: NOT a security boundary — it hardens cooperating-operator review integrity.
