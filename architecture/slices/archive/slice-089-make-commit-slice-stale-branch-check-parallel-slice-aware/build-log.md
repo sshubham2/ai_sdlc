@@ -14,6 +14,7 @@
 - 2026-05-31 BUILD: plugin.yaml + install_audit.py register stale_branch_classifier (PMI-1/INST-1 → 36 tools); `pip install --force-reinstall` so module resolves from venv site-packages (closes R-29 invisible-tool class).
 - 2026-05-31 FINDING: count-bump fan-out (slice-088 lesson) — INSTALL.md L22/L166 `35→36`; cp1252 coverage parametrize list + 2 sibling tool-inventory tests (`stranded_slice_audit`, `pulse_worktree_resolver`) pinned `35`/`l22`/`l166` → bumped to `36`; added `--root` alias to classifier for cp1252 parity harness.
 - 2026-05-31 TEST: full suite → 1282 PASS, 0 FAIL.
+- 2026-05-31 16:20 PCR-2b MIXED resolved + applied (commit-slice --merge rebase onto slice-090) — see architecture/parallel-conflict-resolution-log.md; code-review NO FINDINGS, TRI-RESOLVE-1 Apply.
 
 ## Summary
 
