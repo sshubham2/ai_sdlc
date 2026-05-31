@@ -14,9 +14,9 @@ Make the AI-SDLC vault relocatable to a single shared external location (default
 ## Acceptance criteria
 
 1. `tools/_vault_paths.py` resolves the vault root via a documented precedence — env `AI_SDLC_VAULT_ROOT` → repo-local pointer/config deriving `~/.aisdlc/<project>/` from `git rev-parse --path-format=absolute --git-common-dir` (canonicalized; bounded-hash subdir, per C1) → default `architecture/` — and the unset/no-config default is UNCHANGED (`Path("architecture")`), so all existing tools/tests behave identically (backward-compatible; no flip).
-2. A concurrent-write-safe vault-write helper exists (advisory lock + atomic write + retry-on-EPERM, per C2) and tests demonstrate it prevents lost-update / partial-write under simulated concurrent writers AND a held-handle/EPERM condition — the R-32 mitigation.
-3. `INSTALL.md` (+ the install flow) prompts for the vault location (default `~/.aisdlc`), derives the per-project folder via the C1 key, and writes the per-project pointer/config — WITHOUT moving any existing repo's `architecture/` (capability only).
-4. The remaining `architecture/`-path-referencing `tools/*.py` (e.g. `parallel_conflict_resolver.py`, `shippability_path_audit.py`, `shippability_runner.py`, `pulse_worktree_resolver.py`, `stranded_slice_audit.py`, `new_agent_warning_audit.py`) are migrated into the `VAULT_ROOT` seam; `_MIGRATION_SITE_ALLOWLIST` is extended and `test_no_orphan_architecture_literal_in_migrated_tools` passes for them.
+2. A concurrent-write/append-safe vault helper exists (`tools/_vault_write.py`: `safe_write_text` = sidecar-lock + atomic `os.replace` + bounded EPERM-retry; `safe_append_text` = `O_APPEND`/`FILE_APPEND_DATA` + lock for append-only files like ADRs/risk-register/logs) and tests demonstrate it prevents lost-update / partial-write under concurrent whole-file writers AND concurrent appenders AND a (mocked) EPERM condition — the R-32 mitigation.
+3. `INSTALL.md` (+ the install flow) prompts for the base vault location (default `~/.aisdlc`) and writes ONLY the GLOBAL base config `~/.claude/ai-sdlc-vault-base` (via `_vault_write.safe_write_text`) — the per-project `$GIT_COMMON_DIR/aisdlc/vault-root` write is slice-094 — WITHOUT moving any existing repo's `architecture/` (capability only).
+4. The remaining `architecture/`-path-referencing `tools/*.py` are **classified** into a migration map (FS-path → migrate-at-flip / git-or-worktree-model-coupled → rethink-at-flip / pattern-data+prose → never-migrate), documented in `design.md` §Tool-migration classification map + [[ADR-085]]. **093 migrates NONE** (default stays `architecture/`, so unmigrated tools stay correct); `_MIGRATION_SITE_ALLOWLIST` is UNCHANGED (the 10 slice-068/071 consumers). A structural test asserts no-new-migration + the classification map's presence. (Reduced from "migrate ~6 tools" at /design-slice: the scan showed `parallel_conflict_resolver`/`stranded_slice_audit`/`pulse_worktree_resolver` are git/worktree-model-coupled — naive migration is wrong; they're rethought at the 094 flip.)
 5. R-32 + constraints C1–C5 are registered in `risk-register.md` (append-only, in this slice's worktree), an ADR extends/refines ADR-065 for the external-vault resolution precedence + write-safety contract, and the full audit suite + `/validate-slice` are green.
 
 ## Test-first plan
@@ -28,10 +28,12 @@ Make the AI-SDLC vault relocatable to a single shared external location (default
 | 1 | unit | tests/methodology/test_vault_root_constant.py | test_resolution_precedence_env_over_pointer_over_default | PENDING |
 | 1 | subprocess | tests/methodology/test_vault_root_constant.py | test_git_common_dir_key_stable_across_main_and_worktree | PENDING |
 | 1 | unit | tests/methodology/test_vault_root_constant.py | test_default_unchanged_when_no_env_no_pointer | PENDING |
-| 2 | integration | tests/tools/test_vault_safe_write.py | test_concurrent_writers_no_lost_update | PENDING |
-| 2 | integration | tests/tools/test_vault_safe_write.py | test_atomic_write_retries_on_eperm_held_handle | PENDING |
-| 3 | integration | tests/tools/test_install_vault_config.py | test_install_writes_per_project_config_without_moving_vault | PENDING |
-| 4 | unit | tests/methodology/test_vault_root_constant.py | test_migration_site_allowlist_pinned (extended) | PENDING |
+| 2 | integration | tests/methodology/test_vault_safe_write.py | test_concurrent_writers_no_lost_update | PENDING |
+| 2 | integration | tests/methodology/test_vault_safe_write.py | test_concurrent_appenders_no_lost_update | PENDING |
+| 2 | integration | tests/methodology/test_vault_safe_write.py | test_write_retries_on_mocked_eperm | PENDING |
+| 2 | unit | tests/methodology/test_vault_safe_write.py | test_inline_and_helper_config_readers_agree | PENDING |
+| 3 | integration | tests/methodology/test_install_vault_config.py | test_install_writes_global_base_config_without_moving_vault | PENDING |
+| 4 | structural | tests/methodology/test_external_vault_adr_and_risk.py | test_no_new_tool_migration_and_classification_map_documented | PENDING |
 | 5 | structural | tests/methodology/test_external_vault_adr_and_risk.py | test_r32_registered_and_adr_extends_065 | PENDING |
 
 ## Verification plan
@@ -70,12 +72,12 @@ Make the AI-SDLC vault relocatable to a single shared external location (default
 
 ## Mid-slice smoke gate
 
-At ~50% (resolution chain + safe-write helper in, default unchanged):
+At ~50% (resolution chain + safe-write/append helper in, default unchanged):
 ```
-& $PY -m pytest tests/methodology/test_vault_root_constant.py tests/tools/test_vault_safe_write.py -q
+& $PY -m pytest tests/methodology/test_vault_root_constant.py tests/methodology/test_vault_safe_write.py -q
 & $PY -m pytest -q   # full suite — backward-compat proof
 ```
-Expected: existing tests unchanged/green (no-flip invariant holds) + new concurrency tests green. If ANY existing test changes behavior → STOP (no-flip invariant violated), diagnose before continuing.
+Expected: the RESOLUTION path is unchanged (default still `architecture/`) + new concurrency/append tests green. NOTE: `test_full_pytest_baseline_preserved`'s count-pin legitimately moves 12→15 (AC1 adds 3 functions) — that is the ONE sanctioned existing-test change, NOT a resolution-behavior change. Any OTHER existing test changing behavior → STOP, diagnose.
 
 ## Pre-finish gate
 
