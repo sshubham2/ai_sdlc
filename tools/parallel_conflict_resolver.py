@@ -166,6 +166,14 @@ class ConflictDiagnostic:
     u_files: tuple[str, ...]
     concerned_slices: dict[str, tuple[ConcernedSlice, ...]]
     claim_history: tuple[ClaimEntry, ...]
+    # True when a slice-queue.md conflict stage was PRESENT but non-UTF-8
+    # (a _StageDecodeError during diagnose_conflict's stage reads). The claim
+    # history can no longer be trusted, so classify_conflict fails closed to
+    # UNKNOWN -> resolve_soft_conflict STOPs (R-30 residual #1 / ADR-083).
+    # Defaulted so the existing 3-arg construction sites + synthetic-test
+    # constructors stay valid (frozen+slots -> set via the constructor call,
+    # never post-construction mutation).
+    claim_extraction_degraded: bool = False
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -200,28 +208,50 @@ def diagnose_conflict(repo_root: Path) -> ConflictDiagnostic:
         concerned_slices[u_file] = _derive_concerned_slices(repo_root, u_file)
 
     claim_history: tuple[ClaimEntry, ...] = ()
+    claim_extraction_degraded = False
     if "architecture/slice-queue.md" in u_files:
-        text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")
-        text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")
-        claims_2, claims_3 = _extract_claim_diff(text_2, text_3)
-        entries = []
-        for stage, claim_dict in ((2, claims_2), (3, claims_3)):
-            for name, data in claim_dict.items():
-                claimed_by = data.get("claimed_by")
-                claimed_at = data.get("claimed_at")
-                if claimed_by and claimed_at:
-                    entries.append(ClaimEntry(
-                        candidate_name=name,
-                        claimed_by=str(claimed_by),
-                        claimed_at=str(claimed_at),
-                        branch_stage=stage,
-                    ))
-        claim_history = tuple(entries)
+        try:
+            # Both stage reads are wrapped: an undecodable EITHER stage (2 or 3)
+            # must degrade the diagnostic (m-add-2 — symmetric, not stage-2-only).
+            text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")
+            text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")
+        except _StageDecodeError as exc:
+            # A present-but-non-UTF-8 stage (R-30 residual #1 / ADR-083): the
+            # claim history cannot be trusted, so mark the diagnostic degraded
+            # -> classify_conflict fails closed to UNKNOWN -> resolve STOPs,
+            # NEVER a silent auto-resolve that drops the claim. Record a
+            # best-effort breadcrumb naming the undecodable stage + path; a
+            # breadcrumb write failure must NEVER mask the fail-closed signal.
+            claim_extraction_degraded = True
+            try:
+                _append_decode_stop_audit(repo_root, exc.stage, exc.path, str(exc))
+            except Exception as audit_exc:  # noqa: BLE001 - best-effort by design
+                print(
+                    f"parallel-conflict-resolver: decode-STOP audit append "
+                    f"failed (non-blocking): {audit_exc!r}",
+                    file=sys.stderr,
+                )
+        else:
+            claims_2, claims_3 = _extract_claim_diff(text_2, text_3)
+            entries = []
+            for stage, claim_dict in ((2, claims_2), (3, claims_3)):
+                for name, data in claim_dict.items():
+                    claimed_by = data.get("claimed_by")
+                    claimed_at = data.get("claimed_at")
+                    if claimed_by and claimed_at:
+                        entries.append(ClaimEntry(
+                            candidate_name=name,
+                            claimed_by=str(claimed_by),
+                            claimed_at=str(claimed_at),
+                            branch_stage=stage,
+                        ))
+            claim_history = tuple(entries)
 
     return ConflictDiagnostic(
         u_files=u_files,
         concerned_slices=concerned_slices,
         claim_history=claim_history,
+        claim_extraction_degraded=claim_extraction_degraded,
     )
 
 
@@ -235,7 +265,15 @@ def classify_conflict(diag: ConflictDiagnostic) -> ConflictClass:
     UNKNOWN gate (per /critique M4 ACCEPTED-FIXED): if rebase state is
     empty / unparseable, returns UNKNOWN. Fail-closed; NEVER silent-
     default to SOFT.
+
+    DECODE-DEGRADED gate (R-30 residual #1 / ADR-083): if a slice-queue.md
+    conflict stage was present-but-non-UTF-8 (diag.claim_extraction_degraded),
+    the claim history is untrustworthy -> UNKNOWN. Same fail-closed channel as
+    unparseable state; NEVER silent-default to SOFT on a degraded diagnostic.
     """
+    if diag.claim_extraction_degraded:
+        return ConflictClass.UNKNOWN
+
     if not diag.u_files:
         return ConflictClass.UNKNOWN
 
@@ -455,6 +493,31 @@ class _SoftResolutionError(Exception):
         self.conflict_class = conflict_class
 
 
+class _StageDecodeError(_SoftResolutionError):
+    """A conflict stage is PRESENT but its bytes are not valid UTF-8.
+
+    Raised by ``_git_show_stage`` when ``git show :<stage>:<path>`` succeeds
+    (exit 0, the blob exists) but the captured bytes fail a strict UTF-8
+    decode (R-30 residual #1 / ADR-083). This is the fail-closed signal that
+    REPLACES the pre-fix silent falsy return (Windows reader-thread swallow ->
+    ``None``) / uncaught ``UnicodeDecodeError`` (POSIX). A non-UTF-8 stage
+    cannot be trusted for claim extraction, so the claim history is degraded
+    and the conflict must fall to a fail-closed UNKNOWN STOP -- NEVER a silent
+    auto-resolve that re-opens the VAULT_CLAIM bypass.
+
+    SUBCLASSES ``_SoftResolutionError`` (carrying ``ConflictClass.UNKNOWN``)
+    deliberately: the existing ``except _SoftResolutionError`` handler in
+    ``resolve_soft_conflict`` (the ``_regen_slice_queue`` defense-in-depth
+    call site) then converts it to a ``STOP(UNKNOWN)`` with no new plumbing.
+    Carries ``stage`` + ``path`` for the audit breadcrumb.
+    """
+
+    def __init__(self, message: str, stage: int, path: str):
+        super().__init__(message, ConflictClass.UNKNOWN)
+        self.stage = stage
+        self.path = path
+
+
 class _VaultClaimDispatch(Exception):
     """PCR-2a sentinel: _regen_slice_queue's defense-in-depth gate detected
     a VAULT_CLAIM collision in the actual queue text after classify_conflict
@@ -653,6 +716,57 @@ def _append_skew_stop_audit(
         f.write(entry)
 
 
+def _append_decode_stop_audit(
+    repo_root: Path,
+    stage: int,
+    path: str,
+    reason: str,
+) -> None:
+    """Append a non-UTF-8-stage decode-failure STOP entry to the audit log.
+
+    Best-effort (ADR-083 / R-30 residual #1) -- mirrors ``_append_skew_stop_audit``
+    (ADR-076). Distinct section variant ``## Decode-failure STOP (non-UTF-8
+    stage) - <ts>`` so the silent claim-drop made-visible is recoverable from
+    the audit trail: it names the undecodable ``stage`` + ``path`` so an
+    operator knows WHICH conflict stage could not be decoded. The caller wraps
+    this in its own try/except -- a write failure here NEVER masks the
+    fail-closed STOP.
+    """
+    log_path = repo_root / _AUDIT_LOG_PATH
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    try:
+        head_proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        head_sha = head_proc.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        head_sha = "(unavailable)"
+
+    entry = (
+        f"## Decode-failure STOP (non-UTF-8 stage) - {timestamp}\n"
+        "\n"
+        f"**Repo HEAD SHA pre-resolution**: {head_sha}\n"
+        f"**Undecodable stage**: {stage}\n"
+        f"**Path**: {path}\n"
+        "**Outcome**: STOP (fail-closed, no writes) per ADR-083 -- claim "
+        "extraction degraded -> UNKNOWN\n"
+        f"**Reason**: {reason}\n\n"
+    )
+
+    needs_header = not log_path.exists()
+    with log_path.open("a", encoding="utf-8", newline="") as f:
+        if needs_header:
+            f.write(_AUDIT_LOG_HEADER)
+        f.write(entry)
+
+
 def _extract_u_files(repo_root: Path) -> tuple[str, ...]:
     """Extract U-prefixed file paths from git status --porcelain.
 
@@ -708,25 +822,49 @@ def _extract_u_files(repo_root: Path) -> tuple[str, ...]:
 def _git_show_stage(repo_root: Path, stage: int, path: str) -> str:
     """Read `git show :<stage>:<path>` for the named conflict stage.
 
-    Returns empty string on subprocess failure (stage absent - e.g., file
-    added on only one branch). Caller handles the asymmetric-stage case.
-    On success returns ``proc.stdout`` decoded as UTF-8 (encoding="utf-8" per
-    ADR-082); this may be ``None`` if git produced no captured stdout. Callers
-    that parse the result must tolerate a falsy value (see _extract_claim_diff's
-    ``parse_queue_text(text) if text else {}`` guard).
+    Three outcomes (ADR-083 — R-30 residual #1 hardened):
+
+    - **Stage absent** (subprocess failure — e.g. a file added on only one
+      branch, ``git show`` exits non-zero): returns ``""``. The caller handles
+      the asymmetric-stage case via the documented falsy guard.
+    - **Stage present and decodable**: returns the UTF-8-decoded blob content.
+    - **Stage present but NON-UTF-8**: raises ``_StageDecodeError(stage, path)``
+      (a ``_SoftResolutionError(UNKNOWN)``). It does NOT return a falsy value
+      and does NOT let a raw ``UnicodeDecodeError`` escape.
+
+    Implementation: capture git's output as **bytes** (NOT ``text=True`` — the
+    pre-fix text-mode decode happened in subprocess's pipe-reader thread, which
+    swallowed a ``UnicodeDecodeError`` to ``stdout=None`` on Windows and
+    propagated it uncaught on POSIX) and decode it explicitly with strict
+    UTF-8 in the main thread, where the failure is catchable and converts to a
+    controlled fail-closed STOP. A non-UTF-8 stage is therefore never silently
+    dropped into the caller's ``parse_queue_text(text) if text else {}`` guard
+    (which would re-open the VAULT_CLAIM claim-drop bypass).
+
+    This is a byte-mode ``subprocess.run`` site that decodes EXPLICITLY -- it
+    deliberately carries NO ``encoding=`` (the decode is the ``.decode`` call
+    below), so the slice-090 / ADR-082 "byte-mode git sites carry no encoding="
+    invariant still holds for it.
     """
     try:
         proc = subprocess.run(
             ["git", "show", f":{stage}:{path}"],
             cwd=str(repo_root),
             capture_output=True,
-            text=True,
-            encoding="utf-8",
             check=True,
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
         return ""
-    return proc.stdout
+    try:
+        return proc.stdout.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise _StageDecodeError(
+            f"git show :{stage}:{path} produced non-UTF-8 bytes -- the conflict "
+            f"stage is present but cannot be decoded; claim extraction is "
+            f"untrustworthy, fail-closed to UNKNOWN STOP (ADR-083): {exc}",
+            stage,
+            path,
+        ) from exc
 
 
 def _derive_concerned_slices(
@@ -1325,9 +1463,33 @@ def resolve_vault_claim_conflict(
             reason=skew_reason,
         )
 
-    # Step 3: Read stage baselines + overlay winner identity onto baseline
-    text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")
-    text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")
+    # Step 3: Read stage baselines + overlay winner identity onto baseline.
+    # Defense-in-depth (slice-091 /code-review m1): mirror the SOFT path's
+    # _StageDecodeError net so a non-UTF-8 stage on the VAULT_CLAIM path ALSO
+    # fails closed and LOUD (UNKNOWN STOP), never an uncaught traceback. This
+    # case is structurally pre-empted upstream (a non-UTF-8 stage degrades
+    # diagnose_conflict -> classify_conflict returns UNKNOWN, not VAULT_CLAIM),
+    # so the guard covers only the diagnose->resolve TOCTOU window (the ADR-067
+    # cooperative-race regime) — making the "non-UTF-8 stage always fails
+    # closed" invariant total rather than path-dependent.
+    try:
+        text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")
+        text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")
+    except _StageDecodeError as exc:
+        try:
+            _append_decode_stop_audit(repo_root, exc.stage, exc.path, str(exc))
+        except Exception as audit_exc:  # noqa: BLE001 - best-effort by design
+            print(
+                f"parallel-conflict-resolver: decode-STOP audit append "
+                f"failed (non-blocking): {audit_exc!r}",
+                file=sys.stderr,
+            )
+        return ResolutionResult(
+            action="STOP",
+            conflict_class=ConflictClass.UNKNOWN,
+            regenerated_files=(),
+            reason=str(exc),
+        )
     baseline_text = text_3 if text_3 else text_2
     if not baseline_text:
         return ResolutionResult(
