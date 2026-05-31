@@ -23,16 +23,19 @@
 
 Each AC maps to failing tests written BEFORE implementation. Statuses progress PENDING -> WRITTEN-FAILING -> PASSING. `/build-slice` Step 6 runs `tools/test_first_audit.py --strict-pre-finish` and refuses if any row is non-PASSING.
 
+(One AC label per row — TF-1's `_normalize_ac_label` does not split comma-lists, so each AC 1–5 carries ≥1 single-label row.)
+
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1,2 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_worktree_backed_slice_branch_is_allowed | PENDING |
-| 3 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_orphan_slice_branch_still_refused | PENDING |
-| 1 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_current_slice_own_worktree_excluded_by_path | PENDING |
-| 1,3 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_noncanonical_named_worktree_backed_branch_allowed_not_orphan | PENDING |
-| 1,2 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_merge_and_push_guardrails_symmetric | PENDING |
-| 1 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_worktree_backing_uses_short_form_not_raw_refname | PENDING |
-| 2,5 | drift | tests/methodology/test_commit_slice_skill_drift.py | (existing) in-repo == installed SKILL.md | PENDING |
-| 2 | parity | tests/methodology/test_stale_branch_parallel_aware.py | test_merge_and_push_stale_check_prose_byte_identical | PENDING |
+| 1 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_worktree_backed_slice_branch_is_allowed | PASSING |
+| 1 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_current_slice_own_worktree_excluded_by_path | PASSING |
+| 1 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_worktree_backing_uses_short_form_not_raw_refname | PASSING |
+| 2 | parity | tests/methodology/test_stale_branch_parallel_aware.py | test_merge_and_push_guardrails_symmetric | PASSING |
+| 2 | parity | tests/methodology/test_stale_branch_parallel_aware.py | test_merge_and_push_stale_check_prose_byte_identical | PASSING |
+| 3 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_orphan_slice_branch_still_refused | PASSING |
+| 3 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_noncanonical_named_worktree_backed_branch_allowed_not_orphan | PASSING |
+| 4 | unit | tests/methodology/test_stale_branch_parallel_aware.py | test_mixed_backed_and_orphan_refuses_on_the_orphan_only | PASSING |
+| 5 | drift | tests/methodology/test_commit_slice_skill_drift.py | (existing) in-repo == installed SKILL.md | PASSING |
 
 Added at /critique (post-fix harmonization, TPHD-1): `test_current_slice_own_worktree_excluded_by_path` (Critic B1; per meta-Critic M-add-1 this MUST exercise a case/separator-mismatched current_path so the branch-exclusion belt is proven to cover a path-equality miss), `test_noncanonical_named_worktree_backed_branch_allowed_not_orphan` (Critic B3), `test_merge_and_push_stale_check_prose_byte_identical` (Critic M2.1 / FBCD-1), `test_worktree_backing_uses_short_form_not_raw_refname` (meta-Critic **B-add-1** — asserts the `refs/heads/` strip lands `backed` in short form against a REAL porcelain fixture, NOT a pre-stripped stub; pairs with B2's fixture). Boundary cases (meta-Critic m-add-1) — zero-slice-refs → allow, worktree-on-default ignored — are asserted in the same module. The classifier ships as `tools/stale_branch_classifier.py` (design.md); a real two-worktree fixture execution (Critic B2) is the /build-slice kickoff + mid-slice-smoke evidence.
 

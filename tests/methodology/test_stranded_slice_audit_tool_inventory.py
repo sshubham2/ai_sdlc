@@ -5,7 +5,7 @@ A new `tools/*.py` must be registered across all 5 canonical surfaces in lockste
 
 1. plugin.yaml tools block
 2. tools/install_audit.py::_CANONICAL_TOOLS
-3. INSTALL.md tool-count literal at L22 AND L166 (bumped 33→35; two-site pin)
+3. INSTALL.md tool-count literal at L22 AND L166 (bumped 33→35→36; two-site pin)
 4. architecture/shippability.md row (referencing slice-087 — row# != slice# here)
 5. tests/methodology/test_utf8_stdout_regression.py::_ROOT_ONLY_TOOLS (root-only
    bucket — the tool takes --repo-root/--root, no positional slice arg)
@@ -40,16 +40,16 @@ def test_stranded_slice_audit_in_canonical_inventory():
         "tools/stranded_slice_audit.py missing from plugin.yaml tools block"
     )
 
-    # 3. INSTALL.md tool-count literal `35` at L22 AND L166 (bumped 33→35 at slice-087)
+    # 3. INSTALL.md tool-count literal `35` at L22 AND L166 (bumped 33→35→36 (slice-087→slice-089))
     install_md_lines = _INSTALL_MD.read_text(encoding="utf-8").splitlines()
     assert len(install_md_lines) >= 166, (
         f"INSTALL.md has only {len(install_md_lines)} lines; expected >=166 for the L166 pin"
     )
-    assert "35" in install_md_lines[21], (
-        f"INSTALL.md L22 missing post-bump tool-count `35`; actual: {install_md_lines[21]!r}"
+    assert "36" in install_md_lines[21], (
+        f"INSTALL.md L22 missing post-bump tool-count `36`; actual: {install_md_lines[21]!r}"
     )
-    assert "35" in install_md_lines[165], (
-        f"INSTALL.md L166 missing post-bump tool-count `35`; actual: {install_md_lines[165]!r}"
+    assert "36" in install_md_lines[165], (
+        f"INSTALL.md L166 missing post-bump tool-count `36`; actual: {install_md_lines[165]!r}"
     )
 
     # 4. shippability.md row referencing slice-087 (row number != slice number here)

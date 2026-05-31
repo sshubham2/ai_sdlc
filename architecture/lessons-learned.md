@@ -1931,3 +1931,17 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **`subprocess.run(..., text=True)` with no `encoding=` is a silent-data-loss site on Windows, not merely a crash site** — the `UnicodeDecodeError` raises in the pipe-reader thread, is swallowed by `subprocess.run` (returns `stdout=None`), and the caller proceeds on `None`/empty. Any helper capturing git/CLI output this way must pass `encoding="utf-8"`. Cousin to UTF8-STDOUT-1 (stdout side); this is the subprocess-INPUT-decode side. Strong build-check + repo-wide-audit candidate (`audit-cp1252-decode-pattern-across-tools`).
 - **Run a fresh `git status` before any branch/slice-state gate** — the conversation-start snapshot and the branch-only stranded consult both miss branchless uncommitted in-flight work.
 - **A platform-specific bug wants a two-layer test**: behavioral-on-affected-platform (`skipif` elsewhere) + structural-everywhere (AST/source-scan). Don't force the platform condition if the mechanism doesn't allow it (monkeypatching `locale.getpreferredencoding` does NOT reach subprocess's C-level decode — confirmed empirically).
+## Slice 089 (make-commit-slice-stale-branch-check-parallel-slice-aware) — 2026-05-31
+
+### Worked
+- Worktree-backing as the stale-vs-active discriminator, reusing the RAW `_parse_worktree_porcelain` (not the name-filtered `detect_active_worktrees`). Validated live on a real multi-worktree repo. The dual-Critic + code-Critic stack caught the two subtle defects that would have broken it (B3 filter-reuse → false-refuse on non-canonical names; B-add-1 raw-vs-short set-key mismatch → universal false-refuse).
+- Checking real `git status` at the worktree boundary (not the stale conversation-start snapshot) surfaced a parked PARALLEL sibling slice-090 (cp1252 git-decode fix), prevented committing a slice-090 number collision, and fed cp1252 intel into this slice's new tool (`encoding="utf-8"` on every git call).
+
+### Didn't work
+- The new-tool count-bump fan-out bit AGAIN (N≥3: 081/087/089). Adding one `tools/*.py` silently broke INSTALL.md L22/L166, the cp1252 coverage parametrize list, and TWO sibling per-tool inventory-pin tests that hardcode the `35` count — none caught by any Critic, only by the full suite. The BC-PROJ-7/9 checklist under-enumerates the sibling inventory-pin tests.
+- A reused sibling helper carried a latent bug: `pulse_worktree_resolver._run_git` omits `encoding=` (the slice-090 cp1252 class). Reusing it blindly would have re-shipped the bug; the slice had to reuse ONLY the pure-string parser and run git itself.
+
+### Pattern
+- **"A Critic's own fix is a fresh claim" fired again** (B3 design-fix → B-add-1 meta-catch), now N≥4 (078/082/083/089). The meta-Critic's structural value is reviewing the DELTA the first Critic's fix introduces — do NOT collapse the 3-Critic stack.
+- **New git-subprocess tool → `encoding="utf-8"`, and never blindly reuse a sibling's git helper without checking its encoding** — strong build-check candidate; deferred to slice-090 (the dedicated cp1252-decode fix) to own the codification.
+- **On adding a `tools/*.py`, immediately grep EVERY count literal** (plugin.yaml, install_audit, INSTALL.md L22+L166, cp1252 parametrize list, per-tool inventory-pin tests) — the fan-out is wider than the checklist enumerates.
