@@ -348,7 +348,7 @@ Ask user to review and confirm fidelity before marking `fidelity: confirmed`.
 
 ### Step 10: Generate/update `./CLAUDE.md` — KEEP IT SMALL
 
-Same discipline as `/triage`: short file (~25 lines) at project root, no `architecture/CLAUDE.md`. Skills carry detailed guidance.
+Same discipline as `/triage`: short file (~30 lines) at project root, no `architecture/CLAUDE.md`. Skills carry detailed guidance.
 
 Check first: does `./CLAUDE.md` exist?
 
@@ -376,6 +376,12 @@ If the change is more than a typo / single-line tweak / comment / local-variable
 ## Ask discipline
 
 **Ask discipline**: when a skill needs user input, present it as structured options (with a recommended choice) via the `AskUserQuestion` tool — never a bare free-text prompt. A bare prose ask is legitimate only where `AskUserQuestion` genuinely cannot model the input. Rationale: Claude Code notifies the user only on options prompts; a free-text question blocks silently.
+
+## Tool-call hygiene
+
+- Never `cd` in a Bash command — it resets the shell cwd and can destabilize the batch; use `git -C <dir>` / absolute paths instead.
+- Keep tool batches small, independent, and non-duplicated — one error cancels the whole parallel batch.
+- After an "internal error", verify the write actually landed on disk before retrying; a blind retry can double-apply.
 
 ## Brownfield rules
 
@@ -408,6 +414,8 @@ Skills: `~/.claude/skills/<name>/SKILL.md`. Templates: `~/.claude/templates/`.
 **Hard rule**: before editing code (beyond typos/trivial), check for active slice. If none, **ASK** the user via structured options (per the Ask discipline below) — "Run `/slice` first?" Wait for answer.
 
 **Ask discipline**: when a skill needs user input, present it as structured options (with a recommended choice) via the `AskUserQuestion` tool — never a bare free-text prompt. A bare prose ask is legitimate only where `AskUserQuestion` genuinely cannot model the input. Rationale: Claude Code notifies the user only on options prompts; a free-text question blocks silently.
+
+**Tool-call hygiene**: no `cd` in Bash (use `git -C`/absolute paths — it resets the shell cwd); keep tool batches small, independent, and non-duplicated (one error cancels the batch); after an "internal error", verify the write landed before retrying.
 
 **Brownfield rules**: code is truth, docs are hypothesis (verify doc claims against code before acting); respect existing conventions; deviations require ADRs; refactors need slices; tests-first for bug fixes; `$PY -m graphify reachable --from=<file>` before wide changes.
 
