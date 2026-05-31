@@ -4,7 +4,10 @@ Active slices live in `slices/`; completed slices in [`slices/archive/`](archive
 
 ## Active
 
-(none)
+| # | Slice | Stage | Next action |
+|---|-------|-------|-------------|
+| 089 | [slice-089-make-commit-slice-stale-branch-check-parallel-slice-aware](slice-089-make-commit-slice-stale-branch-check-parallel-slice-aware/) | build | run `/build-slice` (in worktree) |
+| 090 | [slice-090-fix-pcr-git-subprocess-cp1252-decode](slice-090-fix-pcr-git-subprocess-cp1252-decode/) | slice | run `/design-slice` (parked parallel sibling) |
 
 ## Most recent 10
 
