@@ -1,16 +1,16 @@
 ---
 slice: slice-093-add-external-vault-support
-stage: code-review
+stage: validate
 updated: 2026-05-31
-next-action: run /validate-slice
+next-action: run /reflect
 risk-tier: high
 critic-required: true
 ---
 
 # Milestone: slice-093 add-external-vault-support
 
-**Stage**: code-review
-**Next action**: run `/validate-slice`
+**Stage**: validate
+**Next action**: run `/reflect`
 **Updated**: 2026-05-31
 **Risk tier**: high — Critic required: yes (In-house methodology surfaces: `tools/*.py`, `INSTALL.md`, new ADR; + novel cross-cutting change to the vault-root seam)
 
@@ -21,18 +21,18 @@ critic-required: true
 - [x] /critique — 2026-05-31 — CLEAN (first pass NEEDS-FIXES → all fixed at TRI-1; dual-review EXTEND)
 - [x] /build-slice — 2026-05-31 — SHIPPED (1316 pass; 16 Step-6 gates green; no-flip held)
 - [x] /code-review — 2026-05-31 — FINDINGS 0B/1M/3m; M1/m1/m2 ACCEPTED-FIXED, m3 DEFERRED→094
-- [ ] /validate-slice
+- [x] /validate-slice — 2026-05-31 — PASS (5/5 ACs; VAL-1 clean; shippability 99/99)
 - [ ] /reflect
 
 ## Current focus
 
-Code-review FINDINGS (0B/1M/3m); M1/m1/m2 ACCEPTED-FIXED + m3 DEFERRED→094. M1 was my own observability `print` crashing on cp1252 stderr (the repo's documented footgun) — fixed via the leaf-safe `_stderr` helper; m1 (R-30 git-decode reader-thread class) → bytes-capture + main-thread decode; m2 → append EPERM-retry. Full suite **1316 PASS**; 16 Step-6 audits green; no-flip held. Ready for `/validate-slice`.
+Validation **PASS** — 5/5 ACs with live evidence (no-flip default=`architecture`; env override; git-common-dir keying byte-identical main+worktree; C2 7/7; install no-move; importers=10; R-32 mitigating). VAL-1 clean (0 secrets, 0 hallucinated imports). Shippability **99/99 PASS** (no regression). WS-1/ETC-1 n/a. Ready for `/reflect`.
 
 ## On resume
 
-- **Last completed action**: /code-review — FINDINGS 0B/1M/3m; M1 (cp1252-stderr import crash — my observability edit) + m1 (R-30 git-decode) + m2 (append EPERM-retry) ACCEPTED-FIXED; m3 DEFERRED→094. Full suite 1316 PASS.
+- **Last completed action**: /validate-slice — **PASS** (5/5 ACs with live evidence; VAL-1 clean; shippability 99/99; full suite 1316)
 - **Current work**: none
-- **Next immediate step**: run `/validate-slice` (per-AC PASS/FAIL with evidence + shippability regression check), then `/reflect`. HARD-STOP before `/commit-slice` (always user-invoked).
+- **Next immediate step**: run `/reflect` (capture lessons + Critic calibration; round-trip the R-20 seed-gap / m3 / M4 deferrals to slice-094). **HARD-STOP before `/commit-slice`** (always user-invoked).
 - **Worktree**: ALREADY CREATED at `/slice` (user-directed early creation — dogfooding the worktree-at-`/slice` change this slice proposes) at `C:\Users\sshub\ai_sdlc-wt\slice-093-add-external-vault-support`, branch `slice/093-add-external-vault-support`, off master `19d7d6a`. ALL subsequent skills (`/design-slice`, `/critique`, `/build-slice`, `/validate`, `/reflect`) run IN this worktree; master stays clean. Do NOT `WORKTREE=skip`. slice-092 still in flight in its own worktree — re-run the stranded-slice consult before `/commit-slice --merge`.
 - **Scope guard**: DEFAULT MUST STAY `architecture/`. No SKILL-prose rewrite, no physical move — those are slice-094.
 
@@ -44,7 +44,7 @@ Code-review FINDINGS (0B/1M/3m); M1/m1/m2 ACCEPTED-FIXED + m3 DEFERRED→094. M1
 - [critique-review.md](critique-review.md) — EXTEND (DR-1 dual review)
 - [code-review.md](code-review.md) — FINDINGS (0B/1M/3m; advisory v1)
 - [build-log.md](build-log.md) — SHIPPED
-- [validation.md](validation.md) — pending
+- [validation.md](validation.md) — PASS
 - [reflection.md](reflection.md) — pending
 
 ## Spike provenance
