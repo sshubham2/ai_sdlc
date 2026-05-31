@@ -146,6 +146,8 @@ tools:
     rule: PSQ-1
   - path: tools/state_transition_pin_audit.py
     rule: STP-1
+  - path: tools/stranded_slice_audit.py
+    rule: ADR-079
   - path: tools/supersede_audit.py
     rule: SUP-1
   - path: tools/test_first_audit.py

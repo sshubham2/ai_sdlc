@@ -473,3 +473,32 @@ The PFS-1 project-frame synthesizer (`tools/project_frame_synth.py`) is advisory
 **Mitigation (in place)**: `synthesize_frame` emits a `WARN: project-frame degraded — <reasons>` line to **stderr** whenever any section degrades, so the operator running the synth sees it; the consumption prose at `/design-slice` Step 0.5 + `/critique`/`/critique-review` treats a `(project-frame unavailable)`/degraded frame as visible context; the `/build-slice` mid-slice eyeball surfaces a dumped/empty frame. Status `open` (downgraded-by-design) rather than `mitigating`: the residual is inherent to the advisory-never-a-gate contract (ADR-080) — making the frame a hard gate would violate the must-not-defer "advisory, never blocks design/critique".
 
 **Escalation criteria**: if `/critic-calibrate` flags ≥2 slices where a silently-degraded frame let a direction-misfit through, promote a follow-up to add a non-fatal "frame looks empty" advisory at the consumption sites (still never a hard gate).
+## R-27 — Stranded/uncommitted completed-slice work is invisible to the pipeline's vault-based active-slice detection at `/slice` open
+
+**Likelihood**: medium
+**Impact**: medium
+**Status**: mitigating
+**Reversibility**: cheap
+**Discovered**: slice-087-add-stranded-slice-detection-to-slice (2026-05-30) — observed firsthand this session: a prior session built AND archived slice-086 but died before `/commit-slice`, leaving an unmerged `slice/086-*` branch while the vault marked it shipped. A fresh `/slice` redefined slice-086 from scratch (full design→critique→critique-review cycle) and only collided deep inside `/build-slice`'s BRANCH-2 worktree setup.
+
+The pipeline decides "what slice is active" purely from the **vault** (`slices/_index.md` Active table + `milestone.stage`). When a session completes a slice but dies before `/commit-slice`, the vault marks it shipped/archived while git still holds an unmerged `slice/NNN-*` branch — a git-vs-vault divergence invisible to every vault-based check, so a new `/slice` happily redefines work that already exists in git.
+
+**Relationship to R-22 (retired, slice-077)**: R-22 covered `/pulse` mis-reporting the BRANCH-2 *worktree* window and was retired by `pulse_worktree_resolver.py`. R-27 is the residual R-22 did NOT close: (i) `/slice` never consults git state at open (R-22 was `/pulse`-scoped), and (ii) the **bare unmerged `slice/*` branch WITHOUT a live worktree** (e.g. a post-`--merge` cleanup-failure / committed-but-unmerged branch) — `pulse_worktree_resolver` walks `git worktree list` only, never `for-each-ref refs/heads/slice/`. R-27 does not contradict or re-open R-22 (SUP-1 append-only).
+
+**Impact in practice**: medium — a wasted full design→critique cycle per occurrence, plus the risk of building atop or clobbering committed-but-unmerged work. No data-loss; cooperative — a careful operator who runs `/pulse` first is unaffected.
+
+**Mitigation (slice-087 / [[decisions/ADR-079]])**: `tools/stranded_slice_audit.py` — a read-only git-vs-vault CLASSIFIER that classifies every unmerged `slice/*` branch into a 4-class divergence model (STRANDED-COMPLETE / ORPHANED → halt; IN-PROGRESS / CLAIMED-BY-OTHER → informational; INDETERMINATE → fail-closed halt). `/slice`'s Prerequisite check consults it BEFORE candidate-gathering and HALTs (with an `AskUserQuestion` Resume / Continue-build / Proceed-anyway gate) only on `status: divergent`; `/pulse` surfaces the bare-branch signal. **Parallel-safe — classify, not flag-all**: a healthy in-flight parallel slice (IN-PROGRESS) never halts (the flag-all design that would have cry-wolfed every concurrent slice is ADR-079's rejected Option 4). Status stays **mitigating** (not retired): the detector is advisory (proceed-anyway always available) and the bare-branch `git show <branch>:` read is committed-tip state that can lag an uncommitted working milestone (acknowledged residual M-add-1, inherent to a no-worktree branch — committed-tip is the only recoverable state).
+
+## R-28 — Forward-sync / content-equality audits are fragile under parallel version-bumping slices (shared `~/.claude/` install contention)
+
+**Likelihood**: medium
+**Impact**: low
+**Status**: open
+**Reversibility**: cheap
+**Discovered**: slice-087-add-stranded-slice-detection-to-slice (2026-05-31) — observed firsthand: the parallel sibling slice-088 (PFS-1, version-bumping) forward-synced the single shared `~/.claude/` to v0.78.0 (agent `critique.md` + `methodology-changelog.md` + `ai-sdlc-VERSION` + venv `ai-sdlc-tools`), causing slice-087's CAD-1, MCFS-1, AVFS-1, TVFS-1 audits AND 13 shippability catalog rows (every row bundling the CAD-1 content-equality test) to report DRIFT/FAIL — despite slice-087 (MEPD-1 EXCLUDE, 0.77.0) touching none of those files.
+
+The forward-sync gates (CAD-1, MCFS-1, AVFS-1, TVFS-1) and OSDG-1/content-equality tests compare each worktree's in-repo copy against the **single shared installed `~/.claude/` copy**. Under BRANCH-2/PSQ parallel slices, a version-bumping slice forward-syncs that shared copy from its own worktree, so every OTHER concurrent worktree's comparison against it reports drift the other slice neither caused nor can fix (clobbering would destroy the version-bumping sibling's forward-sync; back-syncing would entangle the slices). The same contention amplifies across any shippability row that bundles one of those content-equality tests.
+
+**Impact in practice**: low — false HALTs/FAILs on the non-version-bumping sibling's pre-finish + validate gates; no data loss, no production corruption. Attributable deterministically (`git diff HEAD -- <drifted-files>` empty ⇒ sibling-induced) and resolves automatically at merge (no file conflict; post-both-merge master == installed). Cost is operator confusion + a documented-deferral cycle per parallel-window occurrence.
+
+**Mitigation candidate** (a `/critic-calibrate` + future-slice candidate, NOT fixed here): scope forward-sync/content-equality comparison per-worktree (compare in-repo against the worktree-local installed snapshot), OR enforce these gates only at merge-time (when there is a single authoritative tree), OR teach the gates to recognize a sibling-induced drift (the drifted file is unchanged in this slice's diff) and downgrade to a WARN. Until then, the documented-deferral + `git diff HEAD` attribution discipline (per slice-087 build-log + validation) is the operating procedure. Per the cooperative model: NOT a security boundary.

@@ -20,6 +20,20 @@ Append-only audit trail of `/drift-check` runs. Each entry records vault-vs-code
 ### Resolutions
 - None required for the slice-088 surface — vault and code aligned.
 - **Carried-forward (out of scope, partially reduced)**: the pre-existing CLAUDE.md:42 OSDG-1 inventory inaccuracy (slice-086's `reconcile-osdg-1-inventory-claude-md-L42` follow-up) is REDUCED by this slice — `critique` now has a real `test_critique_skill_drift.py`, and `design-slice`/`critique-review` are added. The residual falsehoods (`diagnose` claimed-but-no-test; `code_review`/`pulse` have tests but unlisted) remain a future cleanup — flagged for /reflect.
+## Audit 2026-05-31 (slice-087)
+
+**Trigger**: slice-087 pre-finish gate (/build-slice Step 6)
+**Scope**: full (active slice-087 design.md/mission-brief.md + ADR-079 + risk-register R-27 + shippability row 93 vs code/prose)
+**Result**: CLEAN — no slice-087 vault-vs-code drift. (Sibling-induced shared-install drift noted below — NOT slice-087 drift.)
+
+- `tools/stranded_slice_audit.py` matches design.md/ADR-079: classifies unmerged `slice/*` branches into the 4-class divergence model, reusing `pulse_worktree_resolver.{detect_active_worktrees,classify_worktree_state,_resolve_default_branch}` + `slice_queue_claim.parse_queue_text`; bare branches read the branch's own tree via `git show <branch>:` (M1); `status ∈ {clean, divergent}`; exit 0 advisory / exit 2 usage; UTF8-STDOUT-1 (human header always emits `→`, M3). 8/8 behavioral + 2 structural-pin + inventory-pin tests green.
+- `/slice` Prerequisite consult + `/pulse` bare-branch signal prose present and OSDG-1-synced to installed copies (`test_slice_skill_drift.py` + `test_pulse_skill_drift.py` green; slice-077 offset pins intact per `test_pulse_skill_worktree_awareness.py`).
+- BC-PROJ-9 5-surface inventory consistent (plugin.yaml + `_CANONICAL_TOOLS` + INSTALL.md L22/L166 33→34 + slice-077 inventory test 33→34 + `_ROOT_ONLY_TOOLS`); PMI-1/INST-1/UTF8-STDOUT-1 clean at 34 tools. R-27 registered (mitigating); shippability row 93 references the new tests (`shippability_path_audit` expected clean).
+- MEPD-1 EXCLUDE confirmed: `VERSION` unchanged at `0.77.0` in-repo; no `methodology-changelog.md` entry; no new RULE-ID (ADR-079 only). PMI-1 manifest gains one tool (34); tests/ not manifested.
+- **Sibling-induced shared-install drift (NOT slice-087 drift; do NOT clobber)**: the parallel sibling slice-088 (PFS-1, a version-bumping slice) has forward-synced the shared installed `~/.claude/` to **v0.78.0** (agent `critique.md` PFS-1 edit + `methodology-changelog.md` v0.78.0 entry + `ai-sdlc-VERSION` 0.78.0 + venv `ai-sdlc-tools` 0.78.0). slice-087 is MEPD-1 EXCLUDE at in-repo 0.77.0 and touches NONE of these files (`git diff HEAD -- agents/ VERSION methodology-changelog.md` empty). Consequently CAD-1, MCFS-1, AVFS-1, TVFS-1 all report DRIFT against the slice-088-advanced install — purely the PSQ parallel-window shared-install hazard, reconciling at merge (slice-087 has no conflict on any of these files; post-both-merge master == installed). slice-087 deliberately does NOT clobber slice-088's forward-sync. A `/reflect` calibration-candidate: forward-sync/content-equality audits against the single shared `~/.claude/` are structurally fragile under parallel version-bumping slices.
+
+### Resolutions
+- None required for slice-087's own surface — vault and code aligned. The sibling-induced shared-install drift is left for merge-time reconciliation (not a slice-087 action).
 
 ## Audit 2026-05-30 (slice-086)
 

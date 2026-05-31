@@ -117,6 +117,7 @@ _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.slice_queue_claim",
     "tools.slice_queue_writer",
     "tools.state_transition_pin_audit",
+    "tools.stranded_slice_audit",
     "tools.supersede_audit",
     "tools.test_first_audit",
     "tools.triage_audit",
