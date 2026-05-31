@@ -106,6 +106,7 @@ _ROOT_ONLY_TOOLS = [
     "tools.slice_queue_writer",  # slice-067 / PSQ-1 (--candidates-json/--active-slice/--output/--graph/--root)
     "tools.parallel_conflict_resolver",  # slice-076 / PCR-1 (--diagnose/--classify/--resolve-soft/--json/--repo-root, no slice arg)
     "tools.pulse_worktree_resolver",  # slice-077 / ADR-070 (--detect/--classify/--json/--repo-root, no positional slice arg)
+    "tools.stranded_slice_audit",  # slice-087 / ADR-079 (--repo-root/--root/--json, no positional slice arg; --root reaches stdout via the always-emit → header)
 ]
 
 

@@ -33,6 +33,24 @@ Convention: `slices/` holds only active slices (no completed ones). All complete
 
 **Note on slice numbering**: new slice number = max(existing slice numbers including archive) + 1. Read `slices/_index.md` totals to get current max, or check `slices/archive/_index.md` if that's clearer. Numbers are globally unique across active + archived.
 
+### Stranded-slice consult (R-26 / ADR-079)
+
+BEFORE Step 1 candidate-gathering, consult the git-vs-vault classifier so a new slice is never defined on top of genuinely-stranded prior work (the slice-086 incident: a completed-but-unmerged slice the vault thinks is shipped). Run:
+
+```bash
+$PY -m tools.stranded_slice_audit --repo-root . --json
+```
+
+The detector CLASSIFIES every unmerged `slice/*` branch into a 4-class divergence model — it does NOT flag-all (parallel-safety: under PSQ-1/PSQ-2/BRANCH-2 multiple concurrent unmerged `slice/*` is the NORMAL state). Act on the result:
+
+- **`status: divergent`** (≥1 entry with `halt: true` — `klass` ∈ {`stranded-complete`, `orphaned`, `indeterminate`}): HALT and present an `AskUserQuestion` structured-options gate naming the divergent branch(es). Options (proceed-anyway ALWAYS offered — advisory, never blocking):
+  - **Resume the stranded slice** via `/commit-slice` (for a `stranded-complete` branch — committed-but-unmerged; the slice-086 recovery path).
+  - **Continue that slice's `/build-slice`** in its worktree (if mid-build).
+  - **Proceed defining a new slice anyway** (deliberate — the operator overrides).
+- **`status: clean` with informational entries** (`klass` ∈ {`in-progress`, `claimed-by-other`}): surface a one-line note (e.g. "N parallel slice(s) in flight: …") and **PROCEED to Step 1 without a gate** — a healthy parallel slice (IN-PROGRESS) or another session's claim is normal and must NOT halt.
+- **`status: clean` with no entries**: proceed silently.
+- **Exit 2 (usage failure** — git unavailable / default branch unresolvable / not a git repo): surface the stderr to the user and CONTINUE (fail-visible, never a silent skip — the R-7 silent-disable class). Do not block slice definition on a detector usage failure.
+
 ## Your task
 
 ### Step 1: Determine slice candidates
