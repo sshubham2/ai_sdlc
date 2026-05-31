@@ -128,7 +128,24 @@ def safe_append_text(path: Path | str, text: str, *, encoding: str = "utf-8") ->
     path.parent.mkdir(parents=True, exist_ok=True)
     data = text.encode(encoding)
     with _file_lock(path):
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+        # m2 (/code-review): EPERM-retry on os.open — symmetric with
+        # safe_write_text's os.replace retry. On Windows a held handle
+        # (AV/OneDrive mid-scan, no FILE_SHARE_WRITE) can EPERM the open too.
+        last_exc: BaseException | None = None
+        fd = -1
+        for attempt in range(_EPERM_RETRIES):
+            try:
+                fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+                break
+            except PermissionError as exc:
+                last_exc = exc
+                time.sleep(_EPERM_BACKOFF_BASE * (2**attempt))
+        else:
+            raise PermissionError(
+                f"safe_append_text: could not open {path} for append after "
+                f"{_EPERM_RETRIES} attempts — a handle is held by another process "
+                f"(OneDrive / antivirus / Search indexer?). Last error: {last_exc}"
+            )
         try:
             os.write(fd, data)
         finally:

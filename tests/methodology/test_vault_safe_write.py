@@ -161,3 +161,59 @@ def test_inline_and_helper_config_readers_agree(
         f"reader divergence: helper={helper_val!r} inline={inline_val!r} "
         f"expected={external!r}"
     )
+
+
+# ─── /code-review M1: import-time cp1252-stderr safety on non-ASCII path ──
+
+
+def test_vault_paths_import_survives_cp1252_stderr_with_non_ascii_path(tmp_path: Path) -> None:
+    """M1 regression: importing tools._vault_paths with a non-ASCII
+    AI_SDLC_VAULT_ROOT under a cp1252-wrapped sys.stderr must NOT raise
+    UnicodeEncodeError — the observability prints fire at import and must be
+    encoding-safe (the repo's documented Windows cp1252 footgun)."""
+    repo_root = Path(__file__).resolve().parents[2]
+    code = (
+        "import sys, io\n"
+        "sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='cp1252', errors='strict')\n"
+        "import importlib, tools._vault_paths as v\n"
+        "importlib.reload(v)\n"
+        "assert str(v.VAULT_ROOT)\n"  # resolved (non-empty) — the non-ASCII path lives here
+        "sys.stdout.write('OK')\n"  # ASCII only: cp1252 stdout must not be the failure source
+    )
+    env = {**os.environ, "AI_SDLC_VAULT_ROOT": str(tmp_path / "vault-中文-Müller")}
+    r = subprocess.run(
+        [sys.executable, "-c", code],
+        env=env,
+        capture_output=True,
+        encoding="utf-8",
+        cwd=str(repo_root),
+    )
+    assert r.returncode == 0, (
+        f"import crashed under cp1252 stderr + non-ASCII path:\nSTDERR: {r.stderr}"
+    )
+    assert "OK" in r.stdout
+
+
+# ─── /code-review m2: safe_append_text EPERM-retry (symmetry with write) ──
+
+
+def test_append_retries_on_mocked_eperm(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """m2: safe_append_text retries os.open on PermissionError (held-handle
+    EPERM), symmetric with safe_write_text's os.replace retry."""
+    target = tmp_path / "append-eperm.md"
+    target.write_text("seed\n", encoding="utf-8")
+    real_open = os.open
+    calls = {"n": 0}
+
+    def flaky_open(path, flags, *a, **k):
+        if str(path) == str(target):  # flake only on the append target, not the sidecar lock
+            calls["n"] += 1
+            if calls["n"] <= 2:
+                raise PermissionError(13, "Access is denied (simulated held handle)")
+        return real_open(path, flags, *a, **k)
+
+    monkeypatch.setattr(os, "open", flaky_open)
+    safe_append_text(target, "appended\n")
+
+    assert calls["n"] == 3, "expected 2 EPERM failures then 1 success on os.open"
+    assert "appended" in target.read_text(encoding="utf-8")

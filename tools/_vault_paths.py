@@ -24,7 +24,10 @@ inventory (``tools/plugin_manifest_audit.py:148`` filter).
 ``test_vault_root_constant.py::test_vault_paths_module_is_leaf``): this
 module imports ONLY stdlib (``os``, ``subprocess``, ``sys``, ``pathlib``)
 — never ``tools.*`` — so it stays the dependency leaf of the VAULT_ROOT
-cascade. The git-common-dir read uses stdlib ``subprocess`` (still a leaf).
+cascade. The git-common-dir read uses stdlib ``subprocess`` (still a leaf),
+and the stderr diagnostics use the encoding-safe ``_stderr`` helper below
+(stdlib ``sys`` only — does NOT import ``tools._stdout``, which would break
+leaf-purity).
 
 **Read-at-import + consumer-freeze cascade** (production-correctness
 semantic per ADR-065 §Decision + design.md §Consumer-freeze cascade —
@@ -57,28 +60,66 @@ _DEFAULT = "architecture"
 _CONFIG_REL = "aisdlc/vault-root"
 
 
+def _stderr(msg: str) -> None:
+    """Encoding-safe stderr write (leaf-safe — stdlib only). A bare
+    ``print(..., file=sys.stderr)`` raises ``UnicodeEncodeError`` on a
+    non-ASCII path under a cp1252 stderr (the repo's documented Windows
+    footgun — CLAUDE.md "Windows Python stdout is cp1252"), which would crash
+    EVERY consumer at import since these diagnostics fire during
+    ``_resolve_vault_root`` at module-import. Write UTF-8 bytes with
+    ``errors="replace"`` when a buffer is available, else an ascii-folded
+    ``print`` fallback. (slice-093 /code-review M1.)
+    """
+    line = msg + "\n"
+    buf = getattr(sys.stderr, "buffer", None)
+    if buf is not None:
+        try:
+            buf.write(line.encode("utf-8", "replace"))
+            buf.flush()
+            return
+        except (OSError, ValueError):
+            pass
+    try:
+        print(msg, file=sys.stderr)
+    except UnicodeEncodeError:
+        print(msg.encode("ascii", "replace").decode("ascii"), file=sys.stderr)
+
+
 def _read_common_dir_config() -> str | None:
     """Return the vault path configured at ``$GIT_COMMON_DIR/aisdlc/vault-root``,
     or ``None`` when no config applies.
 
     Defensive (R-7 fail-visible): not-a-git-repo / git-unavailable /
     config-absent → ``None`` (the INTENDED default-to-``architecture`` path,
-    NOT a disabled feature, so no warning). Config PRESENT but unreadable /
-    empty / decode-failing → stderr WARN + ``None`` (never a silent
-    mis-resolve). stdlib ``subprocess`` only — leaf-purity preserved.
+    NOT a disabled feature, so no warning). Config / git output PRESENT but
+    non-UTF-8 / unreadable / empty → stderr WARN + ``None`` (never a silent
+    mis-resolve, never an uncaught reader-thread traceback). stdlib only —
+    leaf-purity preserved.
+
+    Git output is captured as BYTES and decoded explicitly in the MAIN thread
+    (slice-093 /code-review m1 / the R-30 / slice-091 pattern): a
+    ``subprocess.run(..., encoding="utf-8")`` decodes in the reader thread and
+    would raise an UNCAUGHT ``UnicodeDecodeError`` there on a non-UTF-8
+    git-common-dir path (``UnicodeDecodeError`` is not an ``OSError``).
     """
     try:
         cp = subprocess.run(
             ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-            capture_output=True,
-            encoding="utf-8",
+            capture_output=True,  # BYTES — decoded explicitly below (main thread)
             timeout=10,
         )
     except (OSError, subprocess.SubprocessError):
         return None  # git binary unavailable / failed to spawn → default
     if cp.returncode != 0:
         return None  # not inside a git work tree → default
-    common_dir = (cp.stdout or "").strip()
+    try:
+        common_dir = cp.stdout.decode("utf-8").strip()
+    except UnicodeDecodeError:
+        _stderr(
+            "WARN: AI-SDLC git-common-dir path is not UTF-8; "
+            f"falling back to '{_DEFAULT}'."
+        )
+        return None
     if not common_dir:
         return None
     cfg = Path(common_dir) / _CONFIG_REL
@@ -87,17 +128,15 @@ def _read_common_dir_config() -> str | None:
             return None  # no config written (the normal case) → default
         text = cfg.read_text(encoding="utf-8").strip()
     except (OSError, UnicodeDecodeError) as exc:
-        print(
+        _stderr(
             f"WARN: AI-SDLC vault-root config at {cfg} is present but unreadable "
-            f"({exc}); falling back to '{_DEFAULT}'.",
-            file=sys.stderr,
+            f"({exc}); falling back to '{_DEFAULT}'."
         )
         return None
     if not text:
-        print(
+        _stderr(
             f"WARN: AI-SDLC vault-root config at {cfg} is empty; "
-            f"falling back to '{_DEFAULT}'.",
-            file=sys.stderr,
+            f"falling back to '{_DEFAULT}'."
         )
         return None
     return text
@@ -108,23 +147,17 @@ def _resolve_vault_root() -> Path:
     default ``Path("architecture")``. Read ONCE at module import.
 
     Observability (must-not-defer): a NON-default resolution (env or config
-    override) emits a one-line stderr INFO naming the chosen root + WHY; the
-    default path stays silent (it fires on every tool import in an un-flipped
-    repo, so logging it would be noise).
+    override) emits a one-line stderr INFO naming the chosen root + WHY (via
+    the encoding-safe ``_stderr``); the default path stays silent (it fires on
+    every tool import in an un-flipped repo, so logging it would be noise).
     """
     env = os.environ.get(_ENV_VAR)
     if env:
-        print(
-            f"INFO: AI-SDLC vault root = {env!r} (via {_ENV_VAR} env var).",
-            file=sys.stderr,
-        )
+        _stderr(f"INFO: AI-SDLC vault root = {env!r} (via {_ENV_VAR} env var).")
         return Path(env)
     cfg = _read_common_dir_config()
     if cfg:
-        print(
-            f"INFO: AI-SDLC vault root = {cfg!r} (via git-common-dir config).",
-            file=sys.stderr,
-        )
+        _stderr(f"INFO: AI-SDLC vault root = {cfg!r} (via git-common-dir config).")
         return Path(cfg)
     return Path(_DEFAULT)
 

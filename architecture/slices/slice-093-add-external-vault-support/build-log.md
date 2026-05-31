@@ -45,3 +45,11 @@
 - `tools/_vault_paths.py` (resolution extension) · `tools/_vault_write.py` (NEW) · `INSTALL.md` (Step 3i) · `architecture/risk-register.md` (R-32)
 - `tests/methodology/test_vault_root_constant.py` (+3, count-pin) · `test_vault_safe_write.py` (NEW) · `test_install_vault_config.py` (NEW) · `test_external_vault_adr_and_risk.py` (NEW)
 - slice artifacts: mission-brief/design/ADR-085/critique/critique-review/milestone/build-log/drift-log
+
+### Code-review follow-up (CRSI-1 — advisory v1)
+- code-Critic **FINDINGS 0B/1M/3m**. Empirically VERIFIED the lock is load-bearing (pure O_APPEND loses 26/30 lines without it; concurrent os.replace EPERMs).
+- **M1** (Major, my observability edit): `print(…, file=sys.stderr)` crashes the 10 consumers at import with `UnicodeEncodeError` on a non-ASCII vault path under cp1252 stderr — the repo's own documented footgun. **ACCEPTED-FIXED**: leaf-safe `_stderr` helper (UTF-8 bytes to `sys.stderr.buffer`, `errors="replace"`; ascii-fold fallback) replaces all 4 print sites.
+- **m1** (Minor): `_read_common_dir_config`'s `subprocess.run(encoding="utf-8")` → uncaught `UnicodeDecodeError` in the reader thread on non-UTF-8 git output (the R-30 / slice-091 class). **ACCEPTED-FIXED**: bytes-capture + explicit main-thread decode with `UnicodeDecodeError` caught + WARN.
+- **m2** (Minor): `safe_append_text` lacked the EPERM-retry `safe_write_text` has. **ACCEPTED-FIXED**: bounded EPERM-retry on `os.open`.
+- **m3** (Minor, forward-looking): `.lock` sidecars accumulate in the vault at the 094 flip — out-of-scope for 093 (verified none land now). **DEFERRED to slice-094**.
+- +2 regression tests (`test_vault_paths_import_survives_cp1252_stderr_with_non_ascii_path`, `test_append_retries_on_mocked_eperm`). Full suite **1316 PASS**; leaf/utf8/TF-1 green. code-review.md written.
