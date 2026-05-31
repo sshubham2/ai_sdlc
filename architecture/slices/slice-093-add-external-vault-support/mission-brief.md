@@ -25,16 +25,18 @@ Make the AI-SDLC vault relocatable to a single shared external location (default
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | unit | tests/methodology/test_vault_root_constant.py | test_resolution_precedence_env_over_pointer_over_default | PENDING |
-| 1 | subprocess | tests/methodology/test_vault_root_constant.py | test_git_common_dir_key_stable_across_main_and_worktree | PENDING |
-| 1 | unit | tests/methodology/test_vault_root_constant.py | test_default_unchanged_when_no_env_no_pointer | PENDING |
-| 2 | integration | tests/methodology/test_vault_safe_write.py | test_concurrent_writers_no_lost_update | PENDING |
-| 2 | integration | tests/methodology/test_vault_safe_write.py | test_concurrent_appenders_no_lost_update | PENDING |
-| 2 | integration | tests/methodology/test_vault_safe_write.py | test_write_retries_on_mocked_eperm | PENDING |
-| 2 | unit | tests/methodology/test_vault_safe_write.py | test_inline_and_helper_config_readers_agree | PENDING |
-| 3 | integration | tests/methodology/test_install_vault_config.py | test_install_writes_global_base_config_without_moving_vault | PENDING |
-| 4 | structural | tests/methodology/test_external_vault_adr_and_risk.py | test_no_new_tool_migration_and_classification_map_documented | PENDING |
-| 5 | structural | tests/methodology/test_external_vault_adr_and_risk.py | test_r32_registered_and_adr_extends_065 | PENDING |
+| 1 | unit | tests/methodology/test_vault_root_constant.py | test_resolution_precedence_env_over_pointer_over_default | PASSING |
+| 1 | subprocess | tests/methodology/test_vault_root_constant.py | test_git_common_dir_key_stable_across_main_and_worktree | PASSING |
+| 1 | unit | tests/methodology/test_vault_root_constant.py | test_default_unchanged_when_no_env_no_pointer | PASSING |
+| 2 | integration | tests/methodology/test_vault_safe_write.py | test_concurrent_writers_no_lost_update | PASSING |
+| 2 | integration | tests/methodology/test_vault_safe_write.py | test_concurrent_appenders_no_lost_update | PASSING |
+| 2 | integration | tests/methodology/test_vault_safe_write.py | test_write_retries_on_mocked_eperm | PASSING |
+| 2 | integration | tests/methodology/test_vault_safe_write.py | test_write_raises_after_eperm_budget_exhausted | PASSING |
+| 2 | unit | tests/methodology/test_vault_safe_write.py | test_inline_and_helper_config_readers_agree | PASSING |
+| 3 | integration | tests/methodology/test_install_vault_config.py | test_install_writes_global_base_config_without_moving_vault | PASSING |
+| 3 | structural | tests/methodology/test_install_vault_config.py | test_install_step_documented_in_install_md | PASSING |
+| 4 | structural | tests/methodology/test_external_vault_adr_and_risk.py | test_no_new_tool_migration_and_classification_map_documented | PASSING |
+| 5 | structural | tests/methodology/test_external_vault_adr_and_risk.py | test_r32_registered_and_adr_extends_065 | PASSING |
 
 ## Verification plan
 

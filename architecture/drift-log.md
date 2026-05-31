@@ -29,6 +29,31 @@ Append-only audit trail of `/drift-check` runs. Each entry records vault-vs-code
 ### Resolutions
 - None required — vault and code aligned for the slice-092 surface.
 
+## Audit 2026-05-31 (slice-093-add-external-vault-support)
+
+**Trigger**: slice-093 pre-finish gate (/build-slice Step 6)
+**Scope**: full (slice-093 mission-brief/design.md/ADR-085/risk-register R-32 vs `tools/_vault_paths.py` [3-tier resolution] + `tools/_vault_write.py` [C2 safe_write/append] + `INSTALL.md` Step 3i + `tests/methodology/{test_vault_safe_write,test_install_vault_config,test_external_vault_adr_and_risk,test_vault_root_constant}.py`)
+**Result**: CLEAN — vault and code aligned; no drift.
+
+### Blockers
+(none)
+
+### Majors
+(none)
+
+### Verified aligned
+- design.md "What's new" all present in code: `_vault_paths.py` `_CONFIG_REL` + `_read_common_dir_config` (stdlib subprocess, defensive R-7) + `_resolve_vault_root` (env → git-common-dir config → `Path("architecture")` default); `_vault_write.py` `safe_write_text` (SIDECAR `.lock`, atomic `os.replace`, bounded EPERM-retry) + `safe_append_text` (O_APPEND) + `write/read_vault_root_config` importing the shared `_CONFIG_REL` (m2 SSoT). Full suite 1314 PASS.
+- **No-flip invariant HOLDS**: resolved default unchanged at `architecture/` (no env, no config) — pinned by `test_default_unchanged_when_no_env_no_pointer`; the ONLY existing-test change is the sanctioned `test_full_pytest_baseline_preserved` count-pin 12→15.
+- Leaf-purity preserved: `_vault_paths.py` imports only stdlib — `test_vault_paths_module_is_leaf` green. Both new modules underscore → PMI-1 auto-excluded (36 tools scanned; UTF8-STDOUT-1 clean).
+- ADR-085 (`status: accepted`, `supersedes: null`) EXTENDS ADR-065 — SUP-1 clean; MEPD-1 EXCLUDE (no RULE-ID, no methodology-changelog entry, no VERSION bump) → MCFS-1/AVFS-1/TVFS-1 all PASS.
+- risk-register R-32 (`mitigating`) matches the C2 mitigation in code; no live test pins R-32 status (STP-1 green). AC4 classification map documented; VAULT_ROOT allowlist UNCHANGED at 10.
+
+### Build deviations (NOT vault-vs-code drift)
+- `diagnose-out/` seeded into the worktree post-hoc (`cp -r` from main tree) — the R-20 seed that worktree-create-at-`/slice` skips (the slice-088-flagged gap; surfaced here because this slice dogfoods the worktree-at-`/slice` model). A worktree-setup artifact, NOT a vault-vs-code divergence; `test_bcr_1_sc054_round_trip_inputs_invariant` then passes.
+
+### Resolutions
+- None required — vault and code aligned for the slice-093 surface.
+
 ## Audit 2026-05-31 (slice-090-fix-pcr-git-subprocess-cp1252-decode)
 
 **Trigger**: slice-090 pre-finish gate (/build-slice Step 6)

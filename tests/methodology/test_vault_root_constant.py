@@ -178,18 +178,21 @@ def test_full_pytest_baseline_preserved() -> None:
     """AC3: structural pin — test-function count.
 
     slice-068 originally shipped 10 functions. slice-071 SC-028 bundle adds
-    2 more: `test_vault_paths_module_is_leaf` (slice-068 M1 leaf-invariant
-    regression-pin, originally promised in design.md L25 but never added)
-    + `test_two_marker_convention_asymmetry_documented` (slice-068 m3
-    DOCUMENT-AS-DESIGNED sentinel-test). Total: 12.
+    2 more (`test_vault_paths_module_is_leaf` + `test_two_marker_convention_
+    asymmetry_documented`) → 12. slice-093 AC1 adds 3 resolution-precedence
+    tests (`test_resolution_precedence_env_over_pointer_over_default` +
+    `test_git_common_dir_key_stable_across_main_and_worktree` +
+    `test_default_unchanged_when_no_env_no_pointer`) → 15. This count-pin
+    update is the ONE sanctioned existing-test change in slice-093 (Critic M1)
+    — it is NOT a resolution-behaviour change (the resolved default stays
+    `architecture/`).
     """
     test_module_text = Path(__file__).read_text(encoding="utf-8")
     test_count = len(re.findall(r"^def test_", test_module_text, re.MULTILINE))
-    assert test_count == 12, (
-        f"test_vault_root_constant.py must contain exactly 12 test functions "
-        f"(slice-068 shipped 10; slice-071 SC-028 bundle added 2: "
-        f"test_vault_paths_module_is_leaf + test_two_marker_convention_"
-        f"asymmetry_documented); found {test_count}"
+    assert test_count == 15, (
+        f"test_vault_root_constant.py must contain exactly 15 test functions "
+        f"(slice-068 shipped 10; slice-071 SC-028 added 2; slice-093 AC1 added "
+        f"3 resolution-precedence tests); found {test_count}"
     )
 
 
@@ -444,4 +447,88 @@ def test_two_marker_convention_asymmetry_documented() -> None:
     assert "slice-071 design.md §slice-068-m3" in doc, (
         "Module docstring must cite the slice-071 design.md §slice-068-m3 "
         "disposition as the canonical anchor."
+    )
+
+
+# ─── slice-093 AC1: resolution precedence (env → git-common-dir config → default) ───
+
+
+def test_resolution_precedence_env_over_pointer_over_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC1 (slice-093 / ADR-085): _resolve_vault_root honours env >
+    git-common-dir config > default 'architecture' — in that order."""
+    import tools._vault_paths as vp
+
+    # env beats config
+    monkeypatch.setenv("AI_SDLC_VAULT_ROOT", "/from/env")
+    monkeypatch.setattr(vp, "_read_common_dir_config", lambda: "/from/config")
+    assert vp._resolve_vault_root() == Path("/from/env")
+
+    # config beats default (env unset)
+    monkeypatch.delenv("AI_SDLC_VAULT_ROOT", raising=False)
+    assert vp._resolve_vault_root() == Path("/from/config")
+
+    # default when neither env nor config
+    monkeypatch.setattr(vp, "_read_common_dir_config", lambda: None)
+    assert vp._resolve_vault_root() == Path("architecture")
+
+
+def test_default_unchanged_when_no_env_no_pointer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC1 / no-flip safety contract: with no env AND no config, the resolved
+    vault root is UNCHANGED at Path('architecture') — this repo behaves exactly
+    as before slice-093."""
+    import tools._vault_paths as vp
+
+    monkeypatch.delenv("AI_SDLC_VAULT_ROOT", raising=False)
+    monkeypatch.setattr(vp, "_read_common_dir_config", lambda: None)
+    assert vp._resolve_vault_root() == Path("architecture")
+
+
+def test_git_common_dir_key_stable_across_main_and_worktree(tmp_path: Path) -> None:
+    """AC1 / C1 keying (the spike's central claim): `git rev-parse
+    --path-format=absolute --git-common-dir` returns a byte-identical absolute
+    path from the main tree AND a linked worktree — so the per-project key is
+    stable across all worktrees of one repo."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", str(repo)], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "t@example.com"],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.name", "tester"],
+        check=True,
+        capture_output=True,
+    )
+    (repo / "seed.txt").write_text("seed", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "commit", "-m", "init"], check=True, capture_output=True
+    )
+    wt = tmp_path / "linked-wt"
+    subprocess.run(
+        ["git", "-C", str(repo), "worktree", "add", str(wt), "-b", "feature"],
+        check=True,
+        capture_output=True,
+    )
+
+    def common_dir(cwd: Path) -> str:
+        return subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=cwd,
+            capture_output=True,
+            encoding="utf-8",
+            check=True,
+        ).stdout.strip()
+
+    main_cd = common_dir(repo)
+    wt_cd = common_dir(wt)
+    assert main_cd == wt_cd, (
+        f"git-common-dir key NOT stable across worktrees: main={main_cd!r} "
+        f"worktree={wt_cd!r} — the per-project keying assumption (C1) fails"
     )
