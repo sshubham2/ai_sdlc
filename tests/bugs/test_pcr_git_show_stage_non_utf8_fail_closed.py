@@ -42,7 +42,11 @@ committing the non-UTF-8 bytes on ``master`` so they land in **stage 2**
 (``git rebase master`` while on branchA → stage 2 = master/ours, stage 3 =
 branchA/theirs). Empirically confirmed: the rebase conflicts (``UU``),
 ``git show :2:`` returns exit 0 with the invalid bytes, and ``_git_show_stage``
-returns ``None`` pre-fix.
+returned ``None`` pre-fix **on the dev host** (Windows; the reader-thread
+``UnicodeDecodeError`` swallow is thread-local per cpython#105312 — on POSIX the
+pre-fix manifestation is instead an uncaught propagated ``UnicodeDecodeError``).
+The assertion below does NOT depend on which pre-fix manifestation occurs — it
+pins only the post-fix LOUD outcome.
 
 Expected post-fix behavior: a PRESENT but non-UTF-8 stage produces a LOUD
 fail-closed outcome — either a typed (non-``UnicodeDecodeError``) resolver

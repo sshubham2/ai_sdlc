@@ -57,8 +57,10 @@ VAULT_CLAIM bypass the 082–090 hardening arc closed for the *decodable* case.
    a normal catchable `UnicodeDecodeError` in the caller's frame. The textbook
    fix for "the reader thread swallows decode errors" is to not decode in the
    reader thread. *Cons*: `_git_show_stage` moves from a text-decode site to a
-   byte-read site, so slice-090's AST count-pin shifts (9→8 decode / 4→5
-   byte-mode) and its test + shippability #96 description must be updated.
+   byte-read site, so slice-090's AST count-pin shifts (byte-mode 4→5; decode
+   stays 9 — the new `_append_decode_stop_audit` `git rev-parse HEAD` decode
+   site offsets the one `_git_show_stage` gives up) and its test + shippability
+   #96 description must be updated.
 3. **Decode with `errors="replace"`/`"surrogateescape"`** — never raises.
    *Rejected*: that is silent content-mangling, not fail-closed; it would feed
    corrupted claim text to `parse_queue_text` — a different silent bypass.
@@ -93,7 +95,7 @@ already turns into a STOP.
 This narrows R-30 residual #1 (it does not mint a new RULE-ID). The repro
 `tests/bugs/test_pcr_git_show_stage_non_utf8_fail_closed.py` (shippability #98)
 pins the fix; slice-090's `test_parallel_conflict_resolver_git_encoding.py`
-count-pin is updated to 8 decode / 5 byte-mode, and `_git_show_stage` is the
+count-pin is updated to 9 decode (unchanged) / 5 byte-mode, and `_git_show_stage` is the
 sole byte-mode site that decodes explicitly (it still carries NO `encoding=` on
 the `subprocess.run` call, so the "byte-mode sites carry no `encoding=`"
 invariant holds).
@@ -105,8 +107,10 @@ invariant holds).
   fail-closed → UNKNOWN STOP).
 - `ConflictDiagnostic` gains a `claim_extraction_degraded: bool = False` field
   (default keeps all existing constructions valid).
-- slice-090's AST count-pin test and shippability #96 description move to 8/5.
-  The 4 STAGING byte-mode sites are untouched.
+- slice-090's AST count-pin test and shippability #96 description move to
+  9 decode (unchanged) / 5 byte-mode (the `_append_decode_stop_audit` rev-parse
+  decode site offsets `_git_show_stage` leaving the decode set). The 4 STAGING
+  byte-mode sites are untouched.
 - The fix reuses ADR-082's "predicate kernel as reuse seam" intent: a future
   repo-wide `audit-cp1252-decode-pattern-across-tools` slice can lift the
   bytes-capture-then-explicit-decode pattern as the canonical safe form.

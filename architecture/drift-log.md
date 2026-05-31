@@ -453,3 +453,29 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-089 surface.
+
+---
+
+## 2026-05-31 — slice-091-harden-pcr-decode-non-silent
+
+**Trigger**: slice-091 pre-finish gate (/build-slice Step 6)
+**Scope**: full (thin-vault Standard — ADR-083, active slice-091 design.md + mission-brief.md vs `tools/parallel_conflict_resolver.py` + tests)
+**Findings**: 0 blockers, 0 majors
+
+### Blockers
+- (none)
+
+### Majors
+- (none)
+
+### Verified aligned
+- ADR-083 (`status: accepted`, `reversibility: cheap`, `supersedes: null`) — its decision (bytes-capture + explicit strict decode; `_StageDecodeError(_SoftResolutionError, UNKNOWN)`; degraded-flag → UNKNOWN STOP; best-effort breadcrumb) matches the shipped `tools/parallel_conflict_resolver.py`: `_git_show_stage` now captures bytes + `.decode("utf-8")` and raises `_StageDecodeError`; `diagnose_conflict` catches both stage reads + sets `claim_extraction_degraded` via the constructor; `classify_conflict` returns UNKNOWN when degraded; `_append_decode_stop_audit` writes the `## Decode-failure STOP (non-UTF-8 stage)` section.
+- design.md "What's new" verified on disk: `_StageDecodeError` subclasses `_SoftResolutionError`; `ConflictDiagnostic.claim_extraction_degraded: bool = False` (frozen+slots, set via constructor — m-add-1); the catch wraps stage-2 AND stage-3 reads (m-add-2). `_git_show_stage` docstring inverted to document raise-on-undecodable (m1).
+- BUILD CORRECTION reconciled across vault: count-pin is byte-mode 4→5, decode unchanged at 9 (the `_append_decode_stop_audit` rev-parse decode site offsets `_git_show_stage`); `test_parallel_conflict_resolver_git_encoding.py` (`_EXPECTED_BYTE_MODE_SITES=5`) + shippability #96 + design.md + ADR-083 + mission-brief all corrected — no stale "9→8" claim remains in the live slice surface.
+- shippability.md rows #98 (repro) + #100 (decode-fail-closed guard) present; #99 reserved for parallel slice-092 (non-overlapping, `tools/stranded_slice_audit.py`).
+- MEPD-1 EXCLUDE: no new RULE-ID (narrows R-30 residual #1); VERSION unchanged (MCFS-1/AVFS-1/TVFS-1 no-op — no version-bump legs to sync).
+- risk-register.md: R-30 stays `mitigating` (this narrows residual #1; residual #2 out of scope) — STP-1 clean, no stale status pin flipped by this slice.
+- No UNSPECIFIED CODE / no STALE CLAIM: additive (one module hardened + two test files + catalog rows); no removed feature, no orphan vault claim.
+
+### Resolutions
+- None required — vault and code aligned for the slice-091 surface.

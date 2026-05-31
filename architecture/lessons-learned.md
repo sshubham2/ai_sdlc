@@ -1945,3 +1945,20 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **"A Critic's own fix is a fresh claim" fired again** (B3 design-fix → B-add-1 meta-catch), now N≥4 (078/082/083/089). The meta-Critic's structural value is reviewing the DELTA the first Critic's fix introduces — do NOT collapse the 3-Critic stack.
 - **New git-subprocess tool → `encoding="utf-8"`, and never blindly reuse a sibling's git helper without checking its encoding** — strong build-check candidate; deferred to slice-090 (the dedicated cp1252-decode fix) to own the codification.
 - **On adding a `tools/*.py`, immediately grep EVERY count literal** (plugin.yaml, install_audit, INSTALL.md L22+L166, cp1252 parametrize list, per-tool inventory-pin tests) — the fan-out is wider than the checklist enumerates.
+
+## Slice 091 (harden-pcr-decode-non-silent) — 2026-05-31
+
+### Worked
+- **Routing a new fail-closed signal into an EXISTING channel** — `_StageDecodeError(_SoftResolutionError, UNKNOWN)` reused `classify_conflict`'s existing UNKNOWN→STOP path AND the existing `except _SoftResolutionError` handler (defense-in-depth on the `_regen_slice_queue` site) with ZERO new STOP plumbing. Minimal, idiomatic, hard to get wrong.
+- **Worktree isolation under a parallel slice** — slice-091 in a real BRANCH-2 worktree, scaffold-committing ONLY its exclusive files (folder + ADR + repro), left a concurrent branchless slice-092 + shared shippability/slice-queue untouched in main. Validated 98/98 shippability PASS — a clean PASS, NOT the sibling-induced PARTIAL of 087/090. The slice-090 "resolve parallel state first, use a real worktree" directive paid off.
+- **The design-Critic executing against the REAL runtime** caught B1 (the repro's `update-index --index-info` staging is dead on Windows `git.exe`) — a Blocker a Git-Bash probe masked.
+
+### Didn't work
+- **The count-pin delta was arithmetic-reasoned, not executed** — design/ADR/shippability all claimed decode `9→8`, but the new `_append_decode_stop_audit` helper's own `git rev-parse HEAD` is a decode site that kept the count at 9 (byte-mode 4→5). No Critic layer caught it; the mid-slice smoke gate did. Reconciled across all surfaces post-discovery.
+- **A residual-closing fix spawned its own micro-residual** — the VAULT_CLAIM resolve path lacked the `_StageDecodeError` catch the SOFT path got; caught by the code-Critic (m1), fixed in-slice to make the invariant total.
+
+### Pattern
+- **A count-pin / inventory delta (X→Y) must be EXECUTED against the post-change code before assertion** — slice-091's `9→8` prediction was wrong because a new helper added an offsetting decode site. This is the count-arithmetic sibling of the APED-1 "execute the regex against the real corpus" discipline. **Strong /critic-calibrate probe candidate**: "when a slice claims a count/inventory delta, has the predicted post-change count been EXECUTED (run the pin), not reasoned from the diff?"
+- **Execute against the REAL runtime, not a convenient proxy** — Git-Bash `git` ≠ Windows `git.exe` for plumbing edge cases (`update-index --index-info` nested-path staging). Verify git-plumbing repros on the runtime the code actually uses.
+- **Bytes-capture + explicit main-thread decode is the cross-platform-safe pattern for CATCHING git-output decode failures** — text-mode swallows them platform-differently (Windows `stdout=None`, POSIX uncaught). Refines BC-GLOBAL-5: `encoding="utf-8"` is right for round-tripping, but to FAIL CLOSED on genuinely-bad bytes you must capture bytes + `.decode` explicitly.
+- **3-Critic stack complementarity held (086→091), with a shared blind spot this slice**: design-Critic = APED-1-by-execution on the real runtime (B1), meta-Critic = override-adjudication (M2) + frozen/symmetric-catch coherence, code-Critic = resolve-path reach-analysis (VAULT_CLAIM asymmetry). All three missed the count-pin offset (count-arithmetic axis) — the calibration signal.
