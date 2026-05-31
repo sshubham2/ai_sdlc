@@ -1,21 +1,13 @@
 # Slice queue
 
-_Generated: 2026-05-31T07:23:55+00:00 by /slice during slice-090 definition_
+_Generated: 2026-05-31T11:16:39+00:00 by /slice during slice-092 definition_
 
 ## Candidates
 
 ### audit-cp1252-decode-pattern-across-tools
 
-- **Source:** slice-090 discovery (same text=True-without-encoding class in other tools)
+- **Source:** risk-register R-30 discovery (slice-090)
 - **Blast-radius:** `tools/project_frame_synth.py`, `tools/pulse_worktree_resolver.py`, `tools/slice_queue_writer.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** MEDIUM
-
-### fix-stranded-audit-branchless-blindspot
-
-- **Source:** slice-090 discovery (stranded_slice_audit cannot see branchless in-progress slices)
-- **Blast-radius:** `tools/stranded_slice_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
 - **Risk-retired:** MEDIUM
