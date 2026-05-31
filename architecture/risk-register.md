@@ -502,3 +502,22 @@ The forward-sync gates (CAD-1, MCFS-1, AVFS-1, TVFS-1) and OSDG-1/content-equali
 **Impact in practice**: low — false HALTs/FAILs on the non-version-bumping sibling's pre-finish + validate gates; no data loss, no production corruption. Attributable deterministically (`git diff HEAD -- <drifted-files>` empty ⇒ sibling-induced) and resolves automatically at merge (no file conflict; post-both-merge master == installed). Cost is operator confusion + a documented-deferral cycle per parallel-window occurrence.
 
 **Mitigation candidate** (a `/critic-calibrate` + future-slice candidate, NOT fixed here): scope forward-sync/content-equality comparison per-worktree (compare in-repo against the worktree-local installed snapshot), OR enforce these gates only at merge-time (when there is a single authoritative tree), OR teach the gates to recognize a sibling-induced drift (the drifted file is unchanged in this slice's diff) and downgrade to a WARN. Until then, the documented-deferral + `git diff HEAD` attribution discipline (per slice-087 build-log + validation) is the operating procedure. Per the cooperative model: NOT a security boundary.
+
+
+## R-29 — Install-completeness verification is version-keyed (TVFS-1) + repo-shadowed (INST-1), so a tool added without a version bump is invisible to both gates
+
+**Likelihood**: medium
+**Impact**: low
+**Status**: open
+**Reversibility**: cheap
+**Discovered**: slice-087-add-stranded-slice-detection-to-slice (2026-05-31), surfaced by the user post-merge — the installed venv `ai-sdlc-tools` package was missing `tools/stranded_slice_audit.py` (087's tool) while BOTH TVFS-1 and INST-1 reported "clean."
+
+slice-087 added a tool module under **MEPD-1 EXCLUDE** (no VERSION bump). The two install-completeness gates both miss this:
+- **TVFS-1 is version-keyed**: it asserts installed-dist-info-version == in-repo VERSION (both `0.78.0` → "clean"). It has no module-set check, so a new tool at the same version is invisible.
+- **INST-1's tool check is repo-shadowed**: `--strict` resolves `tools.X` via `sys.path`, which inside the repo is the in-repo `tools/` dir (which HAS the tool), not the installed venv copy. (INST-1 DOES filesystem-check skills/agents/templates under `~/.claude/`, so those are caught — the asymmetry is that tools are verified by *import* rather than by inspecting the installed package's file set.)
+
+Consequently the installed venv package can be missing a canonical tool while both audits confirm "clean" — a false install-complete signal. A Claude that trusts the audits to decide "do I need to reinstall?" would skip the `pip install --upgrade .` (INSTALL.md Step 3g) and leave the gap.
+
+**Impact in practice**: low + bounded — inside the repo the in-repo `tools/` is used (pipeline unaffected); only cross-project use of the new tool (`$PY -m tools.<new>` outside the repo) fails until a reinstall. No data loss. Mitigated for slice-087's tool by an immediate `pip install --upgrade .` (2026-05-31).
+
+**Mitigation candidate** (next-slice candidate, user-elected 2026-05-31): an INST-1 enhancement (or a new content-keyed gate) that compares the INSTALLED venv package's module set (read from `sysconfig.get_path("purelib")/tools`, NOT `sys.path`) against `_CANONICAL_TOOLS`, independent of the dist-info version — closes the MEPD-1-EXCLUDE-tool-invisible hole. Adjacent to R-28 (both are shared-`~/.claude/`-install-verification gaps). Per the cooperative model: NOT a security boundary.
