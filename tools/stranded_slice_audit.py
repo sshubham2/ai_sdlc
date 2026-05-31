@@ -67,6 +67,15 @@ __all__ = [
 
 # Canonical BRANCH-2 slice-branch shape (mirrors pulse_worktree_resolver L73).
 _SLICE_BRANCH_RE = re.compile(r"^slice/(\d{3})-(.+)$")
+# Folder-form of the slice id (HYPHEN, not slash) — the on-disk
+# `architecture/slices/slice-NNN-<name>/` directory name (slice-092 / ADR-084).
+# The branch and folder forms coincide on the `NNN-name` capture ONLY; never
+# prefix-strip across the two (the `slice/` vs `slice-` prefixes match at 6 chars
+# only by accident — B2). The `\d{3}` digit-count MUST stay symmetric with
+# _SLICE_BRANCH_RE or the folder/branch dedup keys diverge (a laxer folder regex
+# would match a folder whose branch ref cannot be keyed — an asymmetric dedup hole;
+# code-review m2).
+_SLICE_FOLDER_RE = re.compile(r"^slice-(\d{3})-(.+)$")
 # Terminal milestone stages for the BARE-branch path (B1, code-review): the vault's
 # real terminal stage is `complete` (written by skills/reflect/SKILL.md:305 as
 # `stage: complete` / `next-action: none (slice complete)` at /reflect Step 6 — 85/87
@@ -87,6 +96,12 @@ class DivergenceClass(Enum):
     IN_PROGRESS = "in-progress"
     CLAIMED_BY_OTHER = "claimed-by-other"
     INDETERMINATE = "indeterminate"
+    # 5th class (ADR-084 / slice-092): a branchless in-flight slice — a
+    # `slice-NNN-<name>/` folder in the invoking tree with a non-terminal
+    # milestone and NO matching `slice/NNN-*` ref. INFORMATIONAL, never a halt
+    # (deliberately absent from `_HALT_CLASSES` below): under PSQ/BRANCH-2 a
+    # not-yet-branched scaffold is healthy parallel-safe state, NOT a strand.
+    BRANCHLESS_IN_FLIGHT = "branchless-in-flight"
 
 
 _HALT_CLASSES = {
@@ -330,6 +345,65 @@ def _classify_bare_branch(
     )
 
 
+def _branchless_in_flight_slices(
+    repo_root: Path, seen_keys: set[str]
+) -> list[StrandedEntry]:
+    """Enumerate branchless in-flight slice folders (slice-092 / ADR-084).
+
+    A branchless in-flight slice is an ``architecture/slices/slice-NNN-<name>/``
+    folder in the INVOKING tree whose ``milestone.md`` exists and is NON-terminal
+    AND which has NO matching ``slice/NNN-*`` ref. That is the normal
+    pre-``/build-slice`` scaffold state, invisible to the two branch-only passes
+    (R-31). Each surviving folder yields ONE informational ``BRANCHLESS_IN_FLIGHT``
+    entry (never a halt -- healthy parallel-safe state under PSQ/BRANCH-2).
+
+    Strictly SUBORDINATE to the branch passes (ADR-084 Decision / M2): emits ONLY
+    for keys ABSENT from ``seen_keys`` (the union of worktree'd + bare ``slice/*``
+    ref keys assembled by ``classify_branches``), so it can never downgrade or mask
+    a halt-worthy branch classification, and a slice with BOTH a folder and a branch
+    is reported once (via the branch). Fail-open per-folder: absent / unparseable /
+    stage-less milestones are skipped -- minting a halt for a missing milestone would
+    re-introduce the cry-wolf the slice-087 reframe killed.
+    """
+    out: list[StrandedEntry] = []
+    slices_dir = repo_root / "architecture" / "slices"
+    if not slices_dir.is_dir():
+        return out  # no vault slices dir -> nothing to surface (advisory-never-blocking)
+    for child in sorted(slices_dir.iterdir()):
+        if not child.is_dir() or child.name == "archive":
+            continue  # files (e.g. _index.md) and the archive/ tree are not in-flight
+        m = _SLICE_FOLDER_RE.match(child.name)
+        if not m:
+            continue  # non-conforming dir (e.g. `slice-bad`) -> skip
+        num, name = m.group(1), m.group(2)
+        key = f"{num}-{name}"
+        if key in seen_keys:
+            continue  # already reported via a slice/* ref -> dedup (B2 / precedence subordination)
+        ms_path = child / "milestone.md"
+        if not ms_path.is_file():
+            continue  # fail-open: no milestone -> skip
+        try:
+            txt = ms_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue  # fail-open: unreadable -> skip
+        stage = _frontmatter_field(txt, "stage")
+        if stage is None:
+            continue  # parseable-but-stage-less / unparseable -> skip (never `folder:None`, m-add-2)
+        if _is_terminal(stage, _frontmatter_field(txt, "next-action")):
+            continue  # terminal -> already merged or a strand the branch path owns (4l)
+        out.append(_entry(
+            f"slice-{num}-{name}",  # folder-form id (HYPHEN) -> signals "folder, not branch"
+            None,
+            DivergenceClass.BRANCHLESS_IN_FLIGHT,
+            f"folder:{stage}",
+            None,
+            None,
+            f"branchless in-flight slice (folder slice-{num}-{name}, stage={stage}, "
+            f"no slice/{num}-* branch) -- informational, parallel-safe",
+        ))
+    return out
+
+
 # ----------------------------- library API -----------------------------
 
 
@@ -387,10 +461,23 @@ def classify_branches(repo_root: Path | str) -> list[StrandedEntry]:
         ))
 
     # --- bare branches (no live worktree) ---
-    for branch, num, name in _bare_slice_branches(repo_root, worktree_branches):
+    bare_tuples = _bare_slice_branches(repo_root, worktree_branches)
+    for branch, num, name in bare_tuples:
         entry = _classify_bare_branch(repo_root, branch, num, name, default, claims, my_identity)
         if entry is not None:
             entries.append(entry)
+
+    # --- branchless in-flight slices (slice-092 / ADR-084): folders with no slice/* ref ---
+    # seen_keys = the `NNN-name` key of EVERY slice/* ref (worktree'd AND bare), so a slice
+    # with both a folder AND a branch is deduped (reported once, via the branch path). The
+    # worktree key is sliced from the FULL `slice/NNN-name` ref in `worktree_branches`
+    # (`wt.branch`), NOT derived from `wt.slice_name` (the bare name without the `NNN-`
+    # prefix) -- that mis-key is the B2 double-report trap.
+    seen_keys = (
+        {b[len("slice/"):] for b in worktree_branches}
+        | {f"{num}-{name}" for (_b, num, name) in bare_tuples}
+    )
+    entries.extend(_branchless_in_flight_slices(repo_root, seen_keys))
 
     return entries
 

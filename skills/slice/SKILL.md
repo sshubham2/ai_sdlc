@@ -47,7 +47,7 @@ The detector CLASSIFIES every unmerged `slice/*` branch into a 4-class divergenc
   - **Resume the stranded slice** via `/commit-slice` (for a `stranded-complete` branch — committed-but-unmerged; the slice-086 recovery path).
   - **Continue that slice's `/build-slice`** in its worktree (if mid-build).
   - **Proceed defining a new slice anyway** (deliberate — the operator overrides).
-- **`status: clean` with informational entries** (`klass` ∈ {`in-progress`, `claimed-by-other`}): surface a one-line note (e.g. "N parallel slice(s) in flight: …") and **PROCEED to Step 1 without a gate** — a healthy parallel slice (IN-PROGRESS) or another session's claim is normal and must NOT halt.
+- **`status: clean` with informational entries** (`klass` ∈ {`in-progress`, `claimed-by-other`, `branchless-in-flight`}): surface a one-line note (e.g. "N parallel slice(s) in flight: …") and **PROCEED to Step 1 without a gate** — a healthy parallel slice (IN-PROGRESS), another session's claim (CLAIMED-BY-OTHER), or a not-yet-branched sibling scaffold (BRANCHLESS-IN-FLIGHT — a `/slice`+`/design`'d slice folder with no `slice/*` ref yet, per slice-092 / ADR-084) is normal parallel-safe state and must NOT halt.
 - **`status: clean` with no entries**: proceed silently.
 - **Exit 2 (usage failure** — git unavailable / default branch unresolvable / not a git repo): surface the stderr to the user and CONTINUE (fail-visible, never a silent skip — the R-7 silent-disable class). Do not block slice definition on a detector usage failure.
 
