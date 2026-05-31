@@ -164,7 +164,14 @@ Note: HEREDOC format to preserve newlines and special characters. The no-flag de
 Per slice-022 AC #1 + ADR-020: the slice-021 `--merge` 5-step flow + 2 pre-flight guardrails are preserved verbatim. Behavior is unchanged; what's superseded is the implicit claim that `--merge` is the only post-/reflect cleanup path.
 
 Pre-flight guardrails (run BEFORE any state change):
-1. **Stale-slice-branch check** (per /critique B5 ACCEPTED-PENDING — refuse if prior conflict-recovery left orphan branches): `git for-each-ref --format='%(refname)' refs/heads/slice/` — if any non-current `slice/*` branches return, STOP. Print: "Stale slice branches detected: `<list>`. For legitimate post-PR-merge stragglers, run `/commit-slice --sync-after-pr` on each. For other artefacts of prior unresolved conflicts, resolve manually (`git branch -d` each, after verifying merged) before retrying `--merge`."
+1. **Stale-slice-branch check** (parallel-aware per **ADR-081** / slice-089 — supersedes the slice-021 B5 flag-all heuristic: refuse ONLY on worktree-LESS orphan `slice/*` branches; a worktree-backed `slice/*` is a legitimate concurrent slice under PSQ-1 / PSQ-2 / BRANCH-2, NOT a stale artifact):
+<!-- STALE-BRANCH-CHECK:BEGIN -->
+   Run `python -m tools.stale_branch_classifier --repo-root . --json` at pre-flight — cwd is still the slice worktree, BEFORE any `cd` to the main tree (the ordering invariant: self-exclusion needs HEAD == the slice branch). Branch on the JSON `verdict`:
+   - **`verdict: refuse`** (≥1 `orphan_branches` — worktree-less) → STOP. Print: "Stale slice branches detected (no live worktree): `<orphan_branches>`. For legitimate post-PR-merge stragglers, run `/commit-slice --sync-after-pr` on each. For other artefacts of prior unresolved conflicts, resolve manually (`git branch -d` each, after verifying merged) before retrying."
+   - **`verdict: allow`** with non-empty `parallel_slices` → surface a one-line note "N parallel slice(s) in flight (worktree-backed, not stale): `<parallel_slices>`" (append the `noncanonical_backed` rename hint per ADR-063 when that list is non-empty) and PROCEED (no STOP).
+   - **`verdict: allow`** with empty `parallel_slices` → proceed silently.
+   - **Bootstrap / failure fallback** (`ModuleNotFoundError` / import failure / classifier exit ∈ {1, 2}): fall back to the legacy flag-all check — `git for-each-ref --format='%(refname:short)' refs/heads/slice/` minus the current branch (`git symbolic-ref --short HEAD`); STOP if any remain. Strictly no weaker than the pre-ADR-081 behavior. Surface the failure reason to the user (fail-visible, never a silent skip).
+<!-- STALE-BRANCH-CHECK:END -->
 
 (Per slice-075 closing P2.4: the pre-existing WT-clean preflight — which required an empty porcelain-status check BEFORE sub-step 2's commit — was lifted out of pre-flight to new sub-step 2.1. post-commit guardrail below. Pre-fix the WT-clean preflight contradicted sub-step 2's expectation that the slice work is uncommitted. The silent-WT-discard local-state-loss protection intent (per /critique M5 ACCEPTED-PENDING) is preserved at the new post-commit position.)
 
@@ -239,7 +246,14 @@ Do NOT push. Push is a separate action with its own confirmation flow (use `--pu
 Pre-flight guardrails (run BEFORE any state change):
 
 1. **WT-clean check**: `git status --porcelain` MUST return empty. If non-empty, STOP. Print: "Uncommitted changes detected. Commit or stash before `--push`."
-2. **Stale-slice-branch check**: `git for-each-ref --format='%(refname)' refs/heads/slice/` — if any non-current `slice/*` branches return, STOP. Print: "Stale slice branches detected: `<list>`. For legitimate post-PR-merge stragglers, run `/commit-slice --sync-after-pr` on each. For other artefacts, resolve manually before retrying `--push`."
+2. **Stale-slice-branch check** (parallel-aware per **ADR-081** / slice-089 — identical to the `--merge` Step 5b sub-step 1 check; refuse ONLY on worktree-LESS orphans, a worktree-backed `slice/*` is a legitimate concurrent slice):
+<!-- STALE-BRANCH-CHECK:BEGIN -->
+   Run `python -m tools.stale_branch_classifier --repo-root . --json` at pre-flight — cwd is still the slice worktree, BEFORE any `cd` to the main tree (the ordering invariant: self-exclusion needs HEAD == the slice branch). Branch on the JSON `verdict`:
+   - **`verdict: refuse`** (≥1 `orphan_branches` — worktree-less) → STOP. Print: "Stale slice branches detected (no live worktree): `<orphan_branches>`. For legitimate post-PR-merge stragglers, run `/commit-slice --sync-after-pr` on each. For other artefacts of prior unresolved conflicts, resolve manually (`git branch -d` each, after verifying merged) before retrying."
+   - **`verdict: allow`** with non-empty `parallel_slices` → surface a one-line note "N parallel slice(s) in flight (worktree-backed, not stale): `<parallel_slices>`" (append the `noncanonical_backed` rename hint per ADR-063 when that list is non-empty) and PROCEED (no STOP).
+   - **`verdict: allow`** with empty `parallel_slices` → proceed silently.
+   - **Bootstrap / failure fallback** (`ModuleNotFoundError` / import failure / classifier exit ∈ {1, 2}): fall back to the legacy flag-all check — `git for-each-ref --format='%(refname:short)' refs/heads/slice/` minus the current branch (`git symbolic-ref --short HEAD`); STOP if any remain. Strictly no weaker than the pre-ADR-081 behavior. Surface the failure reason to the user (fail-visible, never a silent skip).
+<!-- STALE-BRANCH-CHECK:END -->
 3. **Current-branch-is-slice-branch**: `git symbolic-ref --short HEAD` MUST start with `slice/`. Otherwise STOP. Print: "`--push` must be invoked from a `slice/*` branch; you are on `<current branch>`."
 4. **Origin-remote presence**: `git remote get-url origin` MUST succeed. If it fails, STOP. Print: "No `origin` remote configured. `/commit-slice --push` requires an `origin` remote; configure it (`git remote add origin <url>`) before retrying. `--push` never falls back to alternate remotes silently."
 

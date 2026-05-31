@@ -116,6 +116,7 @@ _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.shippability_runner",
     "tools.slice_queue_claim",
     "tools.slice_queue_writer",
+    "tools.stale_branch_classifier",
     "tools.state_transition_pin_audit",
     "tools.stranded_slice_audit",
     "tools.supersede_audit",

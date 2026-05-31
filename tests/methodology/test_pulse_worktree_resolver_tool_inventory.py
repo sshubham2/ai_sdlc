@@ -5,8 +5,8 @@ registered across 5 canonical surfaces:
 
 1. plugin.yaml tools block
 2. tools/install_audit.py::_CANONICAL_TOOLS
-3. INSTALL.md tool-count literal at L22 AND L166 (now `35`; per slice-076 M6
-   two-site pin precedent — bumped 33→35 at slice-087/ADR-079)
+3. INSTALL.md tool-count literal at L22 AND L166 (now `36`; per slice-076 M6
+   two-site pin precedent — bumped 33→35→36 (slice-087→slice-089)/ADR-079)
 4. architecture/shippability.md row #77
 5. tests/methodology/test_utf8_stdout_regression.py::_ROOT_ONLY_TOOLS (root-only
    bucket — uses --repo-root with no positional slice arg per slice-067 /
@@ -64,12 +64,12 @@ def test_pulse_worktree_resolver_in_canonical_tools_plugin_manifest_install_md_a
     )
     l22 = install_md_lines[21]  # 1-indexed line 22 → 0-indexed [21]
     l166 = install_md_lines[165]  # 1-indexed line 166 → 0-indexed [165]
-    assert "35" in l22, (
-        f"INSTALL.md L22 missing post-bump tool-count `35` (slice-087+088 bump 33→35, two-site); "
+    assert "36" in l22, (
+        f"INSTALL.md L22 missing post-bump tool-count `36` (slice-087+088 bump 33→35, two-site); "
         f"actual line content: {l22!r}"
     )
-    assert "35" in l166, (
-        f"INSTALL.md L166 missing post-bump tool-count `35`; actual line content: {l166!r}"
+    assert "36" in l166, (
+        f"INSTALL.md L166 missing post-bump tool-count `36`; actual line content: {l166!r}"
     )
 
     # 4. shippability.md row #77

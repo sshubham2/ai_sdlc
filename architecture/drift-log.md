@@ -429,3 +429,27 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-083 surface.
+
+## Audit 2026-05-31 (slice-089-make-commit-slice-stale-branch-check-parallel-slice-aware)
+
+**Trigger**: slice-089 pre-finish gate (/build-slice Step 6)
+**Scope**: full (thin vault — ADR-081 + active slice-089 design.md/mission-brief + commit-slice SKILL.md + new tool stale_branch_classifier.py; no VERSION bump, MEPD-1 EXCLUDE)
+**Findings**: 0 blockers, 0 majors
+
+### Blockers
+(none)
+
+### Majors
+(none)
+
+### Verified aligned
+- ADR-081 (`status: accepted`, `reversibility: cheap`, `supersedes: null`) — its decision (worktree-backing discriminator via the RAW `pulse_worktree_resolver._parse_worktree_porcelain`, NOT `detect_active_worktrees`; path-equality + branch self-exclusion; exit 0/1/2; bootstrap-fallback to flag-all-minus-current) matches design.md + the shipped `tools/stale_branch_classifier.py`.
+- design.md "What's new" verified on disk: `tools/stale_branch_classifier.py` defines `classify_stale_branches` + `main` + `StaleBranchVerdict` (with `noncanonical_backed`); strips `refs/heads/`→short before set ops (meta-Critic B-add-1); every git subprocess passes `encoding="utf-8"` (heeds parallel slice-090's cp1252 class — does NOT reuse the encoding-less `pulse_worktree_resolver._run_git`).
+- `skills/commit-slice/SKILL.md` Step 5b sub-step 1 + Step 5c pre-flight #2 carry the byte-identical `<!-- STALE-BRANCH-CHECK -->` block invoking the classifier; "Stale-slice-branch check" label preserved (anchor test green); OSDG-1 in-repo==installed (drift test green).
+- PMI-1/INST-1 inventory updated for the new tool: `plugin.yaml` + `tools/install_audit.py` enumerate `stale_branch_classifier` (36 tools); installed venv `ai-sdlc-tools` force-reinstalled so the module resolves from site-packages.
+- MEPD-1 EXCLUDE: no new RULE-ID (refines BRANCH-2/PSQ-family guardrail); VERSION unchanged at 0.78.0 (MCFS-1/AVFS-1/TVFS-1 all PASS — no version-bump legs to sync).
+- risk-register.md: slice-089 retires no registered risk (closes the parallel-unaware false-positive noted post-slice-088 merge — not a registered R-NN) — STP-1 clean, no stale status pin.
+- No UNSPECIFIED CODE / no STALE CLAIM: additive (one new read-only tool + one new test module + SKILL.md guardrail rewrite); the superseded slice-021 B5 flag-all heuristic prose was replaced in place at both surfaces.
+
+### Resolutions
+- None required — vault and code aligned for the slice-089 surface.

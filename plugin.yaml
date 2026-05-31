@@ -144,6 +144,8 @@ tools:
     rule: PSQ-2
   - path: tools/slice_queue_writer.py
     rule: PSQ-1
+  - path: tools/stale_branch_classifier.py
+    rule: ADR-081
   - path: tools/state_transition_pin_audit.py
     rule: STP-1
   - path: tools/stranded_slice_audit.py
