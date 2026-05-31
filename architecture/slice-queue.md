@@ -1,12 +1,20 @@
 # Slice queue
 
-_Generated: 2026-05-31T11:16:39+00:00 by /slice during slice-092 definition_
+_Generated: 2026-05-31T18:04:51+00:00 by /slice during slice-095 definition_
 
 ## Candidates
 
+### flip-vault-to-external-shared-root
+
+- **Source:** external-vault initiative (unblocked once R-32 retires: 094+095)
+- **Blast-radius:** `INSTALL.md`, `tools/_vault_paths.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** LARGE
+- **Risk-retired:** NONE (unblocks initiative)
+
 ### audit-cp1252-decode-pattern-across-tools
 
-- **Source:** risk-register R-30 discovery (slice-090)
+- **Source:** risk-register R-30
 - **Blast-radius:** `tools/project_frame_synth.py`, `tools/pulse_worktree_resolver.py`, `tools/slice_queue_writer.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
@@ -31,7 +39,7 @@ _Generated: 2026-05-31T11:16:39+00:00 by /slice during slice-092 definition_
 ### extend-osdg-1-to-slice-candidates
 
 - **Source:** risk-register R-13
-- **Blast-radius:** `skills/slice-candidates/SKILL.md`, `tests/methodology/skill_drift_equality.py`, `tests/skill_drift_equality.py`
+- **Blast-radius:** `skills/slice-candidates/SKILL.md`, `tests/skill_drift_equality.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** SMALL
 - **Risk-retired:** LOW
@@ -54,16 +62,8 @@ _Generated: 2026-05-31T11:16:39+00:00 by /slice during slice-092 definition_
 
 ### add-index-md-soft-promotion-or-light-hard-path
 
-- **Source:** deferred ADR-075 (slice-083 /critique M4)
-- **Blast-radius:** `skills/archive/SKILL.md`, `skills/commit-slice/SKILL.md`, `tools/parallel_conflict_resolver.py`
+- **Source:** deferred ADR-075 (slice-083 M4)
+- **Blast-radius:** `skills/commit-slice/SKILL.md`, `tools/parallel_conflict_resolver.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
-- **Risk-retired:** NONE
-
-### add-psq-4-push-time-rebase
-
-- **Source:** deferred ADR-068 Option #2
-- **Blast-radius:** `skills/commit-slice/SKILL.md`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** NONE
+- **Risk-retired:** LOW
