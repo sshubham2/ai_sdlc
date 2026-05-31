@@ -1962,3 +1962,18 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **Execute against the REAL runtime, not a convenient proxy** — Git-Bash `git` ≠ Windows `git.exe` for plumbing edge cases (`update-index --index-info` nested-path staging). Verify git-plumbing repros on the runtime the code actually uses.
 - **Bytes-capture + explicit main-thread decode is the cross-platform-safe pattern for CATCHING git-output decode failures** — text-mode swallows them platform-differently (Windows `stdout=None`, POSIX uncaught). Refines BC-GLOBAL-5: `encoding="utf-8"` is right for round-tripping, but to FAIL CLOSED on genuinely-bad bytes you must capture bytes + `.decode` explicitly.
 - **3-Critic stack complementarity held (086→091), with a shared blind spot this slice**: design-Critic = APED-1-by-execution on the real runtime (B1), meta-Critic = override-adjudication (M2) + frozen/symmetric-catch coherence, code-Critic = resolve-path reach-analysis (VAULT_CLAIM asymmetry). All three missed the count-pin offset (count-arithmetic axis) — the calibration signal.
+
+## Slice 092 (fix-stranded-audit-branchless-blindspot) — 2026-05-31
+
+### Worked
+- **Dual design-Critic stack on a cross-cutting tooling slice**: 8 findings (6 first-Critic + 2 meta-Critic), ALL VALID, zero false-alarm. The meta-Critic's M-add-1 (4n could pass vacuously) was the single highest-value catch — without it the load-bearing worktree-key dedup would have shipped unverified.
+- **Mutation-proving the guard test**: temporarily swapping the dedup key to the bare-name mis-key made 4n FAIL `2==1`, then reverting — turned "looks pinned" into "is provably non-vacuous". Directly discharged M-add-1.
+- **Real-artifact run as validation**: running the modified classifier against the live worktree tree (which happened to hold TWO parallel slices, 092 + a concurrent 093) validated the multi-parallel-slice + context-2 self-dedup paths for free, with the repo's real field vocabulary.
+- **Smallest-surface fix**: one enum member + one subordinate pass + one helper closed R-31; MEPD-1 EXCLUDE held (mirrors ADR-079).
+
+### Didn't work
+- **Parallel branch cut off stale master** (R-33): the slice-092 worktree branched off `68a7817` before sibling slice-091 merged + before an out-of-band triage/adopt template edit. The in-worktree pre-finish full-suite showed 3 FAILs that were pure sibling-absence (all pass on master), not slice regressions. Cost a diagnosis detour + a user-approved `git merge master` (one additive shippability.md conflict). The pre-finish gate's "full suite green" is only meaningful if the parallel branch is current with master.
+
+### Pattern
+- A parallel slice's in-worktree full-suite is an *isolated-branch* view, not an *integration* view. Either sync master before the gate (cheap when blast radii are disjoint — additive conflicts only) or teach the gate to run against a master-merged ref. Generalizes to every PSQ/BRANCH-2 slice that branches before a sibling merges.
+- Neither the design-Critic (reads design+ADRs) nor the code-Critic (reads the slice diff) sees branch-currency-vs-master — integration-state defects live outside both Critics' scope and belong to the pre-finish gate definition.

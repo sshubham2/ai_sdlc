@@ -71,7 +71,10 @@ _SLICE_BRANCH_RE = re.compile(r"^slice/(\d{3})-(.+)$")
 # `architecture/slices/slice-NNN-<name>/` directory name (slice-092 / ADR-084).
 # The branch and folder forms coincide on the `NNN-name` capture ONLY; never
 # prefix-strip across the two (the `slice/` vs `slice-` prefixes match at 6 chars
-# only by accident — B2).
+# only by accident — B2). The `\d{3}` digit-count MUST stay symmetric with
+# _SLICE_BRANCH_RE or the folder/branch dedup keys diverge (a laxer folder regex
+# would match a folder whose branch ref cannot be keyed — an asymmetric dedup hole;
+# code-review m2).
 _SLICE_FOLDER_RE = re.compile(r"^slice-(\d{3})-(.+)$")
 # Terminal milestone stages for the BARE-branch path (B1, code-review): the vault's
 # real terminal stage is `complete` (written by skills/reflect/SKILL.md:305 as
