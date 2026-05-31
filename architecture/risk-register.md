@@ -457,3 +457,19 @@ Per cooperative threat model: NOT a security boundary. R-24 tracks the cooperati
 Per the cooperative model: NOT a security boundary — it hardens cooperating-operator review integrity.
 
 **Retired:** slice-086-harden-agent-spawn-skills-await-real-output (2026-05-30; [[decisions/ADR-078]]). The await-the-real-agent guard now lives at the spawn→write seam (Step 2 → Step 3) of all three spawn-skills (`critique` / `critique-review` / `code-review`), enforced by the seam-scoped structural-pin test `tests/methodology/test_r25_await_real_agent_guard.py` (pins the heading literal + an operative body literal `NEVER self-author a placeholder`, asserted WITHIN each skill's Step 2→Step 3 region so the guard cannot be deleted OR relocated out of the seam). The global `~/.claude/CLAUDE.md` `# Spawned-agent output` stopgap was removed as the closing step (AC-4, only after the skill guard was verified installed). The structural gap R-25 named (skills carrying NO guard, not pipeline-enforced) is closed. **Residual (acknowledged, inherent — NOT a reopener)**: the guard is prose the operator must follow, not a runtime block — an LLM cannot be mechanically prevented from fabricating; per the mission-brief out-of-scope, no agentic test simulates fabrication (the failure mode is behavioral, not mechanically reproducible). This slice itself dogfooded the guard: all three of its own Agent-spawned reviews (/critique, /critique-review, /code-review) were written from the real agents' returned output, never main-thread self-review.
+
+## R-26 — Project-frame silent all-degrade leaves reviews with no trajectory signal
+
+**Likelihood**: low
+**Impact**: low
+**Status**: open
+**Reversibility**: cheap
+**Discovered**: slice-088-add-project-frame-synthesizer (2026-05-31)
+
+The PFS-1 project-frame synthesizer (`tools/project_frame_synth.py`) is advisory-and-fail-open by design (binary exit 0/2, never 1; a missing truth-source degrades that section to `_(none)_` and exits 0). This is the R-7 silent-disable analogue for an advisory input: if EVERY section degrades (e.g. run from the wrong `--repo-root`, or all sources missing), the synth still exits 0 and `/design-slice` + both Critic layers proceed with a near-empty frame — the trajectory signal the slice exists to provide is silently absent, and no gate catches it.
+
+**Impact in practice**: low — the frame is advisory; a missing frame degrades review to the pre-PFS-1 status quo (review-in-isolation), not to a worse-than-before state. No correctness/security implication. The degradation is the very blind spot PFS-1 narrows, not a new failure mode.
+
+**Mitigation (in place)**: `synthesize_frame` emits a `WARN: project-frame degraded — <reasons>` line to **stderr** whenever any section degrades, so the operator running the synth sees it; the consumption prose at `/design-slice` Step 0.5 + `/critique`/`/critique-review` treats a `(project-frame unavailable)`/degraded frame as visible context; the `/build-slice` mid-slice eyeball surfaces a dumped/empty frame. Status `open` (downgraded-by-design) rather than `mitigating`: the residual is inherent to the advisory-never-a-gate contract (ADR-080) — making the frame a hard gate would violate the must-not-defer "advisory, never blocks design/critique".
+
+**Escalation criteria**: if `/critic-calibrate` flags ≥2 slices where a silently-degraded frame let a direction-misfit through, promote a follow-up to add a non-fatal "frame looks empty" advisory at the consumption sites (still never a hard gate).

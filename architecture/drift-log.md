@@ -2,6 +2,25 @@
 
 Append-only audit trail of `/drift-check` runs. Each entry records vault-vs-code divergence findings + resolutions.
 
+## Audit 2026-05-31 (slice-088-add-project-frame-synthesizer)
+
+**Trigger**: slice-088 pre-finish gate (/build-slice Step 6)
+**Scope**: full (thin vault — ADR-080 + active slice-088 design.md/mission-brief + risk-register R-26 + shippability row 93 + methodology-changelog v0.78.0 vs code/prose)
+**Result**: CLEAN — no drift.
+
+- `design.md` claims all present in code: `tools/project_frame_synth.py` exists with the documented contract — 3 required sections (`## Identity`/`## Trajectory`/`## Impact`), `_MAX_FRAME_LINES = 40` budget + truncation marker, deterministic (no wall-clock/randomness), deduped active rule FAMILIES (first valid rule-id per `## v` block + `_NON_RULE_FAMILIES` {ADR,R,SC} denylist), score-ranked open risks via `risk_register_audit._parse_risks`, named slice-queue candidates, ATTACK-LENS preamble, binary exit 0/2. Verified by `test_project_frame_synth.py` (5 green) + live smoke on this repo (14-line frame naming PSQ/BRANCH).
+- **cp1252 mechanism = `_stdout.reconfigure_stdout_utf8()`** (UTF8-STDOUT-1), NOT the dual-Critic-ratified ascii-fold — design deviation recorded in design.md + build-log.md + the v0.78.0 changelog entry; user-approved. Verified by bespoke `test_project_frame_synth_survives_cp1252_with_u2192` (em-dash + arrow fixture) + UTF8-STDOUT-1 audit (34/34 clean) + the rollup-sentinel parity (discovered==covered incl. the new tool).
+- Skill wiring present + installed copies synced: `design-slice` Step 0.5 (frame consult before designing), `critique`/`critique-review` Step 1 Inputs + Step 2 `# project-frame.md` block. 3 structural-pins green (BC-PROJ-14 seam-scoped) + 3 NEW OSDG-1 drift tests green (design-slice/critique/critique-review now guarded). `agents/critique.md` Dim-7 consumes the handed-over frame; CAD-1 green.
+- PFS-1 v0.78.0 changelog entry present (entry-pin + shippability-propagation green); 5-part PMI-1 atomic bump 0.77.0→0.78.0 synced across all legs (PMI-1 0.78.0/34 tools, AVFS-1, MCFS-1, TVFS-1 all PASS; pip re-install refreshed ai-sdlc-tools). BC-PROJ-9 5-surface inventory fan-out complete (install_audit `_CANONICAL_TOOLS` + plugin.yaml + INSTALL.md 33→34 + bespoke cp1252 test + shippability row 93).
+- `shippability.md` row 93 references `test_project_frame_synth.py` + `test_project_frame_synth_tool_inventory.py` (exist + pass); PTFFD-1 function-level-clean after the version-sync-rename citation fix (row 75 `_at_v_0_77_0`→`_at_v_0_78_0`).
+- R-26 registered **open** (downgraded-by-design; advisory-frame silent-all-degrade residual, R-7 analogue). m2 ACCEPTED-PENDING discharged.
+- Stale-pin fan-out from the bump resolved: version-sync test renamed `_at_v_0_77_0`→`_at_v_0_78_0` (+ shippability citation), INSTALL.md count pin 33→34 in `test_pulse_worktree_resolver_tool_inventory.py`. R-20 worktree seed: `diagnose-out/` cp'd from main tree (the `/slice`-created worktree skipped the seed).
+- Full suite 1253 passed / 0 failed. No removed feature; no UNSPECIFIED CODE; no STALE CLAIM in the slice-088 surface.
+
+### Resolutions
+- None required for the slice-088 surface — vault and code aligned.
+- **Carried-forward (out of scope, partially reduced)**: the pre-existing CLAUDE.md:42 OSDG-1 inventory inaccuracy (slice-086's `reconcile-osdg-1-inventory-claude-md-L42` follow-up) is REDUCED by this slice — `critique` now has a real `test_critique_skill_drift.py`, and `design-slice`/`critique-review` are added. The residual falsehoods (`diagnose` claimed-but-no-test; `code_review`/`pulse` have tests but unlisted) remain a future cleanup — flagged for /reflect.
+
 ## Audit 2026-05-30 (slice-086)
 
 **Trigger**: slice-086 pre-finish gate (/build-slice Step 6)

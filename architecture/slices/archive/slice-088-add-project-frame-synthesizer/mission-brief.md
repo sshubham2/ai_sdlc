@@ -15,8 +15,8 @@ A slice can be locally correct yet strategically wrong — slice-087 designed a 
 
 ## Acceptance criteria
 
-1. A synthesizer (`tools/project_frame_synth.py`, or a `/frame` skill if prose-judgment is required) produces an **ephemeral** `project-frame.md` — never hand-maintained, regenerated each invocation — from existing truth-sources: **identity** (`concept.md` / `triage.md`), **trajectory** (recent `methodology-changelog.md` rule families + pending `architecture/slice-queue.md` candidates + open `risk-register.md` entries + the slice's own ADR option-rejection notes), and **impact** (the slice's `mission-brief.md` / `design.md`). Output is **tight** (a hard ≤~40-line / synthesis-not-concatenation budget) and focuses on *trajectory + conflicts + this-slice's-impact*, not a project dump.
-2. `/design-slice` consults the **project-context layer BEFORE designing** (shift-left, Step 0-ish), so the design is direction-aware from the start; the **impact layer** is finalized against the drafted `design.md` before hand-off.
+1. A **deterministic** synthesizer (`tools/project_frame_synth.py` — a tool, not a skill, per [[ADR-080]]) emits an **ephemeral** project-frame **to stdout** — never hand-maintained, regenerated each invocation — from existing truth-sources: **identity** (`concept.md` / `triage.md`), **trajectory** (recent in-repo `methodology-changelog.md` rule families + pending `architecture/slice-queue.md` candidates + open `risk-register.md` entries + the slice's own ADR option-rejection notes), and **impact** (the slice's `mission-brief.md` / `design.md`). Output is **tight** (hard `_MAX_FRAME_LINES = 40` budget). It is **synthesis, not concatenation** — pinned by a behavioral property a naive concat fails: Trajectory names the **deduped active rule-FAMILY** (`PSQ` / `BRANCH-2`), open risks **sorted-by-score with score shown**, slice-queue candidates **by name**. All emitted output is **ASCII** (cp1252-safe stdout).
+2. `/design-slice` consults the project-frame **BEFORE designing** (shift-left, Step 0.5), so the design is direction-aware from the start. (At Step 0.5 the slice's own `design.md` does not yet exist, so the Impact section is expected-degraded to mission-brief-only — that is normal, not an error.)
 3. `/critique` and `/critique-review` receive the project-frame as a Step-1 context input (added to their Inputs lists), so both Critic layers review against where the project is *deliberately heading*, not only its static current artifacts. The `agents/critique.md` Dim-7 probe (already shipped) is updated to consume the handed-over frame rather than re-fetching trajectory artifacts itself.
 4. Tests: synthesizer behavioral (identity/trajectory/impact sections present; tight-budget enforced; regenerates deterministically from fixtures) + structural-pin on the 3 skills' new frame-consult/input prose + OSDG-1 drift for `design-slice` / `critique` / `critique-review` + CAD-1 for the agent edit.
 5. **Anchoring guard** is explicit (the frame is a lens to attack with, not a narrative to nod along to — the Dim-7 probe phrases direction-fit adversarially); full pytest + all Step-6 audits pass; the new tool propagated across the BC-PROJ-9 5-surface inventory; shippability row added.
@@ -25,16 +25,21 @@ A slice can be locally correct yet strategically wrong — slice-087 designed a 
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | behavioral | tests/methodology/test_project_frame_synth.py | test_frame_has_identity_trajectory_impact | PENDING |
-| 1 | behavioral | tests/methodology/test_project_frame_synth.py | test_frame_respects_tight_budget | PENDING |
-| 1 | behavioral | tests/methodology/test_project_frame_synth.py | test_frame_regenerates_deterministically | PENDING |
-| 2 | structural-pin | tests/methodology/test_design_slice_skill_frame_consult.py | test_design_slice_consults_frame_before_design | PENDING |
-| 3 | structural-pin | tests/methodology/test_critique_skill_frame_input.py | test_critique_inputs_include_project_frame | PENDING |
-| 3 | structural-pin | tests/methodology/test_critique_review_skill_frame_input.py | test_critique_review_inputs_include_project_frame | PENDING |
-| 4 | drift (OSDG-1) | tests/methodology/test_design_slice_skill_drift.py | test_in_repo_and_installed_design_slice_skill_md_are_content_equal | PENDING |
-| 5 | inventory-pin | tests/methodology/test_project_frame_synth_tool_inventory.py | test_project_frame_synth_in_canonical_inventory | PENDING |
+| 1 | behavioral | tests/methodology/test_project_frame_synth.py | test_frame_has_identity_trajectory_impact | PASSING |
+| 1 | behavioral | tests/methodology/test_project_frame_synth.py | test_frame_respects_tight_budget | PASSING |
+| 1 | behavioral | tests/methodology/test_project_frame_synth.py | test_frame_regenerates_deterministically | PASSING |
+| 1 | behavioral (M4) | tests/methodology/test_project_frame_synth.py | test_frame_trajectory_synthesizes_not_concatenates | PASSING |
+| 1 | cp1252 (B1/B2) | tests/methodology/test_utf8_stdout_regression.py | test_project_frame_synth_survives_cp1252_with_u2192 | PASSING |
+| 2 | structural-pin | tests/methodology/test_design_slice_skill_frame_consult.py | test_design_slice_consults_frame_before_design | PASSING |
+| 3 | structural-pin | tests/methodology/test_critique_skill_frame_input.py | test_critique_inputs_include_project_frame | PASSING |
+| 3 | structural-pin | tests/methodology/test_critique_review_skill_frame_input.py | test_critique_review_inputs_include_project_frame | PASSING |
+| 4 | drift (OSDG-1, NEW) | tests/methodology/test_design_slice_skill_drift.py | test_in_repo_and_installed_design_slice_skill_md_are_content_equal | PASSING |
+| 4 | drift (OSDG-1, NEW) | tests/methodology/test_critique_skill_drift.py | test_in_repo_and_installed_critique_skill_md_are_content_equal | PASSING |
+| 4 | drift (OSDG-1, NEW) | tests/methodology/test_critique_review_skill_drift.py | test_in_repo_and_installed_critique_review_skill_md_are_content_equal | PASSING |
+| 4 | entry-pin (PFS-1) | tests/methodology/test_methodology_changelog.py | test_v_0_78_0_pfs1_entry_present_in_repo | PASSING |
+| 5 | inventory-pin | tests/methodology/test_project_frame_synth_tool_inventory.py | test_project_frame_synth_in_canonical_inventory | PASSING |
 
-> Reuse existing `test_critique_skill_drift.py` family for the critique/critique-review OSDG-1 drift (verify names at design). The `agents/critique.md` Dim-7 update is CAD-1-guarded.
+> **Corrected at design (2026-05-31):** `design-slice` / `critique` / `critique-review` are NOT currently OSDG-1-guarded — no `test_*_skill_drift.py` exists for them (verified on disk). This slice CREATES three new drift tests (reusing `tests/skill_drift_equality.py::assert_md_forward_synced`, modeled on `test_reflect_skill_drift.py`) and extends the OSDG-1 guarded set + root `CLAUDE.md` description. The `agents/critique.md` Dim-7 update is CAD-1-guarded by the existing `test_critique_agent_drift.py`.
 
 ## Verification plan
 
@@ -72,7 +77,7 @@ A slice can be locally correct yet strategically wrong — slice-087 designed a 
 After writing `tools/project_frame_synth.py` + its behavioral test (before skill wiring): run it against THIS repo and eyeball the output:
 ```
 $PY -m pytest tests/methodology/test_project_frame_synth.py -q
-$PY -m tools.project_frame_synth --repo-root . 
+$PY -m tools.project_frame_synth --repo-root . --slice-dir architecture/slices/slice-088-add-project-frame-synthesizer
 ```
 Expected: a ≤~40-line frame naming the parallel-slice family (PSQ/BRANCH-2) as the active trajectory + pending slice-queue candidates + open risks. If it dumps the whole project or misses the trajectory: STOP, tighten the synthesis before wiring the skills.
 

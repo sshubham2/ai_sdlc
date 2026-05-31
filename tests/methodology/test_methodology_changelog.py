@@ -5407,6 +5407,64 @@ def test_v_0_77_0_pcr_2b_tri_resolve_1_entry_present_in_repo():
     )
 
 
+def test_v_0_78_0_pfs1_entry_present_in_repo():
+    """methodology-changelog v0.78.0 / PFS-1 entry-pin (content-bearing per
+    slice-073/076/077/081 precedent).
+
+    Asserts the load-bearing substring anchors:
+      (a) `## v0.78.0` dated header
+      (b) `PFS-1` rule reference (the new RULE-ID)
+      (c) `ADR-080` reference (the ADR minting PFS-1)
+      (d) `review-context` family-axis phrase
+      (e) `mints a new rule`
+      (f) `5-part PMI-1 atomic bump`
+      (g) `OSDG-1 guarded-set extended` (M3a — the OSDG-1 membership-extension discharge)
+      (h) `Rule reference` literal (META-1 mandatory enforcing-assertion)
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.78.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.78.0 entry header — "
+        "slice-088 PFS-1 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.78.0")
+    assert "PFS-1" in body, (
+        "v0.78.0 entry body missing the 'PFS-1' rule reference (new rule on the "
+        "review-context axis)"
+    )
+    assert "ADR-080" in body, (
+        "v0.78.0 entry body must reference ADR-080 (the new ADR minting PFS-1)"
+    )
+    assert "review-context" in body, (
+        "v0.78.0 entry body missing the 'review-context' family-axis phrase"
+    )
+    assert "mints a new rule" in body, (
+        "v0.78.0 entry must state 'mints a new rule' (PFS-1; supersedes nothing per ADR-080)"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.78.0 entry body missing the '5-part PMI-1 atomic bump' anchor"
+    )
+    assert "OSDG-1 guarded-set extended" in body, (
+        "v0.78.0 entry must record the OSDG-1 guarded-set extension to "
+        "design-slice/critique/critique-review (M3a discharge)"
+    )
+    assert "Rule reference" in body, (
+        "v0.78.0 entry missing the literal 'Rule reference' line — META-1 entry-pin obligation unmet"
+    )
+
+
+def test_v_0_78_0_pfs1_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the PFS-1 consumer
+    reference MUST propagate into `architecture/shippability.md` (catalog
+    row #93) so the slice-088 critical path can never silently regress.
+
+    Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability.
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "slice-088-add-project-frame-synthesizer" in catalog, (
+        "architecture/shippability.md must contain a slice-088 row (catalog row #93)"
+    )
+
+
 def test_v_0_77_0_pcr_2b_shippability_consumer_propagation():
     """RPCD-1/SCPD-1 consumer-reference propagation: the PCR-2b consumer
     reference MUST propagate into `architecture/shippability.md` (catalog
@@ -5435,40 +5493,40 @@ def test_v_0_77_0_pcr_2b_shippability_consumer_propagation():
     )
 
 
-def test_version_files_synchronized_at_v_0_77_0():
-    """AC — 5-part PMI-1 atomic bump 0.76.0 → 0.77.0 (slice-083).
+def test_version_files_synchronized_at_v_0_78_0():
+    """AC — 5-part PMI-1 atomic bump 0.77.0 → 0.78.0 (slice-088).
 
     Verifies the 5 canonical version-bearing legs are synchronized at
-    `0.76.0` post-bump:
+    `0.78.0` post-bump:
       (1) `VERSION` file
       (2) `plugin.yaml` version field
       (3) `pyproject.toml [project].version` field (PVFS-1)
-      (4) `## v0.77.0` header in `methodology-changelog.md`
+      (4) `## v0.78.0` header in `methodology-changelog.md`
       (5) installed `~/.claude/ai-sdlc-VERSION` (AVFS-1; verified separately
           by the AVFS-1 audit; this test asserts legs 1-4 only — leg 5 is
           environment-dependent and may be absent on a fresh checkout,
           where AVFS-1 returns WARN per slice-030A meta-M3 parity)
 
-    Renamed from `_at_v_0_76_0` at slice-083 per the slice-067/072/073/078/080/081 etc.
+    Renamed from `_at_v_0_77_0` at slice-088 per the slice-067/072/073/078/080/081/083 etc.
     rename precedent (the version-files test follows live version; the
-    historical v0.76.0 entry persists in the methodology-changelog body).
+    historical v0.77.0 entry persists in the methodology-changelog body).
     """
     version = read_file("VERSION").strip()
-    assert version == "0.77.0", (
-        f"VERSION file must equal '0.77.0' post-bump; got {version!r}. "
+    assert version == "0.78.0", (
+        f"VERSION file must equal '0.78.0' post-bump; got {version!r}. "
         "5-part PMI-1 leg 1 broken — re-run the bump or fix VERSION manually."
     )
     plugin_yaml = read_file("plugin.yaml")
-    assert "version: 0.77.0" in plugin_yaml or 'version: "0.77.0"' in plugin_yaml, (
-        "plugin.yaml must contain 'version: 0.77.0' post-bump (5-part PMI-1 leg 2)"
+    assert "version: 0.78.0" in plugin_yaml or 'version: "0.78.0"' in plugin_yaml, (
+        "plugin.yaml must contain 'version: 0.78.0' post-bump (5-part PMI-1 leg 2)"
     )
     pyproject = read_file("pyproject.toml")
-    assert 'version = "0.77.0"' in pyproject, (
-        "pyproject.toml [project].version must equal '0.77.0' post-bump (PVFS-1; "
+    assert 'version = "0.78.0"' in pyproject, (
+        "pyproject.toml [project].version must equal '0.78.0' post-bump (PVFS-1; "
         "5-part PMI-1 leg 3)"
     )
     changelog = read_file("methodology-changelog.md")
-    assert "## v0.77.0" in changelog, (
-        "methodology-changelog.md must contain '## v0.77.0' header post-bump "
+    assert "## v0.78.0" in changelog, (
+        "methodology-changelog.md must contain '## v0.78.0' header post-bump "
         "(5-part PMI-1 leg 4)"
     )

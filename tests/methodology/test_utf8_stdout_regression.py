@@ -133,6 +133,60 @@ def test_install_audit_survives_cp1252_with_u2192(tmp_path):
     _assert_no_encoding_error(proc, "tools.install_audit")
 
 
+def test_project_frame_synth_survives_cp1252_with_u2192(tmp_path):
+    """project_frame_synth takes --repo-root + REQUIRED --slice-dir (NOT --root).
+
+    Per slice-088 B2 (Critic) / M-add-2 (meta-Critic): bucketing into
+    `_ROOT_ONLY_TOOLS` would hit the required `--slice-dir` and exit 2 (argparse
+    usage) BEFORE rendering, leaving the cp1252 hot path uncovered — hence this
+    bespoke carve-out (mirrors install_audit / slice_queue_claim). The tool
+    RE-EMITS extracted source text (changelog/risk-register headers saturated
+    with U+2014 em-dashes — the RR-1 canonical `## R-N — <title>` separator) to
+    stdout, so the fixture MUST carry U+2014/U+2192 or the test passes
+    vacuously while a real crash ships (M-add-2). cp1252 safety is via
+    `_stdout.reconfigure_stdout_utf8()` (UTF8-STDOUT-1; slice-088 design
+    deviation from the ratified ascii-fold — the codebase-standard mechanism).
+    """
+    arch = tmp_path / "architecture"
+    arch.mkdir()
+    (arch / "concept.md").write_text(
+        "# Concept\n\n## What it does\n\nDoes a thing — end to end → for users.\n",
+        encoding="utf-8",
+    )
+    (arch / "triage.md").write_text("---\nmode: STANDARD\n---\n", encoding="utf-8")
+    (tmp_path / "methodology-changelog.md").write_text(
+        "# changelog\n\n## v0.78.0 — 2026-05-31\n\n"
+        "**PFS-1 — project-frame synthesis** (slice-088).\n",
+        encoding="utf-8",
+    )
+    (arch / "slice-queue.md").write_text(
+        "# queue\n\n## Candidates\n\n### add-foo-detector\n", encoding="utf-8"
+    )
+    (arch / "risk-register.md").write_text(
+        "# Risk Register\n\n## R-1 — Em-dash → bearing risk title\n"
+        "**Likelihood**: high\n**Impact**: high\n**Status**: open\n",
+        encoding="utf-8",
+    )
+    slice_dir = arch / "slices" / "slice-088-add-project-frame-synthesizer"
+    slice_dir.mkdir(parents=True)
+    (slice_dir / "mission-brief.md").write_text(
+        "# Slice 088\n\n## Intent\n\nShip the frame — direction-aware reviews.\n",
+        encoding="utf-8",
+    )
+    proc = _run_under_cp1252(
+        [PY, "-m", "tools.project_frame_synth",
+         "--repo-root", str(tmp_path), "--slice-dir", str(slice_dir)],
+    )
+    _assert_no_encoding_error(proc, "tools.project_frame_synth")
+    # /code-review m1: positively assert the U+2192 survived to stdout — proves
+    # the fixture genuinely exercises the extracted-em-dash hot path (not vacuous)
+    # AND that reconfigure-stdout preserved it (the arrow rides the R-1 risk title
+    # into the Trajectory section).
+    assert "→" in proc.stdout, (
+        f"U+2192 did not survive to project_frame_synth stdout:\n{proc.stdout}"
+    )
+
+
 def test_slice_queue_claim_survives_cp1252_with_u2192(tmp_path):
     """slice_queue_claim takes --claim/--release/--force-claim + --queue (no --root).
 
