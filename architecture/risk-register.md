@@ -360,6 +360,8 @@ Status `mitigating`, not `retired`: both residual axes are bounded but real. Rev
 
 **Why not Critic-promotion**: per slice-037 audit-vs-real-artifact law: the gap is a BRANCH-2 worktree + gitignored-derived-artifact interaction, invisible to single-slice review at /critique time. The right tooling is risk-register tracking until N≥3 + slice-072+ dedicated fix slice.
 
+**Resurfacing under the worktree-at-`/slice` model** (slice-093, 2026-05-31 — Status stays `retired`, scope-clarified, NOT reopened): the slice-074 retirement is load-bearing ONLY for the *worktree-create-at-`/build-slice`* model — future BRANCH-2 slices read the codified `cp -r` seed at `/build-slice` Phase A prereq. Slice-093 dogfooded creating the worktree at `/slice` time (the external-vault initiative's intended model), which never runs `/build-slice`'s seed step → the seed gap re-manifested live (mid-slice smoke `test_bcr_1_sc054_round_trip_inputs_invariant` failed until `diagnose-out/` was manually `cp -r`'d). This is the same failure class under a new (not-yet-shipped) worktree-create vector, not a regression of the `/build-slice` codification. **slice-094 fix**: move the seed to `/slice` time (or factor a shared worktree-create helper invoked by BOTH `/slice` and `/build-slice`) so the seed travels with worktree creation regardless of which skill triggers it.
+
 ## R-21 — SOFT auto-regen produces semantically-different content from manual-resolve baseline at a corner case
 
 **Likelihood**: medium
@@ -561,3 +563,17 @@ Consequently the installed venv package can be missing a canonical tool while bo
 **Impact in practice**: low — caught loudly by the pre-finish full-suite; no silent escape. The risk is misattribution (a builder could read the 3 failures as slice regressions and chase phantom bugs) and a non-green in-worktree gate. Under PSQ/BRANCH-2 this is the EXPECTED state of any parallel slice that branches before a sibling merges.
 
 **Mitigation**: bring the slice branch current with master before the pre-finish full-suite gate — `git merge master` into the slice branch (disjoint blast radii → additive-only conflicts, here a single `shippability.md` row-append resolved keep-both). slice-092 did this (merge `b88d739`); the full suite then passed 1302/0 and `/commit-slice --merge` is de-risked. **Candidate methodology refinement** (future slice): either (a) `/build-slice` Step-6 documents that the in-worktree full-suite may show sibling-absence failures until a master-sync, or (b) the pre-finish gate auto-syncs master (or runs the suite against a master-merged ephemeral ref) so the gate reflects integration reality. NOT a security boundary; cooperative-model scope.
+
+## R-32 — concurrent-write lost-update / atomic-rename-EPERM corruption on a shared mutable vault
+
+**Likelihood**: medium
+**Impact**: medium
+**Status**: mitigating
+**Reversibility**: cheap
+**Discovered**: slice-093-add-external-vault-support (2026-05-31) — surfaced by the spike `external-shared-vault` + field-recon (anthropics/claude-code#29153 / #28842): once the vault relocates to a shared, untracked external store (the slice-094 flip), two concurrent slice-worktree skills writing the SAME vault file (`_index.md` / `risk-register.md` / `slice-queue.md` / append-only ADRs + logs) no longer collide as a LOUD git merge-conflict — they collide as a SILENT lost-update / partial-write. On Windows `os.replace` EPERMs when a handle is held by OneDrive / antivirus / the Search indexer (the exact class that corrupted Claude Code's own `.claude.json`); a naive whole-file read-modify-write also loses one concurrent append.
+
+**Impact in practice**: NOT YET LIVE in slice-093 — the default stays `architecture/` (no flip), so the vault remains git-tracked and PCR still resolves vault-file conflicts loudly. R-32 becomes live only at the slice-094 flip (vault untracked + shared). Registered now because slice-093 ships the mitigation infrastructure ahead of the flip.
+
+**Mitigation (slice-093 / [[decisions/ADR-085]])**: `tools/_vault_write.py` ships the C2 write-safety primitive — `safe_write_text` (per-file SIDECAR `.lock`, NEVER the replace target since Windows `msvcrt.locking`→`LockFileEx` is mandatory; temp-write + atomic `os.replace` + bounded exponential-backoff retry on `PermissionError`/EPERM) and `safe_append_text` (`O_APPEND`/`FILE_APPEND_DATA` under the lock — non-clobbering, closes the read-modify-write window whole-file replace does NOT). The structural replacement for PCR-on-vault-files once the flip removes git-conflict resolution. Recurrence-guarded by `tests/methodology/test_vault_safe_write.py` (concurrent whole-file writers / concurrent appenders / mocked-EPERM retry + budget-exhaustion). Constraints C1 (keying via `--path-format=absolute --git-common-dir`) / C3 (keep the store off OneDrive/aggressive-AV) / C4 (completeness) / C5 (history) carried in ADR-085 + the spike.
+
+**Mitigation candidate** (slice-094 flip): wire `safe_write_text` / `safe_append_text` into every real vault writer + retire/rethink the git-coupled tools (`parallel_conflict_resolver`, `stranded_slice_audit`, `pulse_worktree_resolver`) per the design.md classification map. NOT a security boundary; cooperative-model scope.

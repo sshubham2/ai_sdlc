@@ -207,6 +207,21 @@ track already finished.
 
 This block is advisory — it records a harness-tool-usage guardrail, not pipeline runtime config. If `~/.claude/CLAUDE.md` does not exist, the append creates it. If the user declines the confirmation, skip the append and continue the install.
 
+### 3i: Vault location — the external-shared-vault base (slice-093 / ADR-085)
+
+Ask the user where AI-SDLC project vaults should live by default, using the **`AskUserQuestion` tool** (SOAD-1 structured-options discipline), default **`~/.aisdlc`**:
+
+- **`~/.aisdlc` (recommended)** — a shared external base; each adopted project later gets a dedicated per-project folder under it, keyed by `git rev-parse --path-format=absolute --git-common-dir` so all worktrees of a repo share ONE live vault view. Keep it off OneDrive / aggressive-AV paths (R-32).
+- **Custom path** — the user supplies an alternate base directory.
+
+Persist the chosen base to `~/.claude/ai-sdlc-vault-base` via the safe-write helper (idempotent — re-running overwrites with the chosen value):
+
+```bash
+$PY -c "import os; from pathlib import Path; from tools._vault_write import safe_write_text; safe_write_text(Path(os.path.expanduser('~/.claude/ai-sdlc-vault-base')), '<chosen-base>' + chr(10))"
+```
+
+**Capability only — no flip (slice-093):** writing this BASE config does NOT relocate any existing project's `architecture/` vault. The per-project `$GIT_COMMON_DIR/aisdlc/vault-root` config that actually points a project at the external vault is written at adopt/flip time (slice-094), not here. Until then every project resolves its vault to in-repo `architecture/` exactly as before — the `tools/_vault_paths.py` default is unchanged.
+
 ## Step 4: Verify (the same preflight `/triage` and `/adopt` use)
 
 ```bash
