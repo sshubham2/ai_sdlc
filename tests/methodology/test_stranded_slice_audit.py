@@ -18,6 +18,21 @@ Cases (per mission-brief AC4):
 - 4g malformed milestone → per-entry INDETERMINATE (halt), not whole-run exit-2.
 - 4h own pushed-but-unmerged (vault archived, claim by ME) → STRANDED-COMPLETE
   (resumable, EXPECTED — not suppressed by a self-claim).
+- 4i bare branch with the PRODUCTION terminal vocabulary → STRANDED-COMPLETE.
+
+Branchless-in-flight cases (slice-092 / ADR-084 — the 5th INFORMATIONAL class):
+- 4j a branchless `slice-NNN/` folder (non-terminal milestone, NO `slice/*` ref)
+  → exactly one BRANCHLESS_IN_FLIGHT entry, halt=False, status clean, vault_state
+  starts with `folder:` and names the stage (m1 pin).
+- 4k dedup vs a BARE matching branch → reported once via the branch, zero
+  BRANCHLESS.
+- 4l a terminal branchless folder (`stage: complete`) → NOT surfaced as in-flight.
+- 4m absent / malformed milestone + stray non-conforming dirs/files / `archive/`
+  → all skipped, no raise (fail-open).
+- 4n NON-VACUOUS worktree-key dedup: a worktree's own foldered+branched slice,
+  classify_branches invoked FROM the worktree → one IN-PROGRESS, zero BRANCHLESS
+  (a `wt.slice_name`-alone mis-key would fail this — B2 / M-add-1).
+- 4o stage-less-but-parseable milestone → skipped, never `vault_state="folder:None"`.
 
 Fixtures build synthetic git repos via tmp_path + `git worktree add`, matching
 the idiom in tests/skills/pulse/test_detect_active_worktrees.py.
@@ -327,3 +342,173 @@ def test_own_pushed_unmerged_branch_is_stranded_complete_resumable(tmp_path: Pat
     )
     assert e.halt is True
     assert compute_status(entries) == "divergent"
+
+
+# ------------------- branchless-in-flight cases (slice-092 / ADR-084) -------------------
+
+
+def test_branchless_in_flight_slice_is_informational_status_clean(tmp_path: Path):
+    """4j (AC2 surface + AC3 informational + m1): an untracked `slice-NNN-<name>/`
+    folder with a non-terminal milestone and NO `slice/NNN-*` branch → exactly ONE
+    BRANCHLESS_IN_FLIGHT entry, halt=False, status clean, and `vault_state`
+    starts with `folder:` naming the stage (m1 prefix pin)."""
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    _write_files(
+        repo,
+        {
+            "architecture/slices/slice-220-branchless/milestone.md": _milestone(
+                "slice-220-branchless", "design", "run /critique"
+            ),
+            "architecture/slices/slice-220-branchless/mission-brief.md": "# Slice 220\n",
+        },
+    )
+    # Sanity: genuinely no slice/220-* branch.
+    assert _git("branch", "--list", "slice/220-*", cwd=repo).stdout.strip() == ""
+
+    entries = classify_branches(repo)
+    branchless = [e for e in entries if e.klass is DivergenceClass.BRANCHLESS_IN_FLIGHT]
+    assert len(branchless) == 1, f"expected exactly one branchless entry; got {entries!r}"
+    e = branchless[0]
+    assert e.halt is False, f"a branchless in-flight slice must be informational; halt={e.halt!r}"
+    assert "220-branchless" in e.branch, f"entry must name the slice (folder-form id); branch={e.branch!r}"
+    assert e.vault_state.startswith("folder:"), f"vault_state must start with `folder:` (m1); got {e.vault_state!r}"
+    assert "design" in e.vault_state, f"vault_state must name the stage; got {e.vault_state!r}"
+    assert compute_status(entries) == "clean", (
+        f"surfacing a branchless in-flight slice must NOT make /slice divergent; entries={entries!r}"
+    )
+
+
+def test_branchless_slice_not_double_reported_when_bare_branch_exists(tmp_path: Path):
+    """4k (B2 dedup — BARE variant): a slice with BOTH a `slice-NNN/` folder in the
+    invoking tree AND a matching BARE `slice/NNN` branch → reported EXACTLY ONCE
+    (via the branch path); zero BRANCHLESS_IN_FLIGHT for it."""
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    # Bare branch with a non-terminal milestone on its OWN tree → IN-PROGRESS.
+    _make_bare_branch(
+        repo,
+        tmp_path,
+        "slice/221-dup",
+        {"architecture/slices/slice-221-dup/milestone.md": _milestone("slice-221-dup", "build")},
+    )
+    # The SAME slice's folder also present (untracked) in the invoking tree.
+    _write_files(
+        repo,
+        {"architecture/slices/slice-221-dup/milestone.md": _milestone("slice-221-dup", "build")},
+    )
+    entries = classify_branches(repo)
+    for_221 = [e for e in entries if "221-dup" in (e.branch or "")]
+    assert len(for_221) == 1, f"slice-221-dup must be reported exactly once; got {for_221!r}"
+    assert for_221[0].branch == "slice/221-dup", (
+        f"the single entry must be the BRANCH entry, not the folder-form id; got {for_221[0].branch!r}"
+    )
+    assert not [
+        e for e in entries if e.klass is DivergenceClass.BRANCHLESS_IN_FLIGHT and "221-dup" in e.branch
+    ], "the folder must be deduped against its bare branch"
+
+
+def test_branchless_terminal_folder_not_surfaced_as_in_flight(tmp_path: Path):
+    """4l (AC4): a branchless folder whose milestone uses the PRODUCTION terminal
+    vocabulary (`stage: complete` / `next-action: none (slice complete)`) is NOT
+    surfaced as in-flight (zero BRANCHLESS_IN_FLIGHT); status clean."""
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    _write_files(
+        repo,
+        {
+            "architecture/slices/slice-222-done/milestone.md": _milestone(
+                "slice-222-done", "complete", "none (slice complete)"
+            )
+        },
+    )
+    entries = classify_branches(repo)
+    assert [e for e in entries if e.klass is DivergenceClass.BRANCHLESS_IN_FLIGHT] == []
+    assert not [e for e in entries if "222-done" in (e.branch or "")], (
+        f"a terminal branchless folder must not be surfaced; got {entries!r}"
+    )
+    assert compute_status(entries) == "clean"
+
+
+def test_branchless_absent_or_malformed_milestone_and_stray_dirs_fail_open(tmp_path: Path):
+    """4m (AC4 robustness): a folder with NO milestone, one with unparseable
+    frontmatter, a non-conforming dir (`slice-bad`), a stray file (`_index.md`),
+    and `archive/` are all skipped — no entry, no raise (fail-open)."""
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    _write_files(
+        repo,
+        {
+            "architecture/slices/slice-230-nomilestone/mission-brief.md": "# no milestone here\n",
+            "architecture/slices/slice-231-badfm/milestone.md": "no frontmatter at all\n",
+            "architecture/slices/slice-bad/milestone.md": _milestone("slice-bad", "design"),
+            "architecture/slices/_index.md": "# index\n",
+            "architecture/slices/archive/slice-099-old/milestone.md": _milestone(
+                "slice-099-old", "design"
+            ),
+        },
+    )
+    entries = classify_branches(repo)  # must not raise
+    branchless = [e for e in entries if e.klass is DivergenceClass.BRANCHLESS_IN_FLIGHT]
+    assert branchless == [], (
+        f"fail-open / non-conforming / archived folders must not surface; got {branchless!r}"
+    )
+    assert compute_status(entries) == "clean"
+
+
+def test_branchless_dedup_against_worktree_branch_is_non_vacuous(tmp_path: Path):
+    """4n (B1 context-2 + M-add-1, NON-VACUOUS): a worktree's OWN foldered+branched
+    slice, with classify_branches invoked FROM the worktree (where the folder AND
+    the live worktree-branch coexist) → exactly one IN-PROGRESS entry, zero
+    BRANCHLESS_IN_FLIGHT.
+
+    This genuinely exercises the worktree-key dedup (B2): the folder IS scanned
+    (it lives in the worktree's tree) but suppressed because the worktree branch
+    key `slice/240-selfwt`[6:] == `240-selfwt` matches the folder key. A
+    `wt.slice_name`-alone derivation (`selfwt`) would NOT match and a spurious
+    BRANCHLESS entry would surface — failing this test (the vacuity guard)."""
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    wt_path = _add_live_worktree(
+        repo,
+        tmp_path,
+        "slice/240-selfwt",
+        {"architecture/slices/slice-240-selfwt/milestone.md": _milestone("slice-240-selfwt", "build")},
+    )
+    # Invoke from INSIDE the worktree — the folder lives here, not in the main tree.
+    entries = classify_branches(wt_path)
+    for_240 = [e for e in entries if "240-selfwt" in (e.branch or "")]
+    assert len(for_240) == 1, f"slice-240-selfwt must be reported exactly once; got {entries!r}"
+    e = for_240[0]
+    assert e.klass is DivergenceClass.IN_PROGRESS, f"klass={e.klass!r} reason={e.reason!r}"
+    assert e.branch == "slice/240-selfwt", (
+        f"the single entry must be the worktree BRANCH, not the folder-form id; got {e.branch!r}"
+    )
+    assert [x for x in entries if x.klass is DivergenceClass.BRANCHLESS_IN_FLIGHT] == [], (
+        "the worktree's own folder must be DEDUPED against its worktree branch (B2 worktree-key); "
+        f"got {entries!r}"
+    )
+
+
+def test_branchless_stageless_milestone_emits_no_folder_none(tmp_path: Path):
+    """4o (m-add-2): a branchless folder whose milestone has well-formed `---`
+    frontmatter but NO `stage:` field → treated as incomplete and SKIPPED; it
+    must NEVER emit the literal `vault_state="folder:None"`."""
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    _write_files(
+        repo,
+        {
+            "architecture/slices/slice-250-nostage/milestone.md": (
+                "---\nslice: slice-250-nostage\nnext-action: run /critique\n"
+                "risk-tier: medium\ncritic-required: true\n---\n\n# Milestone\n"
+            )
+        },
+    )
+    entries = classify_branches(repo)
+    assert not [e for e in entries if "250-nostage" in (e.branch or "")], (
+        f"a stage-less milestone must be skipped, not surfaced; got {entries!r}"
+    )
+    assert not [e for e in entries if e.vault_state == "folder:None"], (
+        f"must never emit the literal `folder:None`; got {entries!r}"
+    )

@@ -1,16 +1,16 @@
 ---
 slice: slice-092-fix-stranded-audit-branchless-blindspot
-stage: critique
+stage: build
 updated: 2026-05-31
-next-action: run /build-slice
+next-action: Phase 1 — write 4j–4o tests WRITTEN-FAILING
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-092 fix-stranded-audit-branchless-blindspot
 
-**Stage**: critique
-**Next action**: run `/build-slice`
+**Stage**: build
+**Next action**: Phase 1 — author 4j–4o tests (WRITTEN-FAILING) in `tests/methodology/test_stranded_slice_audit.py`
 **Updated**: 2026-05-31
 **Risk tier**: medium — Critic required: yes (touches `tools/stranded_slice_audit.py` + now `skills/{pulse,slice}/SKILL.md` — in-house methodology surfaces)
 
@@ -19,19 +19,24 @@ critic-required: true
 - [x] /slice — 2026-05-31
 - [x] /design-slice — 2026-05-31
 - [x] /critique — 2026-05-31 — NEEDS-FIXES (dual-review EXTEND; 2B/3M/3m → all ACCEPTED-FIXED or ACCEPTED-PENDING; verdict ratified at TRI-1)
-- [ ] /build-slice
+- [ ] /build-slice — in progress: plan approved 2026-05-31; 0/4 phases complete
 - [ ] /validate-slice
 - [ ] /reflect
 
 ## Current focus
 
-Dual-Critic complete. First Critic NEEDS-FIXES (B1 self-surfacing, B2 dedup-key vs real WorktreeInfo, M1 /pulse render gap, M2 under-pinned repro, m1/m2); meta-Critic EXTEND (+M-add-1 dedup-rationale/non-vacuous-4n, +m-add-2 stage-None). All 8 findings ratified at TRI-1 → NEEDS-FIXES. ACCEPTED-FIXED (B1, B2, M-add-1 rationale, m2, m-add-2 decision) already in design.md/ADR-084; ACCEPTED-PENDING (M1 /pulse path, M2 tests 4j–4o WRITTEN-FAILING, non-vacuous 4n, m1 pin) land during /build-slice. Scope grew vs original: now also edits `skills/pulse/SKILL.md` (load-bearing) + `skills/slice/SKILL.md` (doc-only). Parallel sibling of slice-091 (DISJOINT blast radius).
+/build-slice plan approved. Building in worktree on `slice/092-…` (cwd=worktree).
+4 ACCEPTED-PENDING fixes land this phase: M1 (/pulse render path + /slice doc sync),
+M2 (4j–4o WRITTEN-FAILING + assert len==1 + production terminal vocab), non-vacuous
+4n (invoke classify_branches from the worktree so the worktree-key dedup is genuinely
+exercised), m1 (vault_state.startswith("folder:") pin). ACCEPTED-FIXED items already
+in design.md/ADR-084.
 
 ## On resume
 
-- **Last completed action**: /critique + /critique-review (both real agents; critique.md + critique-review.md written; TRI-1 ratified NEEDS-FIXES; triage_audit clean)
-- **Current work**: none
-- **Next immediate step**: run `/build-slice` in a BRANCH-2 worktree (no WORKTREE=skip) — apply the ACCEPTED-PENDING fixes
+- **Last completed action**: /build-slice plan approved; milestone→build, build-log started
+- **Current work**: Phase 1 — enum stub + 4j–4o tests
+- **Next immediate step**: add `DivergenceClass.BRANCHLESS_IN_FLIGHT` (stub, NOT in _HALT_CLASSES), then author 4j–4o, run to demonstrate WRITTEN-FAILING
 
 ## Phase artifacts
 

@@ -24,12 +24,16 @@
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | bug-repro | tests/bugs/test_stranded_audit_branchless_slice_blindspot.py | test_branchless_in_flight_slice_is_surfaced_informationally | WRITTEN-FAILING |
-| 2 | unit | tests/methodology/test_stranded_slice_audit.py | test_branchless_slice_not_double_reported_when_branch_exists | PENDING |
-| 3 | unit | tests/methodology/test_stranded_slice_audit.py | test_branchless_in_flight_slice_is_informational_status_clean | PENDING |
-| 4 | regression | tests/methodology/test_stranded_slice_audit.py | test_branchless_terminal_folder_not_surfaced_as_in_flight | PENDING |
+| 1 | bug-repro | tests/bugs/test_stranded_audit_branchless_slice_blindspot.py | test_branchless_in_flight_slice_is_surfaced_informationally | PASSING |
+| 2 | unit | tests/methodology/test_stranded_slice_audit.py | test_branchless_in_flight_slice_is_informational_status_clean | PASSING |
+| 2 | unit | tests/methodology/test_stranded_slice_audit.py | test_branchless_slice_not_double_reported_when_bare_branch_exists | PASSING |
+| 2 | unit | tests/methodology/test_stranded_slice_audit.py | test_branchless_dedup_against_worktree_branch_is_non_vacuous | PASSING |
+| 3 | unit | tests/methodology/test_stranded_slice_audit.py | test_branchless_in_flight_slice_is_informational_status_clean | PASSING |
+| 4 | regression | tests/methodology/test_stranded_slice_audit.py | test_branchless_terminal_folder_not_surfaced_as_in_flight | PASSING |
+| 4 | regression | tests/methodology/test_stranded_slice_audit.py | test_branchless_absent_or_malformed_milestone_and_stray_dirs_fail_open | PASSING |
+| 4 | regression | tests/methodology/test_stranded_slice_audit.py | test_branchless_stageless_milestone_emits_no_folder_none | PASSING |
 
-(Test paths/names for AC2–AC4 are provisional — `/design-slice` finalizes them; they may be folded into the existing methodology test module rather than new files.)
+(All AC2–AC4 cases (4j–4o) were folded into the existing `tests/methodology/test_stranded_slice_audit.py` — no new test file; function names finalized at `/build-slice` per TPHD-1. 4n is the non-vacuous worktree-key dedup pin — verified by temporarily mutating the `seen_keys` worktree-key derivation to the bare-name mis-key, confirming 4n FAILED `2 == 1`, then reverting.)
 
 ## Verification plan
 

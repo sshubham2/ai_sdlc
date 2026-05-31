@@ -2,6 +2,33 @@
 
 Append-only audit trail of `/drift-check` runs. Each entry records vault-vs-code divergence findings + resolutions.
 
+## Audit 2026-05-31 (slice-092-fix-stranded-audit-branchless-blindspot)
+
+**Trigger**: slice-092 pre-finish gate (/build-slice Step 6)
+**Scope**: full (active slice-092 design.md/mission-brief + ADR-084 + risk-register R-31 + shippability row 99 vs `tools/stranded_slice_audit.py` + `tests/methodology/test_stranded_slice_audit.py` + `skills/{pulse,slice}/SKILL.md`)
+**Result**: CLEAN — no drift.
+
+### Blockers
+(none)
+
+### Majors
+(none)
+
+### Verified aligned
+- `design.md` "What's new" all present in code: `DivergenceClass.BRANCHLESS_IN_FLIGHT = "branchless-in-flight"` exists and is **NOT** in `_HALT_CLASSES` (informational, `halt=False`); the new private `_branchless_in_flight_slices(repo_root, seen_keys)` pass enumerates non-`archive` `architecture/slices/slice-NNN-<name>/` folders, deduped against the union of worktree'd + bare `slice/*` ref keys; `classify_branches` assembles `seen_keys = {b[len("slice/"):] for b in worktree_branches} | {f"{num}-{name}" for (_b,num,name) in bare_tuples}` and calls the new pass after the worktree + bare passes. Verified by `tests/methodology/test_stranded_slice_audit.py` 4j–4o + repro (16 passed).
+- **Benign naming note (NOT drift)**: the design prose refers to the dedup input as "the full `slice/*` ref set"; the implemented helper parameter is named `seen_keys`. Same semantics (the union of worktree'd + bare ref keys), internal name only — no contract/behavioral divergence.
+- Contract matches: JSON `klass` gains `"branchless-in-flight"` (backward-additive); the entry carries `branch` = folder-form id `slice-NNN-name` (hyphen), `worktree_path=None`, `ahead=None`, `vault_state="folder:<stage>"`, `halt=False`; `compute_status` unchanged (BRANCHLESS_IN_FLIGHT ∉ `_HALT_CLASSES` → a branchless-only repo stays `clean`).
+- Error model matches: absent/unparseable milestone → skip; **stage-less-but-parseable → skip (never `folder:None`, m-add-2)**; terminal (`_is_terminal`) folder → skip; missing `architecture/slices/` dir → zero folders (no raise). Pinned by 4l/4m/4o.
+- B1 self-surfacing disambiguation + B2 worktree-key dedup match design §Self-surfacing / §Dedup design; non-vacuous 4n verified by mutation-testing the worktree-key derivation (FAIL `2==1` under the bare-name mis-key, PASS after revert).
+- M1: `skills/pulse/SKILL.md` (load-bearing render path) + `skills/slice/SKILL.md` (doc-only enumeration) add `branchless-in-flight` as a parallel-normal informational klass; both forward-synced to `~/.claude/` (OSDG-1 `test_pulse_skill_drift.py` / `test_slice_skill_drift.py` green); `test_pulse_skill_stranded_signal.py` pins the new klass name.
+- `ADR-084` (`status: accepted`, `reversibility: cheap`, `supersedes: null`) matches design + the implemented enum/pass/dedup/subordination decision; MEPD-1 EXCLUDE (no new RULE-ID, no `methodology-changelog.md` entry, no VERSION bump) — PMI-1/MCFS-1/AVFS-1/TVFS-1 all PASS, unaffected.
+- `risk-register.md` R-31 → `mitigating` with an ADR-084 mitigation note + residuals (a) different-worktree folder not cross-scanned, (b) archived-but-never-branched folder; no live test pins R-31 status (STP-1 green).
+- `shippability.md` row 99 (added by `/repro`) cites `tests/bugs/test_stranded_audit_branchless_slice_blindspot.py` (exists + passes) and pins the full post-fix contract (informational, dedup, terminal-skip); regression directions enumerated. No new audit RULE-ID → no RPCD-1/SCPD-1 fan-out beyond the existing tool's inventory rows.
+- No removed feature; no UNSPECIFIED CODE; no STALE CLAIM in the slice-092 surface.
+
+### Resolutions
+- None required — vault and code aligned for the slice-092 surface.
+
 ## Audit 2026-05-31 (slice-090-fix-pcr-git-subprocess-cp1252-decode)
 
 **Trigger**: slice-090 pre-finish gate (/build-slice Step 6)

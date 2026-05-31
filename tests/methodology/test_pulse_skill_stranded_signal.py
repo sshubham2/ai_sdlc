@@ -34,3 +34,9 @@ def test_pulse_skill_surfaces_stranded_signal():
     assert "in-progress" in window and "claimed-by-other" in window, (
         "informational classes must be named as parallel-normal (NOT warnings)"
     )
+    # 5th informational klass (slice-092 / ADR-084): a branchless in-flight scaffold.
+    assert "branchless-in-flight" in window, (
+        "the `branchless-in-flight` klass must be named as a parallel-normal "
+        "situational-awareness class so /pulse can render branchless in-flight work, "
+        "not silently drop it (M1)"
+    )
