@@ -2,6 +2,30 @@
 
 Append-only audit trail of `/drift-check` runs. Each entry records vault-vs-code divergence findings + resolutions.
 
+## Audit 2026-05-31 (slice-090-fix-pcr-git-subprocess-cp1252-decode)
+
+**Trigger**: slice-090 pre-finish gate (/build-slice Step 6)
+
+**Findings**: 0 blockers, 0 majors
+
+### Blockers
+(none)
+
+### Majors
+(none)
+
+### Verified aligned
+- design.md "What's new" — every claim verified on disk via the AST guard: all **9** output-decoding (`text=True`) git `subprocess.run` sites in `tools/parallel_conflict_resolver.py` now carry `encoding="utf-8"` (`tests/methodology/test_parallel_conflict_resolver_git_encoding.py::test_all_git_decode_sites_specify_utf8_encoding` PASS); count-pinned to exactly 9 (`test_exactly_nine_git_decode_sites_byte_mode_sites_excluded` PASS).
+- The 4 byte-mode staging sites (L397/403/1378/1384, `git add`/`git rebase --continue`) are UNtouched and carry no `encoding=` — verified by the same AST test (byte-mode exclusion assertion).
+- Error model preserved: only the `encoding="utf-8"` kwarg was added; the existing `except (subprocess.CalledProcessError, FileNotFoundError)` fall-throughs are byte-unchanged. Strict errors (no `errors=` override) per ADR-082.
+- ADR-082 (`status: accepted`, `reversibility: cheap`, `supersedes: null`) matches design.md + mission-brief; scoped to this module with the reuse-seam note for the queued `audit-cp1252-decode-pattern-across-tools`.
+- shippability.md: rows #95 (behavioral repro) + #96 (AST guard) added, both pipe-free (exactly 7 unescaped pipes); the slice's tests PASS.
+- No VERSION bump (ADR-082 is a decision, not a new RULE-ID; MEPD-1 EXCLUDE) — PMI-1/MCFS-1/AVFS-1/TVFS-1 unaffected (all PASS); risk registration (cp1252 + strict-decode residual + CI-coverage + detector-gap) correctly deferred to /reflect.
+- No UNSPECIFIED CODE / no STALE CLAIM: purely additive `encoding="utf-8"` kwargs + one new test; no removed feature, no signature/contract change.
+
+### Resolutions
+- None required — vault and code aligned for the slice-090 surface.
+
 ## Audit 2026-05-31 (slice-088-add-project-frame-synthesizer)
 
 **Trigger**: slice-088 pre-finish gate (/build-slice Step 6)

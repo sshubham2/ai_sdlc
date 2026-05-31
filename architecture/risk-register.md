@@ -521,3 +521,31 @@ Consequently the installed venv package can be missing a canonical tool while bo
 **Impact in practice**: low + bounded — inside the repo the in-repo `tools/` is used (pipeline unaffected); only cross-project use of the new tool (`$PY -m tools.<new>` outside the repo) fails until a reinstall. No data loss. Mitigated for slice-087's tool by an immediate `pip install --upgrade .` (2026-05-31).
 
 **Mitigation candidate** (next-slice candidate, user-elected 2026-05-31): an INST-1 enhancement (or a new content-keyed gate) that compares the INSTALLED venv package's module set (read from `sysconfig.get_path("purelib")/tools`, NOT `sys.path`) against `_CANONICAL_TOOLS`, independent of the dist-info version — closes the MEPD-1-EXCLUDE-tool-invisible hole. Adjacent to R-28 (both are shared-`~/.claude/`-install-verification gaps). Per the cooperative model: NOT a security boundary.
+
+## R-30 — cp1252 git-subprocess decode crash in parallel_conflict_resolver.py (residuals: non-UTF-8 payload silent-drop + CI-coverage)
+
+**Likelihood**: medium
+**Impact**: medium
+**Status**: mitigating
+**Reversibility**: cheap
+**Discovered**: slice-090-fix-pcr-git-subprocess-cp1252-decode (2026-05-31) — user-reported firsthand: the PCR auto-resolver crashed on a SOFT `slice-queue.md` conflict because its git `subprocess.run(..., text=True)` calls carried no `encoding=`, so git's UTF-8 output was decoded as cp1252 on Windows; a UTF-8 byte undefined in cp1252 (0x81/0x8D/0x8F/0x90/0x9D) raised `UnicodeDecodeError` inside subprocess's pipe-reader thread → `subprocess.run` returned `stdout=None` → `_git_show_stage` returned `None` → silent claim-drop (VAULT_CLAIM collision could auto-resolve as SOFT).
+
+**Mitigation (slice-090 / [[decisions/ADR-082]])**: `encoding="utf-8"` added to all 9 output-decoding (`text=True`) git `subprocess.run` sites in `tools/parallel_conflict_resolver.py`; the 4 byte-mode staging sites are intentionally excluded. Recurrence-guarded cross-platform by the AST source-scan test `tests/methodology/test_parallel_conflict_resolver_git_encoding.py` (count-pinned to exactly 9). The core cp1252-content crash is RETIRED.
+
+**Residuals (why mitigating, not retired)** — per /critique-review m1 (severity Minor→Major) + M-add-1:
+1. **Strict-decode non-UTF-8 payload (Major)**: with strict `errors=` (deliberate per ADR-082 — `errors="replace"` would silently mojibake), a genuinely non-UTF-8 git payload still raises in the reader thread → `stdout=None` → the SAME silent-claim-drop / VAULT_CLAIM-bypass path the slice closed. Acceptable because all decoded content is UTF-8 vault markdown by repo convention; a non-UTF-8 vault file is a different defect. Making the swallowed reader-thread failure itself non-silent (detect `stdout is None` after a `returncode==0` git call) is the queued follow-up.
+2. **CI-coverage limitation**: the behavioral repro (`tests/bugs/test_pcr_git_subprocess_cp1252_decode.py`) `skipif`s on UTF-8 hosts, so on UTF-8 CI the only guard is the AST presence-scan (proves the kwarg is typed, not that decoding round-trips). Fix (i) (force cp1252 decode via monkeypatch) is infeasible — empirically confirmed at /repro that monkeypatching `locale.getpreferredencoding` does NOT propagate into subprocess's C-level decode. The two-layer model (behavioral-on-cp1252 + structural-everywhere) is the accepted design.
+
+**Mitigation candidate** (next-slice candidate): the same `text=True`-without-`encoding=` class likely exists in other `tools/*.py` (slice_queue_writer.py, project_frame_synth.py, pulse_worktree_resolver.py) — the queued `audit-cp1252-decode-pattern-across-tools` slice should lift ADR-082's `argv[0]=="git" AND text=True → require encoding="utf-8"` predicate kernel into a repo-wide scanner. Per the cooperative model: NOT a security boundary.
+
+## R-31 — stranded_slice_audit cannot see branchless (uncommitted-working-tree) in-progress slices
+
+**Likelihood**: medium
+**Impact**: low
+**Status**: open
+**Reversibility**: cheap
+**Discovered**: slice-090-fix-pcr-git-subprocess-cp1252-decode (2026-05-31) — at slice-090's `/slice` prereq the stranded-slice consult returned `status: clean` while an in-flight slice-089 (`make-commit-slice-stale-branch-check-parallel-slice-aware`, stage=design) sat uncommitted in the main working tree. The detector (slice-087 / ADR-079) classifies only unmerged `slice/*` BRANCHES; a slice that has been `/slice`+`/design`'d but not yet branched (the normal pre-`/build-slice` state, where scaffold artifacts live uncommitted in the main tree) is structurally invisible to it.
+
+**Impact in practice**: low — a new slice can be defined "on top of" an in-flight branchless slice without the consult flagging it. Caught here only because a fresh `git status` (per the verify-before-gating discipline) surfaced the slice-089 folder + uncommitted scaffold. No data loss; cooperative — an operator who runs `git status` / `/pulse` first sees it. But the consult's `clean` is a false-reassurance for the branchless case.
+
+**Mitigation candidate** (next-slice candidate — fold into the queued `fix-stranded-audit-branchless-blindspot`): extend `tools/stranded_slice_audit.py` to ALSO detect an uncommitted/untracked `architecture/slices/slice-NNN-*/` folder whose `milestone.md` stage is pre-`build` and not on a `slice/*` branch — surface it as an informational "branchless in-flight slice" signal (NOT a halt; same parallel-safety discipline as ADR-079). Per the cooperative model: NOT a security boundary.

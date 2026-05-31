@@ -1880,6 +1880,97 @@ def test_bc_global_3_has_expected_structural_identity():
     assert g3.check and g3.check.strip(), "BC-GLOBAL-3 check must be non-empty"
 
 
+def test_bc_proj_15_has_expected_structural_identity():
+    """BC-PROJ-15 (slice-090 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity. Canonical project fixture = subject;
+    these literal constants = git-tracked oracle (ADR-028). BCI-1 separately
+    asserts the gitignored live build-checks.md matches the fixture.
+
+    Defect class: a silent truncation / mis-author of BC-PROJ-15 would lose the
+    "text-capturing subprocess must pass encoding='utf-8'" evergreen check with
+    no loud signal (R-4 class). The cp1252 class recurred N=7 (UTF8-STDOUT-1
+    stdout side ×6 + this subprocess-input side); the discipline needs a
+    build-check, not per-slice memory.
+
+    Rule reference: BC-1 (slice-090 /reflect Step 5b; user-approved project +
+    global promotion of the subprocess-decode-encoding discipline).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-15" in p_by_id, "BC-PROJ-15 not parsed from project fixture"
+    p15 = p_by_id["BC-PROJ-15"]
+    assert p15.severity == "Important", f"BC-PROJ-15 severity: {p15.severity!r}"
+    assert p15.applies_to == ("tools/**/*.py",), (
+        f"BC-PROJ-15 applies_to mismatch: got {p15.applies_to!r}"
+    )
+    assert p15.trigger_keywords == (
+        "subprocess", "popen", "encoding", "decode", "cp1252",
+        "locale", "git", "capture_output",
+    ), f"BC-PROJ-15 trigger_keywords mismatch: got {p15.trigger_keywords!r}"
+    assert p15.trigger_anchors == (
+        "subprocess", "popen", "encoding", "decode", "cp1252",
+    ), (
+        f"BC-PROJ-15 trigger_anchors mismatch (anchors MUST be subsets of "
+        f"keywords per BCI-1 anchor-not-in-keywords gate): "
+        f"got {p15.trigger_anchors!r}"
+    )
+    assert p15.negative_anchors == (
+        "aggregated lessons", "meta-discussion", "false positive",
+        "design.md", "mission-brief", "defer-with-rationale",
+    ), f"BC-PROJ-15 negative_anchors mismatch: got {p15.negative_anchors!r}"
+    assert p15.check and p15.check.strip(), "BC-PROJ-15 check must be non-empty"
+    assert 'encoding="utf-8"' in p15.check, (
+        "BC-PROJ-15 check body MUST cite the encoding=\"utf-8\" remediation"
+    )
+    assert "pipe-reader thread" in p15.check, (
+        "BC-PROJ-15 check body MUST cite the swallowed pipe-reader-thread failure"
+    )
+
+
+def test_bc_global_5_has_expected_structural_identity():
+    """BC-GLOBAL-5 (slice-090 /reflect Step-5b global promotion) MUST parse to
+    its expected full structural identity. Canonical global fixture = subject;
+    literal constants = git-tracked oracle (ADR-028). BCI-1 separately asserts
+    the gitignored live `~/.claude/build-checks.md` matches the fixture.
+
+    Rule reference: BC-1 (slice-090 /reflect Step 5b; user-approved global
+    promotion of the subprocess-output-decoding-encoding discipline — generic
+    to any project capturing subprocess output as text on a mixed-platform team).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    global_text = _CANONICAL_GLOBAL_FIXTURE.read_text(encoding="utf-8")
+    g_rules, _ = _parse_rules(
+        global_text, source="global", path=str(_CANONICAL_GLOBAL_FIXTURE)
+    )
+    g_by_id = {r.rule_id: r for r in g_rules}
+    assert "BC-GLOBAL-5" in g_by_id, "BC-GLOBAL-5 not parsed from global fixture"
+    g5 = g_by_id["BC-GLOBAL-5"]
+    assert g5.severity == "Important", f"BC-GLOBAL-5 severity: {g5.severity!r}"
+    # `**` (NOT always:true) so the Trigger-anchors final-filter is effective.
+    assert g5.applies_to == ("**",), (
+        f"BC-GLOBAL-5 applies_to mismatch: got {g5.applies_to!r}, "
+        f"expected ('**',) so anchors are effective"
+    )
+    assert g5.trigger_keywords == (
+        "subprocess", "popen", "encoding", "decode", "cp1252",
+        "locale", "capture_output",
+    ), f"BC-GLOBAL-5 trigger_keywords mismatch: got {g5.trigger_keywords!r}"
+    assert g5.trigger_anchors == (
+        "subprocess", "popen", "encoding", "decode", "cp1252",
+    ), f"BC-GLOBAL-5 trigger_anchors mismatch: got {g5.trigger_anchors!r}"
+    assert g5.negative_anchors == (
+        "aggregated lessons", "meta-discussion", "false positive",
+        "calibration", "disposition", "methodology-changelog",
+    ), f"BC-GLOBAL-5 negative_anchors mismatch: got {g5.negative_anchors!r}"
+    assert g5.check and g5.check.strip(), "BC-GLOBAL-5 check must be non-empty"
+
+
 # --- BCSG-1 strict acknowledgment gate (slice-080 / ADR-072) ---
 #
 # Every test pins global_checks=CLEAN_CHECKS (0 rules) to isolate from the real

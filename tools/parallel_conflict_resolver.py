@@ -625,6 +625,7 @@ def _append_skew_stop_audit(
             cwd=str(repo_root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
         head_sha = head_proc.stdout.strip()
@@ -668,6 +669,7 @@ def _extract_u_files(repo_root: Path) -> tuple[str, ...]:
             cwd=str(repo_root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -708,6 +710,10 @@ def _git_show_stage(repo_root: Path, stage: int, path: str) -> str:
 
     Returns empty string on subprocess failure (stage absent - e.g., file
     added on only one branch). Caller handles the asymmetric-stage case.
+    On success returns ``proc.stdout`` decoded as UTF-8 (encoding="utf-8" per
+    ADR-082); this may be ``None`` if git produced no captured stdout. Callers
+    that parse the result must tolerate a falsy value (see _extract_claim_diff's
+    ``parse_queue_text(text) if text else {}`` guard).
     """
     try:
         proc = subprocess.run(
@@ -715,6 +721,7 @@ def _git_show_stage(repo_root: Path, stage: int, path: str) -> str:
             cwd=str(repo_root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -789,6 +796,7 @@ def _last_commit_iso_for_slice(repo_root: Path, slice_dir_name: str) -> str | No
             cwd=str(repo_root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -1510,6 +1518,7 @@ def _verify_resolution_clean(repo_root: Path) -> tuple[bool, str | None]:
             cwd=str(repo_root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
@@ -1525,6 +1534,7 @@ def _verify_resolution_clean(repo_root: Path) -> tuple[bool, str | None]:
             cwd=str(repo_root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
@@ -1594,6 +1604,7 @@ def _record_hard_resolution(
             cwd=str(repo_root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
         head_sha = head_proc.stdout.strip()
@@ -1939,6 +1950,7 @@ def _append_equivalence_stop_audit(
             cwd=str(repo_root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
         head_sha = head_proc.stdout.strip()
@@ -1982,6 +1994,7 @@ def _append_audit_log(
             cwd=str(repo_root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
         head_sha = head_proc.stdout.strip()
