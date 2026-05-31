@@ -34,6 +34,26 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.78.0 — 2026-05-31
+
+**PFS-1 — ephemeral project-frame synthesizer fed to /design-slice + both Critic layers** (slice-088; [[ADR-080]] mints a new rule; supersedes nothing; MEPD-1 posture: **INCLUDE** — `PFS-1` is a new rule on the **review-context** axis (the project-frame is a new mandatory context input to design + critique + critique-review), adjacent to the dual-Critic DR-1 family; 5-part PMI-1 atomic bump 0.77.0 → 0.78.0).
+
+PFS-1 closes the review-in-isolation blind spot behind the slice-087 miss: a slice can be locally correct yet strategically wrong (slice-087 designed a flag-all-unmerged detector that breaks the parallel-slice direction; neither `/design-slice` nor either Critic layer caught it — the user did), because none had the project's *trajectory* in front of it. `tools/project_frame_synth.py` (deterministic, ephemeral, stdout-only) synthesizes a tight (≤40-line) **project-frame** — Identity + Trajectory (deduped active rule families + pending slice-queue candidates + open risks by score) + Impact — carrying an adversarial ATTACK-LENS preamble.
+
+**Mechanism**:
+- `/design-slice` consults the frame at a new **Step 0.5** BEFORE designing (shift-left — *prevent* the misfit, don't just catch it). At design-time the slice's `design.md` is absent, so Impact is expected-degraded to mission-brief-only.
+- `/critique` + `/critique-review` hand the frame to their spawned agents as a `# project-frame.md` Step-2 input; the `agents/critique.md` Dim-7 strategic-direction-fit probe (shipped at the 2026-05-30 `/critic-calibrate` run, commit `64f6ea3`) now consumes the handed-over frame instead of self-fetching trajectory.
+- Judgment of direction-fit stays with the Critic (Dim-7), NOT the synthesizer — the tool only assembles evidence (ADR-080).
+- cp1252 stdout safety via `_stdout.reconfigure_stdout_utf8()` (UTF8-STDOUT-1), NOT ascii-fold (slice-088 build deviation from the dual-Critic-ratified fix — the codebase-standard mechanism; recorded in design.md + build-log.md).
+
+**OSDG-1 guarded-set extended to design-slice + critique + critique-review** (3 new `test_*_skill_drift.py` drift tests): these three skills were previously unguarded; slice-088 edits all three, so it adds them to the OSDG-1 guarded set AND updates the root `CLAUDE.md` OSDG-1 prose. The agent edit is CAD-1-guarded by the existing `test_critique_agent_drift.py`.
+
+New `tools/project_frame_synth.py` triggers the BC-PROJ-9 5-surface inventory fan-out (install_audit `_CANONICAL_TOOLS` + `plugin.yaml` + INSTALL.md tool-count + bespoke cp1252 test + shippability row). MEPD-1 INCLUDE / rule-path: minted `PFS-1` + a `test_v_0_78_0_pfs1_entry_present_in_repo` entry-pin + the **5-part PMI-1 atomic bump** (`VERSION` + `plugin.yaml.version` + `pyproject.toml [project].version` + this `## v0.78.0` header + installed `~/.claude/ai-sdlc-VERSION`).
+
+Rule reference: PFS-1 (slice-088; ADR-080).
+
+---
+
 ## v0.77.0 — 2026-05-30
 
 **PCR-2b — HARD/MIXED conflict resolution via gate-on-hand-resolve + TRI-RESOLVE-1 user-triage gate** (slice-083; [[ADR-075]] mints two new rules; supersedes nothing — refines [[ADR-069]]'s HARD/MIXED taxonomy rows in place; MEPD-1 posture: **INCLUDE** — `PCR-2b` is a new rule on the existing `PCR-N` parallel-conflict-resolution family axis sibling to PCR-1 / PCR-2a, and `TRI-RESOLVE-1` is a new rule on a triage-gate axis sibling to TRI-1; 5-part PMI-1 atomic bump 0.76.0 → 0.77.0).

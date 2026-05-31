@@ -75,6 +75,20 @@ Don't rely on `_index.md` alone past slice ~30 — keyword query catches files p
 
 If the graph is missing or stale: `$PY -m graphify code .` (rebuild is fast).
 
+### Step 0.5: Consult the project-frame BEFORE designing (PFS-1)
+
+Per **PFS-1** (`methodology-changelog.md` v0.78.0; slice-088; [[ADR-080]]): before writing any design, consult the **ephemeral project-frame** so the design is direction-aware from the start (shift-left — *prevent* a strategically-misfit design, don't just catch it at `/critique`). Run the synthesizer and read its stdout:
+
+```bash
+$PY -m tools.project_frame_synth --repo-root . --slice-dir architecture/slices/slice-NNN-<name>
+```
+
+It emits a tight (≤40-line) frame with three sections — **Identity** (what this project is), **Trajectory** (where it is deliberately heading: deduped active rule families, pending `slice-queue.md` candidates, open risks by score), and **Impact** (this slice's effect). The frame's first line is an adversarial **ATTACK-LENS** preamble: read the frame as a lens to find where THIS slice fights the project's direction — NOT a narrative to nod along to.
+
+At Step 0.5 the slice's own `design.md` does not exist yet, so the **Impact** section is **expected-degraded to mission-brief-only** and the tool emits a stderr WARN — that is normal, not an error. The frame is **advisory context, never a gate**: if the synth fails or is unavailable, proceed with "(project-frame unavailable)" and design normally (binary exit 0/2; never blocks design).
+
+Use the Trajectory to sanity-check your design against the project's deliberate direction (e.g. the parallel-slice family PSQ / BRANCH-2): does this slice stay correct when that direction is in effect? Carry any tension into the design's decisions — and the same frame is handed to both Critic layers at `/critique`, so a misfit the design glosses gets a second adversarial look.
+
 ### Step 1: Identify what's new for this slice
 
 Compare mission brief to existing vault + existing code (via graph queries above). List:

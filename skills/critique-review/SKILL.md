@@ -45,6 +45,7 @@ Collect the inputs the meta-Critic needs:
 - The slice's mission brief (intent, ACs, must-not-defer, out-of-scope)
 - The slice's design.md
 - The slice's critique.md (the first Critic's findings + verdict)
+- The **project-frame** (PFS-1, `methodology-changelog.md` v0.78.0; [[ADR-080]]): run `$PY -m tools.project_frame_synth --repo-root . --slice-dir architecture/slices/slice-NNN-<name>` via Bash and capture stdout; hand it to the meta-Critic so it re-checks the first Critic's review against where the project is **deliberately heading** (e.g. did the first Critic miss a direction-fit issue?). On non-zero/empty output, pass `(project-frame unavailable)` — advisory, never a gate.
 - Any new ADRs from this slice
 - The 8 review dimensions (the meta-Critic re-applies these independently)
 
@@ -67,6 +68,9 @@ Risk tier: <low | medium | high from milestone.md>
 
 # critique.md (first Critic's output)
 <paste full contents>
+
+# project-frame.md
+<paste the captured stdout of `$PY -m tools.project_frame_synth --repo-root . --slice-dir <this slice's folder>`, or "(project-frame unavailable)">
 
 # New ADRs (if any)
 <paste contents of each ADR-NNN-*.md created by this slice>

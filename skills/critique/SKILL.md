@@ -63,6 +63,7 @@ Collect the inputs the Critic needs:
 - The slice's mission brief (intent, acceptance criteria, must-not-defer, out of scope)
 - The slice's design.md
 - Any new ADRs from this slice
+- The **project-frame** (PFS-1, `methodology-changelog.md` v0.78.0; [[ADR-080]]): run `$PY -m tools.project_frame_synth --repo-root . --slice-dir architecture/slices/slice-NNN-<name>` via Bash and capture stdout — a tight Identity/Trajectory/Impact synthesis of where the project is **deliberately heading**. Hand it to the Critic agent so the review attacks against the project's direction, not only its static current artifacts (the agent's Dim-7 strategic-direction-fit probe consumes it). On non-zero/empty output, pass the literal `(project-frame unavailable)` — advisory, never a gate.
 - Pattern recognition input: read `architecture/slices/_index.md` → "Aggregated lessons" section + "Most recent 10" table. AND run semantic $PY -m graphify query against the full archive: `$PY -m graphify query "past lessons related to <this-slice's-topic>"`. The _index.md covers recent; graphify catches long-archived relevant lessons (e.g., slice-008's issue surfaces for slice-108). Only open individual archived `reflection.md` files when semantic query or _index.md points to a specific match.
 - The principles being applied (risk-first, reversibility, two-persona, thin-vault)
 
@@ -82,6 +83,9 @@ Risk tier: <low | medium | high from milestone.md>
 
 # design.md
 <paste full contents>
+
+# project-frame.md
+<paste the captured stdout of `$PY -m tools.project_frame_synth --repo-root . --slice-dir <this slice's folder>`, or "(project-frame unavailable)">
 
 # New ADRs
 <paste contents of each ADR-NNN-*.md created by this slice>
