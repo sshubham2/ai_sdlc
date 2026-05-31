@@ -8,12 +8,17 @@ also carries ``encoding="utf-8"`` — so git's UTF-8 output is never decoded via
 the host locale code page (cp1252 on Windows).
 
 The predicate keys on ``text=True``-presence, NOT raw ``capture_output`` (per
-/critique B1): the 4 byte-mode git **staging** calls (``git add`` /
-``git rebase --continue`` at L397/403/1378/1384 in ``resolve_soft_conflict`` +
-``resolve_vault_claim_conflict``) capture output WITHOUT ``text=True`` — they
-capture bytes for ``{exc!r}`` only and never decode stdout, so they are
-correctly EXCLUDED and MUST NOT carry ``encoding=`` (that would change their
-byte/text contract).
+/critique B1): the byte-mode git calls capture output WITHOUT ``text=True`` and
+MUST NOT carry ``encoding=`` (that would change their byte/text contract). Two
+kinds of byte-mode site (5 total post-slice-091):
+  - 4 **staging** calls (``git add`` / ``git rebase --continue`` in
+    ``resolve_soft_conflict`` + ``resolve_vault_claim_conflict``) — capture
+    bytes for ``{exc!r}`` only and never decode stdout.
+  - 1 **read-decode** call: ``_git_show_stage`` (slice-091 / ADR-083) — captures
+    bytes then decodes them EXPLICITLY via ``.decode("utf-8")`` in the main
+    thread (so a non-UTF-8 stage raises a catchable ``_StageDecodeError`` rather
+    than the pre-fix silent reader-thread swallow). It carries no ``encoding=``
+    on the ``subprocess.run`` call, so it is correctly byte-mode here.
 
 ADR-082 reuse seam: the ``argv[0] == "git"`` AND ``text=True`` predicate below
 is the reusable kernel the queued follow-up
@@ -24,14 +29,18 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-# Exact count of output-decoding git subprocess.run sites in the module (the
-# user's crash path _git_show_stage among them). Count-pinned per /critique B1
-# so a new decode site that forgets encoding= — or a byte-mode site wrongly
-# converted to text mode — breaks loudly.
+# Exact count of output-decoding (text=True) git subprocess.run sites. Count-
+# pinned per /critique B1 so a new decode site that forgets encoding= breaks
+# loudly. Unchanged at 9 across slice-091: _git_show_stage left the decode set
+# (now byte-mode + explicit .decode), but the new _append_decode_stop_audit
+# breadcrumb helper added a `git rev-parse HEAD` decode site (ADR-083) — the two
+# offset, so the decode count is preserved.
 _EXPECTED_DECODE_SITES = 9
-# The 4 byte-mode staging sites intentionally excluded (git add / rebase
-# --continue): capture_output=True, no text=True, no encoding=.
-_EXPECTED_BYTE_MODE_SITES = 4
+# Byte-mode sites excluded from the decode-encoding invariant: 4 staging sites
+# (git add / rebase --continue) + 1 read-decode site (_git_show_stage, slice-091
+# /ADR-083 — decodes explicitly via .decode, carries no encoding=). All 5
+# capture_output=True, no text=True, no encoding=.
+_EXPECTED_BYTE_MODE_SITES = 5
 
 
 def _repo_root() -> Path:
@@ -120,9 +129,11 @@ def test_all_git_decode_sites_specify_utf8_encoding():
 
 
 def test_exactly_nine_git_decode_sites_byte_mode_sites_excluded():
-    """Count-pin (per /critique B1): exactly 9 decode sites and 4 byte-mode
-    staging sites. The byte-mode sites MUST NOT carry encoding= (they capture
-    bytes for error-repr only; adding encoding= would change their contract)."""
+    """Count-pin (per /critique B1; slice-091 byte-mode 4→5): exactly 9 decode
+    sites and 5 byte-mode sites (4 staging + 1 read-decode `_git_show_stage`).
+    The byte-mode sites MUST NOT carry encoding= (the 4 staging sites capture
+    bytes for error-repr only; `_git_show_stage` decodes explicitly via
+    `.decode` — adding encoding= to any would change its contract)."""
     decode_sites, byte_mode_sites = _classify()
     assert len(decode_sites) == _EXPECTED_DECODE_SITES, (
         f"expected exactly {_EXPECTED_DECODE_SITES} git decode (text=True) sites; "
@@ -130,7 +141,7 @@ def test_exactly_nine_git_decode_sites_byte_mode_sites_excluded():
         "If a git call was added/removed, update _EXPECTED_DECODE_SITES deliberately."
     )
     assert len(byte_mode_sites) == _EXPECTED_BYTE_MODE_SITES, (
-        f"expected exactly {_EXPECTED_BYTE_MODE_SITES} byte-mode git staging sites; "
+        f"expected exactly {_EXPECTED_BYTE_MODE_SITES} byte-mode git sites (4 staging + 1 read-decode); "
         f"found {len(byte_mode_sites)} at lines {[c.lineno for c in byte_mode_sites]}."
     )
     wrongly_encoded = [

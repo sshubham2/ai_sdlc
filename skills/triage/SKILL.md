@@ -204,8 +204,8 @@ This file keeps Claude on the pipeline across sessions. Must be short (~15-20 li
 
 Check first: does `./CLAUDE.md` (project root) exist?
 
-- If NO → create with the **Fresh template** below (~18 lines)
-- If YES → append the **Append template** below (~8 lines). Do not overwrite existing content.
+- If NO → create with the **Fresh template** below (~22 lines)
+- If YES → append the **Append template** below (~9 lines). Do not overwrite existing content.
 
 #### Fresh template (create `./CLAUDE.md`)
 
@@ -227,6 +227,12 @@ If the change is more than a typo / single-line tweak / comment / local-variable
 ## Ask discipline
 
 **Ask discipline**: when a skill needs user input, present it as structured options (with a recommended choice) via the `AskUserQuestion` tool — never a bare free-text prompt. A bare prose ask is legitimate only where `AskUserQuestion` genuinely cannot model the input. Rationale: Claude Code notifies the user only on options prompts; a free-text question blocks silently.
+
+## Tool-call hygiene
+
+- Never `cd` in a Bash command — it resets the shell cwd and can destabilize the batch; use `git -C <dir>` / absolute paths instead.
+- Keep tool batches small, independent, and non-duplicated — one error cancels the whole parallel batch.
+- After an "internal error", verify the write actually landed on disk before retrying; a blind retry can double-apply.
 
 ## Vault discipline
 
@@ -252,6 +258,8 @@ Skills: `~/.claude/skills/<name>/SKILL.md`. Templates: `~/.claude/templates/`.
 **Hard rule**: before editing code (anything more than a typo / 1-line tweak / comment / local rename), check for an active slice. If none, **ASK** the user via structured options (per the Ask discipline below) — "Run `/slice` first, or is this small enough to skip?" Wait for the answer.
 
 **Ask discipline**: when a skill needs user input, present it as structured options (with a recommended choice) via the `AskUserQuestion` tool — never a bare free-text prompt. A bare prose ask is legitimate only where `AskUserQuestion` genuinely cannot model the input. Rationale: Claude Code notifies the user only on options prompts; a free-text question blocks silently.
+
+**Tool-call hygiene**: no `cd` in Bash (use `git -C`/absolute paths — it resets the shell cwd); keep tool batches small, independent, and non-duplicated (one error cancels the batch); after an "internal error", verify the write landed before retrying.
 
 **Testing discipline**: inside an active slice, "tests pass" means `/validate-slice` passed — including the shippability catalog. Raw test-suite runs miss regressions.
 
