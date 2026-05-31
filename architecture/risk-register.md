@@ -360,6 +360,8 @@ Status `mitigating`, not `retired`: both residual axes are bounded but real. Rev
 
 **Why not Critic-promotion**: per slice-037 audit-vs-real-artifact law: the gap is a BRANCH-2 worktree + gitignored-derived-artifact interaction, invisible to single-slice review at /critique time. The right tooling is risk-register tracking until N≥3 + slice-072+ dedicated fix slice.
 
+**Resurfacing under the worktree-at-`/slice` model** (slice-093, 2026-05-31 — Status stays `retired`, scope-clarified, NOT reopened): the slice-074 retirement is load-bearing ONLY for the *worktree-create-at-`/build-slice`* model — future BRANCH-2 slices read the codified `cp -r` seed at `/build-slice` Phase A prereq. Slice-093 dogfooded creating the worktree at `/slice` time (the external-vault initiative's intended model), which never runs `/build-slice`'s seed step → the seed gap re-manifested live (mid-slice smoke `test_bcr_1_sc054_round_trip_inputs_invariant` failed until `diagnose-out/` was manually `cp -r`'d). This is the same failure class under a new (not-yet-shipped) worktree-create vector, not a regression of the `/build-slice` codification. **slice-094 fix**: move the seed to `/slice` time (or factor a shared worktree-create helper invoked by BOTH `/slice` and `/build-slice`) so the seed travels with worktree creation regardless of which skill triggers it.
+
 ## R-21 — SOFT auto-regen produces semantically-different content from manual-resolve baseline at a corner case
 
 **Likelihood**: medium

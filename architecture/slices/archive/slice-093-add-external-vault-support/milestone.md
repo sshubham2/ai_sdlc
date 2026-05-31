@@ -1,16 +1,16 @@
 ---
 slice: slice-093-add-external-vault-support
-stage: validate
+stage: complete
 updated: 2026-05-31
-next-action: run /reflect
+next-action: none (slice complete — run /commit-slice)
 risk-tier: high
 critic-required: true
 ---
 
 # Milestone: slice-093 add-external-vault-support
 
-**Stage**: validate
-**Next action**: run `/reflect`
+**Stage**: complete
+**Next action**: none (slice complete) — run `/commit-slice --merge`
 **Updated**: 2026-05-31
 **Risk tier**: high — Critic required: yes (In-house methodology surfaces: `tools/*.py`, `INSTALL.md`, new ADR; + novel cross-cutting change to the vault-root seam)
 
@@ -22,18 +22,18 @@ critic-required: true
 - [x] /build-slice — 2026-05-31 — SHIPPED (1316 pass; 16 Step-6 gates green; no-flip held)
 - [x] /code-review — 2026-05-31 — FINDINGS 0B/1M/3m; M1/m1/m2 ACCEPTED-FIXED, m3 DEFERRED→094
 - [x] /validate-slice — 2026-05-31 — PASS (5/5 ACs; VAL-1 clean; shippability 99/99)
-- [ ] /reflect
+- [x] /reflect — 2026-05-31
 
 ## Current focus
 
-Validation **PASS** — 5/5 ACs with live evidence (no-flip default=`architecture`; env override; git-common-dir keying byte-identical main+worktree; C2 7/7; install no-move; importers=10; R-32 mitigating). VAL-1 clean (0 secrets, 0 hallucinated imports). Shippability **99/99 PASS** (no regression). WS-1/ETC-1 n/a. Ready for `/reflect`.
+Slice shipped. Lessons captured (reflection.md): R-20 seed-gap resurfaces under worktree-at-`/slice`; cp1252-at-import RSAD-1 self-application (3rd cp1252 sub-class); 3-Critic complementarity held (B-add-1 fix-delta + code-Critic execution-only trio). Deferrals (m3 `.lock` accumulation / M4 stale-tuples / m-add-1 comments / R-20 seed-to-`/slice`) round-tripped to slice-094. Auto-archived to `slices/archive/`. Run `/commit-slice --merge`.
 
 ## On resume
 
-- **Last completed action**: /validate-slice — **PASS** (5/5 ACs with live evidence; VAL-1 clean; shippability 99/99; full suite 1316)
+- **Last completed action**: /reflect — reflection.md written; risk-register R-20 forward-note; lessons-learned + shippability (#101) appended; milestone→complete; auto-archived.
 - **Current work**: none
-- **Next immediate step**: run `/reflect` (capture lessons + Critic calibration; round-trip the R-20 seed-gap / m3 / M4 deferrals to slice-094). **HARD-STOP before `/commit-slice`** (always user-invoked).
-- **Worktree**: ALREADY CREATED at `/slice` (user-directed early creation — dogfooding the worktree-at-`/slice` change this slice proposes) at `C:\Users\sshub\ai_sdlc-wt\slice-093-add-external-vault-support`, branch `slice/093-add-external-vault-support`, off master `19d7d6a`. ALL subsequent skills (`/design-slice`, `/critique`, `/build-slice`, `/validate`, `/reflect`) run IN this worktree; master stays clean. Do NOT `WORKTREE=skip`. slice-092 still in flight in its own worktree — re-run the stranded-slice consult before `/commit-slice --merge`.
+- **Next immediate step**: run `/commit-slice --merge` (always user-invoked — PCA-1 terminal-before-commit). Re-run the stranded-slice consult first (slice-092 is now MERGED `e738c09`; slice-093 is the sole in-flight branch).
+- **Worktree**: at `C:\Users\sshub\ai_sdlc-wt\slice-093-add-external-vault-support`, branch `slice/093-add-external-vault-support`, off master `19d7d6a` (master `e738c09` / slice-092 merge synced in at `d5cb1b6`). `/commit-slice --merge` no-ff merges back to master + tears down the worktree + safe-deletes the branch (worktree-remove BEFORE branch-delete, BRANCH-2).
 - **Scope guard**: DEFAULT MUST STAY `architecture/`. No SKILL-prose rewrite, no physical move — those are slice-094.
 
 ## Phase artifacts
@@ -45,7 +45,7 @@ Validation **PASS** — 5/5 ACs with live evidence (no-flip default=`architectur
 - [code-review.md](code-review.md) — FINDINGS (0B/1M/3m; advisory v1)
 - [build-log.md](build-log.md) — SHIPPED
 - [validation.md](validation.md) — PASS
-- [reflection.md](reflection.md) — pending
+- [reflection.md](reflection.md) — complete (YES-WITH-DEFERRALS)
 
 ## Spike provenance
 
