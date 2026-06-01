@@ -53,13 +53,13 @@ Things not done this slice. Will be addressed in next slice or backlog.
 The thin vault has fewer files to update. For each Corrected item, update the relevant file:
 
 - Decision wrong → supersede the ADR (procedure below)
-- Risk claim wrong → update `architecture/risk-register.md`
+- Risk claim wrong → update `architecture/risk-register.md` <!-- vault-write-safe: deferred-rmw -->
 - Concept assumption wrong → update `architecture/concept.md` (the relevant section)
 - Slice's own design wrong → update the slice's `design.md` (note the change in build-log too)
 - `diagnose-out/backlog.md` round-trip (per **BCR-1**, `methodology-changelog.md` v0.61.0; ADR-055) — if this slice's `mission-brief.md` or `reflection.md` carries an explicit `**Closes:** SC-\d{3}[, SC-\d{3}, …]` sentinel header (mirrors GitHub closes-issue convention; the bare `SC-\d{3}` regex grammar over the whole prose is too loose because it false-triggers on documentation-class mentions, so only the literal `**Closes:** SC-` sentinel anchor counts as a round-trip trigger), then for each closed candidate, append **Addressed:** slice-NNN-<name> on YYYY-MM-DD under each closed candidate block in `diagnose-out/backlog.md` — at the END of the candidate block, AFTER its `**Evidence:**` sub-bullet list (or, per the slice-053 M-add-1 graceful-degradation clause, after the last top-level metadata bullet of the block — typically `**Suggested approach:**` — if the block has no `**Evidence:**` list), BEFORE the next `### SC-NNN` header or end-of-file. Multiple `**Addressed:**` lines under one candidate are valid (prior-slice double-shipment per slice-053 m5) — APPEND a new line below the existing one(s); NEVER replace. Absent `diagnose-out/backlog.md` → no-op clean (the slice didn't produce a backlog.md; nothing to round-trip). No `**Closes:** SC-` sentinel in either `mission-brief.md` or `reflection.md` → no-op clean.
 
 For each Discovered item:
-- Add to `architecture/risk-register.md` with reversibility tag
+- Add to `architecture/risk-register.md` with reversibility tag <!-- route: tools.vault_edit append -->
 - If it affects current slice scope: note in this slice's `reflection.md`
 - If it spawns a future slice: leave a candidate note for next `/slice`
 
@@ -140,7 +140,9 @@ Per TRI-1, score each finding via the disposition in `critique.md` -> `## Triage
 
 (In Standard / Minimal mode, this list is short. No `components/X.md` updates because those files don't exist — code is the source of truth. If your reflection has lots of file updates, you might be in Heavy mode, OR you're documenting what code already shows.)
 
-### Step 5: Append to `architecture/lessons-learned.md`
+> **Vault-write safety (SVW-1 / [[ADR-087]])** — appends to shared-aggregate vault files (`risk-register.md`, `lessons-learned.md`, `build-checks.md`, `shippability.md`) go through the R-32 safe channel: write the new block to a temp file, then `$PY -m tools.vault_edit append --file <name> --content-file <tmp>`. NEVER a raw `Write`/`Edit` on these files (it bypasses the `_vault_write` lock — the silent lost-update/torn-write class once the vault goes shared). The `_index.md` recent-10 rewrites + in-place risk-status edits are the deferred read-modify-write class (the flip slice owns serializing them; marked `<!-- vault-write-safe: deferred-rmw -->`). Enforced by `tools/skill_vault_write_safety_audit.py`.
+
+### Step 5: Append to `architecture/lessons-learned.md` <!-- route: tools.vault_edit append -->
 
 Append a chronological entry:
 
@@ -185,7 +187,7 @@ If the user answers yes, gather:
 6. **Rationale** — why this is permanent, not a one-time fix (one paragraph; reference prior slices where the pattern recurred)
 7. **Validation hint** — how to verify (grep, pytest -k, curl, etc.)
 
-Append the rule to `architecture/build-checks.md` under the `## Rules` heading, using the next available `BC-PROJ-NNN` ID. Format (parsed by `tools/build_checks_audit.py`):
+Append the rule to `architecture/build-checks.md` under the `## Rules` heading, using the next available `BC-PROJ-NNN` ID. Format (parsed by `tools/build_checks_audit.py`): <!-- route: tools.vault_edit append -->
 
 ```markdown
 ## BC-PROJ-NNN — <title>
@@ -255,13 +257,13 @@ Per **TVFS-1** (`methodology-changelog.md` v0.63.0; slice-059; [[ADR-058]]; exte
 >
 > If it exits non-zero (`drift`/HALT): **STOP and report** — the installed `ai-sdlc-tools` pip package was not re-installed after this slice's version bump. Run `$PY -m pip install --upgrade <ai-sdlc-source>` (INSTALL.md Step 3g) and re-run until exit 0 (incl. the not-installed WARN, also exit 0). This is the deterministic downstream control retiring the installed-pip-artifact silent-drift class. TVFS-1 is also wired non-opt-out at `/build-slice` Step 6 (likewise ungated) — the two ungated points are complementary, neither gated on rule promotion.
 
-### Step 5.3: Add one entry to `architecture/shippability.md`
+### Step 5.3: Add one entry to `architecture/shippability.md` <!-- route: tools.vault_edit append -->
 
 Every completed slice contributes ONE critical-path test to the shippability catalog. Future `/validate-slice` runs execute the full catalog to catch regressions.
 
 Ask yourself: **"If this slice silently broke later, what's THE one test that would catch it first?"** That's the critical path for this slice.
 
-Append to `architecture/shippability.md`:
+Append to `architecture/shippability.md`: <!-- route: tools.vault_edit append -->
 
 ```markdown
 | <next-#> | slice-NNN-<name> | <one-line critical path> | `<runnable command>` | <expected runtime> |
@@ -316,8 +318,8 @@ The convention: `slices/` holds ACTIVE slices only; completed slices live in `sl
 After writing `reflection.md`, this slice is complete. Archive it immediately:
 
 1. `mv architecture/slices/slice-NNN-<name>/ architecture/slices/archive/`
-2. Regenerate `architecture/slices/_index.md` — update the "Active" table (remove this slice), update the "Most recent 10" table (add this slice at the top), update "Aggregated lessons" (pull this slice's "Lessons for next slice" items)
-3. Regenerate `architecture/slices/archive/_index.md` — append this slice to the chronological catalog
+2. Regenerate `architecture/slices/_index.md` — update the "Active" table (remove this slice), update the "Most recent 10" table (add this slice at the top), update "Aggregated lessons" (pull this slice's "Lessons for next slice" items) <!-- vault-write-safe: deferred-rmw -->
+3. Regenerate `architecture/slices/archive/_index.md` — append this slice to the chronological catalog <!-- vault-write-safe: deferred-rmw -->
 
 This is the same work as `/archive --index-only` but triggered automatically by slice completion. If you'd rather skip auto-archive and batch it later, explicitly tell the user: "Leaving slice in `slices/` — run `/archive` to sweep later." Only do this if the user requests it.
 

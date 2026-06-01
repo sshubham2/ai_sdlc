@@ -176,7 +176,8 @@ For each risk discovered during triage, write an entry to both `triage.md` (init
 
 Score is computed as Likelihood × Impact (low=1, medium=2, high=3 -> 1..9). Band is derived: 1-2 low, 3-4 medium, 6-9 high. The audit refuses entries with missing required fields (Likelihood / Impact / Status) or invalid values. For each HIGH-band risk, decide if it can be retired with `/risk-spike` and note that in the Mitigation field.
 
-Also write `architecture/risk-register.md` with the same risks (this becomes the running risk log; verify with `$PY -m tools.risk_register_audit architecture/risk-register.md`).
+Also write `architecture/risk-register.md` with the same risks (this becomes the running risk log; verify with `$PY -m tools.risk_register_audit architecture/risk-register.md`). <!-- vault-write-safe: project-open-single-shot -->
+<!-- ^ SVW-1 (slice-095): triage writes the INITIAL risk-register at project open — a single-shot project-lifecycle write, not a parallel-append hazard (same class as discover/risk-spike). Surfaced by the slice-095 m1 CommonMark fence fix (this line renders OUTSIDE the triage.md template fence; the old naive ``` toggle hid it). triage:163 stays fence-hidden inside the template block — the separate, still-deferred triage-markdown bug. -->
 
 ### Step 5b-pre: Offer graphify integration
 

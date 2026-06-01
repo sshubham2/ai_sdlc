@@ -24,7 +24,7 @@ Claude finds past work via `_index.md` — no mixing of "recent-but-completed" w
 
 ## Argument modes
 
-- `/archive` — sweep: move any slice with `reflection.md` from `slices/` to `slices/archive/`; regenerate `_index.md` + `archive/_index.md`
+- `/archive` — sweep: move any slice with `reflection.md` from `slices/` to `slices/archive/`; regenerate `_index.md` + `archive/_index.md` <!-- vault-write-safe: deferred-rmw -->
 - `/archive --index-only` — rebuild indexes without moving anything (use when indexes are stale or missing)
 
 No `--keep-last` flag: the convention is "no completed slices in `slices/`". If you want something visible in active, un-archive it with `mv` (acceptable for edge cases, not routine).
@@ -55,7 +55,7 @@ Tell user: "Archived N slices to `slices/archive/`."
 
 Edge case: if `slices/archive/<same-name>/` already exists (rare, only from manual edits): stop and ask user to resolve manually. Don't overwrite.
 
-### Step 3: Regenerate `slices/_index.md` via Haiku dispatch
+### Step 3: Regenerate `slices/_index.md` via Haiku dispatch <!-- vault-write-safe: deferred-rmw -->
 
 Per **COST-1** (cost-optimized model selection — `methodology-changelog.md` v0.4.0), index regeneration is dispatched to a Haiku subagent. This step and Step 4 (the archive catalog) both go to Haiku.
 
@@ -72,7 +72,7 @@ Read (the dispatched agent does this; listed here so the spec is clear):
 - Each active slice folder in `slices/` (for the Active table)
 - Last 10 archived slices in `slices/archive/` (for Recent table + Aggregated lessons)
 
-Write `architecture/slices/_index.md`:
+Write `architecture/slices/_index.md`: <!-- vault-write-safe: deferred-rmw -->
 
 ```markdown
 # Slice Index
@@ -128,7 +128,7 @@ These are the patterns future slices should respect. Source: `archive/slice-NNN/
 - **Full-text search across archived slices** → grep `architecture/slices/archive/` (still works — archive is just a directory).
 ```
 
-### Step 4: Regenerate `slices/archive/_index.md`
+### Step 4: Regenerate `slices/archive/_index.md` <!-- vault-write-safe: deferred-rmw -->
 
 Full chronological catalog of archived slices:
 
@@ -174,7 +174,7 @@ To find a past slice, check slices/_index.md first.
 - NEVER delete slice folders. Archive is `mv`, never `rm`. Slice history is audit trail.
 - NEVER touch file contents during archive. Just move + regenerate indexes.
 - NEVER leave completed slices in `slices/` (with `reflection.md`). That breaks the convention.
-- DO regenerate both `_index.md` files on every run.
+- DO regenerate both `_index.md` files on every run. <!-- vault-write-safe: deferred-rmw -->
 - DO pull the "Aggregated lessons" from actual reflection.md files — don't fabricate patterns.
 - HEAVY MODE: same flow. Audit trail is preserved; archived slices remain accessible at `archive/slice-NNN/`.
 

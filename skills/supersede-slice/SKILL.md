@@ -100,7 +100,7 @@ Expected: 1 link validated (no violations). If the audit reports `one-way-link` 
 
 ### Step 6: Update slices/_index.md
 
-Update `architecture/slices/_index.md` to mark the archived slice as superseded in its row of the catalog table. Format:
+Update `architecture/slices/_index.md` to mark the archived slice as superseded in its row of the catalog table. Format: <!-- vault-write-safe: deferred-rmw -->
 
 ```markdown
 | <archived-slice-id> | <date> | <result> | superseded by [[<active-slice-id>]] |
