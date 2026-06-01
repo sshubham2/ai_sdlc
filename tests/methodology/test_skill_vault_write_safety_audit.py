@@ -22,7 +22,7 @@ from tools.skill_vault_write_safety_audit import (  # noqa: E402
     _REGISTERED_SKILL_EXEMPTIONS,
     audit_root,
     main,
-    registered_exemption_pairs,
+    registered_exemption_counts,
 )
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -70,9 +70,12 @@ def test_flags_planted_raw_skill_append(tmp_path: Path) -> None:
 
 
 def test_routed_site_is_clean(tmp_path: Path) -> None:
+    """A genuine route: the token inside a backtick code span (the corpus
+    convention). M1-hardened: a BARE prose token no longer cleans (see
+    test_m1_negated_route_bare_is_violation)."""
     root = _plant(
         tmp_path,
-        "### Step 1: Append to `architecture/risk-register.md` via tools.vault_edit append\n",
+        "### Step 1: Append to `architecture/risk-register.md` via `tools.vault_edit append`\n",
     )
     assert audit_root(root).status == "clean"
 
@@ -146,19 +149,165 @@ def test_fenced_code_block_skipped(tmp_path: Path) -> None:
     assert audit_root(root).status == "clean"
 
 
+# ─── slice-095 code-review hardening: M1 negation, M2 lexicon, m1 fences ─
+
+
+def test_m1_negated_route_bare_is_violation(tmp_path: Path) -> None:
+    """M1: a BARE prose mention of a route token does not clean a site (it must
+    sit in a backtick code span or `<!-- route: -->` marker). The canonical
+    false-CLEAN the code-Critic executed: '...raw (do NOT use tools.vault_edit
+    append here)'."""
+    root = _plant(
+        tmp_path,
+        "Append to `architecture/risk-register.md` raw (do NOT use tools.vault_edit append here)\n",
+    )
+    res = audit_root(root)
+    assert len(res.violations) == 1
+    assert res.violations[0].kind == "unrouted"
+
+
+def test_m1_negated_route_not_via_is_violation(tmp_path: Path) -> None:
+    """M1: 'NOT via safe_append_text' — a bare, negated route token — is a
+    VIOLATION, not a silent CLEAN."""
+    root = _plant(
+        tmp_path,
+        "Append to `architecture/risk-register.md` NOT via safe_append_text\n",
+    )
+    assert audit_root(root).status == "violation"
+
+
+def test_m1_predates_route_token_is_violation(tmp_path: Path) -> None:
+    """M1: a historical cross-reference ('predates _vault_write') is description,
+    not a routing instruction."""
+    root = _plant(
+        tmp_path,
+        "Append to `architecture/risk-register.md` directly (this predates _vault_write)\n",
+    )
+    assert audit_root(root).status == "violation"
+
+
+def test_m1_backticked_but_negated_route_is_violation(tmp_path: Path) -> None:
+    """M1: even a BACKTICKED route token is demoted when locally negated (a
+    negation within the ~2 words before the code span)."""
+    root = _plant(
+        tmp_path,
+        "Append to `architecture/risk-register.md` — do NOT use `tools.vault_edit append`\n",
+    )
+    assert audit_root(root).status == "violation"
+
+
+def test_m1_trailing_safety_assertion_stays_clean(tmp_path: Path) -> None:
+    """M1 must NOT over-fire: a genuine route whose downstream safety assertion
+    governs the RAW write ('never a raw `Write`/`Edit`') stays CLEAN — the
+    real-corpus shape (validate-slice:296 / user-test:115). The short look-back
+    keeps '(don't wait)' and the trailing 'never a raw' from demoting it."""
+    root = _plant(
+        tmp_path,
+        "Add to `architecture/risk-register.md` immediately (don't wait) via "
+        "`tools.vault_edit append` (SVW-1; never a raw `Write`/`Edit`).\n",
+    )
+    assert audit_root(root).status == "clean"
+
+
+def test_m1_route_marker_form_is_clean(tmp_path: Path) -> None:
+    """M1: the `<!-- route: tools.vault_edit append -->` marker form (reflect/
+    reduce) is a genuine route."""
+    root = _plant(
+        tmp_path,
+        "### Step 5: Append to `architecture/lessons-learned.md` <!-- route: tools.vault_edit append -->\n",
+    )
+    assert audit_root(root).status == "clean"
+
+
+@pytest.mark.parametrize("verb", ["Insert", "Replace", "Prepend", "Modify", "Amend", "Create"])
+def test_m2_expanded_verb_raw_write_is_violation(tmp_path: Path, verb: str) -> None:
+    """M2: the expanded directive verbs now flag a raw write the original 6-verb
+    lexicon passed CLEAN (the fail-OPEN hole the 'fail-closed' claim overstated)."""
+    root = _plant(tmp_path, f"{verb} a row in `architecture/risk-register.md` by hand\n")
+    res = audit_root(root)
+    assert len(res.violations) == 1, f"{verb!r} raw write not flagged"
+    assert res.violations[0].kind == "unrouted"
+
+
+@pytest.mark.parametrize("verb", ["Note", "Set", "Log", "Mark", "Put", "Record"])
+def test_m2_lexicon_bound_residual_is_documented(tmp_path: Path, verb: str) -> None:
+    """M2 HONEST residual: noun-prone verbs are DELIBERATELY excluded (adding
+    them false-positives on descriptive prose like slice:34 'Note on…' /
+    slice:221 'reflection record'). A raw write phrased SOLELY with such a verb
+    is a documented, visible residual — this test pins the known gap so it is
+    not silently assumed closed. If a future disambiguator lets us add one of
+    these, this test flips and the lexicon comment must be updated."""
+    root = _plant(tmp_path, f"{verb} a value in `architecture/risk-register.md` by hand\n")
+    assert audit_root(root).status == "clean"
+
+
+def test_m1_tilde_fence_content_skipped(tmp_path: Path) -> None:
+    """m1: a `~~~` fence (valid CommonMark) is tracked — a raw-write directive
+    inside it is template/example content, not a site."""
+    root = _plant(
+        tmp_path,
+        "~~~markdown\nAppend to `architecture/risk-register.md` raw\n~~~\n",
+    )
+    assert audit_root(root).status == "clean"
+
+
+def test_m1_mixed_fence_char_does_not_close(tmp_path: Path) -> None:
+    """m1: a `~~~` line inside a ``` fence does NOT close it (different char) —
+    the blind-toggle parity inversion the code-Critic flagged. The raw-write
+    line stays fenced content."""
+    root = _plant(
+        tmp_path,
+        "```markdown\n~~~\nAppend to `architecture/risk-register.md` raw\n```\n",
+    )
+    assert audit_root(root).status == "clean"
+
+
+def test_m1_info_string_line_does_not_close_fence(tmp_path: Path) -> None:
+    """m1 (CommonMark): a ```lang info-string line cannot CLOSE a fence (only
+    open one) — so a nested ```markdown inside an open ``` block is content, and
+    the real prose after the true closer is NOT swallowed (the triage-fence
+    class that surfaced triage:179)."""
+    root = _plant(
+        tmp_path,
+        "```markdown\n```markdown\n```\nAppend to `architecture/risk-register.md` raw\n",
+    )
+    # Opener at L1; the L2 ```markdown is content (info-string can't close);
+    # L3 ``` closes; L4 is real prose OUTSIDE the fence → a flagged site.
+    res = audit_root(root)
+    assert res.status == "violation"
+    assert res.violations[0].line == 4
+
+
 # ─── M3: the exemption allowlist is pinned (off-allowlist → regression) ──
 
 
 def test_exemption_allowlist_pinned() -> None:
-    """The (skill, reason) exemption set actually present in the corpus MUST
-    equal the pinned _REGISTERED_SKILL_EXEMPTIONS. A NEW exemption added by a
-    future skill edit (or a removed one) trips this — keeping 'visible residual'
-    enforced, not self-asserted (closes the per-line `# noqa` bypass M3)."""
-    found = registered_exemption_pairs(_REPO_ROOT)
-    assert found == set(_REGISTERED_SKILL_EXEMPTIONS), (
-        f"exemption allowlist drift — off-allowlist: {found - set(_REGISTERED_SKILL_EXEMPTIONS)}; "
-        f"missing: {set(_REGISTERED_SKILL_EXEMPTIONS) - found}"
+    """The per-(skill, reason) exemption COUNTS actually present in the corpus
+    MUST equal the pinned _REGISTERED_SKILL_EXEMPTIONS dict (M3, slice-095
+    code-review hardening). Pinning the COUNT — not just the PAIR — means adding
+    an N+1-th marker to an ALREADY-listed file trips this (the old pair-set pin
+    could not). A new/removed exemption, or a count change, all trip — keeping
+    'visible residual' enforced at site granularity, not self-asserted."""
+    found = registered_exemption_counts(_REPO_ROOT)
+    assert found == _REGISTERED_SKILL_EXEMPTIONS, (
+        f"exemption allowlist drift (per-(file,reason) count) — "
+        f"off-allowlist/changed: { {k: v for k, v in found.items() if _REGISTERED_SKILL_EXEMPTIONS.get(k) != v} }; "
+        f"missing/changed: { {k: v for k, v in _REGISTERED_SKILL_EXEMPTIONS.items() if found.get(k) != v} }"
     )
+
+
+def test_count_pin_trips_on_extra_marker_on_listed_file(tmp_path: Path) -> None:
+    """M3 regression-of-the-regression: adding an N+1-th exemption marker to an
+    ALREADY-listed (file, reason) changes the count — the granularity the old
+    pair-set pin missed. Here a planted tree with TWO deferred-rmw markers on one
+    file yields count 2 for that pair, which would NOT equal a pinned count of 1."""
+    body = (
+        "Update `architecture/risk-register.md` <!-- vault-write-safe: deferred-rmw -->\n"
+        "Regenerate `architecture/slices/_index.md` <!-- vault-write-safe: deferred-rmw -->\n"
+    )
+    root = _plant(tmp_path, body)
+    counts = registered_exemption_counts(root)
+    assert counts == {("skills/fake/SKILL.md", "deferred-rmw"): 2}
 
 
 def test_exempt_reasons_are_closed() -> None:

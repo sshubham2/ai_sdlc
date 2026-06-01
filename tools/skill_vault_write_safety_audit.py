@@ -17,7 +17,8 @@ shape ADR-029 rejected for BC-1). There is no content-oracle for LLM-authored
 vault appends, so a BCI-1-style downstream gate is unconstructible; prose
 honesty + the wrapper + the cooperative model ([[ADR-067]]) are the controls.
 
-DETECTION MODEL (fail-closed; Critic M1/M3):
+DETECTION MODEL (fail-closed for RECOGNIZED sites; Critic M1/M3, hardened at
+slice-095 code-review):
   1. Shared-file set (``_SHARED_BASENAMES``) — the genuinely-concurrent vault
      files. Per-slice-folder files + distinct-filename ADR creates are NOT in
      the set (isolated by construction).
@@ -25,15 +26,24 @@ DETECTION MODEL (fail-closed; Critic M1/M3):
      (``_DIRECTIVE_VERBS``) governs (appears before) a backticked-or-
      ``architecture/``-path reference to a shared file. Bare mentions (no
      directive verb, or an un-backticked filename) are NOT sites; a verb used
-     as a NOUN immediately after a code span is excluded.
-  3. Verdict per site (line-local, fail-closed): CLEAN iff the line carries a
-     safe-route token (``_SAFE_ROUTE_TOKENS``) OR a valid exemption marker
-     ``<!-- vault-write-safe: <reason> -->`` whose ``<reason>`` is in the
-     closed ``_EXEMPT_REASONS`` enum. Unrouted-and-unexempted → VIOLATION;
+     as a NOUN immediately after a code span is excluded. HONEST SCOPE (M2):
+     recognition is verb-LEXICON-bounded — the guarantee is "fail-closed for
+     recognized directive verbs", not a completeness oracle over every English
+     phrasing; noun-prone verbs are deliberately excluded (see the
+     ``_DIRECTIVE_VERBS`` residual note). Fenced regions are tracked
+     CommonMark-style (char + length; m1) so real prose after a malformed
+     nested fence is no longer silently dropped.
+  3. Verdict per site (fail-closed): CLEAN iff the line carries a GENUINE
+     safe-route reference (a route token inside a backtick code span or a
+     ``<!-- route: ... -->`` marker, not locally negated — ``_is_routed``; M1)
+     OR a valid exemption marker ``<!-- vault-write-safe: <reason> -->`` whose
+     ``<reason>`` is in the closed ``_EXEMPT_REASONS`` enum. A BARE/negated
+     route mention ("do NOT use tools.vault_edit append"), an unrouted site, or
      an unknown exemption reason → VIOLATION. The exempt-site *allowlist*
-     ``_REGISTERED_SKILL_EXEMPTIONS`` is pinned by
-     ``test_exemption_allowlist_pinned`` (a NEW off-allowlist exemption trips
-     a regression — closes the per-line ``# noqa`` silent-bypass vector M3).
+     ``_REGISTERED_SKILL_EXEMPTIONS`` is pinned at per-(file, reason) COUNT
+     granularity by ``test_exemption_allowlist_pinned`` (M3): a NEW off-allowlist
+     exemption OR an N+1-th marker on an already-listed file trips a regression —
+     closes the per-line ``# noqa`` silent-bypass vector at site granularity.
 
 Usage:
     python -m tools.skill_vault_write_safety_audit
@@ -80,15 +90,56 @@ _SHARED_REF_RE = re.compile(
 # it on the line), denote a mutation. "edit" is included but a noun-usage right
 # after a code span is filtered in _is_mutation_site (the build-slice:394 FP).
 _DIRECTIVE_VERBS: tuple[str, ...] = (
+    # original six
     "append", "add", "write", "update", "regenerate", "edit",
+    # M2 (slice-095 code-review): common UNAMBIGUOUS mutation verbs the 6-verb
+    # lexicon missed (insert/replace/... all passed CLEAN — the fail-OPEN hole
+    # the design's "fail-closed" claim overstated).
+    "insert", "replace", "prepend", "modify", "amend", "create",
 )
+# LEXICON-BOUND RESIDUAL (honest scope, M2): recognition is verb-lexicon-bounded,
+# so the "fail-closed" guarantee is over RECOGNIZED directive verbs — NOT a
+# completeness guarantee over every English phrasing of a mutation. Verbs that
+# are commonly NOUNS adjacent to a file reference in this corpus —
+# `note` ("**Note** on…"), `record` ("reflection record"), `set`, `log`,
+# `mark`, `put` — are deliberately EXCLUDED: adding them false-positives on
+# descriptive prose (e.g. slice:34, slice:221) without a fragile noun/verb
+# disambiguator. A raw write phrased SOLELY with such a noun-prone verb is a
+# documented residual, not a silent gap. (`register` is excluded for a harder
+# reason: `\bregister\b` matches inside `risk-register.md` itself.)
 _DIRECTIVE_RE = re.compile(
     r"\b(?:" + "|".join(_DIRECTIVE_VERBS) + r")\b", re.IGNORECASE
 )
 
-# Line-local CLEAN signals.
+# Line-local CLEAN signals. A safe-route reference is a route token that
+# appears INSIDE a backtick code span (the corpus convention `tools.vault_edit
+# append` / `$PY -m tools.vault_edit ...`) OR inside an HTML route marker
+# `<!-- route: ... -->`. A BARE prose mention of a route token does NOT clean a
+# mutation site — it is description, not a routing instruction (M1, slice-095
+# code-review): "...raw (do NOT use tools.vault_edit append)", "NOT via
+# safe_append_text", "predates _vault_write" must all stay VIOLATION.
 _SAFE_ROUTE_TOKENS: tuple[str, ...] = (
     "tools.vault_edit", "vault_edit append", "safe_append_text", "_vault_write",
+)
+_ROUTE_TOKEN_ALT = "|".join(re.escape(t) for t in _SAFE_ROUTE_TOKENS)
+# A route token inside a backtick code span.
+_ROUTE_IN_CODESPAN_RE = re.compile(r"`[^`\n]*(?:" + _ROUTE_TOKEN_ALT + r")[^`\n]*`")
+# A route token inside an HTML `<!-- route: ... -->` marker (end-of-line form
+# used by reflect/reduce — the route token is not backticked there).
+_ROUTE_MARKER_RE = re.compile(
+    r"<!--\s*route:[^>]*(?:" + _ROUTE_TOKEN_ALT + r")[^>]*-->"
+)
+# A negation GOVERNING a route reference (within the ~2 words immediately before
+# it) demotes that reference: "do NOT use `tools.vault_edit append`" /
+# "NOT via `safe_append_text`" are not routes. The look-back is deliberately
+# SHORT so a trailing safety assertion that governs the RAW write — "never a
+# raw `Write`/`Edit`", which sits AFTER the route token — never demotes a
+# genuine route (the slice-095 corpus FP shape the build was tuned against).
+_NEG_LOOKBACK_WORDS = 2
+_NEGATION_RE = re.compile(
+    r"\b(?:not|never|no|none|without|bypass(?:es|ing)?|predates)\b"
+    r"|n't|\binstead\s+of\b",
+    re.IGNORECASE,
 )
 _EXEMPTION_RE = re.compile(r"<!--\s*vault-write-safe:\s*([a-z0-9-]+)\s*-->")
 _EXEMPT_REASONS: frozenset[str] = frozenset({
@@ -96,25 +147,38 @@ _EXEMPT_REASONS: frozenset[str] = frozenset({
     "project-open-single-shot",  # project-lifecycle writer, not a parallel hazard
 })
 
-# Pinned allowlist of exempt sites (skill-relpath, reason). A NEW exemption not
-# on this list trips test_exemption_allowlist_pinned (M3 — keeps "visible
-# residual" enforced, not self-asserted). slice-041 _REGISTERED_* shape.
-_REGISTERED_SKILL_EXEMPTIONS: frozenset[tuple[str, str]] = frozenset({
-    ("skills/reflect/SKILL.md", "deferred-rmw"),          # :56 risk-status RMW, :319/:320 _index RMW
-    ("skills/archive/SKILL.md", "deferred-rmw"),          # :27/:58/:75/:131/:177 _index regenerate (RMW)
-    ("skills/supersede-slice/SKILL.md", "deferred-rmw"),  # :103 _index superseded-row edit (RMW)
-    ("skills/discover/SKILL.md", "project-open-single-shot"),   # :113 risk-register (project open)
-    ("skills/risk-spike/SKILL.md", "project-open-single-shot"),  # :148 risk-register (spike)
-    # NOTE: /triage's risk-register writes (:163/:179) are NOT listed — they sit
-    # inside an unclosed ```markdown fence (a pre-existing triage markdown bug:
-    # the Triage-template fence at ~:142 is never closed, inverting parity for
-    # the rest of the file), so the audit does not flag them. Recorded as a
-    # DISCOVERED finding (build-log/reflection) for a separate fix slice. If that
-    # fence is later closed, :163 surfaces → audit flags it → an off-allowlist
-    # exemption would trip test_exemption_allowlist_pinned (fail-closed review).
-})
+# Pinned allowlist of exempt sites at per-(file, reason) COUNT granularity
+# (M3, slice-095 code-review). Pinning the COUNT — not just the (file, reason)
+# PAIR — means adding an N+1-th exemption marker to an ALREADY-listed file trips
+# test_exemption_allowlist_pinned. The prior pair-set pin let a future editor add
+# unlimited new `deferred-rmw` markers to reflect/archive (pair already listed) —
+# including next to a genuinely-unsafe append — without tripping the regression.
+# slice-041 _REGISTERED_* shape. Total across all pairs == the audit's exemption
+# count (currently 12).
+_REGISTERED_SKILL_EXEMPTIONS: dict[tuple[str, str], int] = {
+    ("skills/reflect/SKILL.md", "deferred-rmw"): 3,          # :56 risk-status RMW + :321/:322 _index RMW
+    ("skills/archive/SKILL.md", "deferred-rmw"): 5,          # :27/:58/:75/:131/:177 _index regenerate (RMW)
+    ("skills/supersede-slice/SKILL.md", "deferred-rmw"): 1,  # :103 _index superseded-row edit (RMW)
+    ("skills/discover/SKILL.md", "project-open-single-shot"): 1,    # :113 risk-register (project open)
+    ("skills/risk-spike/SKILL.md", "project-open-single-shot"): 1,  # :148 risk-register (spike)
+    ("skills/triage/SKILL.md", "project-open-single-shot"): 1,      # :179 risk-register (project open) — surfaced by the m1 CommonMark fence fix; this line renders OUTSIDE the triage.md template fence
+    # NOTE: /triage's OTHER risk-register write (:163) stays fence-HIDDEN — it sits
+    # INSIDE the triage.md template block (between the :142 ```markdown opener and
+    # the :165 nested block), so the audit does not see it. That is the separate,
+    # still-deferred triage-markdown bug (a DISCOVERED finding for its own fix
+    # slice), NOT an SVW-1 gap. If that template fence is later repaired, :163
+    # surfaces → the audit flags it → an off-allowlist exemption (or a bumped
+    # count here) trips test_exemption_allowlist_pinned (fail-closed review).
+}
 
-_FENCE_RE = re.compile(r"^\s*```")
+# CommonMark fenced code block: 0+ leading spaces, then a run of >=3 backticks
+# or >=3 tildes, then an optional info string. m1 (slice-095 code-review):
+# match `~~~` too AND track the opener's fence char + length so a fence closes
+# only on the SAME char at >= the opener length with no trailing content — a
+# `~~~` line inside a ``` block (or a ```lang info-string line as content) no
+# longer blindly inverts parity. (Blockquoted `> ``` ` fences stay out of scope
+# — the corpus uses none; documented residual.)
+_FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
 
 
 @dataclass(frozen=True)
@@ -188,12 +252,34 @@ def _is_mutation_site(line: str) -> bool:
     return False
 
 
+def _is_routed(line: str) -> bool:
+    """True iff the line carries a GENUINE safe-route reference.
+
+    A route token counts only when it appears inside a backtick code span or an
+    HTML ``<!-- route: ... -->`` marker (the two corpus conventions), AND is not
+    locally negated. M1 (slice-095 code-review): a bare prose mention
+    ("do NOT use tools.vault_edit append", "NOT via safe_append_text",
+    "predates _vault_write") is description, not routing, and must NOT
+    false-CLEAN; a backticked-but-negated reference is likewise demoted. The
+    ~2-word look-back keeps a downstream "never a raw ``Write``/``Edit``" safety
+    assertion (which governs the RAW write, not the route token) CLEAN.
+    """
+    for m in list(_ROUTE_IN_CODESPAN_RE.finditer(line)) + list(
+        _ROUTE_MARKER_RE.finditer(line)
+    ):
+        preceding = " ".join(line[: m.start()].split()[-_NEG_LOOKBACK_WORDS:])
+        if _NEGATION_RE.search(preceding):
+            continue  # negation governs this route reference — not a real route
+        return True
+    return False
+
+
 def _verdict(line: str) -> tuple[str, str | None]:
     """Return (verdict, detail) for a mutation-site line.
 
     ("routed", None) | ("exempted", reason) | ("violation", kind).
     """
-    if any(tok in line for tok in _SAFE_ROUTE_TOKENS):
+    if _is_routed(line):
         return ("routed", None)
     m = _EXEMPTION_RE.search(line)
     if m:
@@ -219,10 +305,30 @@ def audit_root(root: Path) -> AuditResult:
         rel = str(path.relative_to(root)).replace("\\", "/")
         text = path.read_text(encoding="utf-8")
         in_fence = False
+        fence_marker = ""  # the open fence's char-run (e.g. "```"); "" when closed
         for i, line in enumerate(text.splitlines(), start=1):
-            if _FENCE_RE.match(line):
-                in_fence = not in_fence
-                continue
+            fm = _FENCE_RE.match(line)
+            if fm:
+                ticks, rest = fm.group(1), fm.group(2)
+                if not in_fence:
+                    # A backtick fence opener may not carry a backtick in its
+                    # info string (CommonMark) — an inline ``` `x` ``` is content.
+                    if ticks[0] == "`" and "`" in rest:
+                        pass  # not a valid opener — fall through to site check
+                    else:
+                        in_fence = True
+                        fence_marker = ticks
+                        continue
+                elif (
+                    ticks[0] == fence_marker[0]
+                    and len(ticks) >= len(fence_marker)
+                    and rest.strip() == ""
+                ):
+                    in_fence = False  # closer: same char, >= length, no content
+                    fence_marker = ""
+                    continue
+                else:
+                    continue  # fence-shaped line that is content of the open fence
             if in_fence:
                 continue
             if not _is_mutation_site(line):
@@ -252,11 +358,17 @@ def audit_root(root: Path) -> AuditResult:
     return result
 
 
-def registered_exemption_pairs(root: Path) -> set[tuple[str, str]]:
-    """The (skill, reason) set of exemptions actually present in the tree —
+def registered_exemption_counts(root: Path) -> dict[tuple[str, str], int]:
+    """The per-(skill, reason) COUNT of exemptions actually present in the tree —
     consumed by test_exemption_allowlist_pinned to pin against
-    _REGISTERED_SKILL_EXEMPTIONS."""
-    return {(e.file, e.reason) for e in audit_root(root).exemptions}
+    _REGISTERED_SKILL_EXEMPTIONS at site-count granularity (M3). Adding an
+    N+1-th exemption marker to an already-listed (skill, reason) changes its
+    count here and trips the pin (the pair-set pin could not)."""
+    counts: dict[tuple[str, str], int] = {}
+    for e in audit_root(root).exemptions:
+        key = (e.file, e.reason)
+        counts[key] = counts.get(key, 0) + 1
+    return counts
 
 
 def _format_human(result: AuditResult) -> str:

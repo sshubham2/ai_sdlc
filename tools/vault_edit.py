@@ -41,10 +41,24 @@ from tools._vault_write import safe_append_text
 
 def _resolve_in_vault(file_arg: str) -> Path:
     """Resolve ``file_arg`` against ``VAULT_ROOT``; raise ``ValueError`` on a
-    path that resolves outside the vault root (absolute or ``..``-escape)."""
+    path that is empty, resolves to the vault-root directory ITSELF, or escapes
+    the vault root (absolute or ``..``-escape).
+
+    m3 (slice-095 code-review): ``--file .`` / ``--file ""`` previously slipped
+    past the containment check (``target == root`` made the old guard False) and
+    only failed downstream as an incidental ``IsADirectoryError``. It is now an
+    INTENTIONAL rejection with an actionable message (fail-VISIBLE on purpose,
+    not by accident — the R-7 posture)."""
     root = VAULT_ROOT.resolve()
+    if not file_arg.strip():
+        raise ValueError("--file must name a vault file (got an empty path)")
     target = (VAULT_ROOT / file_arg).resolve()
-    if target != root and root not in target.parents:
+    if target == root:
+        raise ValueError(
+            f"--file {file_arg!r} resolves to the vault root directory itself, "
+            f"not a file under it — name a file (e.g. risk-register.md)"
+        )
+    if root not in target.parents:
         raise ValueError(
             f"--file {file_arg!r} resolves outside the vault root "
             f"({target} is not under {root})"
