@@ -34,6 +34,25 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.79.0 — 2026-06-01
+
+**SVW-1 — skill-driven vault-write-safety audit + `vault_edit append` safe channel** (slice-095; [[ADR-087]] mints a new rule; supersedes nothing; MEPD-1 posture: **INCLUDE** — `SVW-1` is a new audit-enforced gate on the vault-write-safety axis, the skill-driven counterpart of slice-094's VWS-1; two non-underscore PMI-1-enumerated tools wired into the `/build-slice` Step-6 + `/validate-slice` gate rosters → 5-part PMI-1 atomic bump 0.78.0 → 0.79.0).
+
+SVW-1 closes the **skill-driven** sub-class of R-32 (concurrent-write lost-update / torn-write on a shared mutable vault): Claude editing shared-aggregate vault files (`risk-register.md` / `lessons-learned.md` / `_index.md` / `methodology-changelog.md` / `shippability.md` / `build-checks.md`) directly via the `Write`/`Edit` tools per SKILL.md prose — invisible to slice-094's Python-only VWS-1 AST scan.
+
+**Mechanism**:
+- `tools/vault_edit.py` — a thin `append`-only CLI over slice-093's `safe_append_text` (sidecar-lock + `O_APPEND`), the R-32 safe channel Claude invokes for LLM-authored shared-vault appends. `rewrite` is deliberately NOT exposed (`safe_write_text` is torn-write-safe but NOT lost-update-safe for read-modify-write).
+- `tools/skill_vault_write_safety_audit.py` — a fail-closed lexical audit: a directive verb governing a backticked shared-vault-file reference is a mutation site; CLEAN iff the line carries a `vault_edit append` route token OR a `<!-- vault-write-safe: <reason> -->` marker whose reason is in the closed enum `{deferred-rmw, project-open-single-shot}` (unknown reason → VIOLATION). The exempt-site allowlist `_REGISTERED_SKILL_EXEMPTIONS` is pinned (off-allowlist exemption → regression — closes the per-line `# noqa` silent-bypass).
+- 10 append sites across `/reflect`, `/reduce`, `/repro`, `/user-test`, `/validate-slice`, `/archive` routed through `vault_edit append`; 12 read-modify-write (`_index.md` recent-10 / in-place risk-status) + project-open sites exempt-marked (incl. `/triage`'s project-open risk-register write, surfaced by the code-review CommonMark fence-tracking fix).
+
+**Honest scope (B1 / [[ADR-029]])**: SVW-1's guarantee is over the prose-detection surface (no SKILL.md *prescribes* a raw bypass) — NOT a completeness guarantee over runtime writes (no content-oracle for LLM-authored appends → a BCI-1-style downstream gate is unconstructible; the R-2 runtime-obedience axis is structurally unreachable by a static audit). **R-32 NARROWS, not retires**: the skill-driven read-modify-write residual (`_index.md` recent-10 rewrites) defers to the external-vault flip slice. APED-1: the matcher fires on 22 true sites with FP=0 against the real 26-skill corpus (`build-slice:394` noun-`flip`, `~/.claude` global, `post-write` compound, bare-filename all correctly excluded).
+
+New `tools/vault_edit.py` + `tools/skill_vault_write_safety_audit.py` trigger the BC-PROJ-9 inventory fan-out (×2 tools: install_audit `_CANONICAL_TOOLS` + `plugin.yaml` + cp1252 parity sentinel + shippability row). 5-part PMI-1 atomic bump (`VERSION` + `plugin.yaml.version` + `pyproject.toml [project].version` + this `## v0.79.0` header + installed `~/.claude/ai-sdlc-VERSION`).
+
+Rule reference: SVW-1 (slice-095; ADR-087).
+
+---
+
 ## v0.78.0 — 2026-05-31
 
 **PFS-1 — ephemeral project-frame synthesizer fed to /design-slice + both Critic layers** (slice-088; [[ADR-080]] mints a new rule; supersedes nothing; MEPD-1 posture: **INCLUDE** — `PFS-1` is a new rule on the **review-context** axis (the project-frame is a new mandatory context input to design + critique + critique-review), adjacent to the dual-Critic DR-1 family; 5-part PMI-1 atomic bump 0.77.0 → 0.78.0).

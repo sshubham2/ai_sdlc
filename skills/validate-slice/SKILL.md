@@ -210,6 +210,11 @@ Before deciding next action, verify no past slice was silently broken by this on
    $PY -m tools.shippability_path_audit architecture/shippability.md
    ```
    Verifies every `tests/<...>.py` token in every row's **Machine-cmd** cell resolves to a file that exists on disk. If it exits non-zero (a phantom test-file citation — cf. slice-024 `test_shippability_catalog.py`), STOP: report the single PTFCD-1 violation and fix the catalog row's path before running the catalog. Running the catalog with a phantom citation produces N confusing per-row "file not found" FAILs that mask real regressions; this gate surfaces it as ONE clear violation. Do not proceed to step 4 until BOTH gates exit 0.
+   c. **SVW-1 skill-vault-write-safety** (per **SVW-1**, `methodology-changelog.md` v0.79.0; slice-095; [[ADR-087]]):
+   ```
+   $PY -m tools.skill_vault_write_safety_audit
+   ```
+   Verifies no `skills/*/SKILL.md` prescribes an unrouted/unexempted mutation of a shared-aggregate vault file (the skill-driven R-32 write-safety control; complement of slice-094's VWS-1 Python-writer audit). Exit non-zero → STOP: route the directive through `vault_edit append` or add a sanctioned `<!-- vault-write-safe: <reason> -->` exemption before proceeding.
 4. Run the catalog via the **canonical pinned runner** — **do NOT hand-roll the execution loop** (per **SRSC-1**, `methodology-changelog.md` v0.51.0; slice-038 / [[ADR-039]]):
 
    ```
@@ -288,7 +293,7 @@ In Heavy mode, validation produces a compliance-grade record:
 
 - **Implementation bug**: fix code → re-run validation for that AC → if pass, proceed to `/reflect`
 - **Spec gap**: log in validation.md as cause; let `/reflect` capture; next slice incorporates
-- **Reality surprise**: add to `architecture/risk-register.md` immediately (don't wait); `/reflect` may trigger a follow-up slice
+- **Reality surprise**: add to `architecture/risk-register.md` immediately (don't wait) via `tools.vault_edit append` (SVW-1; never a raw `Write`/`Edit`); `/reflect` may trigger a follow-up slice
 
 ## Next step
 

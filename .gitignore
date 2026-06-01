@@ -18,3 +18,10 @@ build/
 ai_sdlc_tools.egg-info/
 graphify-out/
 diagnose-out/
+
+# _vault_write sidecar locks (SVW-1 / slice-093 `safe_append_text`) — transient
+# advisory-lock sidecars written next to a vault file during a safe append;
+# never the replace target, never committed. (Surfaced at slice-095 /reflect when
+# dogfooding `vault_edit append` left `lessons-learned.md.lock` behind; the full
+# .lock-accumulation cleanup remains deferred to the slice-094 flip.)
+*.lock

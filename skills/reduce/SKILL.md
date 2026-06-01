@@ -136,9 +136,9 @@ Mission brief acceptance criteria for a reduction slice are typically:
 - All tests still pass after reductions
 - No external behavior change (backward-compat preserved)
 
-### Step 8: Append to lessons-learned.md
+### Step 8: Append to `architecture/lessons-learned.md` <!-- route: tools.vault_edit append -->
 
-After the reduction slice, note the pattern that led to the over-engineering. Helps future slices avoid it.
+After the reduction slice, note the pattern that led to the over-engineering. Helps future slices avoid it. Append via `$PY -m tools.vault_edit append --file lessons-learned.md --content-file <tmp>` (the R-32 safe channel; never a raw `Write`/`Edit` — SVW-1 / [[ADR-087]]).
 
 ## Critical rules
 

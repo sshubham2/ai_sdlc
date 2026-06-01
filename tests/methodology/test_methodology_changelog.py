@@ -5493,40 +5493,40 @@ def test_v_0_77_0_pcr_2b_shippability_consumer_propagation():
     )
 
 
-def test_version_files_synchronized_at_v_0_78_0():
-    """AC — 5-part PMI-1 atomic bump 0.77.0 → 0.78.0 (slice-088).
+def test_version_files_synchronized_at_v_0_79_0():
+    """AC — 5-part PMI-1 atomic bump 0.78.0 → 0.79.0 (slice-095).
 
     Verifies the 5 canonical version-bearing legs are synchronized at
-    `0.78.0` post-bump:
+    `0.79.0` post-bump:
       (1) `VERSION` file
       (2) `plugin.yaml` version field
       (3) `pyproject.toml [project].version` field (PVFS-1)
-      (4) `## v0.78.0` header in `methodology-changelog.md`
+      (4) `## v0.79.0` header in `methodology-changelog.md`
       (5) installed `~/.claude/ai-sdlc-VERSION` (AVFS-1; verified separately
           by the AVFS-1 audit; this test asserts legs 1-4 only — leg 5 is
           environment-dependent and may be absent on a fresh checkout,
           where AVFS-1 returns WARN per slice-030A meta-M3 parity)
 
-    Renamed from `_at_v_0_77_0` at slice-088 per the slice-067/072/073/078/080/081/083 etc.
+    Renamed from `_at_v_0_78_0` at slice-095 per the slice-067/072/073/078/080/081/083/088 etc.
     rename precedent (the version-files test follows live version; the
-    historical v0.77.0 entry persists in the methodology-changelog body).
+    historical v0.78.0 entry persists in the methodology-changelog body).
     """
     version = read_file("VERSION").strip()
-    assert version == "0.78.0", (
-        f"VERSION file must equal '0.78.0' post-bump; got {version!r}. "
+    assert version == "0.79.0", (
+        f"VERSION file must equal '0.79.0' post-bump; got {version!r}. "
         "5-part PMI-1 leg 1 broken — re-run the bump or fix VERSION manually."
     )
     plugin_yaml = read_file("plugin.yaml")
-    assert "version: 0.78.0" in plugin_yaml or 'version: "0.78.0"' in plugin_yaml, (
-        "plugin.yaml must contain 'version: 0.78.0' post-bump (5-part PMI-1 leg 2)"
+    assert "version: 0.79.0" in plugin_yaml or 'version: "0.79.0"' in plugin_yaml, (
+        "plugin.yaml must contain 'version: 0.79.0' post-bump (5-part PMI-1 leg 2)"
     )
     pyproject = read_file("pyproject.toml")
-    assert 'version = "0.78.0"' in pyproject, (
-        "pyproject.toml [project].version must equal '0.78.0' post-bump (PVFS-1; "
+    assert 'version = "0.79.0"' in pyproject, (
+        "pyproject.toml [project].version must equal '0.79.0' post-bump (PVFS-1; "
         "5-part PMI-1 leg 3)"
     )
     changelog = read_file("methodology-changelog.md")
-    assert "## v0.78.0" in changelog, (
-        "methodology-changelog.md must contain '## v0.78.0' header post-bump "
+    assert "## v0.79.0" in changelog, (
+        "methodology-changelog.md must contain '## v0.79.0' header post-bump "
         "(5-part PMI-1 leg 4)"
     )

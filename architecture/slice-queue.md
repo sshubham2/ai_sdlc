@@ -1,20 +1,28 @@
 # Slice queue
 
-_Generated: 2026-05-31T17:53:38+00:00 by /slice during slice-094 definition_
+_Generated: 2026-05-31T18:21:04+00:00 by /slice during slice-096 definition_
 
 ## Candidates
 
-### harden-vault-skill-write-discipline
+### add-slice-candidates-drift-guard
 
-- **Source:** risk-register R-32 skill-driven residual
-- **Blast-radius:** `skills/build-slice/SKILL.md`, `skills/reflect/SKILL.md`, `tools/_vault_write.py`
+- **Source:** risk-register R-13
+- **Blast-radius:** `skills/slice-candidates/SKILL.md`, `tests/methodology/test_slice_candidates_skill_drift.py`
 - **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** HIGH
+- **Effort:** SMALL
+- **Risk-retired:** LOW
+
+### add-diagnose-cwd-mismatch-runtime-test
+
+- **Source:** risk-register R-2
+- **Blast-radius:** `skills/diagnose/SKILL.md`, `tests/skills/diagnose/test_skill_md_pins.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** LOW
 
 ### audit-cp1252-decode-pattern-across-tools
 
-- **Source:** risk-register R-30 (slice-090)
+- **Source:** risk-register R-30
 - **Blast-radius:** `tools/project_frame_synth.py`, `tools/pulse_worktree_resolver.py`, `tools/slice_queue_writer.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
@@ -36,22 +44,6 @@ _Generated: 2026-05-31T17:53:38+00:00 by /slice during slice-094 definition_
 - **Effort:** MEDIUM
 - **Risk-retired:** LOW
 
-### extend-osdg-1-to-slice-candidates
-
-- **Source:** risk-register R-13
-- **Blast-radius:** `skills/slice-candidates/SKILL.md`, `tests/skill_drift_equality.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
-- **Risk-retired:** LOW
-
-### add-diagnose-cwd-mismatch-runtime-test
-
-- **Source:** risk-register R-2
-- **Blast-radius:** `skills/diagnose/SKILL.md`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
-- **Risk-retired:** LOW
-
 ### add-claim-sequence-number-for-clock-skew-detection
 
 - **Source:** risk-register R-23
@@ -59,6 +51,30 @@ _Generated: 2026-05-31T17:53:38+00:00 by /slice during slice-094 definition_
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
 - **Risk-retired:** LOW
+
+### harden-pcr-1-soft-baseline-corruption
+
+- **Source:** risk-register R-24
+- **Blast-radius:** `tools/parallel_conflict_resolver.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** LOW
+
+### add-project-frame-degrade-signal
+
+- **Source:** risk-register R-26
+- **Blast-radius:** `tools/project_frame_synth.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** LOW
+
+### flip-vault-to-external-shared-root
+
+- **Source:** external-vault initiative (blocked on R-32: 094+095)
+- **Blast-radius:** `INSTALL.md`, `tools/_vault_paths.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** LARGE
+- **Risk-retired:** NONE
 
 ### add-index-md-soft-promotion-or-light-hard-path
 

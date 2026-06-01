@@ -110,7 +110,7 @@ Skip this step if the user has nothing to add — don't push.
 
 **Minimal mode**:
 - `architecture/concept.md` — 1-page brief covering What/Who/Constraints (actors as a section inline, not separate files)
-- Update `architecture/risk-register.md` with discovery-phase risks
+- Update `architecture/risk-register.md` with discovery-phase risks <!-- vault-write-safe: project-open-single-shot -->
 - First slice candidate stated in conversation
 
 **Standard mode** — all of Minimal, plus:

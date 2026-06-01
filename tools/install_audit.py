@@ -114,6 +114,7 @@ _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.shippability_decoupling_audit",
     "tools.shippability_path_audit",
     "tools.shippability_runner",
+    "tools.skill_vault_write_safety_audit",
     "tools.slice_queue_claim",
     "tools.slice_queue_writer",
     "tools.stale_branch_classifier",
@@ -124,6 +125,7 @@ _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.triage_audit",
     "tools.utf8_stdout_audit",
     "tools.validate_slice_layers",
+    "tools.vault_edit",
     "tools.walking_skeleton_audit",
     "tools.wiring_matrix_audit",
 )

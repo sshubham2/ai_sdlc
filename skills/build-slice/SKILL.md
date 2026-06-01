@@ -191,8 +191,21 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **ai-sdlc-tools version forward-sync audit passes (TVFS-1)** — see "ai-sdlc-tools version forward-sync audit" below
 - [ ] **New-agent session-restart warning (NAW-1)** — see "New-agent warning audit" below
 - [ ] **Drift-check enforcement audit passes (DCE-1)** — see "Drift-check enforcement audit" below
+- [ ] **Skill-vault-write-safety audit passes (SVW-1)** — see "Skill-vault-write-safety audit" below
 
 If any gate fails: don't declare done. Fix or escalate.
+
+#### Skill-vault-write-safety audit (SVW-1)
+
+Per **SVW-1** (`methodology-changelog.md` v0.79.0; slice-095; [[ADR-087]]; mints a new rule; supersedes nothing): the skill-driven counterpart of slice-094's VWS-1 (which AST-audits `tools/*.py` Python vault-writers). Every `skills/*/SKILL.md` directive that mutates a **shared-aggregate** vault file (`risk-register.md` / `lessons-learned.md` / `_index.md` / `methodology-changelog.md` / `shippability.md` / `build-checks.md`) MUST route through the `vault_edit append` safe channel (R-32 lock + `O_APPEND`) OR carry a sanctioned `<!-- vault-write-safe: <reason> -->` exemption (reason ∈ `{deferred-rmw, project-open-single-shot}`). Run:
+
+```bash
+$PY -m tools.skill_vault_write_safety_audit
+```
+
+Refusal semantics: exit **1** (≥1 unrouted-and-unexempted mutation site, OR an unknown exemption reason — names `skills/<x>/SKILL.md:line`) / **2** (usage — `skills/` missing/unreadable). **Honest scope (B1 / [[ADR-029]])**: SVW-1 guarantees the PROSE prescribes the safe channel — it is NOT a completeness guarantee over runtime writes (no content-oracle exists for LLM-authored appends, so a BCI-1-style downstream gate is unconstructible; the R-2 runtime-obedience axis is structurally unreachable by a static audit). The exempt-site allowlist `_REGISTERED_SKILL_EXEMPTIONS` is pinned by `tests/methodology/test_skill_vault_write_safety_audit.py::test_exemption_allowlist_pinned` (a NEW off-allowlist exemption trips a regression — closes the per-line `# noqa` silent-bypass class M3). SVW-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1 / STP-1 / AVFS-1 / TVFS-1 / NAW-1 / DCE-1) — its programmatic gate is `tools/skill_vault_write_safety_audit.py`.
+
+Bootstrap (slice-095 only): slice-095 authors SVW-1; at slice-095's own Step 6 the audit runs against the routed worktree and MUST exit 0 (self-application discharge — the 10 append sites routed through `vault_edit append` + 12 RMW/project-open sites exempt-marked). Every slice after 095 inherits a self-gating SVW-1.
 
 #### Drift-check enforcement audit (DCE-1)
 
