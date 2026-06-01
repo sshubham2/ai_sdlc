@@ -126,6 +126,7 @@ _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.utf8_stdout_audit",
     "tools.validate_slice_layers",
     "tools.vault_edit",
+    "tools.vault_write_safety_audit",
     "tools.walking_skeleton_audit",
     "tools.wiring_matrix_audit",
 )

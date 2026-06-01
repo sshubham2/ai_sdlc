@@ -101,7 +101,11 @@ def safe_write_text(path: Path | str, text: str, *, encoding: str = "utf-8") -> 
     path.parent.mkdir(parents=True, exist_ok=True)
     with _file_lock(path):
         tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
-        tmp.write_text(text, encoding=encoding)
+        # newline="" — LF-faithful, matching the canonical vault writers
+        # (slice_queue_writer.py:819 / slice_queue_claim.py:535). Without it,
+        # Path.write_text translates \n -> os.linesep (CRLF on Windows) —
+        # EOL-DRIFT-1 / ADR-033, which would corrupt every routed vault file. (slice-094 B1)
+        tmp.write_text(text, encoding=encoding, newline="")
         last_exc: BaseException | None = None
         for attempt in range(_EPERM_RETRIES):
             try:
@@ -135,7 +139,14 @@ def safe_append_text(path: Path | str, text: str, *, encoding: str = "utf-8") ->
         fd = -1
         for attempt in range(_EPERM_RETRIES):
             try:
-                fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+                # os.O_BINARY — Windows os.open defaults to TEXT mode, which
+                # translates \n -> \r\n on os.write (EOL-DRIFT-1 / ADR-033).
+                # getattr(..., 0) is a POSIX no-op (O_BINARY is Windows-only). (slice-094 B1)
+                fd = os.open(
+                    path,
+                    os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_BINARY", 0),
+                    0o644,
+                )
                 break
             except PermissionError as exc:
                 last_exc = exc

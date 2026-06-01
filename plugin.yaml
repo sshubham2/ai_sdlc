@@ -12,7 +12,7 @@
 # both documentation and a target for the audit.
 
 name: ai-sdlc
-version: 0.79.0  # synced with VERSION file (PMI-1 audit enforces)
+version: 0.80.0  # synced with VERSION file (PMI-1 audit enforces)
 description: |
   Spec-driven SDLC for AI implementers. Hybrid of phase-driven rigor (for
   knowable domains) and slice-driven iteration (for unknowable ones).
@@ -164,6 +164,8 @@ tools:
     rule: VAL-1
   - path: tools/vault_edit.py
     rule: SVW-1
+  - path: tools/vault_write_safety_audit.py
+    rule: VWS-1
   - path: tools/walking_skeleton_audit.py
     rule: WS-1
   - path: tools/wiring_matrix_audit.py

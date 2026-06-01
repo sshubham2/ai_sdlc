@@ -34,6 +34,24 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.80.0 — 2026-06-01
+
+**VWS-1 — Python vault-write-safety audit (per-write-target AST) + `_vault_write` byte-faithfulness fix + 2 seam writers routed** (slice-094; [[ADR-086]] mints a new rule; supersedes nothing; MEPD-1 posture: **INCLUDE** — `VWS-1` is a new audit-enforced gate on the vault-write-safety axis, the **Python-writer counterpart** of slice-095's skill-driven SVW-1; one non-underscore PMI-1-enumerated tool wired into the `/build-slice` Step-6 + `/validate-slice` gate rosters → 5-part PMI-1 atomic bump 0.79.0 → 0.80.0).
+
+VWS-1 ships **flip-readiness** toward R-32 (concurrent-write lost-update / EPERM-corruption on a shared mutable vault); it does NOT retire R-32 (which stays `mitigating`, retires at the external-vault flip). Three parts:
+
+- **Byte-faithfulness fix (prerequisite)**: `tools/_vault_write.py` `safe_write_text` (+`newline=""`) and `safe_append_text` (+`os.O_BINARY`) now emit LF byte-identical to the canonical `newline=""` vault writers — both previously emitted CRLF on Windows (EOL-DRIFT-1 / ADR-033 class), so routing as-shipped would have corrupted every vault file's newlines.
+- **Routing**: the 2 seam whole-file writers (`slice_queue_writer.py:817`, `slice_queue_claim._atomic_write_text`) now route through `safe_write_text` (byte-transparent). `parallel_conflict_resolver` is scoped OUT (git-coupled; retires at the flip per slice-093's migration map), recorded in the audit's COUNT-pinned scoped-out allowlist with rationale.
+- **`tools/vault_write_safety_audit.py`** — a fail-closed **per-write-target AST** audit: for each write-op node (`.write_text`/`.write_bytes`, `open`/`Path.open` write-mode, `os.open` write-flags, `os.replace`) it resolves the write TARGET through a bounded ≤1-hop + module-const depth and flags any vault-targeted write not routed / exempt (`_vault_write`) / scoped-out (PCR). A `read_text`/`git show`/error-string naming a vault literal is not a write op → never matches (the per-write-target fix over a module-mention tripwire). Exit 0/1/2 (fail-visible on unparseable, R-7 class).
+
+**Concurrency proof (non-vacuous, verified by mutation)**: `tests/methodology/test_vault_write_safety_concurrency.py` (multiprocessing-spawn + `mp.Barrier` + bounded timeout) proves the `_vault_write` lock is load-bearing — Proof 1 whole-file EPERM-resilience under an exclusive `CreateFileW dwShareMode=0` holder; Proof 2 append LOST-UPDATE prevention (N barrier-synchronized appends: unlocked `O_APPEND` loses whole writes on Windows via non-atomic EOF-positioning; `safe_append_text` loses zero). Build-time discovery (re-interrogate the Critic): `os.write` is byte-atomic (no interleaving at any size), but concurrent `O_APPEND` is NOT lost-update-safe; and an un-barriered spawn pool staggers ~100ms/worker → masks the hazard (barrier-synchronize concurrency proofs).
+
+New `tools/vault_write_safety_audit.py` triggers the inventory fan-out (install_audit `_CANONICAL_TOOLS` + `plugin.yaml` + cp1252 `_ROOT_ONLY_TOOLS` parity + INSTALL.md count + shippability row #104). 5-part PMI-1 atomic bump (`VERSION` + `plugin.yaml.version` + `pyproject.toml [project].version` + this `## v0.80.0` header + installed `~/.claude/ai-sdlc-VERSION`).
+
+Rule reference: VWS-1 (slice-094; ADR-086).
+
+---
+
 ## v0.79.0 — 2026-06-01
 
 **SVW-1 — skill-driven vault-write-safety audit + `vault_edit append` safe channel** (slice-095; [[ADR-087]] mints a new rule; supersedes nothing; MEPD-1 posture: **INCLUDE** — `SVW-1` is a new audit-enforced gate on the vault-write-safety axis, the skill-driven counterpart of slice-094's VWS-1; two non-underscore PMI-1-enumerated tools wired into the `/build-slice` Step-6 + `/validate-slice` gate rosters → 5-part PMI-1 atomic bump 0.78.0 → 0.79.0).
