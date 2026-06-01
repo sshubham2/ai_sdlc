@@ -2027,3 +2027,18 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **A newly-minted content matcher must be APED-1-executed against the REAL corpus's adversarial shapes — including negation words and noun-prone verbs — at authoring time.** The corpus contains the exact tokens (`never`, `raw`, nouns) a naive heuristic mis-handles; unit fixtures written from the matcher author's own mental model share its blind spot. The code-Critic is a required SECOND APED-1 author. Extends regex-APED-1 / BC-PROJ-13 with the negation/noun-prone real-corpus-shape axis.
 - **A correctness fix to a parser/audit can SURFACE latent state the buggy version masked** — budget for "what does this reveal" (new sites to classify, a reversed prior decision, a count cascade), not only "what does this fix". Generalizes beyond fences to any matcher whose bug under-reported.
 - **A lexical/static audit's honest contract is "fail-closed for RECOGNIZED inputs" + a pinned, documented residual** — chasing completeness into noun/verb ambiguity buys false positives, not safety. Name the residual in code + a test so it stays visible.
+
+## Slice 094 (harden-vault-write-safety) — 2026-06-01
+
+### Worked
+- The dual-Critic discipline caught a real **Builder** error (not just a design defect): `/critique` B1 disputed the Builder's own v3 redesign, and the Builder confirmed it by a barrier-synchronized probe. Zero false-alarms across `/critique` + `/critique-review` + `/code-review` this slice.
+- Re-interrogating a Critic's claims by **execution** (not reasoning) falsified the meta-Critic's ">1024B append interleaving" framing — and then re-falsified the Builder's own over-correction. Execution is the arbiter, both directions.
+
+### Didn't work
+- The Builder's first concurrency probe gave a false-negative (0 loss) because un-barriered `multiprocessing(spawn)` workers start ~100 ms apart and never overlap → no real contention → the hazard stayed hidden. Only `mp.Barrier`-synchronized workers surfaced the lost-update (16 workers → 6-11 lost).
+- "No byte-interleaving ⇒ no corruption" was a wrong inference: `os.write` is byte-atomic, but concurrent `O_APPEND` EOF-positioning is non-atomic on Windows → whole writes lost.
+
+### Pattern
+- **Barrier-synchronize concurrency proofs**; prove non-vacuity by mutation (slice-092). An un-barriered spawn pool proves nothing about contention.
+- A **versioned test RENAME** (the `_at_v_0_NN_0` version-gate) orphans every shippability row / citation referencing it by name — grep the OLD name repo-wide before finishing a version bump. The count-literal fan-out (N≥3) is always wider than the design's checklist (this bump broke 2 INSTALL.md inventory pins + 1 stale citation the checklist missed).
+- State which property a test actually proves: "atomic write" is channel-specific (`os.write` byte-atomicity ≠ concurrent-`O_APPEND` lost-update safety).

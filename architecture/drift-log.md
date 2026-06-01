@@ -578,3 +578,17 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-096 surface.
+
+## 2026-06-01 — slice-094-harden-vault-write-safety
+
+**Trigger**: slice-094 pre-finish gate (/build-slice Step 6)
+
+### Verified aligned
+- design.md §Components touched verified on disk: `tools/vault_write_safety_audit.py` EXISTS (per-write-target AST audit, exit 0/1/2, clean on the real corpus); `tools/_vault_write.py` byte-fix present (`safe_write_text` `newline=""` + `safe_append_text` `os.O_BINARY`); the 2 seam writers route through `safe_write_text` (`slice_queue_writer.py:817`, `slice_queue_claim.py:539`). `tests/methodology/test_vault_write_safety_audit.py` (27 APED-1) + `test_vault_write_safety_concurrency.py` (4, barrier-synchronized) EXIST and pass.
+- ADR-086 (revised in place, accepted) matches the built per-write-target AST audit + byte-fix + COUNT-pinned scoped-out PCR allowlist; design §Concurrency proof (v3 B1-corrected: append LOST-UPDATE prevention) matches the implemented test — no stale ">1024B interleaving" claim remains anywhere (grep-verified across design/mission-brief).
+- risk-register.md R-32: slice-094 paragraph added — Python-writer sub-class ENFORCED, flip-READINESS, stays `mitigating` (STP-1 clean: status not flipped; no live test contradicts). MEPD-1 INCLUDE version-bump legs (VERSION/plugin.yaml/pyproject/changelog/ai-sdlc-VERSION) all synced at 0.80.0 → MCFS-1/AVFS-1/TVFS-1/PMI-1/INST-1 verified exit 0.
+- shippability.md row #104 present (full 6-column, pipe-free; cites VWS-1 + ADR-086 + both entry-pin tests + vault_write_safety_audit). cp1252 `_ROOT_ONLY_TOOLS` + install_audit `_CANONICAL_TOOLS` + plugin.yaml enumerate the new tool.
+- No UNSPECIFIED CODE / no STALE CLAIM for the slice-094 surface: the v2/v3-first-pass false ">1024B interleaving" / "os.write-atomic ⇒ no corruption" claims were fully corrected (design + mission-brief + critique) before build.
+
+### Resolutions
+- None required — vault and code aligned for the slice-094 surface.

@@ -76,6 +76,7 @@ from pathlib import Path
 
 from tools import _stdout
 from tools._vault_paths import VAULT_ROOT
+from tools._vault_write import safe_write_text  # slice-094 VWS-1: R-32-safe routed write
 
 
 _TOP_N = 10
@@ -805,19 +806,15 @@ def write_slice_queue(
         active_slice_num=active_slice_num,
     )
 
-    # Atomic write: .tmp sibling + os.replace() (slice-071 m3 sibling
-    # cleanup: ``os`` is now module-level — drop the inline import).
-    # PSQ-2 (slice-072) explicit ``newline=""`` for LF-only byte-
-    # deterministic emission on Windows per Critic M1 ACCEPTED-FIXED
-    # (default ``newline=None`` translates ``\n``→``\r\n`` in text mode,
-    # breaking byte-equal claim-preservation round-trip assertions per
-    # modelcontextprotocol/python-sdk#2433 + runebook.dev TextIOWrapper
-    # docs). PSQ-1's existing pin tests assert against
-    # ``format_queue_md``'s pure-Python ``"\n".join(...)`` output so this
-    # change aligns the writer with the formatter — no PSQ-1 regression.
-    tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
-    tmp_path.write_text(body, encoding="utf-8", newline="")
-    os.replace(tmp_path, out_path)
+    # slice-094 (VWS-1): routed through _vault_write.safe_write_text — the
+    # R-32-safe vault writer (sidecar lock + LF-faithful newline="" + atomic
+    # os.replace + bounded EPERM-retry). Byte output is IDENTICAL to the prior
+    # inline .tmp + write_text(newline="") + os.replace pattern (safe_write_text
+    # is LF-faithful per slice-094 B1), so PSQ-1/PSQ-2 byte-equal
+    # claim-preservation round-trip assertions are preserved. NB: routing makes
+    # the WRITE atomic+locked; the read-modify-write window in the caller is a
+    # documented flip-residual (B2), not closed here.
+    safe_write_text(out_path, body)
     return out_path
 
 

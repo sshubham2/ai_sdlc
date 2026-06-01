@@ -1,8 +1,8 @@
 ---
 slice: slice-094-harden-vault-write-safety
-stage: critique
+stage: complete
 updated: 2026-06-01
-next-action: run /build-slice — TRI-1 verdict NEEDS-FIXES; ACCEPTED-PENDING items built in-slice; ACCEPTED-FIXED design-prose corrections applied
+next-action: none (slice complete) — HARD-STOP; user invokes /commit-slice --merge (R-33 master already integrated; version 0.80.0)
 risk-tier: medium
 critic-required: true
 ---
@@ -22,7 +22,13 @@ critic-required: true
 - [x] /design-slice (REDESIGN — flip-readiness scope) — 2026-06-01
 - [x] /critique (v2) — 2026-06-01 — NEEDS-FIXES (2B/2M/6m); TRI-1 ratified
 - [x] /critique-review (v2) — 2026-06-01 — EXTEND (+M-add-1 Major, +m-add-1/m-add-2 Minor)
-- [ ] /build-slice
+- [x] /design-slice (v3 REDESIGN — AC4 concurrency proof ONLY) — 2026-06-01 — >1024B interleaving empirically falsified at build (atomic os.write) → exclusive-holder EPERM-resilience for both primitives; ADR-086 unchanged
+- [x] /critique (v3 — AC4 proof correction) — 2026-06-01 — Critic BLOCKED (B1/B2 + M1/M2 + m1/m2; B1 = unlocked O_APPEND loses whole writes, Builder-confirmed by barrier probe); TRI-1 ratified **NEEDS-FIXES** (B2→Major)
+- [x] /critique-review (v3) — 2026-06-01 — **ADJUST** (B1 confirmed by independent un-barriered probe — not a barrier artifact; B2 Blocker→Major consequence-of-B1; +M-add-1 POSIX-canary; ACCEPTED-PENDING sound, no 3rd design round)
+- [x] /build-slice — **DONE (6/6 tasks; pre-finish PASS)** 2026-06-01: Step 0 merge ✓, Task 1 byte-fix ✓ (10/10), Task 2 routing ✓ (77 PSQ), Task 3 VWS-1 audit + APED-1 ✓ (27/27), Task 4 concurrency proof ✓ (4/4 + non-vacuity by real-lock-strip 10/20→0/20; AC4 redesigned mid-build via full Critic stack), Task 5 v0.80.0 5-part bump + entry-pins ✓, Task 6 shippability #104 + .gitignore *.tmp + R-32 reframe ✓. Mid-slice smoke ✓; 18-audit pre-finish gate all PASS; full suite 1405 passed.
+- [x] /code-review — 2026-06-01 — 0 Blockers / 1 Major / 3 Minors (advisory); M1 (VWS-1 fail-OPEN for un-enumerated channels os.rename/io.open/shutil) + m1 (bare O_CREAT FP) ACCEPTED-FIXED, m2/m3 accepted-documented; full suite re-verified 1410 passed
+- [x] /validate-slice — 2026-06-01 — **PASS** (5/5 ACs PASS w/ evidence; VAL-1 clean; WS-1/ETC-1 n/a; shippability 103/103 PASS 0 FAIL)
+- [x] /reflect — 2026-06-01 — YES-WITH-DEFERRALS; lessons captured, Critic calibration (B1 VALIDATED — caught a Builder error; zero false-alarms across 3 Critic layers), R-32 reframe, lessons-learned + reflection written
 - [ ] /validate-slice
 - [ ] /reflect
 

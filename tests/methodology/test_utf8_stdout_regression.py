@@ -109,6 +109,7 @@ _ROOT_ONLY_TOOLS = [
     "tools.stranded_slice_audit",  # slice-087 / ADR-079 (--repo-root/--root/--json, no positional slice arg; --root reaches stdout via the always-emit → header)
     "tools.stale_branch_classifier",  # slice-089 / ADR-081 (--repo-root/--root/--json, no positional slice arg; emits verdict to stdout against a real repo)
     "tools.skill_vault_write_safety_audit",  # slice-095 / SVW-1 (--root/--json, no positional slice arg; emits audit verdict to stdout)
+    "tools.vault_write_safety_audit",  # slice-094 / VWS-1 (--repo-root/--json, no positional slice arg; emits audit verdict to stdout)
 ]
 
 

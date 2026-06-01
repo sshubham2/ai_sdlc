@@ -64,7 +64,14 @@ def test_concurrent_writers_no_lost_update(tmp_path: Path) -> None:
 def test_concurrent_appenders_no_lost_update(tmp_path: Path) -> None:
     """N threads each append a UNIQUE line via safe_append_text. ALL N lines
     MUST survive — a whole-file read-modify-write would lose appends here; the
-    O_APPEND + lock path does not (M2 / field-recon.md:28,30)."""
+    O_APPEND + lock path does not (M2 / field-recon.md:28,30).
+
+    NOTE (slice-094 m1): this is a basic non-clobbering SMOKE only — THREADS +
+    tiny (9-byte) payloads, no lock-stripped mutation arm, so it is in the
+    GIL-masked / small-payload regime and CANNOT prove the R-32 append
+    lost-update hazard. The AUTHORITATIVE append-concurrency proof is
+    `test_vault_write_safety_concurrency.py` (multiprocessing-spawn + mp.Barrier
+    + lock-stripped mutation arm — verified non-vacuous)."""
     target = tmp_path / "append-log.md"
     target.write_text("", encoding="utf-8")
     n = 30
@@ -217,3 +224,66 @@ def test_append_retries_on_mocked_eperm(tmp_path: Path, monkeypatch: pytest.Monk
 
     assert calls["n"] == 3, "expected 2 EPERM failures then 1 success on os.open"
     assert "appended" in target.read_text(encoding="utf-8")
+
+
+# ─── slice-094 B1 / m-add-1: byte-faithfulness (LF-only, no CRLF) ──────────
+# Two-layer per slice-090: nt-skipif behavioral byte-identity + a cross-platform
+# structural guard, so the LF-fix is pinned even when the suite runs on POSIX
+# (where the CRLF bug cannot manifest).
+
+
+@pytest.mark.skipif(
+    os.name != "nt", reason="CRLF translation is a Windows-only hazard (os.linesep == '\\r\\n')"
+)
+def test_primitives_are_lf_byte_faithful_on_windows(tmp_path: Path) -> None:
+    """B1: both primitives MUST emit LF byte-identical to the canonical
+    newline='' writer — NOT CRLF. Pre-fix, safe_write_text (Path.write_text
+    text-mode default) AND safe_append_text (os.open text-mode default on
+    Windows) both translated \\n -> \\r\\n. Pins BOTH a small ASCII payload AND
+    a >1024-byte multibyte (non-ASCII UTF-8) payload (m-add-1) — the CRLF fix
+    interacts with both newline position AND the 1024-byte Windows write
+    boundary; a CRLF surviving past byte 1024 or a multibyte sequence straddling
+    the split would pass a small-ASCII test yet corrupt a real vault file."""
+    small = "alpha\nbeta\ngamma\n"
+    big = ("café-Müller-中文-" * 80) + "\n" + ("Ω≈ç√∫-行 " * 80) + "\n"
+    assert len(big.encode("utf-8")) > 1024, "the large-payload case must exceed the 1024B boundary"
+
+    for label, payload in [("small-ascii", small), ("large-multibyte", big)]:
+        # canonical reference: the exact pattern the seam writers use
+        canon = tmp_path / f"canon-{label}.md"
+        canon_tmp = canon.with_name(canon.name + ".tmp")
+        canon_tmp.write_text(payload, encoding="utf-8", newline="")
+        os.replace(canon_tmp, canon)
+        canon_bytes = canon.read_bytes()
+
+        w = tmp_path / f"write-{label}.md"
+        safe_write_text(w, payload)
+        assert w.read_bytes() == canon_bytes, f"safe_write_text not LF-faithful ({label})"
+        assert b"\r\n" not in w.read_bytes(), f"safe_write_text emitted CRLF ({label})"
+
+        a = tmp_path / f"append-{label}.md"
+        safe_append_text(a, payload)
+        assert a.read_bytes() == canon_bytes, f"safe_append_text not LF-faithful ({label})"
+        assert b"\r\n" not in a.read_bytes(), f"safe_append_text emitted CRLF ({label})"
+
+
+def test_byte_faithfulness_structural_guard() -> None:
+    """slice-090 two-layer discipline: a platform-independent structural guard
+    complementing the nt-skipif behavioral test — pins the LF-fix even when the
+    suite runs on POSIX. safe_write_text MUST pass newline='' to write_text;
+    safe_append_text MUST OR in O_BINARY on os.open."""
+    import inspect
+
+    sw = inspect.getsource(_vault_write.safe_write_text)
+    sa = inspect.getsource(_vault_write.safe_append_text)
+    assert 'newline=""' in sw, "safe_write_text lost its newline='' LF-faithfulness (B1)"
+    assert "O_BINARY" in sa, "safe_append_text lost its O_BINARY LF-faithfulness (B1)"
+
+
+def test_safe_append_preserves_append_semantics(tmp_path: Path) -> None:
+    """B1 guard: O_BINARY must NOT disturb O_APPEND — a second safe_append_text
+    appends, does not truncate. Cross-platform."""
+    target = tmp_path / "append-twice.md"
+    safe_append_text(target, "first\n")
+    safe_append_text(target, "second\n")
+    assert target.read_bytes() == b"first\nsecond\n"

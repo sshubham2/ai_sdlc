@@ -25,3 +25,8 @@ diagnose-out/
 # dogfooding `vault_edit append` left `lessons-learned.md.lock` behind; the full
 # .lock-accumulation cleanup remains deferred to the slice-094 flip.)
 *.lock
+# _vault_write atomic-write temp siblings (slice-094 VWS-1 / M4) — `safe_write_text`
+# writes `<name>.<pid>.tmp` then `os.replace`s it onto the target; a crash/contention
+# can leave one behind. The correct glob is `*.tmp` (v1's `*.<pid>.tmp` matched nothing —
+# temp files are `<name>.<pid>.tmp`). Never committed; never the replace target.
+*.tmp

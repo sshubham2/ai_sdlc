@@ -95,6 +95,7 @@ from pathlib import Path
 
 from tools import _stdout
 from tools._vault_paths import VAULT_ROOT
+from tools._vault_write import safe_write_text  # slice-094 VWS-1: R-32-safe routed write
 
 
 _QUEUE_FILENAME = "slice-queue.md"
@@ -525,15 +526,17 @@ def _rewrite_entry_lines(text: str, candidate: str, *, builder) -> str:
 
 
 def _atomic_write_text(path: Path, text: str) -> None:
-    """Write ``text`` to ``path`` atomically via .tmp + os.replace.
+    """Write ``text`` to ``path`` via the R-32-safe vault writer.
 
-    Uses explicit ``newline=""`` for LF-only byte-deterministic emission
-    on Windows (per Critic M1 ACCEPTED-FIXED — mirrors the slice-072
-    modification to ``tools.slice_queue_writer.write_slice_queue``).
+    slice-094 (VWS-1): routed through ``_vault_write.safe_write_text`` — sidecar
+    lock + LF-faithful ``newline=""`` + atomic ``os.replace`` + bounded
+    EPERM-retry. Byte output is IDENTICAL to the prior inline ``.tmp`` +
+    ``write_text(newline="")`` + ``os.replace`` pattern (``safe_write_text`` is
+    LF-faithful per slice-094 B1), so PSQ-2 byte-equal round-trip assertions are
+    preserved. The wrapper is retained so its callers are unchanged. NB: the
+    read-modify-write window in the callers is a documented flip-residual (B2).
     """
-    tmp_path = path.with_suffix(path.suffix + ".tmp")
-    tmp_path.write_text(text, encoding="utf-8", newline="")
-    os.replace(tmp_path, path)
+    safe_write_text(path, text)
 
 
 # ---------------------------------------------------------------------
