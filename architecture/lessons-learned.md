@@ -2057,3 +2057,16 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - Shell `>` redirection is NOT byte-safe (PowerShell -> UTF-16LE+BOM); byte-exact CLI data capture needs a tool `--out-file` flag (Python writes the bytes) or a binary subprocess pipe, NEVER `> file`. Strong BC-GLOBAL candidate.
 - A lexical audit's DETECTION verb-set and CLASSIFICATION verb-set must be a consistent PAIR — a verb in one but not the other silently drops or mis-classifies a site. A CLI-driving test must exercise the DOCUMENTED capture path, not a convenient in-process proxy.
 - "A Builder's own fix is a fresh claim" recurses through EVERY review layer — the meta-Critic caught it on my B1/B2 fixes, the code-Critic on my reflect:56 reword, and the Builder caught the code-Critic's OWN fix-suggestion being incomplete. Do not collapse the 3-Critic stack on write-safety/audit slices.
+
+
+## Slice 098 (route-or-retire-git-coupled-vault-tools) — 2026-06-02
+
+### Worked
+- The two-literal-class model (Class-A filesystem → ROUTE via VAULT_ROOT; Class-B git-string identity → never routed) cleanly partitioned the real coupling; the design+meta Critics enumerated it correctly (B1/M4). 3 git-coupled tools now flip-READY with the default still `architecture/` — no-flip byte-identity held (full suite 1450 PASS). Capability-without-flip (slice-093 pattern) again.
+
+### Didn't work
+- The per-pathspec `git ls-files` tracked-check (the design+meta-Critic keystone, ADR-089 r2) was UNSOUND for BOTH tools — it over-RETIRED stranded's branch-only-content fixtures AND missed PCR's B2 external-but-still-tracked corruption. Only EXECUTION (real fixtures + a control-flow trace) found it; both adversarial design passes ratified it. Replaced (user-ratified, twice) with the store-location `vault_is_external`.
+- The worktree-at-`/slice` model dropped the R-20 `diagnose-out/`+`graphify-out/` seed AGAIN (N=2 after slice-093) — manual re-seed; slice-099 (`create-worktree-at-slice-pick`) fixes it at the source.
+
+### Pattern
+- A guard signal that decides "is a git-tree read of vault CONTENT applicable" must key on store-LOCATION (vault outside the repo work tree), NOT per-file git-tracked-ness — branch-only content over-RETIREs and a transitional-tracked vault misses the corruption. EXECUTE a freshly-minted guard signal against the repo's real fixtures + trace the ACTUAL call graph at BUILD time; a design-time adversarial ratification is not proof. (Extends slice-087 classifier-execution + slice-091 real-runtime.) Strong /critic-calibrate probe candidate.

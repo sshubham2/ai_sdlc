@@ -163,3 +163,14 @@ def _resolve_vault_root() -> Path:
 
 
 VAULT_ROOT: Path = _resolve_vault_root()
+
+# slice-098 / [[ADR-089]]: an OPTIONAL cheap fast-path / observability flag — True
+# iff resolution fell through to the relative ``Path("architecture")`` default
+# (env unset AND no git-common-dir config). It is NOT the binding RETIRE gate:
+# the precise per-pathspec ``git ls-files --error-unmatch`` tracked-check in
+# ``tools/_vault_git.vault_pathspec_is_tracked`` is the binding signal (the proxy
+# conflates "fell through to default" with "git-untracked"). Frozen-at-import per
+# the consumer-freeze cascade. An env set to a relative ``"architecture"`` folds
+# to True here, which is harmless — the in-tree vault IS tracked, so the
+# downstream tracked-check runs git normally.
+VAULT_ROOT_IS_DEFAULT: bool = VAULT_ROOT == Path(_DEFAULT)

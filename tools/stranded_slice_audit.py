@@ -49,6 +49,8 @@ from enum import Enum
 from pathlib import Path
 
 from tools import _stdout
+from tools._vault_git import vault_is_external
+from tools._vault_paths import VAULT_ROOT
 from tools.branch_workflow_audit import _resolve_default_branch
 from tools.pulse_worktree_resolver import (
     WorktreeState,
@@ -163,7 +165,7 @@ def _load_claims(repo_root: Path) -> dict[str, str | None]:
     CLAIMED-BY-OTHER class simply never fires (B1 honesty: an in-flight branch
     is frequently absent from the top-10 queue, which is correct fall-through).
     """
-    queue = repo_root / "architecture" / "slice-queue.md"
+    queue = repo_root / VAULT_ROOT / "slice-queue.md"  # slice-098/ADR-089 Class-A ROUTE
     if not queue.is_file():
         return {}
     try:
@@ -297,15 +299,46 @@ def _classify_bare_branch(
             claimed_by, ahead, f"queue key {name!r} claimed by {claimed_by!r} (!= my identity)",
         )
 
+    # slice-098 / [[ADR-089]] M-add-2: materialize TWO derivations of each vault
+    # location — a forward-slash git PATHSPEC (Class B; for the bare-branch
+    # git-tree reads) and a VAULT_ROOT-routed filesystem PATH (Class A; for the
+    # invoking-tree fallback). On the no-flip default they coincide (VAULT_ROOT ==
+    # Path("architecture")); kept as SEPARATE objects so routing the filesystem one
+    # never corrupts the forward-slash git pathspec. `.as_posix()` keeps the
+    # pathspec forward-slash on Windows; a relative VAULT_ROOT (in-tree default OR
+    # external-but-tracked) yields a valid relative pathspec. An ABSOLUTE external
+    # VAULT_ROOT never reaches the git reads — the tracked-check guard RETIREs first.
+    archive_pathspec = (VAULT_ROOT / "slices" / "archive" / f"slice-{num}-{name}").as_posix()
+    milestone_pathspec = (VAULT_ROOT / "slices" / f"slice-{num}-{name}" / "milestone.md").as_posix()
+    archive_fs = repo_root / VAULT_ROOT / "slices" / "archive" / f"slice-{num}-{name}"
+    milestone_fs = repo_root / VAULT_ROOT / "slices" / f"slice-{num}-{name}" / "milestone.md"
+
+    # slice-098 / [[ADR-089]] M4 RETIRE-when-untracked: the bare-branch git-tree
+    # reads (_branch_tree_has_path AND _branch_tree_file — BOTH, not just `show`)
+    # only apply while the vault lives inside the repo (git-managed). Gate on the
+    # store-LOCATION signal `vault_is_external` — NOT a per-pathspec tracked-check:
+    # a stranded slice's vault content lives only on its unmerged BRANCH, never in
+    # the invoking tree's index, so `git ls-files` would over-RETIRE every in-tree
+    # stranded slice (the slice-098 build-time deviation, ratified into ADR-089).
+    # An external (flipped) vault has no branch-tree vault content → refuse VISIBLY
+    # (INDETERMINATE → halt) rather than letting a False git read silently downgrade
+    # to ORPHANED/not-stranded (the AC5 / R-7 silent-claim-drop class). Fires ONLY
+    # post-flip; on the no-flip default VAULT_ROOT is in-tree → guard passes → every
+    # read runs exactly as before.
+    if vault_is_external(repo_root):
+        return _entry(
+            branch, None, DivergenceClass.INDETERMINATE, "vault-external", claimed_by, ahead,
+            "vault external (VAULT_ROOT outside repo work tree) — bare-branch git-tree reads "
+            "inapplicable (ADR-089 RETIRE); stranded-state recovery deferred to the external-vault flip slice",
+        )
+
     # Read the BRANCH's OWN tree (M1) -- committed-tip (M-add-1 staleness named in design).
-    archive_path = f"architecture/slices/archive/slice-{num}-{name}"
-    if _branch_tree_has_path(repo_root, branch, archive_path):
+    if _branch_tree_has_path(repo_root, branch, archive_pathspec):
         return _entry(
             branch, None, DivergenceClass.STRANDED_COMPLETE, "archived", claimed_by, ahead,
             "archived on the branch's own tree, unmerged",
         )
-    milestone_path = f"architecture/slices/slice-{num}-{name}/milestone.md"
-    ms = _branch_tree_file(repo_root, branch, milestone_path)
+    ms = _branch_tree_file(repo_root, branch, milestone_pathspec)
     if ms is not None:
         stage = _frontmatter_field(ms, "stage")
         if _is_terminal(stage, _frontmatter_field(ms, "next-action")):
@@ -319,12 +352,12 @@ def _classify_bare_branch(
         )
 
     # Secondary fallback: the invoking tree's vault (branch may share it if not yet diverged).
-    if (repo_root / archive_path).exists():
+    if archive_fs.exists():
         return _entry(
             branch, None, DivergenceClass.STRANDED_COMPLETE, "archived(invoking-tree)",
             claimed_by, ahead, "archived in the invoking tree, unmerged",
         )
-    inv_ms = repo_root / milestone_path
+    inv_ms = milestone_fs
     if inv_ms.is_file():
         txt = inv_ms.read_text(encoding="utf-8")
         stage = _frontmatter_field(txt, "stage")
@@ -366,7 +399,7 @@ def _branchless_in_flight_slices(
     re-introduce the cry-wolf the slice-087 reframe killed.
     """
     out: list[StrandedEntry] = []
-    slices_dir = repo_root / "architecture" / "slices"
+    slices_dir = repo_root / VAULT_ROOT / "slices"  # slice-098/ADR-089 Class-A ROUTE
     if not slices_dir.is_dir():
         return out  # no vault slices dir -> nothing to surface (advisory-never-blocking)
     for child in sorted(slices_dir.iterdir()):

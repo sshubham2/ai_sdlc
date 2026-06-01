@@ -614,3 +614,18 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - **One intentional pending item (NOT a build defect)**: `architecture/risk-register.md` R-32's residual note still reads "skill-driven RMW deferred" (the pre-slice-097 text). Per design.md §R-32 disposition, the R-32 narrowing (skill-driven RMW sub-class CLOSED; residual = 3 git-coupled tools + flip mechanics) is recorded **at /reflect**, which dogfoods `vault_edit rewrite` on the real CRLF `risk-register.md` + `_index.md` (the m-add-2 live-fire). R-32 status stays `mitigating` (STP-1 clean — not flipped). Closed at /reflect.
+
+## Audit 2026-06-02 (slice-098-route-or-retire-git-coupled-vault-tools)
+
+**Trigger**: slice-098 pre-finish gate (/build-slice Step 6)
+**Scope**: full (active slice-098 mission-brief/design.md r3 + ADR-089 + risk-register R-32 vs `tools/_vault_git.py` [new] + `tools/_vault_paths.py` [VAULT_ROOT_IS_DEFAULT] + `tools/parallel_conflict_resolver.py` + `tools/stranded_slice_audit.py` + `tools/pulse_worktree_resolver.py` + the migration pins `tests/methodology/{test_vault_root_constant,test_external_vault_adr_and_risk}.py`)
+**Result**: CLEAN — vault and code aligned; no drift.
+
+- `design.md` r3 "What's new" all present in code: `vault_is_external(repo_root)` + `vault_pathspec_is_tracked(repo_root, pathspec)` + `VaultGitUnavailable` in new `tools/_vault_git.py`; frozen `VAULT_ROOT_IS_DEFAULT` in `tools/_vault_paths.py`; Class-A `<root>/VAULT_ROOT/<subpath>` routing in all 3 tools; `_retire_if_vault_external` resolve-entry guard in PCR (resolve_soft + resolve_vault_claim); `vault_is_external` INDETERMINATE RETIRE in stranded (both `_branch_tree_has_path`/`_branch_tree_file`); M-add-2 dual-class derivations in stranded.
+- **As-built deviation (USER-RATIFIED, documented)**: binding RETIRE signal is the store-location `vault_is_external` (UNIFORM PCR+stranded), NOT the r2 per-pathspec `git ls-files` tracked-check (which missed PCR's B2 external-abs-but-still-tracked corruption + over-RETIRED stranded's branch-only-content fixtures). `vault_pathspec_is_tracked` retained as a tested primitive. ADR-089 §Decision/§Consequences/§Residual + design.md AS-BUILT banner + build-log DEVIATION (2026-06-02) all record it.
+- `ADR-089` (`status: accepted`, `reversibility: cheap`, `supersedes: null`) matches the built two-literal-class routing + vault_is_external RETIRE + KEEP. MEPD-1 EXCLUDE (underscore-prefixed new module `tools/_vault_git.py` → no PMI-1 inventory fan-out; no new RULE-ID / no methodology-changelog entry / no VERSION bump) — PMI-1/MCFS-1/AVFS-1/TVFS-1 unaffected (VERSION stays 0.80.0).
+- Class-B git-string identities (`_SOFT_FILE_SET`, `qrel`/`srel`, `git show :N:`/`git add` pathspecs, `regenerated_files`) carry the slice-068 two-marker `# NOT VAULT_ROOT-routed (slice-068)` convention (21 marked lines in PCR) — orphan-literal audit CLEAN.
+- Migration pins transitioned: `_MIGRATION_SITE_ALLOWLIST` 11→14 (the 3 git-coupled tools added); slice-093 AC4 "migrate-NONE" test updated to 14 + positive migration assertions. STP-1 clean (R-32 stays `mitigating` — not flipped). Full suite **1450 PASS**.
+
+### Resolutions
+- No drift to resolve. R-32 stays `mitigating` (advances toward retirement-at-flip; the actual flip is slice-099+, out of scope).
