@@ -25,8 +25,7 @@ DETECTION MODEL (fail-closed; Critic M1/M3):
      (``_DIRECTIVE_VERBS``) governs (appears before) a backticked-or-
      ``architecture/``-path reference to a shared file. Bare mentions (no
      directive verb, or an un-backticked filename) are NOT sites; a verb used
-     as a NOUN immediately after a code span (e.g. ``\`X.md\` edit``) is
-     excluded.
+     as a NOUN immediately after a code span is excluded.
   3. Verdict per site (line-local, fail-closed): CLEAN iff the line carries a
      safe-route token (``_SAFE_ROUTE_TOKENS``) OR a valid exemption marker
      ``<!-- vault-write-safe: <reason> -->`` whose ``<reason>`` is in the
@@ -172,8 +171,8 @@ def _is_mutation_site(line: str) -> bool:
         the cross-project global, NOT the ``architecture/`` vault (reflect:207).
       - a verb that is part of a hyphen-compound (``post-write`` / ``read-modify-
         write``) — the verb is a noun there, not a directive (reflect:209).
-      - a verb used as a NOUN right after a code span (``\`X.md\` edit``) —
-        build-slice:394.
+      - a verb used as a NOUN right after a code span (the build-slice:394
+        "SKILL.md edit + risk-register.md flip" descriptive-prose shape).
     """
     for ref in _SHARED_REF_RE.finditer(line):
         if ".claude" in ref.group():

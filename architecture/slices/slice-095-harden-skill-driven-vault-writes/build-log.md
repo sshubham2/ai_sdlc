@@ -18,6 +18,10 @@
 - 2026-06-01 01:32 TEST: SVW-1 audit on ROUTED tree → CLEAN exit 0 (26 skills, 21 sites: 10 routed, 11 exempted); exemption set == pinned allowlist (found==allow, 0 off-allowlist, 0 missing).
 - 2026-06-01 01:35 SMOKE: MID-SLICE GATE PASS — (a) audit clean on routed tree; (b) audit fail-closed on planted raw write (1 violation) + clean on routed variant; (c) vault_edit append preserves both lines rc=0; ..-escape rejected rc=2. Concurrency proof = Phase D.
 
+- 2026-06-01 02:10 BUILD: Phase E wired SVW-1 into build-slice Step-6 + validate-slice gate rosters. Phase F in-repo fan-out: plugin.yaml (+2 tools, v0.79.0), install_audit _CANONICAL_TOOLS (+2 = 38), cp1252 parity (+skill_vault to _ROOT_ONLY_TOOLS, +bespoke vault_edit test), VERSION 0.79.0, pyproject 0.79.0, changelog ## v0.79.0 (SVW-1), shippability row #102. Renamed version-sync test _at_v_0_78_0 → _0_79_0. Fixed `\`` SyntaxWarning in audit docstrings.
+- 2026-06-01 02:12 TEST: in-repo audits GREEN — PMI-1 (38 tools, v0.79.0), UTF8-STDOUT-1 (38/38), SVW-1 clean, WIRE-1 clean, META-1 changelog (130 pass), version-sync, cp1252 parity, PVFS-1, INST-1 pairing, + new SVW tests (19). 222→223 pass after version-test rename.
+- 2026-06-01 02:15 DEVIATION: parallel-version-bump axis (R-28/R-33, design-flagged) — AVFS-1/MCFS-1/TVFS-1 DRIFT + OSDG-1 (reflect/build-slice) FAIL because in-repo bumped to 0.79.0 but shared ~/.claude install + venv pip still 0.78.0. CAD-1 clean (agent untouched). Forward-sync to the shared install + `pip install --upgrade` is the prescribed fix but mutates the install parallel slice-094 reads + risks the editable-master link → CHECKPOINTING for user direction before touching the shared install.
+
 ## Summary (filled at slice end)
 
 ### Plan executed

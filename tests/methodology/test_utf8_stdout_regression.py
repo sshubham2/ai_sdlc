@@ -108,6 +108,7 @@ _ROOT_ONLY_TOOLS = [
     "tools.pulse_worktree_resolver",  # slice-077 / ADR-070 (--detect/--classify/--json/--repo-root, no positional slice arg)
     "tools.stranded_slice_audit",  # slice-087 / ADR-079 (--repo-root/--root/--json, no positional slice arg; --root reaches stdout via the always-emit → header)
     "tools.stale_branch_classifier",  # slice-089 / ADR-081 (--repo-root/--root/--json, no positional slice arg; emits verdict to stdout against a real repo)
+    "tools.skill_vault_write_safety_audit",  # slice-095 / SVW-1 (--root/--json, no positional slice arg; emits audit verdict to stdout)
 ]
 
 
@@ -353,6 +354,31 @@ def test_shippability_runner_survives_cp1252_with_u2192(tmp_path):
         [PY, "-m", "tools.shippability_runner", str(catalog)],
     )
     _assert_no_encoding_error(proc, "tools.shippability_runner")
+
+
+def test_vault_edit_survives_cp1252_with_u2192(tmp_path):
+    """vault_edit takes `append --file ... --content-file/--stdin` + an
+    AI_SDLC_VAULT_ROOT env (no --root) — a bespoke test mirrors the
+    install_audit / slice_queue_claim precedent (slice-095 / SVW-1). Appends
+    U+2192 / U+2014 content under cp1252 to confirm the wrapper's
+    `reconfigure_stdout_utf8()` keeps stdout/stderr safe."""
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    content = tmp_path / "entry.md"
+    content.write_text("- risk → with em-dash — under cp1252\n", encoding="utf-8")
+    env = {
+        **os.environ,
+        "AI_SDLC_VAULT_ROOT": str(vault),
+        "PYTHONIOENCODING": "cp1252",
+        "PYTHONUTF8": "0",
+    }
+    proc = subprocess.run(
+        [PY, "-m", "tools.vault_edit", "append", "--file", "risk-register.md",
+         "--content-file", str(content)],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        env=env, cwd=str(REPO_ROOT),
+    )
+    _assert_no_encoding_error(proc, "tools.vault_edit")
 
 
 # ---------------------------------------------------------------------------
