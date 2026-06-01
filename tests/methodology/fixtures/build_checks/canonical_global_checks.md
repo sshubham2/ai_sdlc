@@ -99,3 +99,18 @@ Then **Check**, **Rationale**, **Validation hint**.
 **Rationale**: Generic to any project that captures subprocess output as text on a mixed-platform team. The failure is silent-by-default (swallowed reader-thread decode, locale-dependent) so it passes CI on a UTF-8 host and only bites on a legacy-code-page host — exactly the kind of environment-specific, hard-to-reproduce defect a permanent build-check exists to pre-empt. The fix is a one-token kwarg per text-capturing call.
 
 **Validation hint**: Grep for subprocess/Popen/check_output (or the language equivalent) that captures output in text mode; confirm each passes an explicit UTF-8 encoding. In Python: every `text=True`/`universal_newlines=True` capture also carries `encoding="utf-8"`; byte-mode captures (no text mode) are exempt. Confirm no `errors="replace"`/lossy fallback on the captured stream.
+
+## BC-GLOBAL-6 — Byte-exact CLI output capture must use a tool flag or a binary pipe, never shell `>` redirection (PowerShell `>` re-encodes to UTF-16LE+BOM)
+
+**Severity**: Important
+**Applies to**: **
+**Promoted from**: ai_sdlc slice-097-harden-skill-driven-vault-rewrites (2026-06-01) — the documented `vault_edit read --file X > base.bin` compare-and-swap base capture would have corrupted the base on the project's default shell (PowerShell `>` = `Out-File` = UTF-16LE+BOM), making every CAS attempt a false-conflict → livelock. The program's own stdout write was byte-correct; the shell `>` the prose prescribed was the bug. Caught by the code-Critic's empirical PowerShell probe; the concurrency test masked it by capturing the base in-process.
+**Trigger keywords**: redirect, redirection, powershell, out-file, byte-exact, checksum, base capture, utf-16, bom
+**Trigger anchors**: redirect, powershell, out-file, utf-16, bom
+**Negative anchors**: aggregated lessons, meta-discussion, false positive, calibration, disposition, methodology-changelog
+
+**Check**: When a script captures a process's RAW / byte-exact output to a file that is LATER read for byte-comparison (a compare-and-swap base, a checksum input, a binary artifact), it MUST NOT use shell `>` / `>>` redirection. On the default Windows shell (PowerShell), `>` is an alias for `Out-File`, which re-encodes the captured stdout as UTF-16LE WITH a BOM — the saved bytes no longer match the source, so any byte-comparison/CAS/hash permanently false-mismatches. Instead, use a tool-provided `--out-file` / `-o` flag so the PROGRAM writes the raw bytes itself, OR capture via a binary subprocess pipe (e.g. Python `subprocess.run(..., capture_output=True)` reading `.stdout` as `bytes`). Text-only captures where exact bytes are irrelevant are exempt.
+
+**Rationale**: Generic to any cross-platform tool whose output is later compared byte-for-byte. The corruption is silent and shell-specific: `command > file` works on bash/POSIX but mangles bytes under PowerShell, so it passes on one machine and fails on another — or drives a compare-and-swap / checksum into a permanent false-mismatch (a livelock or a spurious "changed" verdict). It is exactly the environment-specific, hard-to-reproduce defect a permanent build-check exists to pre-empt; the fix is a one-flag change (have the program write the bytes).
+
+**Validation hint**: Grep prose / scripts for `> ` / `>> ` redirection whose target file is later read for byte-comparison, hashing, or as a binary base; confirm each uses a tool `--out-file` / `-o` flag or a binary subprocess pipe instead. On Windows/PowerShell, treat any `> file`-style byte capture as suspect; in Python, prefer `capture_output=True` + `.stdout` (bytes) over shell redirection for byte-exact data.

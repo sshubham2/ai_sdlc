@@ -1,10 +1,15 @@
-"""SVW-1 — skill-driven vault-write-safety audit (slice-095 / [[ADR-087]]).
+"""SVW-1 — skill-driven vault-write-safety audit (slice-095 / [[ADR-087]];
+op-class-aware RMW enforcement added slice-097 / [[ADR-088]]).
 
 The skill-driven counterpart of slice-094's VWS-1 (which AST-audits
 ``tools/*.py`` Python writers). SVW-1 statically scans ``skills/*/SKILL.md``
 prose for any *directive* that mutates a **shared-aggregate** vault file
-without routing through the ``vault_edit append`` safe channel (or carrying a
-sanctioned exemption marker).
+without routing through an OP-CLASS-CORRECT safe channel — ``vault_edit append``
+(append class) or ``vault_edit rewrite`` (read-modify-write class) — or carrying
+a sanctioned exemption marker. The ``deferred-rmw`` exemption was RETIRED at
+slice-097: the RMW sub-class is now ENFORCED (compare-and-swap), and a
+rewrite-class directive (``regenerate``/``rewrite``) routed through the
+lost-update-UNSAFE ``append`` channel is a ``channel-mismatch`` VIOLATION.
 
 HONEST SCOPE (Critic B1 / [[ADR-029]]): SVW-1's guarantee is over the
 **prose-detection surface** — no SKILL.md *prescribes* an unsafe raw mutation
@@ -33,13 +38,18 @@ slice-095 code-review):
      ``_DIRECTIVE_VERBS`` residual note). Fenced regions are tracked
      CommonMark-style (char + length; m1) so real prose after a malformed
      nested fence is no longer silently dropped.
-  3. Verdict per site (fail-closed): CLEAN iff the line carries a GENUINE
-     safe-route reference (a route token inside a backtick code span or a
-     ``<!-- route: ... -->`` marker, not locally negated — ``_is_routed``; M1)
-     OR a valid exemption marker ``<!-- vault-write-safe: <reason> -->`` whose
-     ``<reason>`` is in the closed ``_EXEMPT_REASONS`` enum. A BARE/negated
-     route mention ("do NOT use tools.vault_edit append"), an unrouted site, or
-     an unknown exemption reason → VIOLATION. The exempt-site *allowlist*
+  3. Verdict per site (fail-closed, OP-CLASS-AWARE — ``_route_class`` +
+     ``_verdict``; slice-097): a route reference counts only inside a backtick
+     code span or ``<!-- route: ... -->`` marker, un-negated, and must NAME its
+     subcommand (the bare ``tools.vault_edit`` token is RETIRED — B-add-1). A
+     REWRITE route → CLEAN (safe for any class). An APPEND route → CLEAN UNLESS a
+     rewrite-class verb (``regenerate``/``rewrite``) governs the site, in which
+     case it is a ``channel-mismatch`` VIOLATION (an RMW down the unsafe append
+     channel). No route + valid ``<!-- vault-write-safe: <reason> -->`` (reason in
+     the closed ``_EXEMPT_REASONS`` enum — now ``{project-open-single-shot}``) →
+     exempted; else → unrouted VIOLATION. A BARE/negated route mention, an
+     unrouted site, an unknown/retired exemption reason (incl. ``deferred-rmw``),
+     or a channel-mismatch → VIOLATION. The exempt-site *allowlist*
      ``_REGISTERED_SKILL_EXEMPTIONS`` is pinned at per-(file, reason) COUNT
      granularity by ``test_exemption_allowlist_pinned`` (M3): a NEW off-allowlist
      exemption OR an N+1-th marker on an already-listed file trips a regression —
@@ -96,6 +106,11 @@ _DIRECTIVE_VERBS: tuple[str, ...] = (
     # lexicon missed (insert/replace/... all passed CLEAN — the fail-OPEN hole
     # the design's "fail-closed" claim overstated).
     "insert", "replace", "prepend", "modify", "amend", "create",
+    # slice-097 /code-review M2: "rewrite" was in _REWRITE_CLASS_VERBS (op-class)
+    # but NOT here, so a site led by "Rewrite ... in place" was not DETECTED as a
+    # mutation site at all (`\bwrite\b` does not match inside "Rewrite"). Adding it
+    # makes such a site both detected AND rewrite-class (channel-mismatch-protected).
+    "rewrite",
 )
 # LEXICON-BOUND RESIDUAL (honest scope, M2): recognition is verb-lexicon-bounded,
 # so the "fail-closed" guarantee is over RECOGNIZED directive verbs — NOT a
@@ -111,23 +126,52 @@ _DIRECTIVE_RE = re.compile(
     r"\b(?:" + "|".join(_DIRECTIVE_VERBS) + r")\b", re.IGNORECASE
 )
 
-# Line-local CLEAN signals. A safe-route reference is a route token that
-# appears INSIDE a backtick code span (the corpus convention `tools.vault_edit
-# append` / `$PY -m tools.vault_edit ...`) OR inside an HTML route marker
-# `<!-- route: ... -->`. A BARE prose mention of a route token does NOT clean a
-# mutation site — it is description, not a routing instruction (M1, slice-095
-# code-review): "...raw (do NOT use tools.vault_edit append)", "NOT via
-# safe_append_text", "predates _vault_write" must all stay VIOLATION.
-_SAFE_ROUTE_TOKENS: tuple[str, ...] = (
-    "tools.vault_edit", "vault_edit append", "safe_append_text", "_vault_write",
-)
-_ROUTE_TOKEN_ALT = "|".join(re.escape(t) for t in _SAFE_ROUTE_TOKENS)
-# A route token inside a backtick code span.
-_ROUTE_IN_CODESPAN_RE = re.compile(r"`[^`\n]*(?:" + _ROUTE_TOKEN_ALT + r")[^`\n]*`")
-# A route token inside an HTML `<!-- route: ... -->` marker (end-of-line form
-# used by reflect/reduce — the route token is not backticked there).
-_ROUTE_MARKER_RE = re.compile(
-    r"<!--\s*route:[^>]*(?:" + _ROUTE_TOKEN_ALT + r")[^>]*-->"
+# Line-local CLEAN signals, OP-CLASS-AWARE (slice-097 / [[ADR-088]]; critique B2 +
+# critique-review B-add-1). A safe-route reference is a route token INSIDE a
+# backtick code span (corpus convention `vault_edit append` / `$PY -m
+# tools.vault_edit rewrite ...`) OR an HTML `<!-- route: ... -->` marker,
+# un-negated. Tokens are OP-CLASSED so the audit distinguishes an APPEND route
+# from a REWRITE route:
+#   - APPEND-class  → safe for the append sub-class (O_APPEND, non-clobbering).
+#   - REWRITE-class → safe for the read-modify-write sub-class (compare-and-swap;
+#     also safe for an append, just heavier).
+# The BARE `tools.vault_edit` / `_vault_write` tokens are RETIRED as standalone
+# clean signals (B-add-1): they name NO subcommand, so a flat-OR first-hit match
+# on the bare substring would clean a rewrite-class site that cites the
+# lost-update-UNSAFE `append` — the exact "append masquerading as a rewrite" trap
+# the must-not-defer forbids. A route reference must NAME its subcommand to be
+# op-class-classifiable. (Every existing slice-095 append route cites
+# `vault_edit append` explicitly, so the retirement un-routes nothing — verified
+# against the corpus at slice-097 build.)
+# A BARE prose mention still does NOT clean a site (M1, slice-095): "do NOT use
+# `tools.vault_edit append`", "NOT via `safe_append_text`" stay VIOLATION via the
+# negation look-back below.
+_APPEND_ROUTE_TOKENS: tuple[str, ...] = ("vault_edit append", "safe_append_text")
+_REWRITE_ROUTE_TOKENS: tuple[str, ...] = ("vault_edit rewrite", "safe_rewrite_text")
+
+
+def _codespan_re(tokens: tuple[str, ...]) -> "re.Pattern[str]":
+    alt = "|".join(re.escape(t) for t in tokens)
+    return re.compile(r"`[^`\n]*(?:" + alt + r")[^`\n]*`")
+
+
+def _marker_re(tokens: tuple[str, ...]) -> "re.Pattern[str]":
+    alt = "|".join(re.escape(t) for t in tokens)
+    return re.compile(r"<!--\s*route:[^>]*(?:" + alt + r")[^>]*-->")
+
+
+_APPEND_CODESPAN_RE = _codespan_re(_APPEND_ROUTE_TOKENS)
+_APPEND_MARKER_RE = _marker_re(_APPEND_ROUTE_TOKENS)
+_REWRITE_CODESPAN_RE = _codespan_re(_REWRITE_ROUTE_TOKENS)
+_REWRITE_MARKER_RE = _marker_re(_REWRITE_ROUTE_TOKENS)
+# Unambiguous read-modify-write directive verbs (a subset of _DIRECTIVE_VERBS). A
+# site governed by one of these REQUIRES a REWRITE-class route — an append route
+# is a channel-mismatch VIOLATION. Ambiguous verbs (`update`/`write`/`edit`) are
+# NOT in this set (the documented lexical ceiling): an RMW phrased with them and
+# mis-routed via append is the honest residual, not silently closed.
+_REWRITE_CLASS_VERBS: tuple[str, ...] = ("regenerate", "rewrite")
+_REWRITE_VERB_RE = re.compile(
+    r"\b(?:" + "|".join(_REWRITE_CLASS_VERBS) + r")\b", re.IGNORECASE
 )
 # A negation GOVERNING a route reference (within the ~2 words immediately before
 # it) demotes that reference: "do NOT use `tools.vault_edit append`" /
@@ -143,7 +187,10 @@ _NEGATION_RE = re.compile(
 )
 _EXEMPTION_RE = re.compile(r"<!--\s*vault-write-safe:\s*([a-z0-9-]+)\s*-->")
 _EXEMPT_REASONS: frozenset[str] = frozenset({
-    "deferred-rmw",            # read-modify-write residual deferred to the flip slice
+    # "deferred-rmw" RETIRED at slice-097 ([[ADR-088]]): the read-modify-write
+    # sub-class is now ENFORCED (route via `vault_edit rewrite` / compare-and-swap),
+    # not deferred. A lingering `deferred-rmw` marker is now an
+    # unknown-exemption-reason VIOLATION — the deferral is un-re-claimable.
     "project-open-single-shot",  # project-lifecycle writer, not a parallel hazard
 })
 
@@ -154,11 +201,10 @@ _EXEMPT_REASONS: frozenset[str] = frozenset({
 # unlimited new `deferred-rmw` markers to reflect/archive (pair already listed) —
 # including next to a genuinely-unsafe append — without tripping the regression.
 # slice-041 _REGISTERED_* shape. Total across all pairs == the audit's exemption
-# count (currently 12).
+# count (currently 3 — the 3 `deferred-rmw` rows RETIRED at slice-097 / [[ADR-088]],
+# their 9 sites now ROUTED via `vault_edit rewrite`/`vault_edit append`, leaving
+# only the project-open-single-shot class).
 _REGISTERED_SKILL_EXEMPTIONS: dict[tuple[str, str], int] = {
-    ("skills/reflect/SKILL.md", "deferred-rmw"): 3,          # :56 risk-status RMW + :321/:322 _index RMW
-    ("skills/archive/SKILL.md", "deferred-rmw"): 5,          # :27/:58/:75/:131/:177 _index regenerate (RMW)
-    ("skills/supersede-slice/SKILL.md", "deferred-rmw"): 1,  # :103 _index superseded-row edit (RMW)
     ("skills/discover/SKILL.md", "project-open-single-shot"): 1,    # :113 risk-register (project open)
     ("skills/risk-spike/SKILL.md", "project-open-single-shot"): 1,  # :148 risk-register (spike)
     ("skills/triage/SKILL.md", "project-open-single-shot"): 1,      # :179 risk-register (project open) — surfaced by the m1 CommonMark fence fix; this line renders OUTSIDE the triage.md template fence
@@ -185,7 +231,7 @@ _FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
 class Violation:
     file: str       # repo-relative SKILL.md path
     line: int
-    kind: str       # "unrouted" | "unknown-exemption-reason"
+    kind: str       # "unrouted" | "unknown-exemption-reason" | "channel-mismatch"
     message: str
 
     def to_dict(self) -> dict:
@@ -252,34 +298,68 @@ def _is_mutation_site(line: str) -> bool:
     return False
 
 
-def _is_routed(line: str) -> bool:
-    """True iff the line carries a GENUINE safe-route reference.
+def _route_class(line: str) -> str | None:
+    """Return the OP-CLASS of a genuine (un-negated, in-codespan-or-marker) route
+    reference on the line: ``"rewrite"`` | ``"append"`` | ``None``.
 
-    A route token counts only when it appears inside a backtick code span or an
-    HTML ``<!-- route: ... -->`` marker (the two corpus conventions), AND is not
-    locally negated. M1 (slice-095 code-review): a bare prose mention
-    ("do NOT use tools.vault_edit append", "NOT via safe_append_text",
-    "predates _vault_write") is description, not routing, and must NOT
-    false-CLEAN; a backticked-but-negated reference is likewise demoted. The
-    ~2-word look-back keeps a downstream "never a raw ``Write``/``Edit``" safety
-    assertion (which governs the RAW write, not the route token) CLEAN.
-    """
-    for m in list(_ROUTE_IN_CODESPAN_RE.finditer(line)) + list(
-        _ROUTE_MARKER_RE.finditer(line)
+    A REWRITE route is reported even if an APPEND token also appears (a rewrite
+    channel is safe for both classes). The ~2-word negation look-back (M1,
+    slice-095) demotes a described-not-prescribed reference ("do NOT use
+    ``vault_edit append``", "NOT via ``safe_append_text``")."""
+    for cls, codespan_re, marker_re in (
+        ("rewrite", _REWRITE_CODESPAN_RE, _REWRITE_MARKER_RE),
+        ("append", _APPEND_CODESPAN_RE, _APPEND_MARKER_RE),
     ):
-        preceding = " ".join(line[: m.start()].split()[-_NEG_LOOKBACK_WORDS:])
-        if _NEGATION_RE.search(preceding):
-            continue  # negation governs this route reference — not a real route
-        return True
+        for m in list(codespan_re.finditer(line)) + list(marker_re.finditer(line)):
+            preceding = " ".join(line[: m.start()].split()[-_NEG_LOOKBACK_WORDS:])
+            if _NEGATION_RE.search(preceding):
+                continue  # negation governs this route reference — not a real route
+            return cls
+    return None
+
+
+def _site_verb_is_rewrite_class(line: str) -> bool:
+    """True iff an unambiguous REWRITE-class verb (``regenerate``/``rewrite``)
+    GOVERNS a shared-file reference on the line — mirrors ``_is_mutation_site``'s
+    governing rule (precede + not hyphen-compound + not noun-after-codespan),
+    restricted to the rewrite-class lexicon. Such a site REQUIRES a rewrite-class
+    route; an append route on it is a channel-mismatch VIOLATION."""
+    for ref in _SHARED_REF_RE.finditer(line):
+        if ".claude" in ref.group():
+            continue
+        for m in _REWRITE_VERB_RE.finditer(line):
+            if m.start() >= ref.start():
+                continue  # verb must GOVERN (precede) the file reference
+            if m.start() > 0 and line[m.start() - 1] == "-":
+                continue  # hyphen-compound (read-modify-write)
+            if "`" in line[max(0, m.start() - 2):m.start()]:
+                continue  # noun-usage right after a code span
+            return True
     return False
 
 
 def _verdict(line: str) -> tuple[str, str | None]:
-    """Return (verdict, detail) for a mutation-site line.
+    """Return (verdict, detail) for a mutation-site line, OP-CLASS-AWARE
+    (slice-097 / [[ADR-088]]; critique B2 + critique-review B-add-1).
 
-    ("routed", None) | ("exempted", reason) | ("violation", kind).
+    ("routed", None) | ("exempted", reason) | ("violation", kind), kind ∈
+    {"unrouted", "unknown-exemption-reason", "channel-mismatch"}.
+
+    Rules (asymmetric — only the UNSAFE direction is a violation):
+      - REWRITE route present                 → routed (safe for any op-class).
+      - APPEND route + rewrite-class verb      → channel-mismatch VIOLATION (an RMW
+        routed through the lost-update-UNSAFE append channel — the must-not-defer
+        "append masquerading as a rewrite" trap).
+      - APPEND route + non-rewrite-class verb  → routed (append verb, append route).
+      - no route + valid exemption             → exempted.
+      - no route                               → unrouted VIOLATION.
     """
-    if _is_routed(line):
+    route_cls = _route_class(line)
+    if route_cls == "rewrite":
+        return ("routed", None)
+    if route_cls == "append":
+        if _site_verb_is_rewrite_class(line):
+            return ("violation", "channel-mismatch")
         return ("routed", None)
     m = _EXEMPTION_RE.search(line)
     if m:
@@ -343,14 +423,22 @@ def audit_root(root: Path) -> AuditResult:
                 if detail == "unknown-exemption-reason":
                     msg = (
                         f"exemption marker with reason not in {sorted(_EXEMPT_REASONS)} "
-                        f"— a vault mutation must route through `vault_edit append` "
-                        f"or carry a sanctioned exemption"
+                        f"(note: `deferred-rmw` was RETIRED at slice-097 — route the "
+                        f"RMW site through `vault_edit rewrite`, do not re-defer)"
+                    )
+                elif detail == "channel-mismatch":
+                    msg = (
+                        "rewrite-class mutation (regenerate/rewrite of a shared-aggregate "
+                        "vault file) routed through the lost-update-UNSAFE `vault_edit "
+                        "append` channel — route it through `vault_edit rewrite` "
+                        "(compare-and-swap; R-32 RMW class, [[ADR-088]])"
                     )
                 else:
                     msg = (
                         "unrouted skill-driven mutation of a shared-aggregate vault "
-                        "file — route through `vault_edit append` (append class) or "
-                        "add `<!-- vault-write-safe: <reason> -->` (rewrite/project-open)"
+                        "file — route through `vault_edit append` (append class) / "
+                        "`vault_edit rewrite` (read-modify-write class) or add "
+                        "`<!-- vault-write-safe: project-open-single-shot -->`"
                     )
                 result.violations.append(
                     Violation(file=rel, line=i, kind=detail or "unrouted", message=msg)  # type: ignore[arg-type]

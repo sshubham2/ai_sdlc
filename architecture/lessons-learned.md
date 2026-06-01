@@ -2042,3 +2042,18 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **Barrier-synchronize concurrency proofs**; prove non-vacuity by mutation (slice-092). An un-barriered spawn pool proves nothing about contention.
 - A **versioned test RENAME** (the `_at_v_0_NN_0` version-gate) orphans every shippability row / citation referencing it by name — grep the OLD name repo-wide before finishing a version bump. The count-literal fan-out (N≥3) is always wider than the design's checklist (this bump broke 2 INSTALL.md inventory pins + 1 stale citation the checklist missed).
 - State which property a test actually proves: "atomic write" is channel-specific (`os.write` byte-atomicity ≠ concurrent-`O_APPEND` lost-update safety).
+
+## Slice 097 (harden-skill-driven-vault-rewrites) — 2026-06-01
+
+### Worked
+- Compare-and-swap closed the skill-driven RMW class WITHOUT holding a lock across an LLM read+edit — beat the held-lease (stranded-lease risk) and structured-transform (doesn't cover /archive full-regen) alternatives for a 1-day slice. Dogfooded at /reflect on the real 137KB CRLF risk-register.md (byte-faithful, zero CRLF->LF churn).
+- The 3-Critic stack caught a fresh defect at EVERY layer, non-overlapping: design-Critic (CRLF compare mismatch), meta-Critic (my B2 fix didn't sever the bare `tools.vault_edit` token; my B1 fix's `_normalize_eol` silent-overwrite edge), code-Critic (PowerShell `>` byte-corruption; my reflect:56 reword silently dropped the site from audit DETECTION).
+
+### Didn't work
+- The documented `vault_edit read > base.bin` capture was BROKEN on the default shell (PowerShell `>` = Out-File = UTF-16LE+BOM) — the `read` code was byte-correct but the prose protocol corrupted the CAS base -> guaranteed livelock; the concurrency test masked it by capturing the base in-process. Fixed with a `read --out-file` flag + a test that exercises the real documented protocol.
+- My reflect:56 reword ("read-modify-write") put the only directive verbs inside a hyphen-compound, silently dropping the site from `_is_mutation_site` detection — and the code-Critic's own fix suggestion ("lead with Rewrite") was itself incomplete because "rewrite" was in `_REWRITE_CLASS_VERBS` but NOT `_DIRECTIVE_VERBS`.
+
+### Pattern
+- Shell `>` redirection is NOT byte-safe (PowerShell -> UTF-16LE+BOM); byte-exact CLI data capture needs a tool `--out-file` flag (Python writes the bytes) or a binary subprocess pipe, NEVER `> file`. Strong BC-GLOBAL candidate.
+- A lexical audit's DETECTION verb-set and CLASSIFICATION verb-set must be a consistent PAIR — a verb in one but not the other silently drops or mis-classifies a site. A CLI-driving test must exercise the DOCUMENTED capture path, not a convenient in-process proxy.
+- "A Builder's own fix is a fresh claim" recurses through EVERY review layer — the meta-Critic caught it on my B1/B2 fixes, the code-Critic on my reflect:56 reword, and the Builder caught the code-Critic's OWN fix-suggestion being incomplete. Do not collapse the 3-Critic stack on write-safety/audit slices.

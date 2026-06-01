@@ -287,3 +287,117 @@ def test_safe_append_preserves_append_semantics(tmp_path: Path) -> None:
     safe_append_text(target, "first\n")
     safe_append_text(target, "second\n")
     assert target.read_bytes() == b"first\nsecond\n"
+
+
+# ─── slice-097 / ADR-088: safe_rewrite_text compare-and-swap (R-32 RMW) ─────
+
+
+from tools._vault_write import StaleVaultBaseError, safe_rewrite_text  # noqa: E402
+
+
+def test_rewrite_equal_base_writes(tmp_path: Path) -> None:
+    """CAS happy path: when the on-disk bytes still equal expected_base, the
+    rewrite lands."""
+    target = tmp_path / "idx.md"
+    target.write_bytes(b"line-1\nline-2\n")
+    base = target.read_bytes()
+    safe_rewrite_text(target, "line-0\nline-1\nline-2\n", expected_base=base)
+    assert target.read_bytes() == b"line-0\nline-1\nline-2\n"
+
+
+def test_rewrite_stale_base_raises(tmp_path: Path) -> None:
+    """CAS conflict: if the file changed since the caller read `expected_base`,
+    safe_rewrite_text raises StaleVaultBaseError and does NOT write (no silent
+    lost-update)."""
+    target = tmp_path / "idx.md"
+    target.write_bytes(b"original\n")
+    stale_base = b"what the caller THOUGHT it read\n"  # != on-disk
+    with pytest.raises(StaleVaultBaseError, match="CAS base mismatch"):
+        safe_rewrite_text(target, "my edit\n", expected_base=stale_base)
+    assert target.read_bytes() == b"original\n", "stale-base rewrite must not write"
+
+
+def test_rewrite_eol_normalized_compare_crlf_base_lf(tmp_path: Path) -> None:
+    """critique B1: a CRLF target with an LF base of the SAME content compares
+    EQUAL (EOL-normalized) → no false-conflict. This is the exact `_index.md`
+    (CRLF on disk) vs LF-read-base scenario R-32 exists for."""
+    target = tmp_path / "idx.md"
+    target.write_bytes(b"a\r\nb\r\nc\r\n")  # CRLF on disk
+    lf_base = b"a\nb\nc\n"  # caller read it LF-normalized
+    safe_rewrite_text(target, "z\na\nb\nc\n", expected_base=lf_base)  # must NOT raise
+    # EOL preserved: target stays CRLF (no 309KB-style churn)
+    assert target.read_bytes() == b"z\r\na\r\nb\r\nc\r\n"
+    assert b"\r\n" in target.read_bytes() and b"\n\n" not in target.read_bytes().replace(b"\r\n", b"")
+
+
+def test_rewrite_preserves_lf_target(tmp_path: Path) -> None:
+    """An LF target stays LF (EOL-preserving in the other direction)."""
+    target = tmp_path / "idx.md"
+    target.write_bytes(b"a\nb\n")
+    safe_rewrite_text(target, "a\nb\nc\n", expected_base=b"a\nb\n")
+    assert target.read_bytes() == b"a\nb\nc\n"
+    assert b"\r\n" not in target.read_bytes()
+
+
+def test_rewrite_trailing_newline_truncation_is_conflict(tmp_path: Path) -> None:
+    """critique-review M-add-1 (the dangerous direction): a concurrent writer that
+    TRUNCATES the trailing newline changes content; _normalize_eol preserves
+    trailing bytes, so the caller's base (with the newline) is UNEQUAL to the
+    on-disk (without) → StaleVaultBaseError, never a silent overwrite."""
+    target = tmp_path / "idx.md"
+    target.write_bytes(b"row-a\nrow-b")  # on-disk: a concurrent writer dropped the final \n
+    base_with_newline = b"row-a\nrow-b\n"  # what the caller read earlier
+    with pytest.raises(StaleVaultBaseError):
+        safe_rewrite_text(target, "row-a\nrow-b\nrow-c\n", expected_base=base_with_newline)
+    assert target.read_bytes() == b"row-a\nrow-b", "must not silently overwrite the truncation"
+
+
+def test_rewrite_trailing_newline_added_is_conflict(tmp_path: Path) -> None:
+    """M-add-1 (other direction): a concurrent writer that ADDS a trailing newline
+    is also a genuine mismatch → conflict (symmetry; _normalize_eol never collapses
+    a trailing-newline delta)."""
+    target = tmp_path / "idx.md"
+    target.write_bytes(b"row-a\n")
+    base_without = b"row-a"
+    with pytest.raises(StaleVaultBaseError):
+        safe_rewrite_text(target, "row-a\nrow-b\n", expected_base=base_without)
+
+
+def test_rewrite_create_when_absent(tmp_path: Path) -> None:
+    """Missing target ⟺ empty base = create."""
+    target = tmp_path / "new.md"
+    safe_rewrite_text(target, "fresh\n", expected_base=b"")
+    assert target.read_bytes() == b"fresh\n"
+
+
+def test_rewrite_retries_on_mocked_eperm(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """safe_rewrite_text inherits the shared _atomic_replace_with_retry EPERM
+    handling (symmetry with safe_write_text)."""
+    target = tmp_path / "eperm-rw.md"
+    target.write_bytes(b"base\n")
+    real_replace = os.replace
+    calls = {"n": 0}
+
+    def flaky_replace(src, dst, *a, **k):
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            raise PermissionError(13, "Access is denied (simulated held handle)")
+        return real_replace(src, dst, *a, **k)
+
+    monkeypatch.setattr(os, "replace", flaky_replace)
+    safe_rewrite_text(target, "rewritten\n", expected_base=b"base\n")
+    assert calls["n"] == 3
+    assert target.read_bytes() == b"rewritten\n"
+
+
+def test_rewrite_is_lf_byte_faithful_structural_guard() -> None:
+    """slice-090 two-layer discipline: a cross-platform structural guard pinning
+    safe_rewrite_text's EOL contract — it MUST consult _detect_eol + _normalize_eol
+    (so the EOL-normalized-compare + EOL-preserving-write contract can't silently
+    regress to a byte-exact compare / forced-LF write)."""
+    import inspect
+
+    src = inspect.getsource(_vault_write.safe_rewrite_text)
+    assert "_normalize_eol" in src, "safe_rewrite_text lost its EOL-normalized CAS compare (B1)"
+    assert "_detect_eol" in src, "safe_rewrite_text lost its EOL-preserving write (B1)"
+    assert "write_bytes" in src, "safe_rewrite_text must write pre-EOL-encoded bytes, not text-mode"
