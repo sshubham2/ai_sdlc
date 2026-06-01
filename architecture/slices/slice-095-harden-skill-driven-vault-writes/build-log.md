@@ -1,7 +1,7 @@
 # Build log: Slice 095 harden-skill-driven-vault-writes
 
 **Date**: 2026-06-01
-**Result**: IN-PROGRESS
+**Result**: SHIPPED
 
 ## Events (append-only — written DURING build per Step 7c; one line per significant action)
 
@@ -21,6 +21,11 @@
 - 2026-06-01 02:10 BUILD: Phase E wired SVW-1 into build-slice Step-6 + validate-slice gate rosters. Phase F in-repo fan-out: plugin.yaml (+2 tools, v0.79.0), install_audit _CANONICAL_TOOLS (+2 = 38), cp1252 parity (+skill_vault to _ROOT_ONLY_TOOLS, +bespoke vault_edit test), VERSION 0.79.0, pyproject 0.79.0, changelog ## v0.79.0 (SVW-1), shippability row #102. Renamed version-sync test _at_v_0_78_0 → _0_79_0. Fixed `\`` SyntaxWarning in audit docstrings.
 - 2026-06-01 02:12 TEST: in-repo audits GREEN — PMI-1 (38 tools, v0.79.0), UTF8-STDOUT-1 (38/38), SVW-1 clean, WIRE-1 clean, META-1 changelog (130 pass), version-sync, cp1252 parity, PVFS-1, INST-1 pairing, + new SVW tests (19). 222→223 pass after version-test rename.
 - 2026-06-01 02:15 DEVIATION: parallel-version-bump axis (R-28/R-33, design-flagged) — AVFS-1/MCFS-1/TVFS-1 DRIFT + OSDG-1 (reflect/build-slice) FAIL because in-repo bumped to 0.79.0 but shared ~/.claude install + venv pip still 0.78.0. CAD-1 clean (agent untouched). Forward-sync to the shared install + `pip install --upgrade` is the prescribed fix but mutates the install parallel slice-094 reads + risks the editable-master link → CHECKPOINTING for user direction before touching the shared install.
+
+- 2026-06-01 02:40 BUILD: forward-synced shared ~/.claude install (user-approved) — 10 edited skills + changelog + ai-sdlc-VERSION + `pip install --upgrade` → 0.79.0. AVFS-1/MCFS-1/TVFS-1/OSDG-1(reflect,build-slice) now PASS; CAD-1 clean.
+- 2026-06-01 02:45 TEST: full suite — 5 fails fixed (vault_edit migration-allowlist + classification-map count 10→11; INSTALL.md count ×2 36→38; PTFFD-1 stale shippability citation _0_78_0→_0_79_0; BCR-1 = R-20 worktree-seed gap → seeded diagnose-out/graphify-out). Plus exposed+fixed an R-15 archive-path fragility in a slice-093 test (archive-aware glob).
+- 2026-06-01 02:50 TEST: Step-6 audits GREEN — PCA-1, BCI-1, STP-1, NAW-1, branch_workflow (1 non-blocking warn). AVFS/MCFS/TVFS PASS post-forward-sync.
+- 2026-06-01 02:55 BUILD: AC4 — risk-register.md R-32 skill-driven APPEND sub-class recorded CLOSED-with-evidence (NARROWS not retires; RMW residual deferred to flip; status mitigating). DCE-1 drift-log marker written. BC-1 Critical rules BC-PROJ-3 + BC-GLOBAL-2 attested: this slice performs no destructive git revert of uncommitted work, and adds no secrets/credentials (local audit/CLI tooling, cooperative-model data-integrity control per ADR-067).
 
 ## Summary (filled at slice end)
 

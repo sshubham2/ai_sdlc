@@ -529,5 +529,26 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 - risk-register.md: R-30 stays `mitigating` (this narrows residual #1; residual #2 out of scope) — STP-1 clean, no stale status pin flipped by this slice.
 - No UNSPECIFIED CODE / no STALE CLAIM: additive (one module hardened + two test files + catalog rows); no removed feature, no orphan vault claim.
 
+## slice-095 — harden-skill-driven-vault-writes
+
+**Trigger**: slice-095 pre-finish gate (/build-slice Step 6)
+**Scope**: full (thin-vault Standard — ADR-087/SVW-1, active slice-095 design.md + mission-brief.md vs `tools/vault_edit.py` + `tools/skill_vault_write_safety_audit.py` + routed `skills/*/SKILL.md` + tests)
+**Findings**: 0 blockers, 0 majors
+
+### Verified aligned
+- ADR-087 (`status: accepted`, `reversibility: cheap`, `supersedes: null`) — its decision (wrapper `vault_edit append` over `safe_append_text` + a fail-closed lexical SVW-1 audit; defer the read-modify-write class) matches the shipped `tools/vault_edit.py` (append-only; resolves `--file` under VAULT_ROOT; rejects `..`-escape → exit 2) + `tools/skill_vault_write_safety_audit.py` (directive-verb-governs-backticked-shared-ref matcher; line-local route/exempt verdict; closed reason-enum + pinned `_REGISTERED_SKILL_EXEMPTIONS`).
+- design.md "What's new" verified on disk: 10 append sites routed + 11 RMW/project-open exempt-marked across `skills/*/SKILL.md`; SVW-1 wired into `/build-slice` Step-6 + `/validate-slice` gate rosters; APED-1 measured FP=0 against the real 26-skill corpus (`build-slice:394` / `~/.claude` / `post-write` / bare-filename excluded).
+- methodology-changelog `## v0.79.0` SVW-1 entry + shippability #102 + plugin.yaml (38 tools) + install_audit `_CANONICAL_TOOLS` (38) + INSTALL.md count (38) + cp1252 parity (+2) consistent with the 2 new tools.
+- risk-register.md R-32: skill-driven APPEND sub-class recorded CLOSED-with-evidence; NARROWS not retires; status stays `mitigating`. STP-1 clean.
+- MEPD-1 INCLUDE: new RULE-ID SVW-1 + 5-part PMI-1 atomic bump 0.78.0 → 0.79.0; MCFS-1/AVFS-1/TVFS-1 PASS.
+- No UNSPECIFIED CODE / no STALE CLAIM: additive (2 tools + 2 test files + skill routing + version fan-out); no removed feature, no orphan vault claim.
+
+### Discovered (out of slice-095 scope — recorded for follow-up)
+- `skills/triage/SKILL.md` has an UNCLOSED ```` ```markdown ```` fence (~:142) inverting fence-parity for the rest of the file (pre-existing markdown bug; triage's risk-register writes render inside a fence; project-open class, not an R-32 hazard; 1-line fence-close candidate fix slice).
+- `tests/methodology/test_external_vault_adr_and_risk.py` hardcoded slice-093's active-path `design.md` (R-15 archive-fragility) — fixed in-place to an archive-aware glob.
+
+### Resolutions
+- None required — vault and code aligned for the slice-095 surface.
+
 ### Resolutions
 - None required — vault and code aligned for the slice-091 surface.

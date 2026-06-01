@@ -2,15 +2,17 @@
 slice: slice-095-harden-skill-driven-vault-writes
 stage: build
 updated: 2026-06-01
-next-action: /build-slice in progress — Phases A–D done (mid-slice smoke PASS); Phase E (wire) + F (version fan-out) + G (pre-finish) remain
+next-action: run /code-review (then /validate-slice)
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-095 harden-skill-driven-vault-writes
 
-**Stage**: build
-**Next action**: `/build-slice` — Phases A–D DONE (2 tools + 2 tests + routing; mid-slice smoke PASS, 19 tests green). Remaining: Phase E (wire audit into build-slice/validate-slice gate rosters), Phase F (plugin.yaml + install_audit + cp1252-list + VERSION 0.79.0 + changelog + shippability + ~/.claude forward-sync + pip upgrade), Phase G (16 pre-finish audits + full suite + git merge master reconcile)
+**Stage**: build (COMPLETE — pre-finish gate fully passed)
+**Next action**: run `/code-review` (in-loop code-Critic), then `/validate-slice`
+
+> **Build SHIPPED.** Full suite **1335 passed, 2 skipped, 0 failed**. All Step-6 audits green (PMI-1/UTF8-STDOUT-1/SVW-1/WIRE-1/BC-1/BCI-1/MCFS-1/STP-1/AVFS-1/TVFS-1/NAW-1/DCE-1/CRP-1/PCA-1/CAD-1/branch-workflow + LINT-MOCK). Shared `~/.claude` install forward-synced to v0.79.0 (user-approved). ACs 1–5 met (AC4 R-32 narrowed-not-retired per design Q3).
 **Updated**: 2026-06-01
 **Risk tier**: medium — Critic required: **yes** (mandatory trigger: in-house methodology surfaces `skills/*/SKILL.md` + two new `tools/**/*.py` modules; reinforced by vault data-integrity / concurrency sensitivity + the ADR-worthy mechanism decision locked in [[ADR-087]])
 
@@ -19,7 +21,8 @@ critic-required: true
 - [x] /slice — 2026-05-31
 - [x] /design-slice — 2026-06-01
 - [x] /critique — 2026-06-01 — NEEDS-FIXES (dual-review: design-Critic 2B/3M/2m + meta-Critic EXTEND +2; all 9 ACCEPTED, user-ratified TRI-1)
-- [ ] /build-slice
+- [x] /build-slice — 2026-06-01 — SHIPPED (1335 pass; all 16 Step-6 audits green; M1 matcher executed FP=0)
+- [ ] /code-review
 - [ ] /validate-slice
 - [ ] /reflect
 

@@ -34,19 +34,30 @@ def _vault_root_importers() -> set[str]:
 
 
 def test_no_new_tool_migration_and_classification_map_documented() -> None:
-    """093 migrates NO additional tools (allowlist stays at 10), and design.md
-    documents the FS-path / git-or-worktree-coupled / never-migrate map."""
+    """093 migrated NO additional tools (the 10 slice-068/072/081 consumers);
+    slice-095 adds exactly ONE new VAULT_ROOT consumer — `tools/vault_edit.py`
+    (the SVW-1 skill-path safe-append CLI resolves `--file` under VAULT_ROOT) —
+    bringing the live importer set to 11. design.md documents the FS-path /
+    git-or-worktree-coupled / never-migrate map."""
     importers = _vault_root_importers()
-    assert len(importers) == 10, (
-        f"slice-093 must add NO new VAULT_ROOT importer (capability cut, no flip); "
+    assert len(importers) == 11, (
+        f"expected the 10 slice-068/072/081 consumers + slice-095's "
+        f"tools/vault_edit.py = 11 VAULT_ROOT importer(s); "
         f"found {len(importers)}: {sorted(importers)}"
+    )
+    assert "tools/vault_edit.py" in importers, (
+        "slice-095's vault_edit.py must consume VAULT_ROOT (resolves --file under it)"
     )
     # _vault_write imports _CONFIG_REL (NOT VAULT_ROOT) → not an importer.
     assert "tools/_vault_write.py" not in importers
 
-    design = (
-        REPO_ROOT
-        / "architecture/slices/slice-093-add-external-vault-support/design.md"
+    # Archive-aware (R-15 class — slice-093 is archived once shipped; the glob
+    # resolves its design.md in slices/ OR slices/archive/. Exposed at slice-095
+    # when the importer-count fix let this assertion run past the count gate.)
+    design = next(
+        REPO_ROOT.glob(
+            "architecture/slices/**/slice-093-add-external-vault-support/design.md"
+        )
     ).read_text(encoding="utf-8")
     assert "Tool-migration classification map" in design
     assert "parallel_conflict_resolver.py" in design  # the git-coupled exemplar

@@ -53,6 +53,7 @@ _MIGRATION_SITE_ALLOWLIST: frozenset[str] = frozenset({
     "tools/state_transition_pin_audit.py",
     "tools/supersede_audit.py",
     "tools/validate_slice_layers.py",
+    "tools/vault_edit.py",  # slice-095 / SVW-1 — new VAULT_ROOT consumer (resolves --file under the vault root for the skill-path safe-append channel)
 })
 
 # 5 enumerated EXCLUDED error-message-string sites (file, line) — these contain
