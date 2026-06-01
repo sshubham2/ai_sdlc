@@ -145,7 +145,7 @@ Be honest. Don't soft-pedal a NO-GO into a CONDITIONAL because it's inconvenient
 
 ### Step 6: Update risk register
 
-Update `architecture/risk-register.md` for each spiked risk:
+Update `architecture/risk-register.md` for each spiked risk: <!-- vault-write-safe: project-open-single-shot -->
 
 - GO → mark "RETIRED — spike <name> validated"
 - NO-GO → mark "BLOCKING — spike <name> failed; redesign required" + flag what needs to change

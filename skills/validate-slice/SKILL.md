@@ -288,7 +288,7 @@ In Heavy mode, validation produces a compliance-grade record:
 
 - **Implementation bug**: fix code → re-run validation for that AC → if pass, proceed to `/reflect`
 - **Spec gap**: log in validation.md as cause; let `/reflect` capture; next slice incorporates
-- **Reality surprise**: add to `architecture/risk-register.md` immediately (don't wait); `/reflect` may trigger a follow-up slice
+- **Reality surprise**: add to `architecture/risk-register.md` immediately (don't wait) via `tools.vault_edit append` (SVW-1; never a raw `Write`/`Edit`); `/reflect` may trigger a follow-up slice
 
 ## Next step
 

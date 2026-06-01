@@ -1,16 +1,16 @@
 ---
 slice: slice-095-harden-skill-driven-vault-writes
-stage: critique
+stage: build
 updated: 2026-06-01
-next-action: run /build-slice
+next-action: /build-slice in progress — Phases A–D done (mid-slice smoke PASS); Phase E (wire) + F (version fan-out) + G (pre-finish) remain
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-095 harden-skill-driven-vault-writes
 
-**Stage**: critique
-**Next action**: run `/build-slice`
+**Stage**: build
+**Next action**: `/build-slice` — Phases A–D DONE (2 tools + 2 tests + routing; mid-slice smoke PASS, 19 tests green). Remaining: Phase E (wire audit into build-slice/validate-slice gate rosters), Phase F (plugin.yaml + install_audit + cp1252-list + VERSION 0.79.0 + changelog + shippability + ~/.claude forward-sync + pip upgrade), Phase G (16 pre-finish audits + full suite + git merge master reconcile)
 **Updated**: 2026-06-01
 **Risk tier**: medium — Critic required: **yes** (mandatory trigger: in-house methodology surfaces `skills/*/SKILL.md` + two new `tools/**/*.py` modules; reinforced by vault data-integrity / concurrency sensitivity + the ADR-worthy mechanism decision locked in [[ADR-087]])
 

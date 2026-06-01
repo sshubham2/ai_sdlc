@@ -104,7 +104,7 @@ Do NOT proceed to fix a bug you can't reproduce. Loop back with the user: "the t
 
 ### Step 5: Add to shippability catalog
 
-Append a new entry to `architecture/shippability.md`:
+Append a new entry to `architecture/shippability.md` via `tools.vault_edit append` (SVW-1 — write the row to a temp file, then `$PY -m tools.vault_edit append --file shippability.md --content-file <tmp>`; never a raw `Write`/`Edit`):
 
 ```markdown
 | <next-#> | <bug-ID or future slice name> | <issue one-liner> | `<test command>` | <runtime> |

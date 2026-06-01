@@ -1,0 +1,39 @@
+# Build log: Slice 095 harden-skill-driven-vault-writes
+
+**Date**: 2026-06-01
+**Result**: IN-PROGRESS
+
+## Events (append-only — written DURING build per Step 7c; one line per significant action)
+
+- 2026-06-01 00:45 BUILD: slice-095 build start; worktree `slice/095-harden-skill-driven-vault-writes`; plan approved (phases A–G); NEEDS-FIXES carried (M1 matcher FP/FN measured here)
+- 2026-06-01 00:45 DEVIATION: VERSION=0.79.0 (NOT design's 0.80.0) — rationale: 095 builds first (094 parked at critique, still 0.78.0); natural-next + gapless; user-ratified at plan gate. design.md §Sequencing note to be reconciled.
+- 2026-06-01 00:45 BUILD: prereqs — CRP-1 audit clean; on branch slice/095; cwd=worktree resolves worktree tools/ (verified)
+- 2026-06-01 00:46 BUILD: matcher grounding — build-slice:394 (NAW-1 bootstrap, backticked `architecture/risk-register.md` + "flip"/"adds" non-clause-start) must NOT flag; reflect:386 bare `risk-register.md` excluded; reflect:56 "→ update" needs → clause-delimiter
+- 2026-06-01 00:55 BUILD: tools/vault_edit.py + tools/skill_vault_write_safety_audit.py written; both _stdout-first, exit codes correct; cwd=worktree resolves worktree tools
+- 2026-06-01 01:00 TEST: SVW-1 audit on UNROUTED tree → 21 sites (fires correctly). M1 APED-1 inspection found 2 FPs + needed tuning.
+- 2026-06-01 01:05 FINDING: triage:163/179 risk-register writes sit inside an UNCLOSED ```markdown fence (Triage-template fence at ~:142 never closed → inverts fence-parity for rest of file). Pre-existing TRIAGE MARKDOWN BUG, out of slice-095 scope. Recorded as DISCOVERED → fix-slice candidate. triage is project-open (not an R-32 hazard); dropped from SVW-1 exemption allowlist.
+- 2026-06-01 01:08 BUILD: SVW-1 matcher APED-1 fixes — (1) exclude ~/.claude global refs (reflect:207 FP), (2) exclude hyphen-compound verbs "post-write" (reflect:209 FP). Re-run → 19 sites, ALL REAL. **M1 measured: matcher fires on 19 true sites, FP=0.** Excluded-correctly: build-slice:394, reflect:207/209/386. Known FN: triage:163/179 (fence bug, deferred), reduce:139 (bare `lessons-learned.md` → normalize-by-backtick at routing).
+
+- 2026-06-01 01:30 BUILD: routed append-class prose (reflect ×5 + convention note, reduce, repro, user-test, validate) + exempt markers (reflect/archive/supersede deferred-rmw; discover/risk-spike project-open). reduce:139 normalized bare→backticked `architecture/lessons-learned.md`.
+- 2026-06-01 01:32 TEST: SVW-1 audit on ROUTED tree → CLEAN exit 0 (26 skills, 21 sites: 10 routed, 11 exempted); exemption set == pinned allowlist (found==allow, 0 off-allowlist, 0 missing).
+- 2026-06-01 01:35 SMOKE: MID-SLICE GATE PASS — (a) audit clean on routed tree; (b) audit fail-closed on planted raw write (1 violation) + clean on routed variant; (c) vault_edit append preserves both lines rc=0; ..-escape rejected rc=2. Concurrency proof = Phase D.
+
+## Summary (filled at slice end)
+
+### Plan executed
+(Phases A–G — status filled per task at slice end.)
+
+### Mid-slice smoke gate
+**Result**: PENDING
+
+### Pre-finish gate
+(filled at slice end)
+
+### Deferrals (if any)
+(none yet)
+
+### Design deviations (if any)
+- VERSION 0.79.0 vs design.md §Sequencing note's planned 0.80.0 (user-ratified; 095 builds first). To update design.md §Sequencing note in Phase F.
+
+### Files changed
+(filled at slice end)
