@@ -2,49 +2,54 @@
 
 **Mode**: Standard
 **Estimated work**: 1 day
-**Risk retired**: R-32 (NARROWED — Python-tool-writer sub-class retired; high×high, score 9, reversibility expensive). R-32 is the load-bearing blocker for the external-vault flip.
-**Test-first**: false  (the concurrency proof is core but the design phase may opt into TF-1; the safe primitives already exist + pass)
+**Risk retired**: R-32 — **NOT retired by this slice**; ships **flip-readiness** toward it. R-32 stays `mitigating` and retires at the flip (it is the load-bearing flip blocker; its concurrent-write hazard becomes live only when the vault is untracked + shared — `risk-register.md:578`).
+**Test-first**: false  (the byte-identity + concurrency proofs are authored alongside the fix; the primitives exist but are byte-buggy — see AC1)
 **Walking-skeleton**: false
 **Exploratory-charter**: false
 
+> **Redesigned 2026-06-01** — v1 ACs 1/5 over-claimed ("every call site routes through" / "transparent / suite green") and were BLOCKED at `/critique`. This v2 reflects the TRI-1-ratified flip-readiness scope. See design.md §"Why v2".
+
 ## Intent
 
-slice-093 shipped the R-32 write-safety *primitives* (`tools/_vault_write.py`: `safe_write_text` = atomic `os.replace` + sidecar `.lock`; `safe_append_text` = `O_APPEND` + lock) but the ~30 `write_text` / `open(...,'w'|'a')` call sites across `tools/*.py` still write vault files directly — so R-32 stays `mitigating`, and the flip (writing a tier-2 vault-root config so two parallel slices share one vault) MUST NOT land until concurrent writes are proven safe. This slice routes the **Python-tool** vault writers through the safe primitives, ships a fail-closed completeness audit that makes a bypass impossible to merge silently, and proves no corruption under N parallel writers — narrowing R-32 to its remaining (skill-driven Write/Edit) sub-class.
+slice-093 shipped the R-32 write-safety *primitives* (`tools/_vault_write.py`) but `/critique` proved, against the real code, that (a) **both** primitives emit CRLF on Windows while every existing vault writer emits LF (`newline=""`), and (b) the real concurrent-write hazard becomes live **only at the flip** — today every vault file is git-tracked, so concurrent mutation surfaces as a git conflict PCR resolves loudly. So this slice is re-scoped to **flip-readiness**: fix the primitives' byte-faithfulness, route the **2 seam whole-file writers** through them, ship a fail-closed **per-write-target** audit that makes a future bypass un-mergeable, and **prove** no corruption under N parallel processes. `parallel_conflict_resolver` (git-coupled) is scoped OUT — it retires at the flip. R-32 stays `mitigating`.
 
 ## Acceptance criteria
 
-1. Every vault-writing call site in `tools/*.py` routes through `_vault_write.safe_write_text` (whole-file rewrite class: e.g. slice-queue.md) or `safe_append_text` (append-log class: e.g. risk-register / methodology-changelog / lessons-learned) — no `tools/*.py` writes a resolved-vault-root file via raw `write_text` / `open(...,'w'|'a')`.
-2. A new fail-closed completeness audit (`tools/vault_write_safety_audit.py`) statically detects any `tools/*.py` write to a vault path that bypasses the safe primitives, exits non-zero on a violation (a write it cannot classify as safe is a violation, never a silent pass), and is wired into the `/build-slice` Step-6 + `/validate-slice` gate roster.
-3. A concurrency test proves no corruption under N parallel writers: N concurrent `safe_append_text` writers lose **zero** lines (the slice-093 "pure `O_APPEND` loses 26/30 lines" failure mode does not recur), and N concurrent `safe_write_text` writers never leave a torn/partial file (final content is always exactly one writer's complete payload). Non-vacuity is proven by mutation (disable the lock → test FAILs → revert).
-4. R-32 is narrowed in `architecture/risk-register.md`: the Python-tool-writer sub-class is recorded retired-with-evidence; the **skill-driven Write/Edit mutation** sub-class is documented as the explicit remaining residual that still gates the flip (re-sequenced to a later slice), with a pointer to its follow-up (slice-095 candidate).
-5. The no-flip safety contract is preserved: `resolve_vault_root` default is unchanged (`architecture/`), and the full test suite stays green — every existing tool/test/skill behaves identically (the routing is transparent when there is no contention).
+1. **Primitive byte-faithfulness**: `safe_write_text` (`newline=""`) and `safe_append_text` (`os.O_BINARY`) emit LF, byte-identical to the canonical `newline=""` writer (`slice_queue_writer.py:819`); an `nt`-guarded byte-identity test — pinning BOTH a small ASCII payload AND a **large (>1024-byte) multibyte (non-ASCII UTF-8)** payload (m-add-1) — confirms byte-identity and that `O_APPEND` still appends. (Prerequisite to routing — empirically verified at redesign.)
+2. **Seam writers routed (honest scope)**: the 2 whole-file vault writers — `slice_queue_writer.py:819-820` and `slice_queue_claim._atomic_write_text` (`:535-536`, called `:599`/`:607`/`:613`) — route through `safe_write_text` with byte output unchanged. Routing buys byte-faithful + atomic-write + EPERM-resilience; it does **NOT** close the read-modify-write lost-update window (the caller reads before the lock-scoped write) — that window is a documented **flip-residual** (git-protected today), NOT claimed closed (B2). `parallel_conflict_resolver` is explicitly scoped OUT (git-coupled; retires at flip).
+3. **Fail-closed enforcement audit**: `tools/vault_write_safety_audit.py` uses **per-write-target** AST detection (the target of a write op is a vault literal / `VAULT_ROOT`-derived — NOT module-mentions-a-literal), governs the seam writers, carries a rationale-bearing + COUNT-pinned scoped-out allowlist (PCR), exempts `_vault_write.py`, and exits non-zero on any unclassifiable vault write; its APED-1 battery is EXECUTED (planted-raw → VIOLATION; routed → CLEAN; reader-with-non-vault-write → CLEAN; PCR → CLEAN-SCOPED-OUT). Wired into `/build-slice` Step 6 + `/validate-slice` + shippability.
+4. **Concurrency proof (non-vacuous — proves what the lock ACTUALLY protects)**: a `multiprocessing`(spawn) + bounded-timeout test proves (a) **EPERM-under-concurrent-`os.replace`** — `safe_write_text`'s lock+retry absorbs the `WinError 5` a raw replace raises under contention; AND (b) **>1024-byte concurrent-append interleaving** — N `safe_append_text` of >1024-byte payloads lose zero lines WITH the lock, where unlocked the Windows OS splits+interleaves. Non-vacuity proven by mutation (strip lock+retry → both FAIL → revert). The vacuous v2-draft assertions (atomic-`os.replace` torn-write; small-payload append-loss) are DROPPED (B1, meta-Critic-corrected).
+5. **No-flip contract + R-32 reframe**: `resolve_vault_root()` default unchanged (`architecture/`); full suite green; `architecture/risk-register.md` records R-32 **staying `mitigating`, reframed "retires at the flip"** (this slice = flip-readiness, NOT retirement), with the explicit residual (PCR + git/worktree-coupled tools + physical move + prose rewrite).
 
 ## Verification plan
 
 | # | Criterion | How we verify |
 |---|-----------|---------------|
-| 1 | Writers routed | `$PY -m tools.vault_write_safety_audit --repo-root .` exits 0; grep confirms the previously-raw vault writers (slice_queue_writer / slice_queue_claim / parallel_conflict_resolver regen paths, etc.) now call `safe_write_text`/`safe_append_text` |
-| 2 | Audit fails closed | Temporarily revert one routed writer to a raw `write_text` → audit exits non-zero naming the file:line; restore → exits 0. Audit is listed in `/validate-slice` gate set + shippability.md |
-| 3 | Concurrency proof | `$PY -m pytest tests/methodology/test_vault_write_safety_concurrency.py` PASSES; mutation run (lock disabled) FAILs the append-loss + torn-write assertions |
-| 4 | R-32 narrowed | `$PY -m tools.risk_register_audit architecture/risk-register.md --json` shows R-32 with the Python sub-class evidence + residual note; reflection records the narrowing |
-| 5 | No-flip contract intact | Full suite green (`$PY -m pytest`); `resolve_vault_root()` with no env/config returns `Path("architecture")` unchanged; `git diff` shows zero behavioral change to existing tools |
+| 1 | Primitive byte-faithfulness | `test_vault_safe_write.py` nt-guarded byte-identity test: `safe_write_text` / `safe_append_text` output == canonical `newline=""` writer bytes, for BOTH a small ASCII AND a >1024-byte multibyte payload (m-add-1); a 2nd `safe_append_text` confirms `O_APPEND` still appends |
+| 2 | Seam writers routed | grep: `slice_queue_writer.py` + `slice_queue_claim.py` call `safe_write_text`; bytes of a re-written `slice-queue.md` are identical pre/post-routing; PCR untouched (`git diff` empty) |
+| 3 | Audit fails closed | `$PY -m tools.vault_write_safety_audit --repo-root .` exits 0; plant a raw vault write → exits 1 naming file:line; restore → 0. APED-1 battery: PCR → CLEAN-SCOPED-OUT, reader-with-non-vault-write → CLEAN. Listed in `/validate-slice` + shippability.md |
+| 4 | Concurrency proof (non-vacuous) | `$PY -m pytest tests/methodology/test_vault_write_safety_concurrency.py` PASSES (multiprocessing spawn, bounded timeout); mutation (strip lock+retry) FAILs BOTH the EPERM-on-concurrent-`os.replace` proof AND the >1024-byte append-interleaving proof. (The vacuous atomic-`os.replace` torn-write + small-append-loss assertions are gone — B1.) |
+| 5 | No-flip contract + R-32 reframe | Full suite green (`$PY -m pytest`); `resolve_vault_root()` no env/config → `Path("architecture")`; `$PY -m tools.risk_register_audit … --json` shows R-32 `mitigating`, reframed "retires at flip" |
 
 ## Must-not-defer
 
-- [ ] New audit rule (AC2) propagates a shippability.md row per RPCD-1 / SCPD-1 — write-safety enforcement must never silently regress.
+- [ ] New audit rule (AC3) propagates a shippability.md row (#102) per RPCD-1 / SCPD-1 — write-safety enforcement must never silently regress.
 - [ ] The audit is cp1252-safe (UTF8-STDOUT-1 stdout + defensive stderr-at-import) — slice-093 RSAD-1: a vault-infra tool nearly shipped its own cp1252 crash.
 - [ ] The completeness audit fails CLOSED — an unclassifiable vault write is a violation, not a silent skip (the R-7 silent-disable class).
-- [ ] The concurrency test is non-vacuous — proven by mutation (break the lock, see it FAIL, revert), per the slice-092 mutation-proof discipline.
-- [ ] New-tool count-bump fan-out (N≥3 lesson): `plugin.yaml` (PMI-1), `tools/install_audit.py` + `INSTALL.md` counts (INST-1), the cp1252 parametrize list, AND any per-tool inventory-pin test all enumerate `vault_write_safety_audit.py`.
-- [ ] Routing must not change file content/encoding/newline of any vault file (transparent pass-through; `safe_write_text` keeps `newline="\n"`).
+- [ ] The concurrency test is non-vacuous — proven by mutation; **`multiprocessing`(spawn), NOT threads** (M3: GIL/per-handle locking can make a thread test pass vacuously); **bounded timeout** so a lock-hang fails loud.
+- [ ] **Both** primitives byte-faithful (LF) BEFORE routing — `safe_write_text` `newline=""` AND `safe_append_text` `os.O_BINARY` (the v1 "`safe_write_text` keeps `newline=\"\n\"`" claim was false — empirically both emitted CRLF on Windows).
+- [ ] The APED-1 battery is **EXECUTED** against the real `tools/` corpus (BC-PROJ-13); the `/code-review` pass is a required SECOND APED-1 author (slice-085 blind-spot lesson).
+- [ ] New-tool count-bump fan-out (N≥3) — the PMI-1 bump is **5-part** (M1): `install_audit.py:92` `_CANONICAL_TOOLS`, `plugin.yaml` (tools + `version`), `VERSION` + **`pyproject.toml [project].version` (PVFS-1)** + `~/.claude/ai-sdlc-VERSION`, `INSTALL.md` count, the cp1252 parametrize list, AND any per-tool inventory-pin test all enumerate `vault_write_safety_audit.py` — grep EVERY count literal.
+- [ ] Changelog version-gate supersession + entry-pin pair (M1 / EPGD-1): supersede `test_version_files_synchronized_at_v_0_<latest>` → `_at_v_0_80_0` PRESERVING prior entry-pins; add `test_v_0_80_0_vws_1_entry_present_in_repo` + `_shippability_consumer_propagation`.
 
 ## Out of scope
 
-- The **skill-driven Write/Edit vault-mutation** sub-class (Claude editing vault files directly per SKILL.md prose, bypassing Python) — its own follow-up slice (slice-095 candidate); the wrapper-tool-vs-discipline+audit choice is an open design decision (ADR-worthy).
-- The **flip** itself (writing a tier-2 `<git-common-dir>/aisdlc/vault-root` config / physically moving the vault) — re-sequenced to a later slice, gated on BOTH R-32 writer sub-classes closing.
+- **`parallel_conflict_resolver` (PCR) routing** — git-coupled; concurrent mutation surfaces as a loud git conflict PCR resolves pre-flip; routing/retiring it is the flip slice's work (slice-093 migration map). Scoped OUT, recorded in the audit allowlist with rationale (B3-ratified).
+- The **flip** itself (tier-2 `<git-common-dir>/aisdlc/vault-root` config / physical move of `architecture/` + the git-untrack decision + prose rewrite + rethink the 3 git/worktree-coupled tools) — a later slice, gated on this flip-readiness slice + the already-shipped slice-095.
+- The **skill-driven Write/Edit** sub-class — **already shipped** (slice-095 / SVW-1).
 - R-30 worktree / multi-root resolver edge cases — separate residual, closes at the flip.
 - A migration command for existing projects' in-repo `architecture/` → external vault — later in the initiative.
-- Non-vault writes in `tools/*.py` (graphify-out / diagnose-out / temp / tool-own-output) — out of the audit's scope by construction (vault-path-targeted only).
+- Non-vault writes in `tools/*.py` (graphify-out / diagnose-out / temp / tool-own-output) — out of the audit's scope by construction (vault-target-only).
 
 ## Dependencies
 
@@ -71,3 +76,4 @@ Expected: audit clean on the routed tree, loud on a reverted writer; concurrency
 - [ ] Mid-slice smoke still passes (no regression)
 - [ ] No new TODOs / FIXMEs / debug prints
 - [ ] Ran in a real BRANCH-2 worktree (NOT WORKTREE=skip — per the slice-090/093 directive; slice-093 used WORKTREE=skip for entangled scaffolds, 094 must isolate)
+- [ ] **R-33 master-merge FIRST (M-add-1)**: this worktree is BEHIND master (slices 095/096 merged there, NOT here). `/commit-slice` MUST `git merge master` before the pre-finish full-suite — the version target is **v0.80.0** (NOT 0.79.0, taken by merged slice-095), and the 5-part PMI-1 gate + cp1252 list + entry-pins reconcile against the POST-095 state, not this worktree's stale 0.78.0. Run the in-worktree full suite only AFTER the merge so the gate reflects integration reality.

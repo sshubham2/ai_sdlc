@@ -1,84 +1,106 @@
-# Critique: Slice 094 harden-vault-write-safety
+# Critique: Slice 094 harden-vault-write-safety (v2 — flip-readiness redesign)
 
-**Critic reviewed**: mission-brief.md, design.md, ADR-086, project-frame.md, milestone.md (+ real code: `tools/_vault_write.py`, `tools/_vault_paths.py`, the 3 named writers, `architecture/risk-register.md` R-32, `architecture/shippability.md`, slice-093 archived design.md)
+**Critic reviewed**: mission-brief.md, design.md, ADR-086 (revised in place), + real worktree code
 **Date**: 2026-06-01
-**Result**: BLOCKED (Critic-stated; final verdict computed at TRI-1 after dispositions)
+**Result**: NEEDS-FIXES (Critic-stated; final verdict computed at TRI-1 after dispositions + `/critique-review`)
+
+> **v2 critique** — supersedes the v1 BLOCKED critique (preserved in git at `c0130ad`; v1 TRI-1 = BLOCKED, all 10 dispositions ratified, recorded in milestone.md). This reviews the flip-readiness redesign. The Critic EXECUTED the byte primitives + concurrency mutations against real bytes in the worktree.
 
 ## Summary
 
-The design rests on three claims the Critic executed against the real code and found **false**: (1) routing is "transparent / identical bytes" — it is NOT: `safe_write_text`/`safe_append_text` emit CRLF on this repo's interpreter while every existing writer emits LF (`newline=""`), so routing corrupts every vault file's newlines (AC5 + must-not-defer violated); (2) the "3 writers / 3 sites" enumeration is dangerously incomplete — `parallel_conflict_resolver.py` alone has 7 raw write ops and does **not import the VAULT_ROOT seam**, so the primary tripwire cannot detect it (AC1 + AC2 both broken); (3) the risk model is mis-stated — R-32's own register entry says concurrent-process lost-update "becomes live only at the slice-094 flip," but this slice is NOT the flip, and the files being routed are all **git-tracked today**, so routing them through process-locks now adds no safety over the existing `.tmp`+`os.replace` while risking PCR's git-conflict/rebase machinery.
+The B1 byte-fix is empirically correct (Critic reproduced both the CRLF bug and the LF fix), the PCR scope-out is honest, and the count fan-out reconciles. But the **AC4 concurrency proof is built on two assertions proved vacuous by execution** (whole-file "torn write" can't fail — `os.replace` is atomic; append line-loss won't reliably fail — `O_APPEND` is OS-atomic for a single `os.write`), and the routed RMW callers retain a lost-update window the lock does not cover. Separately, the **MEPD-1 INCLUDE version-bump obligation is materially under-specified** (omits `pyproject.toml`/PVFS-1, entry-pin tests, PMI-1 gate supersession). 2 Blockers, 2 Majors, 6 Minors.
 
 ## Findings
 
 ### Blockers (must address before /build-slice)
 
-#### B1: "Transparent / identical bytes" (AC5 + must-not-defer) is false — the primitives emit CRLF, the existing writers emit LF
-- **Issue**: `tools/_vault_write.py` passes **no `newline=` kwarg** anywhere (`:104` `tmp.write_text(text, encoding=encoding)`; `safe_append_text:150` `os.write(fd, text.encode(encoding))`). The must-not-defer parenthetical "`safe_write_text` keeps `newline=\"\n\"`" is factually wrong. Executed on this repo's venv (utf8_mode=0, os.linesep='\r\n'): `safe_write_text("a\nb\n")` → `b'a\r\nb\r\n'` vs the existing `.tmp.write_text(..., newline="")`+`os.replace` (slice_queue_writer.py:819, slice_queue_claim.py:535, PCR:430) → `b'a\nb\n'`; WHOLE IDENTICAL=False; APPEND IDENTICAL=False. This re-introduces the EOL-DRIFT-1/ADR-033 CRLF class those writers explicitly removed (`newline=""` added for PSQ-2 byte-equal round-trip). "Full suite stays green" (AC5) is unachievable as designed.
-- **Evidence**: `tools/_vault_write.py:95-152` (no `newline=`); the three writers' `newline=""` sites with anti-CRLF comments.
-- **Proposed fix**: Make the primitive byte-faithful BEFORE any routing — add `newline=""` to `safe_write_text`→`write_text`; confirm/pin `safe_append_text` LF-faithfulness; add a `nt`-guarded byte-identity regression test vs the pre-routing pattern. NB: this changes a slice-093 deliverable's signature → ADR-086 "_vault_write signatures unchanged" must be updated.
-- **Builder draft**: ACCEPTED (valid; verified — I asserted `newline="\n"` without checking the code I had read). Fix belongs in the redesign (it changes the `_vault_write` contract + ADR-086).
+#### B1: AC4 concurrency proof is vacuous as specified — the mutation cannot make either assertion FAIL
+- **Claim under review**: design.md / mission-brief AC4 — N `safe_write_text` → "exactly one writer's complete payload (never torn)"; N `safe_append_text` → "lose zero lines… non-vacuity proven by mutation (disable lock → FAILs)".
+- **Issue**: Critic executed both mutation variants under `multiprocessing(spawn)`: (a) **whole-file** with lock DISABLED but temp+`os.replace` retained → final file always exactly one payload (`os.replace` is OS-atomic) → "torn write" passes lock-or-not → vacuous; (b) **append** with lock DISABLED → raw single-`os.write` `O_APPEND` lost 0 lines in 7/8 runs → append-loss flakily passes even unlocked → not reliably non-vacuous. The pattern that DOES lose updates (9/10) is **read-modify-write**, requiring a cross-process wall-clock barrier (spawn latency serializes workers otherwise).
+- **Evidence**: executed probes — raw whole-file/spawn `final in payloads: True`; raw append/spawn `loss=0`; RMW+shared-start-barrier `LOST=9/10`. Web-confirmed: `os.replace` atomic ([bugs.python.org#46003]); `O_APPEND` single-write atomic ([bugs.python.org#15723]).
+- **Proposed fix**: Re-scope AC4 to prove what the lock ACTUALLY protects, non-vacuously: (a) **EPERM-on-concurrent-replace** — raw `os.replace` under contention raises `PermissionError WinError 5`; prove `safe_write_text`'s lock+retry absorbs it and the raw/un-retried variant raises; (b) **RMW lost-update** via a cross-process barrier (only if an RMW-spanning helper is added — see B2); (c) document the mutation FAIL output in build-log.md. If keeping the append/whole-file framing, state they are correctness-under-contention demonstrations, NOT non-vacuity proofs, and move "proven by mutation" to the EPERM/RMW variant.
+- **Builder draft**: **ACCEPTED-FIXED** — the Critic executed it; the proof IS vacuous as specified. Fix at redesign (post-TRI-1): rewrite AC4 + design §Concurrency-proof to prove the lock+retry's real protections non-vacuously — **EPERM-under-concurrent-`os.replace`** (raw variant raises WinError 5 → FAIL; `safe_write_text` absorbs) as the primary mutation, plus a **>1024-byte Windows append-interleaving** check if reproducible; drop the atomic-`os.replace` "torn-write" + small-payload append-loss assertions as vacuous. The RMW lost-update moves to B2's documented flip-residual (NOT proven here, since we are NOT adding an RMW helper). **NB (Builder must re-verify at build)**: reconcile with slice-093's "pure `O_APPEND` loses 26/30 lines" — likely a different mechanism (text-mode / multi-write / RMW); re-run before asserting.
 
-#### B2: AC1/AC2 enumeration incomplete AND the primary tripwire cannot detect the largest writer — `parallel_conflict_resolver.py` does not import VAULT_ROOT
-- **Issue**: AST scan of the real corpus: PCR has **7 raw write ops** to vault paths (`write_text` :430 [writes both slice-queue.md AND shippability.md via `pending_writes`], :1546; `.open("a")` audit appends :713/:764/:1779/:2133/:2234), not 1 — and PCR **imports neither VAULT_ROOT nor `_vault_paths`** (`grep -c → 0`; only imports `_stdout`). So the *primary* (VAULT_ROOT-import) tripwire never fires on PCR; detection collapses to the secondary literal-path tripwire, which ADR-086 itself lists "runtime-computed path" as an accepted residual — and PCR:430's target is composed from `pending_writes` tuples (not a literal at the write site). ADR-086's "isolates EXACTLY the 3 real writers" is contradicted by the code: it isolates the 2 seam-importers and **misses PCR entirely**.
-- **Evidence**: AST scan (7 ops); `grep -cE "VAULT_ROOT|_vault_paths" tools/parallel_conflict_resolver.py → 0`; `:50` imports only `_stdout`.
-- **Proposed fix**: Redesign the detection. Either (a) a tripwire NOT dependent on the VAULT_ROOT import (resolve write targets under `architecture/`, accepting static-resolution limits), or (b) explicitly scope PCR OUT with a written rationale (slice-093 already classified PCR as git-coupled, "retires at the flip"). Re-run an executed AST scan over the post-routing tree and enumerate every write op + its detection branch.
-- **Builder draft**: ACCEPTED (valid; I flagged this gap to the Critic but shipped the design with it unresolved — that was wrong). Redesign required.
-
-#### B3: Contradicts slice-093's own migration map + R-32 model — PCR is git-coupled ("retires at the flip"), and routing git-tracked files through process-locks now adds no safety
-- **Issue**: slice-093 design.md classified PCR: "operates on slice-queue.md/shippability.md via git pathspecs… presupposes the vault is git-tracked-in-repo… under untracked+external these go inert → PCR-for-vault retires… `_vault_write` replaces it." R-32's register entry: "becomes live only at the slice-094 flip (vault untracked + shared)… the default stays `architecture/` (no flip), so the vault remains git-tracked and PCR still resolves vault-file conflicts loudly." All three target files are git-tracked today. So under the no-flip default this slice preserves (AC5): (1) concurrent mutation surfaces as a git conflict (PCR territory) — the process-lost-update R-32 guards against is *not live yet*; routing PCR's writes through locks now adds no safety over `.tmp`+`os.replace`+`O_APPEND`, while injecting a cross-process `.lock` held across `git rebase --continue` (PCR :430→:435), unanalyzed new behavior; (2) slice-093 says PCR-for-vault *retires* at the flip — routing it now is contradictory work the flip will undo.
-- **Evidence**: slice-093 archived design.md migration map (b); `risk-register.md:567-579` R-32; `git ls-files` (all three tracked); `parallel_conflict_resolver.py:421-447`.
-- **Proposed fix**: Reconcile in design.md + ADR-086. The defensible scope for THIS slice is the whole-file class on the seam-importing writers (`slice_queue_writer`, `slice_queue_claim`) + the audit + byte-faithful primitive + concurrency PROOF, reframed as **flip-readiness** (R-32 retires at the flip, not now); scope PCR out per slice-093's map (or analyze the lock-during-rebase interaction explicitly). Narrow AC1's "every vault-writing call site routes through" to a code-grounded, executed enumeration.
-- **Builder draft**: ESCALATED — this is a scope/direction decision for the user: re-scope slice-094 to flip-readiness (2 seam writers + audit + primitive byte-fix + concurrency proof; PCR scoped out) and reframe the R-32 claim from "retires now" → "retires at the flip", OR rethink the slice/flip coupling. Needs user ratification before redesign.
+#### B2: Routing the seam writers through `safe_write_text` does NOT close their lost-update window — the lock spans the write, not the caller's read
+- **Claim under review**: design.md Intent — routing "closes the read-modify-write lost-update window"; ADR-086 — routing makes the writers safe.
+- **Issue**: Both routed callers are read-modify-write: `slice_queue_claim.py:592` reads → `:599/:607/:613` writes; `slice_queue_writer.py:732` reads `existing_text` → `:819` writes. `safe_write_text` holds the sidecar lock ONLY for the write (`_vault_write.py:102`), releasing before return — NOT across the caller's earlier `read_text`. Two concurrent claims both read old, both compute, second clobbers first → lost update (Critic reproduced 9/10). Routing makes the write atomic+LF-faithful but does NOT close the RMW window R-32 describes for these exact callers.
+- **Evidence**: `slice_queue_claim.py:592→599`, `slice_queue_writer.py:732→819`, `_vault_write.py:95-119` (lock scope = write only).
+- **Proposed fix**: (a) State in design + AC2 that routing delivers byte-faithful + atomic-write + EPERM-resilience but does NOT close the RMW window (a flip-residual, git-protected today) — the honest flip-readiness framing, consistent with B3; OR (b) add a `_file_lock`-spanning RMW helper (lock → read → mutate → write → release) and route the 2 callers through it. Given flip-readiness scope + git-tracked targets, (a) is right — but the current Intent/AC2 over-claims the window is closed and must be corrected.
+- **Builder draft**: **ACCEPTED-FIXED** — take option (a). The targets are git-tracked today (B3); the RMW window is a documented flip-residual, not this slice's job. Fix at redesign: correct design.md Intent + AC2 + the §primitive/§R-32 prose to claim only byte-faithful + atomic-write + EPERM-resilience + the enforcement audit; explicitly list the RMW window as a flip-residual alongside PCR. Do NOT add the RMW helper (scope creep; the lock-across-read design is the flip's call).
 
 ### Majors (address this slice / the redesign)
 
-#### M1: Literal-vault-path secondary tripwire has a large false-positive surface — 37 tools name vault files, mostly as READERS
-- **Issue**: 37 `tools/*.py` contain those literals, mostly as read targets / error-prose / `git show` pathspecs (PCR alone: 8 `_git_show_stage("architecture/slice-queue.md"/"...shippability.md")` reads + `_SOFT_FILE_SET` literals). "Fires on any raw write whose target literal names a vault file" requires per-write-target AST analysis to avoid false-positiving on reader-with-any-write — the undecidable Option 1 the ADR rejected.
-- **Proposed fix**: Specify the AST match precisely (target-of-this-write-op is a `Constant` vault literal vs module-mentions-literal). APED-1 battery MUST include a reader-with-non-vault-write (CLEAN) + error-prose-only module (CLEAN), and be EXECUTED (slice-088 `_RULE_TITLE_RE` precedent).
-- **Builder draft**: ACCEPTED (valid). Folds into the B2 detection-model redesign.
+#### M1: MEPD-1 INCLUDE version-bump fan-out is under-specified — omits pyproject.toml/PVFS-1, entry-pin tests, and the PMI-1 gate supersession
+- **Claim under review**: design.md §M2 + mission-brief MND "atomic … PMI-1 bump"; ADR-086 Consequences.
+- **Issue**: The live PMI-1 versioned gate `test_version_files_synchronized_at_v_0_78_0` (`tests/methodology/test_methodology_changelog.py:5496`) enforces a **5-part** bump whose leg 3 is **`pyproject.toml [project].version` (PVFS-1)** — the slice's M2 table/MND omit `pyproject`/PVFS entirely and call it "4-part". Further, a new RULE-ID at a new version requires a NEW `test_v_<ver>_vws_1_entry_present_in_repo` + `_shippability_consumer_propagation` entry-pin PAIR, AND superseding the version gate `_at_v_0_78_0` → `_at_v_<new>` while PRESERVING all prior entry-pins (EPGD-1 structural separation). None of this test-side work is in any artifact.
+- **Evidence**: `test_methodology_changelog.py:5496-5513` (5-part incl pyproject), `:505/:551` (PMI-1 shape meta-tests), `pyproject.toml [project].version`.
+- **Proposed fix**: Add to design M2: (1) `pyproject.toml`/PVFS-1 → it is a **5-part** bump; (2) a new entry-pin pair; (3) supersede the version gate preserving prior pins; enumerate the META-1 `Rule reference` literal + changelog-anchor substrings the entry-pin asserts.
+- **Builder draft**: **ACCEPTED-FIXED** — real under-spec; the worktree's PMI-1 gate is 5-part. Fix design §M2 + MND to enumerate `pyproject.toml`/PVFS-1 (5-part) + the entry-pin + gate-supersession (EPGD-1) test obligations. **CRITICAL INTEGRATION NOTE (R-33)**: this worktree is BEHIND master (slices 095/096 merged there, NOT here). slice-095 already took **v0.79.0** (SVW-1). So 094 must bump to **v0.80.0** (not 0.79.0), its entry-pin/gate-supersession must target the POST-095 changelog state, and per R-33 (slice-092/095 lesson) `/commit-slice` must `git merge master` FIRST — the version, the 5-part gate (095 may have advanced it), and the cp1252 list reconcile against master, not the worktree's stale 0.78.0. The Critic's project-frame was worktree-stale (computed 0.78.0); the real target is post-095.
 
-#### M2: MEPD-1 INCLUDE is defensible, but reconcile the 5-part vs 4-part PMI-1 bump + count fan-out against real inventory
-- **Issue**: INCLUDE itself is correct (non-underscore gate-wired audit + minted RULE-ID). But "5-part PMI-1 atomic bump" is asserted abstractly (the project's PMI-1 surface is VERSION + ~/.claude/ai-sdlc-VERSION + plugin.yaml.version + forward-synced changelog — enumerate against `install_audit.py` `_CANONICAL_*` + INSTALL.md, don't assert "5-part"); the count fan-out cites "cp1252 parametrize list" / "per-tool inventory-pin test" as categories, not concrete `file:line`.
-- **Proposed fix**: Replace "5-part" with an executed enumeration of every count literal + install/manifest tuple as concrete `file:line` (N≥3 fan-out lesson demands grep against the real tree).
-- **Builder draft**: ACCEPTED-PENDING (resolve in redesign/build via executed grep).
-
-#### M3: Concurrency-test non-vacuity-by-mutation is right, but threads-vs-processes determinism is unspecified
-- **Issue**: The "26/30 lines lost" R-32 phenomenon is a *multi-process* effect; `msvcrt.locking` is per-handle + GIL means in-thread "concurrency" may not reproduce the contention → the mutation (disable lock) may still pass on threads → vacuous. AC3 doesn't specify threads vs processes. Cross-process file-lock tests are flaky/can hang under pytest.
-- **Proposed fix**: Specify `multiprocessing` (spawn) workers (or justify threads); state worker count + mutation point + a bounded timeout so a lock-hang fails loud.
-- **Builder draft**: ACCEPTED-PENDING (specify process model + timeout in the redesigned design.md / build).
-
-#### M4: ADR-086 "_vault_write signatures unchanged" contradicts B1's fix; `.gitignore` `.tmp` glob matches nothing as written
-- **Issue**: (a) B1's `newline=` addition makes "signatures unchanged" false → ADR-086 must be updated. (b) `.tmp` files are `<filename>.<pid>.tmp` (`_vault_write.py:103`), so `*.<pid>.tmp` as written matches nothing — use `*.tmp` or `*.*.tmp`; verify `*.lock` doesn't shadow a tracked `.lock`.
-- **Proposed fix**: Real globs (`*.lock`, `*.tmp`); update ADR-086 Contracts to reflect the `newline=` change.
-- **Builder draft**: ACCEPTED (valid). Folds into B1 + the `.gitignore` work.
+#### M2: ADR-086 "catches PCR" contradicts its own Option-1 undecidability rejection — all 7 PCR write targets are variables
+- **Claim under review**: ADR-086 Option-4 pros — "catches PCR (it has vault-literal write targets)"; design §detection-model.
+- **Issue**: None of PCR's 7 write ops has a vault literal AT the write-target node: `:430` `out_path.write_text` (loop var from `pending_writes`, built by calls — undecidable); `:1546` `out_path` = `repo_root/"architecture"/"slice-queue.md"` (literal 1 hop back); `:713/:764/:1779/:2133/:2234` `log_path` = `repo_root/_AUDIT_LOG_PATH` where `_AUDIT_LOG_PATH = Path("architecture/...")` is a module constant (literal 1 hop + const resolution). PCR imports no seam, so rule (b) never fires. "Catches PCR" is only true if the audit backtracks Name-assignments + module constants — the exact dataflow ADR Option-1 rejects as undecidable. design §detection doesn't specify the resolution depth; the "accepted residual = fully opaque runtime path" cons doesn't cover the `var = root/"architecture"/"x.md"; var.write_text()` shape all 4 real writers use.
+- **Evidence**: `parallel_conflict_resolver.py:71` (`_AUDIT_LOG_PATH` const), `:1544` (`out_path` assign), `:362-368` (`pending_writes`); ADR-086 Option-1 (undecidable) vs Option-4 ("catches PCR").
+- **Proposed fix**: Specify the exact target-resolution depth (e.g. resolve a `Name` target through ≤1 intra-function assignment AND module-level `Path(...)`/str constants; NO interprocedural/container resolution). State which PCR ops that depth catches (5 `log_path` + `:1546`; NOT `:430` loop var = accepted residual) and correct the ADR "catches PCR" → "catches the 1-hop-literal shape the seam writers + 6/7 PCR ops use". APED-1 battery MUST plant the `var = root/"architecture"/"x.md"; var.write_text()` shape as a VIOLATION.
+- **Builder draft**: **ACCEPTED-FIXED** — the v2 design hand-waved the resolution depth and the ADR over-claimed. Fix design §detection-model + ADR-086 to commit to **≤1-hop intra-function Name-assignment + module-level `Path(...)`/str-constant resolution** (tractable, bounded — NOT the rejected interprocedural dataflow); correct "catches PCR" to the precise 1-hop-literal-shape claim; add the planted `var = root/"architecture"/"x.md"` VIOLATION to the APED-1 battery. This also sharpens the future-writer guarantee (the seam writers use exactly this shape).
 
 ### Minors (log; address if cheap)
 
-#### m1: Design/milestone line numbers are stale — cited sites point at comments/docstrings
-- **Issue**: `slice_queue_writer.py:107` is the parallel-safety-enum comment (real write :818-820); `slice_queue_claim.py:232` is a docstring (real write helper :527-536); `parallel_conflict_resolver.py:303` is a docstring (no write). Conceded in the design's NOTE-TO-CRITIC.
-- **Builder draft**: ACCEPTED — re-derive all line numbers in the redesign (the milestone repeats the wrong numbers).
+#### m1: design.md mislocates the changelog — `architecture/methodology-changelog.md` doesn't exist (it's at repo root)
+- **Issue**: design §M2 cites `architecture/methodology-changelog.md`; the file is repo-root `methodology-changelog.md` (ADR-086 cites it correctly). FBCD-1 cross-file drift that could misdirect MCFS-1.
+- **Builder draft**: **ACCEPTED-FIXED** — change design §M2 to `methodology-changelog.md` (repo root) + note the installed forward-sync target `~/.claude/methodology-changelog.md`.
 
-#### m2: `safe_append_text` has zero production callers today — this is its first production use
-- **Issue**: Only `_vault_write.py` references the primitives; the "transparent" claim has no prior production validation → B1's byte-identity test is mandatory first-use validation, not a regression check.
-- **Builder draft**: ACCEPTED (noted; reinforces B1).
+#### m2: design.md "4 read-only VAULT_ROOT-importers" is factually wrong — 3 of the 4 named don't import VAULT_ROOT
+- **Issue**: Only `shippability_decoupling_audit` references VAULT_ROOT of the 4 named; the real seam-referencing set is 11. Conclusion still holds (only 4 `tools/*.py` have ANY write op), but the enumeration is a CCC-1 parity error.
+- **Builder draft**: **ACCEPTED-FIXED** — reword to "every module with no write op never reaches classification (only 4 `tools/*.py` contain a write op at all)"; drop the wrong 4-name list.
 
-#### m3: shippability is at 101 numbered rows, not "~99/100"; cited test path doesn't exist yet
-- **Issue**: Catalog has 100 data rows, last id 101 (slice-093). New VWS-1 row goes at the correct next index; the wiring-matrix-cited `test_vault_write_safety_audit.py::test_audit_flags_planted_raw_vault_write` is a slice deliverable (fine as PENDING, but the slice plan must author it — PTFCD-1).
-- **Builder draft**: ACCEPTED-PENDING (correct row index + author the cited test in the slice plan).
+#### m3: "zero production callers today" is imprecise — `write_vault_root_config` calls `safe_write_text`
+- **Issue**: `_vault_write.py:155-162` `write_vault_root_config` is a production wrapper (`:161` calls `safe_write_text`, test-exercised slice-093); pre-fix it wrote `path\r\n` (latent — `read_vault_root_config:174` `.strip()`s it).
+- **Builder draft**: **ACCEPTED-FIXED** — reword design §primitive to "the only production caller is in-module `write_vault_root_config` (config writes are `.strip()`-read so the CRLF was latent); the byte-fix also corrects that latent CRLF; the test is first-use validation for the seam writers".
+
+#### m4: BC-PROJ-12 (markdown-writer `newline=""` build-check) interaction with the routing is unanalyzed
+- **Issue**: BC-PROJ-12 (`test_build_checks_audit.py:1672-1723`, advisory, `applies_to tools/**/*.py`, anchors `write_text`/`open("a")`/`.md`/`encoding`) fires on changed `tools/*.py` hunks demanding `newline=""` or a deferral. Routing REMOVES `newline=""` from the call sites (moves into `_vault_write.py`); the slice edits `_vault_write.py`'s EOL lines directly. Design never mentions BC-PROJ-12. Likely advisory (negative_anchors include `design.md`), not a hard fail.
+- **Builder draft**: **ACCEPTED-FIXED** — add design note: routed sites delegate `newline=""` to `safe_write_text` (now sets it, B1); BC-PROJ-12 advisories on these hunks are satisfied by the primitive or deferred-with-rationale citing it. Run BC-1 on the routed diff at mid-slice smoke (build-time).
+
+#### m5: `_CANONICAL_TOOLS` alphabetical insert point in design.md is slightly off
+- **Issue**: `vault_write_safety_audit` sorts after `validate_slice_layers` (`install_audit.py:126`), before `walking_skeleton_audit` (`:127`) — not near `supersede_audit`/`test_first_audit` (`:122/:123`).
+- **Builder draft**: **ACCEPTED-FIXED** — correct design §M2 to insert between `:126 tools.validate_slice_layers` and `:127 tools.walking_skeleton_audit`.
+
+#### m6: `*.tmp` gitignore glob is repo-wide
+- **Issue**: M4's `*.tmp` (over the non-matching `*.<pid>.tmp`) is right, but `*.tmp` is repo-wide. Likely intended; flag only.
+- **Builder draft**: **ACCEPTED** — confirmed repo-wide `*.tmp` + `*.lock` is the simplest correct choice (temp files are `<name>.<pid>.tmp` / `<name>.tmp`; locks are `<name>.lock`); no production `.tmp`/`.lock` is git-tracked. No change needed; note the confirmation in build-log.
 
 ## Dimensions checked
-- [x] Unfounded assumptions — B1 (false "keeps newline='\n'"), B3 (assumes process-lost-update live now), M2 (5-part PMI-1 abstract).
-- [x] Missing edge cases — M3 (threads-vs-processes; lock-hang timeout), B3 (lock held across `git rebase --continue`), M4 (`.tmp` glob).
-- [x] Over-engineering — B3 partial (routing PCR which retires at the flip; process-locks before the hazard is live — YAGNI).
-- [x] Under-engineering — B2 (audit can't see the largest writer; AC1 unmet), M1 (FP surface unspecified).
-- [x] Contract gaps — M4 (ADR-086 "signatures unchanged" vs B1 fix). Audit exit-code-only otherwise.
-- [x] Security — none: cooperative data-integrity control, not a security boundary (ADR-067/086). Correctly N/A.
-- [x] Drift from vault — B3 (contradicts slice-093 migration map (b) + R-32 "live only at flip"), m3 (row count), M2 (PMI-1/INST-1 reconcile).
-- [x] Web-known issues — confirmed: `os.replace` atomic but no lost-update protection without a lock; `msvcrt.locking` byte-range mandatory; `write_text(newline=)` defaults to `os.linesep` translation (B1 root cause); cross-process lock tests flaky/hang under pytest (M3).
-- [x] Cross-cutting conformance — B1 (tooling-impl-vs-prose parity), B2 (APED-1: matcher misses PCR), M1 (APED-1 battery must execute), M2/m3 (mechanical-table-vs-inventory), RSAD-1 (this slice's own design mechanical table is wrong — the class VWS-1 exists to catch).
+- [x] **Unfounded assumptions** — M2 (ADR "catches PCR" not backed by write-target code), m2 (false "4 importers"), m3 ("zero callers" false). B1 byte-fix assumptions verified TRUE by execution (CRLF reproduced; `newline=""`+`O_BINARY`→LF; `O_APPEND` preserved; multibyte/existing-file OK).
+- [x] **Missing edge cases** — B1/B2 (proof tests the wrong patterns; RMW window unhandled; EPERM-under-contention/WinError 5 not in the proof).
+- [x] **Over-engineering** — none. Scope appropriately narrow; PCR correctly scoped out; COUNT-pinned allowlist reuses precedent.
+- [x] **Under-engineering** — M1 (MEPD-1 INCLUDE bump under-specifies pyproject/PVFS + entry-pin + gate-supersession; would fail strict PMI-1/changelog audits at pre-finish).
+- [x] **Contract gaps** — none new. Audit CLI 0/1/2 follows RR-1/SRSC-1/BCI-1; `_vault_write` byte-output contract change correctly called out (M4 in design).
+- [x] **Security** — none. Data-integrity control per ADR-067; cooperative-writer frame correct; no authz/secret/injection surface.
+- [x] **Drift from vault** — m1 (changelog path), m2 (importer enumeration), M2 (ADR self-contradiction). Strategic-direction fit (Dim-7a): flip-readiness + "R-32 retires at the flip" is CONSISTENT with the external-vault-flip trajectory + no-flip invariant — does not fight direction. Architectural-concurrency (Dim-7b): closed-world `tools/` scan, not a runtime detector — N-concurrent-worktree cry-wolf class N/A.
+- [x] **Web-known issues** — confirmed `os.replace` atomic + WinError 5 under held handle ([bugs.python.org#46003], [briefcase#1780]) — supports B1's EPERM rationale AND the torn-write vacuity; `O_APPEND` single-write atomic with a Windows 1024-byte split caveat ([notthewizard.com], [bugs.python.org#15723]) — supports the append-loss vacuity. No deprecations affecting `msvcrt.locking`/`os.open`/`multiprocessing(spawn)`.
+- [x] **Cross-cutting conformance** — M1 (MEPD-1/EPGD-1/SCPD-1 + pyproject), M2 (resolution-depth vs ADR undecidability), m4 (BC-PROJ-12 pre-existing branch composing with the routing diff). APED-1: Critic EXECUTED the byte primitives + concurrency mutations against real bytes (Builder should RE-RUN, not trust the summary — "re-interrogate the Critic's own claims" lesson). The audit doesn't exist yet → its APED-1 battery runs at build; M2 specifies the planted-VIOLATION shape.
 
 ## Triage
 
-**Triaged by**: (pending — TRI-1, user-owned; runs after /critique-review)
-**Date**: (pending)
-**Final verdict**: (pending — B3 Builder-drafted ESCALATED ⇒ heading to BLOCKED → /design-slice redesign)
+**Triaged by**: user (contact@sshubham.me) — TRI-1, reconciling both Critic passes (`/critique` + `/critique-review` EXTEND)
+**Date**: 2026-06-01
+**Final verdict**: NEEDS-FIXES
+
+_Verdict basis_: ACCEPTED-PENDING present (B1, M1, M-add-1, m-add-1) → built during `/build-slice`; ACCEPTED-FIXED items applied at the post-TRI-1 redesign touch-up; no ESCALATED → not BLOCKED.
+
+| ID | Severity | Disposition | Rationale |
+|----|----------|-------------|-----------|
+| B1 | Blocker | ACCEPTED-PENDING | Re-scope AC4: **EPERM-on-`os.replace`** mutation (whole-file) + **MANDATORY >1024-byte append-interleaving** proof (meta-Critic: small-payload append-loss vacuous, >1024B non-vacuous per Windows OS-split); drop torn-write/small-append; non-vacuous proof EXECUTED at build. |
+| B2 | Blocker | ACCEPTED-FIXED | Corrected Intent/AC2/ADR-086: routing buys byte-faithful + atomic-write + EPERM-resilience, NOT RMW-window closure (documented flip-residual); no RMW helper. |
+| M1 | Major | ACCEPTED-PENDING | **5-part** bump incl. `pyproject.toml`/PVFS-1 + entry-pin pair + version-gate supersession (EPGD-1); lands at build. |
+| M2 | Major | ACCEPTED-FIXED | ADR-086 + design committed to **≤1-hop Name + module-const** resolution depth; "catches PCR" corrected to the 1-hop-literal-shape claim; APED-1 plants the `var = root/"architecture"/"x.md"` VIOLATION. |
+| m1 | Minor | ACCEPTED-FIXED | changelog path → repo root (not `architecture/`). |
+| m2 | Minor | ACCEPTED-FIXED | reworded the false "4 VAULT_ROOT-importers" enumeration. |
+| m3 | Minor | ACCEPTED-FIXED | reworded "zero production callers" (`write_vault_root_config` calls it). |
+| m4 | Minor | ACCEPTED-FIXED | design note: routed sites delegate `newline=""` to the primitive; BC-PROJ-12 satisfied/deferred. |
+| m5 | Minor | ACCEPTED-FIXED | `_CANONICAL_TOOLS` insert between `validate_slice_layers`/`walking_skeleton_audit`. |
+| m6 | Minor | OVERRIDDEN | Flag-only finding; repo-wide `*.tmp`/`*.lock` is the simplest correct choice (no tracked `.tmp`/`.lock`) — confirmed intended, no change. |
+| M-add-1 | Major | ACCEPTED-PENDING | (meta-Critic missed) **v0.79.0 taken by merged slice-095** → 094 targets **v0.80.0**; add `git merge master` to the Pre-finish gate (R-33); entry-pins reconcile against post-095 state. |
+| m-add-1 | Minor | ACCEPTED-PENDING | (meta-Critic) byte-identity test: add a large (>1024B) multibyte payload, not just `a\nb\n`. |
+| m-add-2 | Minor | ACCEPTED-FIXED | (meta-Critic) shippability row #102 must carve out the PCR scoped-out allowlist (honest coverage, not "total"). |

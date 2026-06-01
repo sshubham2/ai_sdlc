@@ -2,15 +2,15 @@
 slice: slice-094-harden-vault-write-safety
 stage: critique
 updated: 2026-06-01
-next-action: TRI-1 triage (user-owned) then /design-slice REDESIGN — critique returned BLOCKED
+next-action: run /build-slice — TRI-1 verdict NEEDS-FIXES; ACCEPTED-PENDING items built in-slice; ACCEPTED-FIXED design-prose corrections applied
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-094 harden-vault-write-safety
 
-**Stage**: critique
-**Next action**: TRI-1 triage (user ratifies dispositions in critique.md) → then **`/design-slice` REDESIGN** — Critic returned **BLOCKED** (3 execution-verified blockers). `/critique-review` NOT yet run (user deferred; see Handoff).
+**Stage**: critique (v2 — NEEDS-FIXES)
+**Next action**: run **`/build-slice`**. Full Critic stack ran on v2 — `/critique` NEEDS-FIXES (2B/2M/6m) + `/critique-review` EXTEND (+M-add-1/m-add-1/m-add-2). TRI-1 ratified 2026-06-01 (verdict NEEDS-FIXES); ACCEPTED-FIXED design-prose corrections applied to design.md/ADR-086/mission-brief; ACCEPTED-PENDING items built in-slice (B1 non-vacuous EPERM+>1024B proof, M1/M-add-1 5-part bump + R-33 master-merge + entry-pins at v0.80.0, m-add-1 large-payload byte test).
 **Updated**: 2026-06-01
 **Risk tier**: medium — Critic required: **yes** (mandatory trigger: in-house methodology surfaces `tools/**/*.py` + new audit; reinforced by vault data-integrity / concurrency sensitivity)
 
@@ -18,15 +18,17 @@ critic-required: true
 
 - [x] /slice — 2026-05-31
 - [x] /design-slice — 2026-05-31
-- [x] /critique — 2026-06-01 — **BLOCKED** (3 blockers, 4 majors, 3 minors; all execution-verified against real code). `/critique-review` deferred. TRI-1 triage pending (user-owned).
-- [ ] /design-slice (REDESIGN — required before build)
+- [x] /critique — 2026-06-01 — **BLOCKED** (3 blockers, 4 majors, 3 minors; all execution-verified). **TRI-1 ratified BLOCKED 2026-06-01** (all 10 dispositions accepted; B3 → flip-readiness re-scope, PCR out). `/critique-review` runs on v2.
+- [x] /design-slice (REDESIGN — flip-readiness scope) — 2026-06-01
+- [x] /critique (v2) — 2026-06-01 — NEEDS-FIXES (2B/2M/6m); TRI-1 ratified
+- [x] /critique-review (v2) — 2026-06-01 — EXTEND (+M-add-1 Major, +m-add-1/m-add-2 Minor)
 - [ ] /build-slice
 - [ ] /validate-slice
 - [ ] /reflect
 
 ## Current focus
 
-**Critique BLOCKED the v1 design.** The Builder (this session) AGREES with all three blockers — they catch genuine design errors, each reproduced by the Critic against the real code:
+**v2 flip-readiness redesign + full Critic stack COMPLETE** (2026-06-01). `/critique` (NEEDS-FIXES, 2B/2M/6m) + `/critique-review` (EXTEND) both ran on v2 against the worktree; TRI-1 ratified → **NEEDS-FIXES**. ACCEPTED-FIXED design-prose corrections applied to design.md/ADR-086/mission-brief; ACCEPTED-PENDING items built in-slice. **Ready for `/build-slice`** (pending user approval of the build plan). Key v2 findings resolved: B1 (concurrency proof re-scoped to non-vacuous EPERM + >1024B append — both primitives were CRLF-buggy), B2 (routing does NOT close the RMW window — flip-residual), M2 (audit detection ≤1-hop+module-const depth), M-add-1 (v0.80.0 not 0.79.0 — slice-095 collision; R-33 master-merge first). The original v1 BLOCKED blockers, for the record (Builder AGREED, each reproduced against real code):
 
 - **B1 — routing is NOT transparent (CRLF).** `tools/_vault_write.py` passes no `newline=` kwarg, so `safe_write_text`/`safe_append_text` emit **CRLF** on this repo's interpreter, while the existing writers use `newline=""` (**LF**). Routing as designed corrupts every vault file's newlines (EOL-DRIFT-1/ADR-033 class) → AC5 + must-not-defer violated. The mission-brief claim "`safe_write_text` keeps `newline=\"\n\"`" is false.
 - **B2 — audit can't see the biggest writer + enumeration incomplete.** `parallel_conflict_resolver.py` has **7** raw vault-write ops (not 1) and imports **neither** `VAULT_ROOT` nor `_vault_paths`, so the design's primary (VAULT_ROOT-import) tripwire never fires on it. AC1/AC2 unmet as designed. ADR-086's "isolates EXACTLY the 3 real writers" is false.
@@ -34,9 +36,9 @@ critic-required: true
 
 Plus M1 (literal-path tripwire FP surface — 37 tools name vault files, mostly readers), M2 (PMI-1 "5-part" asserted abstractly — enumerate vs real inventory), M3 (concurrency test must use `multiprocessing`/spawn + bounded timeout, not threads), M4 (ADR-086 "signatures unchanged" vs B1 fix; `.gitignore` `*.<pid>.tmp` glob matches nothing — use `*.tmp`), m1 (all design line numbers stale: real writes are `slice_queue_writer.py:818-820`, `slice_queue_claim.py:527-536`, PCR `:430/:1546/:713/:764/:1779/:2133/:2234`), m2 (primitives have zero production callers — first use), m3 (shippability is at 101 rows; cited test path not yet authored).
 
-## Recommended redesign (flip-readiness scope) — NOT yet ratified
+## Redesign scope (flip-readiness) — RATIFIED at TRI-1 (2026-06-01)
 
-The Builder's recommended re-scope (one of 3 options offered to the user; the user deferred the choice to the continuing session):
+The Builder's recommended re-scope, **ratified by the user at TRI-1** (chosen via `/slice "priorities blockers for external vault flip"` → "Resume & redesign 094" → "Ratify + redesign, full stack on v2"):
 
 1. **Fix the primitive first**: add `newline=""` to `safe_write_text`; pin `safe_append_text` LF-faithfulness; **nt-guarded byte-identity regression test** vs the pre-routing pattern (B1, M4). Update ADR-086 (signatures DO change) or supersede.
 2. **Route ONLY the 2 seam whole-file writers** (`slice_queue_writer`, `slice_queue_claim`) → `safe_write_text`. **Scope PCR OUT** per slice-093's map (git-coupled, retires at the flip) — or, if kept, add the lock-held-across-`git rebase --continue` analysis B3 demands (B2, B3).
