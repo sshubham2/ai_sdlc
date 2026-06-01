@@ -1,16 +1,24 @@
 # Slice queue
 
-_Generated: 2026-05-31T18:04:51+00:00 by /slice during slice-095 definition_
+_Generated: 2026-05-31T18:21:04+00:00 by /slice during slice-096 definition_
 
 ## Candidates
 
-### flip-vault-to-external-shared-root
+### add-slice-candidates-drift-guard
 
-- **Source:** external-vault initiative (unblocked once R-32 retires: 094+095)
-- **Blast-radius:** `INSTALL.md`, `tools/_vault_paths.py`
+- **Source:** risk-register R-13
+- **Blast-radius:** `skills/slice-candidates/SKILL.md`, `tests/methodology/test_slice_candidates_skill_drift.py`
 - **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** LARGE
-- **Risk-retired:** NONE (unblocks initiative)
+- **Effort:** SMALL
+- **Risk-retired:** LOW
+
+### add-diagnose-cwd-mismatch-runtime-test
+
+- **Source:** risk-register R-2
+- **Blast-radius:** `skills/diagnose/SKILL.md`, `tests/skills/diagnose/test_skill_md_pins.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** LOW
 
 ### audit-cp1252-decode-pattern-across-tools
 
@@ -36,22 +44,6 @@ _Generated: 2026-05-31T18:04:51+00:00 by /slice during slice-095 definition_
 - **Effort:** MEDIUM
 - **Risk-retired:** LOW
 
-### extend-osdg-1-to-slice-candidates
-
-- **Source:** risk-register R-13
-- **Blast-radius:** `skills/slice-candidates/SKILL.md`, `tests/skill_drift_equality.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
-- **Risk-retired:** LOW
-
-### add-diagnose-cwd-mismatch-runtime-test
-
-- **Source:** risk-register R-2
-- **Blast-radius:** `skills/diagnose/SKILL.md`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
-- **Risk-retired:** LOW
-
 ### add-claim-sequence-number-for-clock-skew-detection
 
 - **Source:** risk-register R-23
@@ -59,6 +51,30 @@ _Generated: 2026-05-31T18:04:51+00:00 by /slice during slice-095 definition_
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
 - **Risk-retired:** LOW
+
+### harden-pcr-1-soft-baseline-corruption
+
+- **Source:** risk-register R-24
+- **Blast-radius:** `tools/parallel_conflict_resolver.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** LOW
+
+### add-project-frame-degrade-signal
+
+- **Source:** risk-register R-26
+- **Blast-radius:** `tools/project_frame_synth.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** LOW
+
+### flip-vault-to-external-shared-root
+
+- **Source:** external-vault initiative (blocked on R-32: 094+095)
+- **Blast-radius:** `INSTALL.md`, `tools/_vault_paths.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** LARGE
+- **Risk-retired:** NONE
 
 ### add-index-md-soft-promotion-or-light-hard-path
 

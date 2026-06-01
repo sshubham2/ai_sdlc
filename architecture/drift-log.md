@@ -552,3 +552,29 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-091 surface.
+
+## Audit 2026-06-01 10:19
+
+**Trigger**: slice-096 pre-finish gate
+**Scope**: full (active slice slice-096-add-slice-candidates-drift-guard)
+**Findings**: 0 blockers, 0 majors
+
+### Blockers
+- (none)
+
+### Majors
+- (none)
+
+### Verified aligned
+- design.md "What's new" verified on disk: (1) `tests/methodology/test_slice_candidates_skill_drift.py` EXISTS — asserts in-repo `skills/slice-candidates/SKILL.md` ≡ installed via the shared `assert_md_forward_synced` (runs PASS + proven non-vacuous by mutation); (2) `CLAUDE.md` OSDG-1 `Guarded skills:` enumeration now names `slice-candidates` + its test; (3) `architecture/shippability.md` row #102 present with the full 6-column SCMD-1 shape.
+- No new ADR (design.md "Decisions made" = None; MEPD-1 = EXCLUDE). Referenced ADRs unchanged/accepted: ADR-033 (EOL-DRIFT-1), ADR-051 (OSDG-1), ADR-054 (`/slice-candidates` `--obo-peek` carve-out).
+- MEPD-1 EXCLUDE: `VERSION` + `methodology-changelog.md` + `plugin.yaml` + `tools/install_audit.py` UNCHANGED → MCFS-1/AVFS-1/TVFS-1 no-op (no version-bump legs to sync); PMI-1/INST-1 no-op (no installed artifact added — a test is not plugin-enumerated).
+- risk-register.md: R-13 stays `open` — this slice retires it but the status flip is `/reflect`'s job (the register reflects reality at slice end); no stale status pin flipped here (STP-1 clean).
+- `skills/slice-candidates/SKILL.md` NOT edited (in-repo ≡ installed already); `.gitattributes` + `_GUARDED_GLOBS` unchanged (the `skills/**/SKILL.md` blanket glob already covers the new member).
+- No UNSPECIFIED CODE / no STALE CLAIM: purely additive (one test + one CLAUDE.md sentence + one catalog row); no removed feature, no orphan vault claim.
+
+### Out-of-scope pre-existing finding (NOT slice-096 drift)
+- `tests/methodology/test_external_vault_adr_and_risk.py:49` FAILs on clean master too (FileNotFoundError on the archived slice-093 active-path `design.md`) — a stale active-path test pin left by slice-093's archival. Outside `/drift-check` scope (archived slices are skipped) AND outside slice-096 scope (external-vault initiative / slice-094-095 domain). Surfaced for routing, not resolved here.
+
+### Resolutions
+- None required — vault and code aligned for the slice-096 surface.
