@@ -73,4 +73,22 @@ The append/rewrite split, the slice-093 sidecar-lock mechanism, and the "narrow 
 
 ## Triage
 
-<!-- Pending: Step 4.5 TRI-1 (user-owned). Filled after /critique-review + user ratification. -->
+**Triaged by**: user
+**Date**: 2026-06-01
+**Final verdict**: NEEDS-FIXES
+
+Reconciles BOTH passes: first Critic (B1/B2/M1/M2/M3/m1/m2) + meta-Critic EXTEND (M-add-1/M-add-2). User ratified all 9 dispositions ("Accept all → NEEDS-FIXES").
+
+| ID | Severity | Disposition | Rationale / fix ref |
+|----|----------|-------------|---------------------|
+| B1 | Blocker | ACCEPTED-FIXED | design.md §"Why SVW-1 is acceptable despite ADR-029" (no *content* oracle, unlike BCI-1 fixture) + AC2-framing-corrected bullet + ADR-087 §Consequences; mechanism unchanged, over-claim removed |
+| B2 | Blocker | ACCEPTED-FIXED | 23→26 ×4 sites; mutator table +`/repro`+`/supersede-slice`; `build-slice:394` recorded as must-stay-clean FP |
+| M1 | Major | ACCEPTED-PENDING | matcher-precision spec added to design (directive-shape; exclude fenced/past-tense); the FP/FN measurement + matcher build is genuine `/build-slice` work, recorded in build-log |
+| M2 | Major | ACCEPTED-FIXED | design.md mutator note + §R-32 disposition: deferred RMW is the PRIMARY lost-update hazard; flip slice MUST close it before go-live |
+| M3 | Major | ACCEPTED-FIXED | exemption constrained to closed reason-enum `{deferred-rmw, project-open-single-shot}` (unknown→VIOLATION) + pinned `_REGISTERED_SKILL_EXEMPTIONS` allowlist + `test_exemption_allowlist_pinned` |
+| m1 | Minor | ACCEPTED-FIXED | design.md §R-32 cites [[ADR-066]]; hazard "strictly POST-flip" |
+| m2 | Minor | ACCEPTED-FIXED | design.md §Sequencing note: concrete 4-step second-merger checklist |
+| M-add-1 | Major | ACCEPTED-FIXED | meta-Critic (critique-review.md): added `user-test:115` + `validate-slice:291` to mutator table; Builder re-grep re-verified enumeration COMPLETE (no 5th site) |
+| M-add-2 | Major | ACCEPTED-FIXED | meta-Critic: route `/validate-slice`+`/user-test` via `vault_edit append` (both appends) — keeps reason-enum at 2 values; `/validate-slice` is NOT project-open (runs per-slice/concurrent) |
+
+**Critic calibration (recorded for /reflect)**: design-Critic 2B/3M/2m all VALIDATED (zero false-positive); meta-Critic EXTEND +2 MISSED (M-add-1/M-add-2) — the recursive-APED-1 catch (first Critic's "I executed the matcher" B2 under-ran the corpus 2-of-4). Stack complementarity held: design-Critic = claim-correctness (B1 ADR-029) + execution (B2); meta-Critic = the under-execution in the first Critic's OWN fix ("a Critic's own fix is a fresh claim", N≥6).
