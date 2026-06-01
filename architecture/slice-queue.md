@@ -1,6 +1,6 @@
 # Slice queue
 
-_Generated: 2026-06-01T14:04:50+00:00 by /slice during slice-097 definition_
+_Generated: 2026-06-01T17:37:16+00:00 by /slice during slice-098 definition_
 
 ## Candidates
 
@@ -12,17 +12,9 @@ _Generated: 2026-06-01T14:04:50+00:00 by /slice during slice-097 definition_
 - **Effort:** MEDIUM
 - **Risk-retired:** LOW
 
-### route-or-retire-git-coupled-vault-tools
-
-- **Source:** R-32 flip residual
-- **Blast-radius:** `tools/parallel_conflict_resolver.py`, `tools/pulse_worktree_resolver.py`, `tools/stranded_slice_audit.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** MEDIUM
-
 ### flip-vault-to-external-shared-root
 
-- **Source:** external-vault initiative (R-32 final, blocked on slice-097 RMW close)
+- **Source:** external-vault initiative (R-32 final, blocked on slice-098)
 - **Blast-radius:** `INSTALL.md`, `tools/_vault_paths.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** LARGE
@@ -66,4 +58,20 @@ _Generated: 2026-06-01T14:04:50+00:00 by /slice during slice-097 definition_
 - **Blast-radius:** `skills/commit-slice/SKILL.md`, `tools/parallel_conflict_resolver.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
+- **Risk-retired:** LOW
+
+### fix-pyproject-version-drift
+
+- **Source:** diagnose-out backlog SC-001
+- **Blast-radius:** `pyproject.toml`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** LOW
+
+### declare-tomllib-dependency
+
+- **Source:** diagnose-out backlog SC-002
+- **Blast-radius:** `pyproject.toml`, `tools/validate_slice_layers.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
 - **Risk-retired:** LOW

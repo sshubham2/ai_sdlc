@@ -52,6 +52,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from tools import _stdout
+from tools._vault_paths import VAULT_ROOT
 from tools.branch_workflow_audit import _resolve_default_branch
 
 __all__ = [
@@ -214,10 +215,14 @@ def _resolve_milestone_path(scan_root: Path, slice_num: str, slice_name: str) ->
     main tree.
     """
     folder = f"slice-{slice_num}-{slice_name}"
-    active = scan_root / "architecture" / "slices" / folder / "milestone.md"
+    # slice-098 / [[ADR-089]] Class-A ROUTE: filesystem milestone reads resolve
+    # via VAULT_ROOT (pathlib discards `scan_root` when VAULT_ROOT is absolute →
+    # one form serves the relative-default in-tree and absolute-external cases;
+    # byte-identical no-flip because VAULT_ROOT == Path("architecture")).
+    active = scan_root / VAULT_ROOT / "slices" / folder / "milestone.md"
     if active.is_file():
         return active
-    archive = scan_root / "architecture" / "slices" / "archive" / folder / "milestone.md"
+    archive = scan_root / VAULT_ROOT / "slices" / "archive" / folder / "milestone.md"
     if archive.is_file():
         return archive
     return None

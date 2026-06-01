@@ -48,6 +48,8 @@ from pathlib import Path
 from typing import NamedTuple, NoReturn
 
 from tools import _stdout
+from tools._vault_git import vault_is_external
+from tools._vault_paths import VAULT_ROOT
 
 
 # ---------------------------------------------------------------------------
@@ -68,8 +70,11 @@ dropped (PMI-1 5-leg atomic-bump risk on concurrent bumps).
 Pinned by test_soft_file_set_is_two_canonical_files_forward_slash_keyed.
 """
 
-_AUDIT_LOG_PATH: Path = Path("architecture/parallel-conflict-resolution-log.md")
-"""Append-only audit log path (lazy-created on first append)."""
+_AUDIT_LOG_PATH: Path = VAULT_ROOT / "parallel-conflict-resolution-log.md"  # slice-098/ADR-089 Class-A ROUTE
+"""Append-only audit log path (lazy-created on first append). slice-098/ADR-089:
+composed from VAULT_ROOT (frozen-at-import). Consumed as ``repo_root / _AUDIT_LOG_PATH``
+at 5 sites — byte-identical no-flip because VAULT_ROOT is the relative default
+(pathlib discards ``repo_root`` if VAULT_ROOT is ever absolute/external)."""
 
 _AUDIT_LOG_HEADER: str = (
     "# Parallel-conflict-resolution log\n"
@@ -209,12 +214,12 @@ def diagnose_conflict(repo_root: Path) -> ConflictDiagnostic:
 
     claim_history: tuple[ClaimEntry, ...] = ()
     claim_extraction_degraded = False
-    if "architecture/slice-queue.md" in u_files:
+    if "architecture/slice-queue.md" in u_files:  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
         try:
             # Both stage reads are wrapped: an undecodable EITHER stage (2 or 3)
             # must degrade the diagnostic (m-add-2 — symmetric, not stage-2-only).
-            text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")
-            text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")
+            text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
+            text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
         except _StageDecodeError as exc:
             # A present-but-non-UTF-8 stage (R-30 residual #1 / ADR-083): the
             # claim history cannot be trusted, so mark the diagnostic degraded
@@ -290,13 +295,52 @@ def classify_conflict(diag: ConflictDiagnostic) -> ConflictClass:
 
     # All U-files are in the SOFT-set.
     if has_vault_claim:
-        if u_files_set == {"architecture/slice-queue.md"}:
+        if u_files_set == {"architecture/slice-queue.md"}:  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
             return ConflictClass.VAULT_CLAIM
         # SOFT (shippability.md) + VAULT_CLAIM (slice-queue.md) -> MIXED
         # (per /critique M4 disambiguation; atomicity prevails).
         return ConflictClass.MIXED
 
     return ConflictClass.SOFT
+
+
+def _retire_if_vault_external(repo_root: Path) -> ResolutionResult | None:
+    """slice-098 / [[ADR-089]] RETIRE-when-untracked guard for the SOFT/VAULT_CLAIM
+    git-rebase conflict-resolution path.
+
+    PCR's machinery is coupled to the in-tree vault: the Class-B git pathspecs
+    (``_SOFT_FILE_SET`` / ``qrel`` / ``srel`` / ``git add``) are forward-slash
+    ``architecture/...`` literals, while ``out_path`` routes via ``VAULT_ROOT``.
+    When the vault is flipped to an external store, an in-tree rebase conflict on
+    ``architecture/slice-queue.md`` would route ``out_path`` to the external path →
+    ``out_path.relative_to(repo_root)`` raises ``ValueError`` → the equivalence
+    guard's ``qrel``/``srel`` comparison is silently skipped AND the resolved
+    content is written to the wrong place while ``git add`` stages the still-
+    conflicted in-tree file (the /critique B2 corruption).
+
+    Gate at resolve-ENTRY, BEFORE classify / any ``out_path`` composition, on the
+    store-LOCATION signal ``vault_is_external`` — NOT a per-pathspec tracked-check,
+    which returns True for the still-tracked in-tree file and MISSES this state
+    (the slice-098 build-time refinement ratified into [[ADR-089]]; unified with
+    ``stranded_slice_audit``'s guard). RETIRE visibly with an actionable operator
+    breadcrumb (NEVER a silent claim-drop — R-7 / slice-090/091). Fires ONLY when
+    VAULT_ROOT is external; the no-flip default path returns None → proceed.
+    """
+    if not vault_is_external(repo_root):
+        return None
+    return ResolutionResult(
+        action="STOP",
+        conflict_class=ConflictClass.UNKNOWN,
+        regenerated_files=(),
+        reason=(
+            "vault is an external/untracked store (VAULT_ROOT resolves outside the "
+            "repo work tree; post-flip per ADR-089). PCR's git-rebase conflict "
+            "resolution is inapplicable — an untracked vault file has no rebase "
+            "stage, and routing out_path externally would corrupt the in-tree git "
+            "state. RETIRE: resolve vault write-races via the _vault_write sidecar "
+            "lock per the external-vault flip slice; do NOT git-merge the vault file."
+        ),
+    )
 
 
 def resolve_soft_conflict(
@@ -319,6 +363,12 @@ def resolve_soft_conflict(
     """
     if repo_root is None:
         repo_root = Path.cwd()
+
+    # slice-098 / [[ADR-089]]: RETIRE-when-external at resolve-ENTRY, BEFORE
+    # classify / any out_path composition (the /critique B2 guard placement).
+    _retired = _retire_if_vault_external(repo_root)
+    if _retired is not None:
+        return _retired
 
     cls = classify_conflict(diag)
     # PCR-2a B3 ACCEPTED-FIXED: new VAULT_CLAIM dispatch branch ABOVE the
@@ -362,9 +412,9 @@ def resolve_soft_conflict(
     pending_writes: list[tuple[Path, str]] = []
     try:
         for u_file in diag.u_files:
-            if u_file == "architecture/slice-queue.md":
+            if u_file == "architecture/slice-queue.md":  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
                 pending_writes.append(_regen_slice_queue(repo_root, diag))
-            elif u_file == "architecture/shippability.md":
+            elif u_file == "architecture/shippability.md":  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
                 pending_writes.append(_merge_shippability(repo_root))
     except _VaultClaimDispatch:
         # PCR-2a B3 ACCEPTED-FIXED: defense-in-depth gate in
@@ -886,7 +936,7 @@ def _derive_concerned_slices(
     candidate-blast-radii (deferred to a future revision per design.md
     out-of-scope "Graphify-derived blast-radius for active slices").
     """
-    slices_dir = repo_root / "architecture" / "slices"
+    slices_dir = repo_root / VAULT_ROOT / "slices"  # slice-098/ADR-089 Class-A ROUTE
     if not slices_dir.is_dir():
         return ()
 
@@ -911,7 +961,7 @@ def _derive_concerned_slices(
         matches.append(ConcernedSlice(
             slice_id=name,
             blast_radius=(u_file,),
-            mission_brief_link=f"architecture/slices/{name}/mission-brief.md",
+            mission_brief_link=f"architecture/slices/{name}/mission-brief.md",  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
             last_commit_iso=last_commit_iso,
         ))
     return tuple(matches)
@@ -1013,8 +1063,8 @@ def _regen_slice_queue(
     + batch-writes only if ALL succeed (stage-then-commit atomicity per
     fix M2 / code-review).
     """
-    text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")
-    text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")
+    text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
+    text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
 
     if not text_2 and not text_3:
         raise _SoftResolutionError(
@@ -1058,7 +1108,7 @@ def _regen_slice_queue(
 
     overlaid = _overlay_claims_on_queue_text(baseline_text, merged_claims)
 
-    out_path = repo_root / "architecture" / "slice-queue.md"
+    out_path = repo_root / VAULT_ROOT / "slice-queue.md"  # slice-098/ADR-089 Class-A ROUTE
     return (out_path, overlaid)
 
 
@@ -1337,7 +1387,7 @@ def _format_vault_claim_audit_entry(
 
     action_lines: list[str] = []
     for f in result.regenerated_files:
-        if f == "architecture/slice-queue.md":
+        if f == "architecture/slice-queue.md":  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
             action_lines.append(
                 f"- `{f}` - winner identity preserved via strict-newer Claimed-at "
                 "+ _overlay_claims_on_queue_text"
@@ -1401,6 +1451,12 @@ def resolve_vault_claim_conflict(
         repo_root = Path.cwd()
     if now is None:
         now = datetime.datetime.now(datetime.timezone.utc)
+
+    # slice-098 / [[ADR-089]]: RETIRE-when-external at resolve-ENTRY (defense-in-depth
+    # for direct calls; resolve_soft_conflict already guards the CLI dispatch path).
+    _retired = _retire_if_vault_external(repo_root)
+    if _retired is not None:
+        return _retired
 
     # Step 1: Collect collisions
     collisions = _collect_same_candidate_different_identity(diag.claim_history)
@@ -1473,8 +1529,8 @@ def resolve_vault_claim_conflict(
     # cooperative-race regime) — making the "non-UTF-8 stage always fails
     # closed" invariant total rather than path-dependent.
     try:
-        text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")
-        text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")
+        text_3 = _git_show_stage(repo_root, 3, "architecture/slice-queue.md")  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
+        text_2 = _git_show_stage(repo_root, 2, "architecture/slice-queue.md")  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
     except _StageDecodeError as exc:
         try:
             _append_decode_stop_audit(repo_root, exc.stage, exc.path, str(exc))
@@ -1541,12 +1597,12 @@ def resolve_vault_claim_conflict(
     )
 
     # Step 5: Atomic write + git add + git rebase --continue.
-    out_path = repo_root / "architecture" / "slice-queue.md"
+    out_path = repo_root / VAULT_ROOT / "slice-queue.md"  # slice-098/ADR-089 Class-A ROUTE
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(overlaid, encoding="utf-8", newline="")
     try:
         subprocess.run(
-            ["git", "add", "architecture/slice-queue.md"],
+            ["git", "add", "architecture/slice-queue.md"],  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
             cwd=str(repo_root),
             check=True,
             capture_output=True,
@@ -1562,7 +1618,7 @@ def resolve_vault_claim_conflict(
         return ResolutionResult(
             action="STOP",
             conflict_class=ConflictClass.VAULT_CLAIM,
-            regenerated_files=("architecture/slice-queue.md",),
+            regenerated_files=("architecture/slice-queue.md",),  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
             reason=(
                 "git stage + rebase --continue failed post vault-claim "
                 f"resolution: {exc!r}"
@@ -1572,7 +1628,7 @@ def resolve_vault_claim_conflict(
     result = ResolutionResult(
         action="APPLIED",
         conflict_class=ConflictClass.VAULT_CLAIM,
-        regenerated_files=("architecture/slice-queue.md",),
+        regenerated_files=("architecture/slice-queue.md",),  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
         # Encode replacement in reason for _format_vault_claim_audit_entry.
         reason=f"vault-claim-resolved; replacement={replacement or 'none-available'}",
     )
@@ -1795,8 +1851,8 @@ def _merge_shippability(repo_root: Path) -> tuple[Path, str]:
     + batch-writes only if ALL succeed (stage-then-commit atomicity per
     fix M2 / code-review).
     """
-    text_2 = _git_show_stage(repo_root, 2, "architecture/shippability.md")
-    text_3 = _git_show_stage(repo_root, 3, "architecture/shippability.md")
+    text_2 = _git_show_stage(repo_root, 2, "architecture/shippability.md")  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
+    text_3 = _git_show_stage(repo_root, 3, "architecture/shippability.md")  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
 
     if not text_2 and not text_3:
         raise _SoftResolutionError(
@@ -1835,7 +1891,7 @@ def _merge_shippability(repo_root: Path) -> tuple[Path, str]:
     if not output_text.endswith("\n"):
         output_text += "\n"
 
-    out_path = repo_root / "architecture" / "shippability.md"
+    out_path = repo_root / VAULT_ROOT / "shippability.md"  # slice-098/ADR-089 Class-A ROUTE
     return (out_path, output_text)
 
 
@@ -1962,7 +2018,7 @@ def _verify_soft_equivalence(
         raise _SoftResolutionError(reason, ConflictClass.UNKNOWN)
 
     # --- Invariant #1: queue claim-preservation -------------------------------
-    qrel = "architecture/slice-queue.md"
+    qrel = "architecture/slice-queue.md"  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
     if qrel in pending:
         text_2 = _git_show_stage(repo_root, 2, qrel)
         text_3 = _git_show_stage(repo_root, 3, qrel)
@@ -2051,7 +2107,7 @@ def _verify_soft_equivalence(
                     )
 
     # --- Invariants #2 + #3: shippability -------------------------------------
-    srel = "architecture/shippability.md"
+    srel = "architecture/shippability.md"  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
     if srel in pending:
         s2 = _git_show_stage(repo_root, 2, srel)
         s3 = _git_show_stage(repo_root, 3, srel)
@@ -2195,12 +2251,12 @@ def _append_audit_log(
 
         action_lines: list[str] = []
         for f in result.regenerated_files:
-            if f == "architecture/slice-queue.md":
+            if f == "architecture/slice-queue.md":  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
                 action_lines.append(
                     f"- `{f}` - regenerated via _overlay_claims_on_queue_text "
                     "with merged-claims union"
                 )
-            elif f == "architecture/shippability.md":
+            elif f == "architecture/shippability.md":  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
                 action_lines.append(
                     f"- `{f}` - row-union merge by slice number"
                 )

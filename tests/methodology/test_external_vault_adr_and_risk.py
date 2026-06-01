@@ -35,19 +35,29 @@ def _vault_root_importers() -> set[str]:
 
 def test_no_new_tool_migration_and_classification_map_documented() -> None:
     """093 migrated NO additional tools (the 10 slice-068/072/081 consumers);
-    slice-095 adds exactly ONE new VAULT_ROOT consumer — `tools/vault_edit.py`
-    (the SVW-1 skill-path safe-append CLI resolves `--file` under VAULT_ROOT) —
-    bringing the live importer set to 11. design.md documents the FS-path /
-    git-or-worktree-coupled / never-migrate map."""
+    slice-095 added `tools/vault_edit.py` (11); slice-098 / ADR-089 then migrated
+    the 3 git-coupled tools 093 AC4 deferred ("migrate-NONE") —
+    parallel_conflict_resolver + pulse_worktree_resolver + stranded_slice_audit
+    (Class-A ROUTE via VAULT_ROOT + Class-B RETIRE-when-external via vault_is_external)
+    — bringing the live importer set to 14. slice-093's archived design.md still
+    documents the original FS-path / git-or-worktree-coupled / never-migrate map
+    (immutable history); slice-098 is the slice that acted on the deferral."""
     importers = _vault_root_importers()
-    assert len(importers) == 11, (
+    assert len(importers) == 14, (
         f"expected the 10 slice-068/072/081 consumers + slice-095's "
-        f"tools/vault_edit.py = 11 VAULT_ROOT importer(s); "
-        f"found {len(importers)}: {sorted(importers)}"
+        f"tools/vault_edit.py + slice-098's 3 git-coupled tools = 14 VAULT_ROOT "
+        f"importer(s); found {len(importers)}: {sorted(importers)}"
     )
     assert "tools/vault_edit.py" in importers, (
         "slice-095's vault_edit.py must consume VAULT_ROOT (resolves --file under it)"
     )
+    # slice-098 / ADR-089: the 3 once-deferred git-coupled tools are now migrated.
+    for migrated in (
+        "tools/parallel_conflict_resolver.py",
+        "tools/pulse_worktree_resolver.py",
+        "tools/stranded_slice_audit.py",
+    ):
+        assert migrated in importers, f"slice-098 must migrate {migrated} to VAULT_ROOT"
     # _vault_write imports _CONFIG_REL (NOT VAULT_ROOT) → not an importer.
     assert "tools/_vault_write.py" not in importers
 
