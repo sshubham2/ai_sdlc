@@ -40,6 +40,60 @@ _LOCK_TIMEOUT = 15.0  # seconds
 _LOCK_POLL = 0.02  # seconds between non-blocking lock attempts
 
 
+class StaleVaultBaseError(Exception):
+    """Raised by ``safe_rewrite_text`` when the target changed since the caller
+    read it (compare-and-swap base mismatch — R-32 skill-driven RMW; [[ADR-088]]).
+
+    The RETRYABLE signal: the caller (skill prose via ``vault_edit rewrite``)
+    should re-read the current file, re-apply its edit, and retry. NOT an
+    ``OSError`` subclass on purpose — a generic ``except OSError`` write-failure
+    handler must NOT swallow it (it is a concurrency signal, not a write failure);
+    ``tools/vault_edit.py`` maps it to a DISTINCT exit code (3), separate from the
+    usage-error exit (2)."""
+
+
+def _normalize_eol(data: bytes) -> bytes:
+    """CRLF→LF ONLY. Trailing newlines and every other byte are preserved verbatim
+    (critique-review M-add-1 / [[ADR-088]]): a content change that differs only in
+    a trailing newline is a GENUINE difference (never normalized away → never a
+    silent CAS match/overwrite); a pure CRLF↔LF representation flip is equal (→ no
+    false-conflict on the CRLF ``_index.md``/``risk-register.md``)."""
+    return data.replace(b"\r\n", b"\n")
+
+
+def _detect_eol(data: bytes) -> bytes:
+    """The target's dominant line ending: CRLF if ANY ``\\r\\n`` is present, else
+    LF. Used so ``safe_rewrite_text`` PRESERVES a CRLF target's EOL (no 309KB
+    CRLF→LF churn — critique B1). A mixed-EOL file normalizes to the CRLF-dominant
+    form on rewrite — a minor, acceptable one-time cleanup; the EOL-normalized
+    compare is unaffected (documented residual)."""
+    return b"\r\n" if b"\r\n" in data else b"\n"
+
+
+def _atomic_replace_with_retry(tmp: Path, path: Path) -> None:
+    """``os.replace(tmp, path)`` with bounded exponential-backoff retry on
+    ``PermissionError`` (Windows EPERM when a handle is held by OneDrive / AV /
+    indexer). On budget exhaustion: unlink the temp + raise a typed
+    ``PermissionError`` naming the held-handle cause (never silently corrupts).
+    Shared by ``safe_write_text`` + ``safe_rewrite_text`` (the replace step is
+    identical; only the temp-content differs)."""
+    last_exc: BaseException | None = None
+    for attempt in range(_EPERM_RETRIES):
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError as exc:  # WinError 5 — a handle is held
+            last_exc = exc
+            time.sleep(_EPERM_BACKOFF_BASE * (2**attempt))
+    with contextlib.suppress(OSError):
+        tmp.unlink()
+    raise PermissionError(
+        f"could not atomically replace {path} after {_EPERM_RETRIES} attempts — "
+        f"a handle is held by another process (OneDrive / antivirus / Search "
+        f"indexer?). Last error: {last_exc}"
+    )
+
+
 @contextlib.contextmanager
 def _file_lock(target: Path) -> Iterator[None]:
     """Hold an exclusive lock on the SIDECAR ``<target>.lock`` (NEVER the target
@@ -106,21 +160,7 @@ def safe_write_text(path: Path | str, text: str, *, encoding: str = "utf-8") -> 
         # Path.write_text translates \n -> os.linesep (CRLF on Windows) —
         # EOL-DRIFT-1 / ADR-033, which would corrupt every routed vault file. (slice-094 B1)
         tmp.write_text(text, encoding=encoding, newline="")
-        last_exc: BaseException | None = None
-        for attempt in range(_EPERM_RETRIES):
-            try:
-                os.replace(tmp, path)
-                return
-            except PermissionError as exc:  # WinError 5 — a handle is held
-                last_exc = exc
-                time.sleep(_EPERM_BACKOFF_BASE * (2**attempt))
-        with contextlib.suppress(OSError):
-            tmp.unlink()
-        raise PermissionError(
-            f"safe_write_text: could not atomically replace {path} after "
-            f"{_EPERM_RETRIES} attempts — a handle is held by another process "
-            f"(OneDrive / antivirus / Search indexer?). Last error: {last_exc}"
-        )
+        _atomic_replace_with_retry(tmp, path)  # shared replace+EPERM-retry (slice-097)
 
 
 def safe_append_text(path: Path | str, text: str, *, encoding: str = "utf-8") -> None:
@@ -161,6 +201,57 @@ def safe_append_text(path: Path | str, text: str, *, encoding: str = "utf-8") ->
             os.write(fd, data)
         finally:
             os.close(fd)
+
+
+def safe_rewrite_text(
+    path: Path | str, text: str, *, expected_base: bytes, encoding: str = "utf-8"
+) -> None:
+    """Compare-and-swap whole-file rewrite — the R-32 skill-driven read-modify-write
+    safe channel ([[ADR-088]] / slice-097). Under the sidecar lock: read the current
+    target bytes; if they no longer match ``expected_base`` (the bytes the caller
+    read before composing ``text``), raise ``StaleVaultBaseError`` so the caller
+    re-reads + re-applies + retries; else write ``text`` and atomically replace.
+
+    Two contracts close the slice-097 /critique findings:
+
+    - **EOL-NORMALIZED compare, not byte-exact (critique B1).** The shared-aggregate
+      RMW targets (``_index.md`` 309KB, ``risk-register.md`` 137KB) are CRLF on
+      Windows checkouts (``.gitattributes`` does not normalize ``architecture/**``),
+      while the caller's base is typically LF. A byte-exact compare would conflict on
+      EVERY attempt → livelock → the channel unusable on the very files R-32 exists
+      for. The compare normalizes CRLF→LF on both sides (``_normalize_eol``), so
+      representation is immaterial; genuine content changes still differ.
+    - **EOL-PRESERVING write (critique B1).** ``text`` is re-applied to the target's
+      DETECTED EOL (``_detect_eol``) — a CRLF target stays CRLF — so a rewrite never
+      churns 309KB CRLF→LF (EOL corruption on an unguarded surface).
+
+    Lost-update safety: the LLM's read+edit happens OUTSIDE the lock, but the
+    under-lock re-read + CAS compare converts a stale-base overwrite from a SILENT
+    lost-update into a DETECTED ``StaleVaultBaseError``. Concurrent writers converge:
+    A commits; B's compare fails → B re-reads (sees A's change) → re-applies →
+    commits. A trailing-newline truncation by a concurrent writer is a genuine
+    mismatch (``_normalize_eol`` preserves trailing bytes — M-add-1), never a silent
+    match."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with _file_lock(path):
+        current = path.read_bytes() if path.exists() else b""
+        if _normalize_eol(current) != _normalize_eol(expected_base):
+            raise StaleVaultBaseError(
+                f"safe_rewrite_text: {path} changed since it was read (a parallel "
+                f"slice/session wrote it) — re-read and re-apply (CAS base mismatch)."
+            )
+        eol = _detect_eol(current) if current else _detect_eol(expected_base)
+        data = text.encode(encoding)
+        if eol == b"\r\n":
+            # text is authored LF; re-apply the target's CRLF. normalize-then-expand
+            # is idempotent for existing CRLF and preserves a lone bare \r (a lone
+            # \r-before-\n stays \r\r\n, never doubled to \r\r\r\n) — the slice-097
+            # /code-review m2 lone-CR edge, verified across the EOL payload battery.
+            data = data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.rw.tmp")
+        tmp.write_bytes(data)  # bytes — EOL already applied; no text-mode translation
+        _atomic_replace_with_retry(tmp, path)
 
 
 def write_vault_root_config(common_dir: Path | str, vault_path: Path | str) -> Path:

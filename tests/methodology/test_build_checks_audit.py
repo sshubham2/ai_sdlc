@@ -1971,6 +1971,46 @@ def test_bc_global_5_has_expected_structural_identity():
     assert g5.check and g5.check.strip(), "BC-GLOBAL-5 check must be non-empty"
 
 
+def test_bc_global_6_has_expected_structural_identity():
+    """BC-GLOBAL-6 (slice-097 /reflect Step-5b global promotion) MUST parse to its
+    expected full structural identity. Canonical global fixture = subject; literal
+    constants = git-tracked oracle (ADR-028). BCI-1 separately asserts the
+    gitignored live `~/.claude/build-checks.md` matches the fixture.
+
+    Rule reference: BC-1 (slice-097 /reflect Step 5b; user-approved global promotion
+    of the byte-exact-CLI-capture-must-not-use-shell-`>` discipline — generic to any
+    cross-platform tool whose output is later byte-compared; PowerShell `>` =
+    Out-File = UTF-16LE+BOM corrupts the capture, the slice-097 code-Critic B1 class).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    global_text = _CANONICAL_GLOBAL_FIXTURE.read_text(encoding="utf-8")
+    g_rules, _ = _parse_rules(
+        global_text, source="global", path=str(_CANONICAL_GLOBAL_FIXTURE)
+    )
+    g_by_id = {r.rule_id: r for r in g_rules}
+    assert "BC-GLOBAL-6" in g_by_id, "BC-GLOBAL-6 not parsed from global fixture"
+    g6 = g_by_id["BC-GLOBAL-6"]
+    assert g6.severity == "Important", f"BC-GLOBAL-6 severity: {g6.severity!r}"
+    # `**` (NOT always:true) so the Trigger-anchors final-filter is effective.
+    assert g6.applies_to == ("**",), (
+        f"BC-GLOBAL-6 applies_to mismatch: got {g6.applies_to!r}, "
+        f"expected ('**',) so anchors are effective"
+    )
+    assert g6.trigger_keywords == (
+        "redirect", "redirection", "powershell", "out-file", "byte-exact",
+        "checksum", "base capture", "utf-16", "bom",
+    ), f"BC-GLOBAL-6 trigger_keywords mismatch: got {g6.trigger_keywords!r}"
+    assert g6.trigger_anchors == (
+        "redirect", "powershell", "out-file", "utf-16", "bom",
+    ), f"BC-GLOBAL-6 trigger_anchors mismatch: got {g6.trigger_anchors!r}"
+    assert g6.negative_anchors == (
+        "aggregated lessons", "meta-discussion", "false positive",
+        "calibration", "disposition", "methodology-changelog",
+    ), f"BC-GLOBAL-6 negative_anchors mismatch: got {g6.negative_anchors!r}"
+    assert g6.check and g6.check.strip(), "BC-GLOBAL-6 check must be non-empty"
+
+
 # --- BCSG-1 strict acknowledgment gate (slice-080 / ADR-072) ---
 #
 # Every test pins global_checks=CLEAN_CHECKS (0 rules) to isolate from the real

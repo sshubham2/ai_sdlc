@@ -592,3 +592,25 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-094 surface.
+
+## Audit 2026-06-01 (slice-097-harden-skill-driven-vault-rewrites)
+
+**Trigger**: slice-097 pre-finish gate (/build-slice Step 6)
+**Scope**: full (active slice-097 design.md/mission-brief + ADR-088 + critique.md/critique-review.md vs `tools/_vault_write.py` + `tools/vault_edit.py` + `tools/skill_vault_write_safety_audit.py` + the 3 routed `skills/{reflect,archive,supersede-slice}/SKILL.md` + the 4 test files)
+**Result**: CLEAN — no drift (one intentional pending item: the R-32 register note, closed at /reflect — see below).
+
+### Blockers
+(none)
+
+### Majors
+(none)
+
+### Verified aligned
+- `design.md` "What's new" all present in code: `safe_rewrite_text(path, text, *, expected_base)` + `_normalize_eol` (CRLF→LF only) + `_detect_eol` + `StaleVaultBaseError` + shared `_atomic_replace_with_retry` in `tools/_vault_write.py`; `vault_edit rewrite` (CAS, exit 0/2/3) + `read` (raw-bytes base) subcommands + binary `--base-file` + updated docstring in `tools/vault_edit.py`; op-class-aware verdict (`_route_class` + `_site_verb_is_rewrite_class`, `_REWRITE_CLASS_VERBS={regenerate,rewrite}`, retired bare `tools.vault_edit` token), `deferred-rmw` removed from `_EXEMPT_REASONS`, allowlist 12→3 in `tools/skill_vault_write_safety_audit.py`. Verified by 81 tests across the 4 files + the full suite (1434 PASS).
+- B1 EOL contract matches: EOL-normalized compare + EOL-preserving write proven on a real CRLF fixture (concurrency proof + CLI test `test_rewrite_eol_preserving_crlf_via_cli`); no byte-exact-compare regression (structural guard `test_rewrite_is_lf_byte_faithful_structural_guard`).
+- B2/B-add-1 op-class enforcement matches: SVW-1 audit CLEAN (21 sites / 18 routed / 3 exempt / 0 violations); `test_rmw_site_routed_via_append_is_channel_mismatch` + `test_bare_tools_vault_edit_append_on_rewrite_verb_is_violation` (bare-token-severance) PASS.
+- The 9 ex-`deferred-rmw` sites routed: reflect :56/:321 → `vault_edit rewrite`, :322 → `vault_edit append` (verb reworded Regenerate→Append, m-add-1); archive ×5 → `vault_edit rewrite` + main-thread-owns-CAS protocol (B3) + `--index-only` recovery (m-add-3); supersede :103 → `vault_edit rewrite`. reflect OSDG-1 drift PASS (forward-synced); archive+supersede installs synced; `ai-sdlc-tools` reinstalled 0.80.0 (TVFS-1 PASS).
+- `ADR-088` (`status: accepted`, `reversibility: cheap`, `supersedes: null`) matches the built CAS mechanism + op-class audit + EOL contract. MEPD-1 EXCLUDE (no new RULE-ID / no methodology-changelog entry / no VERSION bump) — PMI-1/MCFS-1/AVFS-1/TVFS-1 all PASS, unaffected (VERSION stays 0.80.0).
+
+### Resolutions
+- **One intentional pending item (NOT a build defect)**: `architecture/risk-register.md` R-32's residual note still reads "skill-driven RMW deferred" (the pre-slice-097 text). Per design.md §R-32 disposition, the R-32 narrowing (skill-driven RMW sub-class CLOSED; residual = 3 git-coupled tools + flip mechanics) is recorded **at /reflect**, which dogfoods `vault_edit rewrite` on the real CRLF `risk-register.md` + `_index.md` (the m-add-2 live-fire). R-32 status stays `mitigating` (STP-1 clean — not flipped). Closed at /reflect.

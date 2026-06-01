@@ -81,13 +81,16 @@ def test_routed_site_is_clean(tmp_path: Path) -> None:
 
 
 def test_exempted_site_is_clean(tmp_path: Path) -> None:
+    """The surviving exemption class (project-open-single-shot) still cleans a
+    site. (deferred-rmw was RETIRED at slice-097 — see
+    test_deferred_rmw_marker_is_now_violation.)"""
     root = _plant(
         tmp_path,
-        "Regenerate `architecture/slices/_index.md` <!-- vault-write-safe: deferred-rmw -->\n",
+        "Update `architecture/risk-register.md` <!-- vault-write-safe: project-open-single-shot -->\n",
     )
     res = audit_root(root)
     assert res.status == "clean"
-    assert len(res.exemptions) == 1 and res.exemptions[0].reason == "deferred-rmw"
+    assert len(res.exemptions) == 1 and res.exemptions[0].reason == "project-open-single-shot"
 
 
 def test_unknown_exemption_reason_is_violation(tmp_path: Path) -> None:
@@ -100,6 +103,89 @@ def test_unknown_exemption_reason_is_violation(tmp_path: Path) -> None:
     res = audit_root(root)
     assert len(res.violations) == 1
     assert res.violations[0].kind == "unknown-exemption-reason"
+
+
+# ─── slice-097 / ADR-088: op-class-aware RMW enforcement (B2 + B-add-1) ──
+
+
+def test_deferred_rmw_marker_is_now_violation(tmp_path: Path) -> None:
+    """slice-097: `deferred-rmw` was RETIRED from the enum — a lingering marker is
+    now an unknown-exemption-reason VIOLATION (the deferral is un-re-claimable)."""
+    root = _plant(
+        tmp_path,
+        "Regenerate `architecture/slices/_index.md` <!-- vault-write-safe: deferred-rmw -->\n",
+    )
+    res = audit_root(root)
+    assert len(res.violations) == 1
+    assert res.violations[0].kind == "unknown-exemption-reason"
+
+
+def test_rewrite_routed_rmw_site_is_clean(tmp_path: Path) -> None:
+    """A rewrite-class verb (regenerate) routed via `vault_edit rewrite` → CLEAN."""
+    root = _plant(
+        tmp_path,
+        "Regenerate `architecture/slices/_index.md` via `$PY -m tools.vault_edit rewrite --file slices/_index.md`\n",
+    )
+    assert audit_root(root).status == "clean"
+
+
+def test_rmw_site_routed_via_append_is_channel_mismatch(tmp_path: Path) -> None:
+    """B2: a rewrite-class verb (regenerate) routed through the lost-update-UNSAFE
+    `vault_edit append` channel is a channel-mismatch VIOLATION — NOT clean. This
+    is the 'append masquerading as a rewrite' trap the must-not-defer forbids."""
+    root = _plant(
+        tmp_path,
+        "Regenerate `architecture/slices/_index.md` via `vault_edit append --file slices/_index.md`\n",
+    )
+    res = audit_root(root)
+    assert len(res.violations) == 1
+    assert res.violations[0].kind == "channel-mismatch"
+
+
+def test_bare_tools_vault_edit_append_on_rewrite_verb_is_violation(tmp_path: Path) -> None:
+    """B-add-1 (bare-token severance): the REAL corpus citation form
+    `$PY -m tools.vault_edit append` on a rewrite-class verb must be a VIOLATION —
+    proving the retired bare `tools.vault_edit` substring no longer rides through
+    `_is_routed`'s first-hit-wins loop to falsely clean a rewrite site."""
+    root = _plant(
+        tmp_path,
+        "Regenerate `architecture/slices/_index.md` via `$PY -m tools.vault_edit append --file slices/_index.md --content-file <tmp>`\n",
+    )
+    res = audit_root(root)
+    assert len(res.violations) == 1
+    assert res.violations[0].kind == "channel-mismatch"
+
+
+def test_bare_tools_vault_edit_no_subcommand_does_not_clean_rewrite(tmp_path: Path) -> None:
+    """B-add-1: a bare `tools.vault_edit` with NO subcommand names no op-class →
+    it is not a route at all → a rewrite-class site citing only it is UNROUTED."""
+    root = _plant(
+        tmp_path,
+        "Regenerate `architecture/slices/_index.md` (see `tools.vault_edit`)\n",
+    )
+    res = audit_root(root)
+    assert len(res.violations) == 1
+    assert res.violations[0].kind == "unrouted"
+
+
+def test_append_verb_with_append_route_is_clean(tmp_path: Path) -> None:
+    """Asymmetry: an append-class verb + an append route is CLEAN (the safe,
+    common case — not every shared-file write is an RMW)."""
+    root = _plant(
+        tmp_path,
+        "Append the row to `architecture/slices/archive/_index.md` via `vault_edit append`\n",
+    )
+    assert audit_root(root).status == "clean"
+
+
+def test_append_verb_with_rewrite_route_is_clean(tmp_path: Path) -> None:
+    """A rewrite route is safe for ANY op-class (heavier, not unsafe) → an append
+    verb routed via `vault_edit rewrite` is CLEAN, never a mismatch."""
+    root = _plant(
+        tmp_path,
+        "Append to `architecture/risk-register.md` via `vault_edit rewrite`\n",
+    )
+    assert audit_root(root).status == "clean"
 
 
 # ─── planted battery: the FP shapes the matcher must NOT flag ────────────
@@ -300,19 +386,21 @@ def test_count_pin_trips_on_extra_marker_on_listed_file(tmp_path: Path) -> None:
     """M3 regression-of-the-regression: adding an N+1-th exemption marker to an
     ALREADY-listed (file, reason) changes the count — the granularity the old
     pair-set pin missed. Here a planted tree with TWO deferred-rmw markers on one
-    file yields count 2 for that pair, which would NOT equal a pinned count of 1."""
+    file yields count 2 for that pair, which would NOT equal a pinned count of 1.
+    (Uses the surviving project-open-single-shot reason — deferred-rmw retired.)"""
     body = (
-        "Update `architecture/risk-register.md` <!-- vault-write-safe: deferred-rmw -->\n"
-        "Regenerate `architecture/slices/_index.md` <!-- vault-write-safe: deferred-rmw -->\n"
+        "Update `architecture/risk-register.md` <!-- vault-write-safe: project-open-single-shot -->\n"
+        "Write `architecture/build-checks.md` <!-- vault-write-safe: project-open-single-shot -->\n"
     )
     root = _plant(tmp_path, body)
     counts = registered_exemption_counts(root)
-    assert counts == {("skills/fake/SKILL.md", "deferred-rmw"): 2}
+    assert counts == {("skills/fake/SKILL.md", "project-open-single-shot"): 2}
 
 
 def test_exempt_reasons_are_closed() -> None:
-    """The reason enum is closed (M3) — exactly the two sanctioned reasons."""
-    assert svw._EXEMPT_REASONS == frozenset({"deferred-rmw", "project-open-single-shot"})
+    """The reason enum is closed (M3) — slice-097 retired deferred-rmw, leaving
+    exactly project-open-single-shot."""
+    assert svw._EXEMPT_REASONS == frozenset({"project-open-single-shot"})
 
 
 # ─── CLI exit-code contract ─────────────────────────────────────────────
@@ -332,3 +420,26 @@ def test_main_exit_one_on_violation(tmp_path: Path) -> None:
 def test_main_exit_two_on_missing_skills(tmp_path: Path) -> None:
     rc = main(["--root", str(tmp_path / "nonexistent")])
     assert rc == 2
+
+
+# ─── slice-097 /code-review M2 regression: reflect:56 stays detected + rewrite ──
+
+
+def test_reflect_risk_status_flip_is_detected_and_rewrite_routed() -> None:
+    """/code-review M2 regression: the reflect risk-status-flip RMW bullet must be a
+    DETECTED mutation site (a reword must not drop it via a hyphen-compound verb like
+    'read-modify-write') AND rewrite-class + rewrite-routed — full op-class
+    enforcement (channel-mismatch-protected), not merely 'routed' or (worse) invisible.
+    Pins against the real corpus line so a future reword that breaks detection trips."""
+    lines = (_REPO_ROOT / "skills" / "reflect" / "SKILL.md").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    hits = [
+        l for l in lines
+        if "Rewrite" in l and "risk-register.md" in l and "vault_edit rewrite" in l
+    ]
+    assert hits, "reflect risk-status-flip RMW bullet not found (M2 reword regressed?)"
+    line = hits[0]
+    assert svw._is_mutation_site(line), "reflect risk-status bullet not DETECTED (M2 regression)"
+    assert svw._site_verb_is_rewrite_class(line), "reflect risk-status bullet not rewrite-class"
+    assert svw._route_class(line) == "rewrite", "reflect risk-status bullet not rewrite-routed"

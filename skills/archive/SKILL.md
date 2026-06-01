@@ -24,7 +24,7 @@ Claude finds past work via `_index.md` — no mixing of "recent-but-completed" w
 
 ## Argument modes
 
-- `/archive` — sweep: move any slice with `reflection.md` from `slices/` to `slices/archive/`; regenerate `_index.md` + `archive/_index.md` <!-- vault-write-safe: deferred-rmw -->
+- `/archive` — sweep: move any slice with `reflection.md` from `slices/` to `slices/archive/`; regenerate `_index.md` + `archive/_index.md` via `vault_edit rewrite` (R-32 CAS — see Step 3)
 - `/archive --index-only` — rebuild indexes without moving anything (use when indexes are stale or missing)
 
 No `--keep-last` flag: the convention is "no completed slices in `slices/`". If you want something visible in active, un-archive it with `mv` (acceptable for edge cases, not routine).
@@ -55,14 +55,15 @@ Tell user: "Archived N slices to `slices/archive/`."
 
 Edge case: if `slices/archive/<same-name>/` already exists (rare, only from manual edits): stop and ask user to resolve manually. Don't overwrite.
 
-### Step 3: Regenerate `slices/_index.md` via Haiku dispatch <!-- vault-write-safe: deferred-rmw -->
+### Step 3: Regenerate `slices/_index.md` via Haiku dispatch + `vault_edit rewrite` (R-32 CAS — [[ADR-088]])
 
 Per **COST-1** (cost-optimized model selection — `methodology-changelog.md` v0.4.0), index regeneration is dispatched to a Haiku subagent. This step and Step 4 (the archive catalog) both go to Haiku.
 
-**Dispatch:**
-- Use the Agent tool with `subagent_type: "general-purpose"` and `model: haiku`.
-- Hand the agent the active and archived slice paths (lists), the templates from Step 3 + Step 4 below, and instruction to read each slice's `mission-brief.md` (for one-line intent) and recent reflections' "Lessons" sections.
-- The agent returns both `_index.md` files' content. Main thread writes them to disk.
+**Dispatch + CAS write (the MAIN THREAD owns the compare-and-swap — [[ADR-088]] / critique B3):** the read→regenerate→write loop spans a subagent boundary (the Haiku agent regenerates the content; the main thread writes), so the CAS lives in the MAIN THREAD, never the subagent:
+- Main thread captures a byte-exact base for EACH target into a DISTINCT file (use `--out-file`, NOT shell `>` — PowerShell `>` corrupts bytes to UTF-16LE+BOM → CAS livelock): `$PY -m tools.vault_edit read --file slices/_index.md --out-file idx_base.bin` AND `$PY -m tools.vault_edit read --file slices/archive/_index.md --out-file archive_base.bin`. (One base file per target — reusing one base across the two distinct files would always conflict.)
+- Use the Agent tool with `subagent_type: "general-purpose"` and `model: haiku`. Hand the agent the active and archived slice paths (lists), the templates from Step 3 + Step 4 below, and instruction to read each slice's `mission-brief.md` (for one-line intent) and recent reflections' "Lessons" sections. The agent is a pure content generator — it has NO lock/CAS responsibility.
+- The agent returns both `_index.md` files' content. The MAIN THREAD writes `slices/_index.md` via `$PY -m tools.vault_edit rewrite --file slices/_index.md --base-file idx_base.bin --content-file <regen>` (and `slices/archive/_index.md` with `--base-file archive_base.bin` per Step 4).
+- **On exit 3** (CAS conflict — a parallel slice completion wrote `_index.md` between the base-capture and the write): the main thread RE-captures the base AND RE-dispatches the Haiku regeneration (so the regen picks up the concurrent slice's row), bounded to ~5 attempts. If still conflicting after the bound: STOP loudly. **Recovery (m-add-3):** the Step-2 `mv` has already moved the folder, so the fail-STOP leaves a recoverable state — re-run `/archive --index-only` to redo only the index regeneration without re-moving.
 
 **Why Haiku**: index regeneration is reading folder contents (mission-brief intent, reflection lessons, dates) and assembling tables. No synthesis. The agent reads ~10-N files in its fresh context, which keeps the main thread's context lean for the rest of the session.
 
@@ -72,7 +73,7 @@ Read (the dispatched agent does this; listed here so the spec is clear):
 - Each active slice folder in `slices/` (for the Active table)
 - Last 10 archived slices in `slices/archive/` (for Recent table + Aggregated lessons)
 
-Write `architecture/slices/_index.md`: <!-- vault-write-safe: deferred-rmw -->
+Write `architecture/slices/_index.md` (via `vault_edit rewrite` per the Step-3 CAS protocol above):
 
 ```markdown
 # Slice Index
@@ -128,9 +129,9 @@ These are the patterns future slices should respect. Source: `archive/slice-NNN/
 - **Full-text search across archived slices** → grep `architecture/slices/archive/` (still works — archive is just a directory).
 ```
 
-### Step 4: Regenerate `slices/archive/_index.md` <!-- vault-write-safe: deferred-rmw -->
+### Step 4: Regenerate `slices/archive/_index.md` (via `vault_edit rewrite` per the Step-3 CAS protocol)
 
-Full chronological catalog of archived slices:
+Full chronological catalog of archived slices (the main thread writes the Haiku-regenerated content via `$PY -m tools.vault_edit rewrite --file slices/archive/_index.md --base-file archive_base.bin --content-file <regen>`, same exit-3 re-dispatch loop as Step 3):
 
 ```markdown
 # Archived Slices — Full Catalog
@@ -174,7 +175,7 @@ To find a past slice, check slices/_index.md first.
 - NEVER delete slice folders. Archive is `mv`, never `rm`. Slice history is audit trail.
 - NEVER touch file contents during archive. Just move + regenerate indexes.
 - NEVER leave completed slices in `slices/` (with `reflection.md`). That breaks the convention.
-- DO regenerate both `_index.md` files on every run. <!-- vault-write-safe: deferred-rmw -->
+- DO regenerate both `_index.md` files on every run, writing each via `vault_edit rewrite` (R-32 CAS — Step 3 protocol).
 - DO pull the "Aggregated lessons" from actual reflection.md files — don't fabricate patterns.
 - HEAVY MODE: same flow. Audit trail is preserved; archived slices remain accessible at `archive/slice-NNN/`.
 

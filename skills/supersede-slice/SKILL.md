@@ -100,7 +100,7 @@ Expected: 1 link validated (no violations). If the audit reports `one-way-link` 
 
 ### Step 6: Update slices/_index.md
 
-Update `architecture/slices/_index.md` to mark the archived slice as superseded in its row of the catalog table. Format: <!-- vault-write-safe: deferred-rmw -->
+Update `architecture/slices/_index.md` to mark the archived slice as superseded in its row of the catalog table — a read-modify-write, so apply it via `vault_edit rewrite` (R-32 CAS — [[ADR-088]]): `$PY -m tools.vault_edit read --file slices/_index.md --out-file base.bin` (use `--out-file`, NOT shell `>` — PowerShell `>` corrupts the base to UTF-16LE+BOM → CAS livelock), edit the row in a copy, then `$PY -m tools.vault_edit rewrite --file slices/_index.md --base-file base.bin --content-file <edited>`; on exit 3 re-read + re-apply + retry (bounded ~5). Format:
 
 ```markdown
 | <archived-slice-id> | <date> | <result> | superseded by [[<active-slice-id>]] |
