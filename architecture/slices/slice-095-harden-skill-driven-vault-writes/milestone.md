@@ -1,16 +1,16 @@
 ---
 slice: slice-095-harden-skill-driven-vault-writes
-stage: code-review
+stage: validate
 updated: 2026-06-01
-next-action: run /validate-slice (code-review M1/M2/M3 + m1/m3 hardened in-slice; SVW audit clean 22/10/12; full suite 1367 pass)
+next-action: run /reflect (validate PASS — 5/5 ACs, VAL-1 clean, WS-1/ETC-1 n/a, shippability 101/101)
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-095 harden-skill-driven-vault-writes
 
-**Stage**: code-review (COMPLETE + HARDENED — user chose "harden now"; M1/M2/M3 + m1/m3 all addressed in-slice)
-**Next action**: run `/validate-slice`. (Code-review majors hardened; SVW audit clean exit 0 — 22 sites / 10 routed / 12 exempted; full suite 1367 pass.)
+**Stage**: validate (PASS — 5/5 ACs, VAL-1 clean, shippability 101/101)
+**Next action**: run `/reflect`. (Code-review majors hardened + validated; SVW audit clean exit 0 — 22 sites / 10 routed / 12 exempted; full suite 1367 pass.)
 **Updated**: 2026-06-01
 **Risk tier**: medium — Critic required **yes** (in-house methodology surfaces `skills/*/SKILL.md` + 2 new `tools/*.py`; ADR-worthy mechanism locked in [[ADR-087]])
 
@@ -23,8 +23,8 @@ critic-required: true
 - [x] /critique — 2026-06-01 — NEEDS-FIXES (design-Critic 2B/3M/2m + meta-Critic EXTEND +2; 9/9 ACCEPTED, TRI-1 user-ratified)
 - [x] /build-slice — 2026-06-01 — SHIPPED (1335 pass; 16 Step-6 audits green; M1 matcher executed FP=0 vs real 26-skill corpus)
 - [x] /code-review — 2026-06-01 — FINDINGS (0B/3M/4m, advisory) → **HARDENED in-slice**: M1 (route-token: backtick/marker-scoped + negation-aware), M2 (lexicon +6 verbs + documented residual), M3 (per-(file,reason) count pin), m1 (CommonMark fence tracker — surfaced+exempted triage:179), m3 (vault_edit vault-root reject). m2 (typo-creates-file) + m4 (empty-no-op) DEFERRED per code-review (cooperative model bounds them).
-- [ ] /validate-slice ← **next**
-- [ ] /reflect
+- [x] /validate-slice — 2026-06-01 — **PASS** (5/5 ACs PASS w/ evidence; VAL-1 0 secrets/0 imports; WS-1/ETC-1 n/a; shippability 101/101; SVW audit clean 22/10/12)
+- [ ] /reflect ← **next**
 - [ ] /commit-slice (user-invoked; v0.79.0 — parallel slice-094 will need v0.80.0 + reconcile)
 
 ## Current focus — code-review majors HARDENED (next: /validate-slice)
@@ -55,5 +55,5 @@ critic-required: true
 - [critique-review.md](critique-review.md) — EXTEND (meta-Critic +M-add-1/M-add-2)
 - [build-log.md](build-log.md) — SHIPPED (full Events trail of the build + forward-sync + fan-out fixes)
 - [code-review.md](code-review.md) — FINDINGS 0B/3M/4m (advisory; the 3 majors + proposed fixes)
-- [validation.md](validation.md) — pending
+- [validation.md](validation.md) — PASS (5/5 ACs, VAL-1 clean, WS-1/ETC-1 n/a, shippability 101/101)
 - [reflection.md](reflection.md) — pending
