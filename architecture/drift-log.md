@@ -682,3 +682,26 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - No drift. Clean.
+
+## Audit 2026-06-02 (slice-102-vault-flip-readiness-tests)
+
+**Trigger**: slice-102 pre-finish gate (/build-slice Step 6)
+**Scope**: full (slice-102 mission-brief/design.md/ADR-092/shippability row 109 vs `tools/vault_flip_readiness_audit.py` [tests-surface scan + 2 classes + content-arg fix + production-scoped baseline] + `tests/methodology/test_vault_flip_readiness_audit.py`)
+**Result**: CLEAN — vault and code aligned; no drift.
+
+### Blockers
+(none)
+
+### Majors
+(none)
+
+### Verified aligned
+- `design.md` "What's new" all present in code: `TEST_UPDATE_AT_FLIP` / `TEST_COLLECTION_PATHSPEC` constants exist and are in `_ALL_CLASSES` (neither in `_BASELINE_CLASSES`); `_iter_scan_files` yields `tests/**/*.py` excluding any `fixtures/` segment; `audit_file` derives `surface` from the normalized rel (`rel.replace("\\","/").startswith("tests/")`) and tags every `Occurrence`; `_remap_for_tests` maps path-construction→`test-update-at-flip` and unmarked-collection-pathspec→`test-collection-pathspec` on the tests surface only; `_CONTENT_ARG_METHODS={write_text,write_bytes}` excludes their args in `_is_path_call_arg_or_recv`; `baseline_tuple()` filters `surface=="production"`. Verified by 27 passing tests + the live audit run.
+- Contract matches: JSON gains a per-occurrence `surface` field + `test-update-at-flip`/`test-collection-pathspec` counts; production `(path,value,klass)` identity unchanged; exit codes 0/2/1 unchanged. AC1 byte-identical production baseline confirmed (`baseline_tuple()==_BASELINE`, 4 sites, 0 needs-human) — the `write_text` fix did not perturb it.
+- `ADR-092` (`status: accepted`, `reversibility: cheap`, `supersedes: null` — extends ADR-091) matches the implemented two-class model + the M-add-1 (b) heterogeneity residual + the loud-breakage / flip-execute-consumes-both-lists contract. MEPD-1 EXCLUDE (no new RULE-ID / methodology-changelog entry / VERSION bump) — PMI-1/MCFS-1/AVFS-1/TVFS-1 all PASS, unaffected.
+- `risk-register.md` R-32 unchanged (`mitigating`; advances flip-readiness, retires AT the flip) — no live test pins R-32 status (STP-1 green).
+- `shippability.md` row 109 cites `tests/methodology/test_vault_flip_readiness_audit.py` (exists + passes) and pins the tests-surface contract (two classes, needs-human-∅, per-class floors, production byte-identical, 3 residuals). No new audit RULE-ID → no RPCD-1/SCPD-1 fan-out beyond this row.
+- Three documented residuals (fully-dynamic / `fixtures/**` / `test-collection-pathspec` heterogeneity) each pinned by a test; no UNSPECIFIED CODE, no STALE CLAIM, no removed feature in the slice-102 surface. `_vault_paths` default `Path("architecture")` untouched (no flip).
+
+### Resolutions
+- None required — vault and code aligned for the slice-102 surface.
