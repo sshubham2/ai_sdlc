@@ -470,8 +470,11 @@ if record_pick is not None:
     # read_git_config_user RAISES ClaimUsageError when git identity is unset.
     # Let it propagate — surface the failure; NEVER write an unattributed line,
     # NEVER silently skip the provenance (must-not-defer / R-7 class).
+    # read_git_config_user() returns a (name, email) TUPLE — join it so the
+    # pick-log line reads "by <name> <email>", not a Python tuple repr (slice-104;
+    # record_pick also normalizes a tuple defensively, so this is belt-and-suspenders).
     record_pick(repo_root=main, slice_name='slice-NNN-<name>',
-                picker_identity=read_git_config_user())
+                picker_identity=' '.join(read_git_config_user()))
 "
 # Commit ONLY the queue file on the default branch, in the main tree:
 git -C <main> add architecture/slice-queue.md
