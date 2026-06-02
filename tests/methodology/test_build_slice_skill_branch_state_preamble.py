@@ -33,7 +33,10 @@ def test_var_assignments_appear_in_shared_preamble_above_numbered_list() -> None
     Post-fix: pre-amble executes regardless of which numbered branch fires.
     """
     section = _branch_state_section(SKILL_MD.read_text(encoding="utf-8"))
-    list_start = re.search(r"^1\. \*\*If on default branch\*\*", section, re.MULTILINE)
+    # BRANCH-3 (slice-099): point 1 is now the detect-existing-worktree case
+    # (was "If on default branch"); the shared-preamble var-assignment invariant
+    # is unchanged — only the marker that anchors "start of numbered list" moved.
+    list_start = re.search(r"^1\. \*\*If the worktree already exists\*\*", section, re.MULTILINE)
     assert list_start is not None, "Numbered list (point 1) not found"
     preamble = section[: list_start.start()]
     assert 'repo_root="$(git rev-parse --show-toplevel)"' in preamble, (

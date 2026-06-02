@@ -1,11 +1,16 @@
-"""Structural-pin tests for the R-20 cp -r codification in skills/build-slice/SKILL.md
-`## Prerequisite check ### Branch state` numbered point 1.
+"""Structural-pin tests for the R-20 derived-dir seed in skills/build-slice/SKILL.md
+`## Prerequisite check ### Branch state`.
+
+BRANCH-3 (slice-099): the R-20 seed is now split across the reordered numbered points —
+the PRIMARY create path (point 2) seeds via the shared `seed_derived_dirs` helper; the
+LEGACY dirty-dance (point 4) retains its 2 inline guarded `cp -r` lines. Pre-slice-099
+the seed was 2 inline `cp -r` lines in the point-1 create case + 2 in point 4 (== 4).
 
 Per slice-074 design.md §"Test contracts (the structural-pin shape)" — operationalizes
 R-20 candidate fix (a). The 3 tests cover AC#1 + AC#2:
 
   - test_branch_state_subsection_contains_cp_r_for_diagnose_out_and_graphify_out_after_cd
-    (AC#1: 2 if-then-fi guarded cp -r lines, positioned AFTER cd line and BEFORE point 2)
+    (R-20 seed: point 2 via seed_derived_dirs + legacy point 4 retains 2 guarded cp -r)
   - test_cp_r_lines_reference_r_20_in_comment
     (AC#1: R-20 reference comment anchors codification origin)
   - test_cp_r_lines_use_if_then_guard_for_source_dir_absence
@@ -28,43 +33,40 @@ SKILL_PATH = Path(__file__).resolve().parents[2] / "skills" / "build-slice" / "S
 
 
 def test_branch_state_subsection_contains_cp_r_for_diagnose_out_and_graphify_out_after_cd():
-    """AC#1: cp -r lines for both dirs present, positioned AFTER the cd line and BEFORE
-    numbered point 2.
+    """R-20 seed coverage under BRANCH-3 (slice-099): the PRIMARY create path (point 2)
+    seeds the gitignored derived dirs via the shared `seed_derived_dirs` helper (single
+    source of truth — AC5); the LEGACY dirty-dance (point 4) retains its 2 inline guarded
+    `cp -r` lines (m2 self-containment carve-out). Both diagnose-out + graphify-out covered.
 
-    Per /critique pass-1 M3 ACCEPTED-FIXED: the regex requires the
-    `if [ -d ... ]; then cp -r` guard prefix (NOT bare `cp -r [^\\n]*<dir>`) to
-    forestall comment-substring leaks (a comment mentioning `cp -r diagnose-out` would
-    otherwise satisfy the assertion even if the actual functional line were deleted).
-    This cross-pins AC#1 + AC#2 in a single regex shape.
+    Pre-slice-099: point 1 (create) carried 2 inline `cp -r` lines. slice-099 moved the
+    primary-path seed to `seed_derived_dirs` so `/slice` Step 5.5 + `/build-slice` share
+    ONE seed mechanism (closes the slice-093 L47 / slice-088 L71 silent-seed-drop gap);
+    `cp -r` survives only in the legacy point-4 escape-hatch.
+
+    Per /critique pass-1 M3 ACCEPTED-FIXED: the legacy regex still requires the
+    `if [ -d ... ]; then cp -r` guard prefix (NOT bare `cp -r [^\\n]*<dir>`) to forestall
+    comment-substring leaks.
     """
     section = _branch_state_section(SKILL_PATH.read_text(encoding="utf-8"))
-    cd_marker = 'cd "$wt_base/slice-NNN-<slice-name>"'
-    point2_marker = "2. **If the worktree already exists**"
-    cd_idx = section.find(cd_marker)
-    point2_idx = section.find(point2_marker)
-    assert cd_idx != -1, f"expected cd line {cd_marker!r} missing"
-    assert point2_idx != -1, f"expected numbered point 2 marker {point2_marker!r} missing"
+    # Primary create path (point 2) seeds via the shared helper:
+    assert "seed_derived_dirs" in section, (
+        "BRANCH-3 regression: the primary create path (point 2) must seed R-20 derived "
+        "dirs via tools._worktree_paths.seed_derived_dirs (the shared helper), not inline cp -r"
+    )
+    # Legacy point-4 dirty-dance retains its 2 guarded cp -r lines (diagnose-out + graphify-out):
     diagnose_pattern = re.compile(
         r'^\s*if \[ -d[^\n]*\]\s*;\s*then\s+cp -r [^\n]*diagnose-out', re.MULTILINE
     )
     graphify_pattern = re.compile(
         r'^\s*if \[ -d[^\n]*\]\s*;\s*then\s+cp -r [^\n]*graphify-out', re.MULTILINE
     )
-    diagnose_match = diagnose_pattern.search(section)
-    graphify_match = graphify_pattern.search(section)
-    assert diagnose_match is not None, (
-        "diagnose-out cp -r line missing (or not guarded by "
+    assert diagnose_pattern.search(section) is not None, (
+        "legacy point-4 diagnose-out cp -r seed missing (or not guarded by "
         "`if [ -d ...]; then cp -r` prefix per /critique pass-1 M3)"
     )
-    assert graphify_match is not None, (
-        "graphify-out cp -r line missing (or not guarded by "
+    assert graphify_pattern.search(section) is not None, (
+        "legacy point-4 graphify-out cp -r seed missing (or not guarded by "
         "`if [ -d ...]; then cp -r` prefix per /critique pass-1 M3)"
-    )
-    assert cd_idx < diagnose_match.start() < point2_idx, (
-        "diagnose-out cp -r not positioned between cd and point 2"
-    )
-    assert cd_idx < graphify_match.start() < point2_idx, (
-        "graphify-out cp -r not positioned between cd and point 2"
     )
 
 
@@ -100,12 +102,16 @@ def test_cp_r_lines_use_if_then_guard_for_source_dir_absence():
         r'^\s*if \[ -d[^\n]*\]\s*;\s*then\s+cp -r [^\n]*;\s*fi', re.MULTILINE
     )
     matches = guard_pattern.findall(section)
-    # Fix C (slice-074 m2): tightened `>= 2` -> `== 4`. There are exactly 4 guarded
-    # cp -r lines — 2 in point 1 (new-branch case) and 2 in point 4 (dirty-tree case),
-    # one each for diagnose-out + graphify-out. The prior `>= 2` tolerance silently
-    # accepted a 5th (e.g. accidental copy-paste) line; the exact `== 4` invariant trips
-    # any drift in the intentional duplication count.
-    assert len(matches) == 4, (
-        f"expected exactly 4 `if [ -d ... ]; then cp -r ...; fi` guarded lines "
-        f"(2 in point 1 + 2 in point 4), found {len(matches)}"
+    # Fix C (slice-074 m2): tightened `>= 2` -> exact count to trip any drift in the
+    # intentional duplication count (the prior `>= 2` tolerance silently accepted a 5th
+    # accidental copy-paste line).
+    # BRANCH-3 (slice-099): exact count lowered `== 4` -> `== 2`. Pre-slice-099 there were
+    # 4 guarded cp -r lines (2 in the point-1 create case + 2 in the point-4 dirty-tree
+    # case). slice-099 moved the PRIMARY create-path seed to the shared `seed_derived_dirs`
+    # helper (point 2), leaving inline `cp -r` ONLY in the legacy point-4 escape-hatch
+    # (2 lines: diagnose-out + graphify-out). The `== 2` invariant still trips any drift.
+    assert len(matches) == 2, (
+        f"expected exactly 2 `if [ -d ... ]; then cp -r ...; fi` guarded lines "
+        f"(BRANCH-3 / slice-099: only legacy point 4 retains inline cp -r; point 2's "
+        f"primary create path seeds via seed_derived_dirs), found {len(matches)}"
     )

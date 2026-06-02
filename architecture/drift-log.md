@@ -629,3 +629,19 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - No drift to resolve. R-32 stays `mitigating` (advances toward retirement-at-flip; the actual flip is slice-099+, out of scope).
+## Audit 2026-06-02 (slice-099-create-worktree-at-slice-pick)
+
+**Trigger**: slice-099 pre-finish gate (/build-slice Step 6)
+**Scope**: BRANCH-3 worktree-at-pick — `skills/slice/SKILL.md` (Step 5.5 + Step 6/6.5), `skills/build-slice/SKILL.md` (### Branch state), `tools/_worktree_paths.py`, `tools/slice_queue_writer.py`, `tools/branch_workflow_audit.py`, `CLAUDE.md`, `methodology-changelog.md`, `architecture/shippability.md`, version files.
+
+### Majors
+(none)
+
+### Verified aligned
+- **Vault claims match code**: ADR-090 + changelog v0.81.0 + CLAUDE.md all claim "worktree created at `/slice` pick-time; `/build-slice` detect-or-create; shared `_worktree_paths` helper; `slice-queue.md` Pick log". Code reality: `skills/slice/SKILL.md` Step 5.5 (two-tree sequence) exists; `skills/build-slice/SKILL.md` `### Branch state` reordered (detect-existing primary / create+`seed_derived_dirs` absent-only / dirty-dance legacy-only); `tools/_worktree_paths.py` exports `canonical_worktree_path` + `slice_branch_name` + `seed_derived_dirs` + CLI; `tools/slice_queue_writer.py` has `record_pick` + `_extract_pick_log_block` + `write_slice_queue` pick-log preservation. All present.
+- **Version fan-out aligned**: `VERSION` == `plugin.yaml` == `pyproject.toml` == installed `~/.claude/ai-sdlc-VERSION` == installed `ai-sdlc-tools` pkg == `0.81.0` (PMI-1 + AVFS-1 + TVFS-1 PASS); installed `~/.claude/methodology-changelog.md` content-equal (MCFS-1 PASS); installed `~/.claude/skills/{slice,build-slice}/SKILL.md` content-equal (OSDG-1 drift tests PASS).
+- **Shippability row #106** matches the slice's invariant tests (cites BRANCH-3 / ADR-090 / R-31 / pick; entry-pins green).
+- **Audit refactor non-behavioral**: `branch_workflow_audit.py` imports the moved path helpers from `_worktree_paths.py`; end-state validation byte-behavior-identical (BRANCH-1 clean on the pick-time-worktree slice; 66 related tests green).
+
+### Resolutions
+- No drift. R-31 root-cause-addressed + R-17 pre-build-residual-closed status flips are recorded at `/reflect` (risk-register update), not here — the pre-finish drift-check verifies vault-vs-code alignment, which holds.

@@ -2070,3 +2070,16 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 ### Pattern
 - A guard signal that decides "is a git-tree read of vault CONTENT applicable" must key on store-LOCATION (vault outside the repo work tree), NOT per-file git-tracked-ness — branch-only content over-RETIREs and a transitional-tracked vault misses the corruption. EXECUTE a freshly-minted guard signal against the repo's real fixtures + trace the ACTUAL call graph at BUILD time; a design-time adversarial ratification is not proof. (Extends slice-087 classifier-execution + slice-091 real-runtime.) Strong /critic-calibrate probe candidate.
+## Slice 099 (create-worktree-at-slice-pick) -- 2026-06-02
+
+### Worked
+- Worktree-at-pick (BRANCH-3): master stays structurally clean of slice work; slice-099 is its own bootstrap demonstration. One shared `_worktree_paths` helper across /slice + /build-slice + branch_workflow_audit (AC5, single source of truth).
+- The Builder-vs-Critic separation paid off again: the code-Critic caught a self-application failure (the slice build-log fails its own branch_workflow_audit + falsely attested clean) that the 1455-test suite could NOT see -- no test runs the audit against the live in-flight slice folder.
+- `vault_edit rewrite` CAS dogfooded on the real 140KB CRLF risk-register (the R-31 status flip) -- byte-faithful, EOL-preserving, exit 0.
+
+### Didnt work
+- A design that enumerated a "4-part" PMI version bump UNDERCOUNTED (omitted pyproject.toml, which carries a static version driving the pip wheel); only TVFS-1 (the gate) caught it before a stale-wheel ship. Trust the gate over design prose for mechanical fan-outs.
+- I introduced the code-Critic B1 myself: a late Phase-E build-log Summary edit re-introduced a contiguous worktree-skip control token AFTER my last clean branch_workflow_audit run, and the build-log then falsely attested BRANCH-1 clean. Re-run per-slice audits after ANY late artifact edit.
+
+### Pattern
+- **Audit substring-collision false-positive class** (hit N=4 within this one slice, across branch_workflow_audit + SVW-1): an audit that bare-substring-scans a WHOLE prose artifact for a literal control token false-positives on any descriptive mention of that token. The durable fix is in the audit -- anchor the scan to its declared region (the m2 follow-up `anchor-worktree-skip-scan-to-events-section`) -- not eternal prose-discipline. Generalizable: a control-token detector must be anchored to its declared region, never a whole-file `token in content`.
