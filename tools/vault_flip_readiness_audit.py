@@ -1,11 +1,22 @@
-"""Vault-flip readiness audit (slice-100 / [[ADR-091]]).
+"""Vault-flip readiness audit (slice-100 / [[ADR-091]]; tests surface slice-102 / [[ADR-092]]).
 
-Read-only inventory of in-tree-vault-location path literals on the
-PRODUCTION-CODE surface (`tools/*.py` + skill-helper `skills/**/*.py`), so the
-external-vault flip (the next cut) has a complete, regression-pinned checklist of
-what silently breaks when `architecture/` + `diagnose-out/` relocate. The flip is
-NOT performed here (capability-without-flip, mirroring slice-093); this audit
-only classifies + guards.
+Read-only inventory of in-tree-vault-location path literals so the external-vault
+flip (the next cut) has a complete, regression-pinned checklist of what breaks when
+`architecture/` + `diagnose-out/` relocate. The flip is NOT performed here
+(capability-without-flip, mirroring slice-093); this audit only classifies + guards.
+
+TWO SURFACES (slice-102 / [[ADR-092]]):
+  * PRODUCTION (`tools/*.py` + skill-helper `skills/**/*.py`) — a missed literal is a
+    SILENT path mis-resolve; the ordered ruleset below classifies it.
+  * TESTS (`tests/**/*.py`, excluding any `fixtures/` segment) — a missed literal
+    breaks LOUDLY (a failing test). The SAME ruleset runs, then `_remap_for_tests`
+    relabels: path-construction (`must-rewrite`) → `test-update-at-flip` (the update
+    checklist); unmarked-collection-pathspec (`needs-human` on production) →
+    `test-collection-pathspec` (a git-pathspec/Class-B mirror — REVIEW at flip, NOT
+    the checklist, NOT fail-closed). A genuinely-unclassifiable tests literal
+    (dynamic-fragment / parse-error) still routes to `needs-human` (fail-closed).
+    `baseline_tuple()` / `--strict` are PRODUCTION-scoped; the tests surface is
+    gate-covered by the always-on needs-human-empty invariant + per-class floors.
 
 CLASSIFICATION — context-aware, NOT node-type-only (the B1/M1 correction: a vault
 literal inside a diagnostic *message* string is an ``ast.Constant`` str but is not
@@ -81,8 +92,26 @@ ALREADY_SEAM_ROUTED = "already-seam-routed"
 MUST_REWRITE = "must-rewrite-before-flip"
 DOC_EXAMPLE_SAFE = "doc-example-safe"
 NEEDS_HUMAN = "needs-human-classification"
-_ALL_CLASSES = (ALREADY_SEAM_ROUTED, MUST_REWRITE, DOC_EXAMPLE_SAFE, NEEDS_HUMAN)
+# slice-102 / [[ADR-092]] — the two TESTS-surface classes (loud-breakage, not the
+# production silent-breakage `must-rewrite`). On the `tests/**/*.py` surface the
+# path-construction rules route to TEST_UPDATE_AT_FLIP (the update checklist — the
+# test resolves a vault path, WILL break loudly at flip) and the
+# unmarked-collection-pathspec rule routes to TEST_COLLECTION_PATHSPEC (a
+# git-pathspec / `applies_to` / `_SOFT_FILE_SET` mirror — review-at-flip; for the
+# current corpus all such members mirror Class-B production constants that STAY
+# `architecture/…`, but the bucket is HETEROGENEOUS: a genuine path-resolve that is
+# a bare collection-display member is demoted here too — review, NOT the checklist,
+# NOT fail-closed. This is acceptable because the tests surface breaks LOUDLY at
+# flip, so a mis-bucketed resolve surfaces as a failing test at flip-execute, NOT a
+# silent mis-resolve; flip-execute MUST consume BOTH lists. Pinned residual:
+# test_collection_member_genuine_resolve_is_review_residual.)
+TEST_UPDATE_AT_FLIP = "test-update-at-flip"
+TEST_COLLECTION_PATHSPEC = "test-collection-pathspec"
+_ALL_CLASSES = (ALREADY_SEAM_ROUTED, MUST_REWRITE, DOC_EXAMPLE_SAFE, NEEDS_HUMAN,
+                TEST_UPDATE_AT_FLIP, TEST_COLLECTION_PATHSPEC)
 # The two classes whose (relpath, value) set is the regression baseline (AC3).
+# PRODUCTION-surface only (slice-102: `baseline_tuple()` filters surface=="production"
+# so a tests-surface occurrence can never pollute the production --strict pin).
 _BASELINE_CLASSES = (MUST_REWRITE, NEEDS_HUMAN)
 
 # ── match rule (M1 + B-add-1: bare-or-slashed) ────────────────────────────────
@@ -110,6 +139,20 @@ _PATH_METHODS: frozenset[str] = frozenset({
     "glob", "rglob", "iterdir", "exists", "is_file", "is_dir", "joinpath",
     "with_name", "with_suffix", "mkdir", "unlink", "stat",
 })
+# slice-102 / [[ADR-092]] — for these path-METHODS the RECEIVER is the path but the
+# positional ARGUMENT is CONTENT, not a path (`p.write_text("…architecture/…")` writes
+# vault-shaped content INTO p; the literal in the arg is not a resolved path). The
+# tests surface is full of `(tmp/x).write_text("<vault content>")`; treating that arg
+# as path-construction over-flagged it (and produced a spurious dynamic-fragment on an
+# f-string content). Correctness fix on BOTH surfaces — verified to leave the production
+# _BASELINE (4 `/`-BinOp sites) unchanged.
+_CONTENT_ARG_METHODS: frozenset[str] = frozenset({"write_text", "write_bytes"})
+
+# slice-102 / [[ADR-092]] m1 — single source of truth for the unmarked-collection
+# reason string, shared by `_classify_constant` (rule 4) and `_remap_for_tests` so the
+# tests-surface collection remap cannot silently de-couple from the classifier (a rename
+# is now a single-edit / fail-loud change, not a silent fall-through).
+_REASON_UNMARKED_COLLECTION = "unmarked-collection-pathspec"
 
 # ── the regression baseline (AC3) — frozen at slice-100; (relpath, value, klass)
 # tuples for the must-rewrite + needs-human classes, DUPLICATES INCLUDED (so a new
@@ -137,13 +180,17 @@ class Occurrence:
     value: str      # the matched constant value (or comment text), normalized
     klass: str
     reason: str
+    surface: str = "production"   # slice-102 / ADR-092: "production" | "tests"
 
     def key(self) -> tuple[str, str, str]:
+        # NOTE: surface is intentionally NOT in the key — the production baseline
+        # key (path, value, klass) is unchanged (AC1); path already determines surface.
         return (self.path, self.value, self.klass)
 
     def to_dict(self) -> dict:
         return {"path": self.path, "line": self.line, "col": self.col,
-                "value": self.value, "klass": self.klass, "reason": self.reason}
+                "value": self.value, "klass": self.klass, "reason": self.reason,
+                "surface": self.surface}
 
 
 @dataclass
@@ -155,7 +202,10 @@ class AuditResult:
         return [o for o in self.occurrences if o.klass == klass]
 
     def baseline_tuple(self) -> tuple[tuple[str, str, str], ...]:
-        keys = [o.key() for o in self.occurrences if o.klass in _BASELINE_CLASSES]
+        # PRODUCTION-surface only (slice-102 / ADR-092 — defense-in-depth: a
+        # tests-surface regression can never silently pollute the production --strict pin).
+        keys = [o.key() for o in self.occurrences
+                if o.klass in _BASELINE_CLASSES and o.surface == "production"]
         return tuple(sorted(keys))
 
     @property
@@ -229,8 +279,12 @@ def _is_path_call_arg_or_recv(node: ast.AST) -> bool:
         if _is_path_ctor(p.func) and node in p.args:
             return True
         if isinstance(p.func, ast.Attribute) and p.func.attr in _PATH_METHODS:
-            # node is an arg, or the receiver of the method (X in X.read_text())
-            if node in p.args or node is p.func.value:
+            # the receiver (X in X.read_text()) is always the path
+            if node is p.func.value:
+                return True
+            # an ARG is a path UNLESS the method takes CONTENT as its arg
+            # (write_text/write_bytes — slice-102 / ADR-092 correctness fix)
+            if node in p.args and p.func.attr not in _CONTENT_ARG_METHODS:
                 return True
         # m1: builtin open(target, ...) — the first positional arg is the path
         if isinstance(p.func, ast.Name) and p.func.id == "open" and p.args and node is p.args[0]:
@@ -359,7 +413,7 @@ def _classify_constant(
 
     # rule 4 — fail-closed ambiguous (unmarked git-pathspec collection member)
     if _is_collection_member(node) and "/" in node.value:
-        return (NEEDS_HUMAN, "unmarked-collection-pathspec")
+        return (NEEDS_HUMAN, _REASON_UNMARKED_COLLECTION)
 
     # rule 5 — default: prose-mention (a message/diagnostic string, no path/git ctx)
     return (DOC_EXAMPLE_SAFE, "prose-mention")
@@ -372,9 +426,34 @@ def _norm_value(v: str) -> str:
     return re.sub(r"\s+", " ", v).strip()
 
 
+def _surface_of(rel: str) -> str:
+    """slice-102 / [[ADR-092]]: the scan surface, derived from the NORMALIZED
+    repo-relative path (m2 — robust to a backslash rel from a direct caller;
+    `tools/test_first_audit.py` correctly stays production, not tests)."""
+    return "tests" if rel.replace("\\", "/").startswith("tests/") else "production"
+
+
+def _remap_for_tests(klass: str, reason: str) -> str:
+    """slice-102 / [[ADR-092]] — tests-surface loud-vs-silent remap. Path-construction
+    (the production SILENT `must-rewrite`) becomes the loud update checklist; an
+    unmarked-collection-pathspec (a git-pathspec/Class-B mirror — fail-closed
+    needs-human on production) becomes the REVIEW list (TEST_COLLECTION_PATHSPEC —
+    NOT the checklist, NOT fail-closed). All other classes (docstring / seam /
+    dynamic-fragment→needs-human / prose-mention / parse-error) are surface-independent —
+    a genuinely-unclassifiable tests literal still routes to needs-human (fail-closed)."""
+    if klass == MUST_REWRITE:
+        return TEST_UPDATE_AT_FLIP
+    if klass == NEEDS_HUMAN and reason == _REASON_UNMARKED_COLLECTION:
+        return TEST_COLLECTION_PATHSPEC
+    return klass
+
+
 def audit_file(path: Path, rel: str) -> list[Occurrence]:
     """Classify every matched literal + comment in one file. A SyntaxError yields a
-    single needs-human(parse-error) occurrence (fail-closed, never a silent skip)."""
+    single needs-human(parse-error) occurrence (fail-closed, never a silent skip).
+    The surface (production | tests) is derived from `rel` and tags every Occurrence;
+    on the tests surface the classes are remapped per `_remap_for_tests` (ADR-092)."""
+    surface = _surface_of(rel)
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
     occ: list[Occurrence] = []
@@ -384,7 +463,7 @@ def audit_file(path: Path, rel: str) -> list[Occurrence]:
         tree = ast.parse(text, filename=str(path))
     except SyntaxError as exc:
         return [Occurrence(rel, exc.lineno or 1, (exc.offset or 1) - 1,
-                           f"<parse-error: {exc.msg}>", NEEDS_HUMAN, "parse-error")]
+                           f"<parse-error: {exc.msg}>", NEEDS_HUMAN, "parse-error", surface)]
     _annotate_parents(tree)
     docstring_ids = _docstring_const_ids(tree)
     module_stem = path.stem
@@ -392,8 +471,10 @@ def audit_file(path: Path, rel: str) -> list[Occurrence]:
         if isinstance(node, ast.Constant) and isinstance(node.value, str) and _value_matches(node.value):
             klass, reason = _classify_constant(
                 node, module_stem=module_stem, docstring_ids=docstring_ids, lines=lines)
+            if surface == "tests":
+                klass = _remap_for_tests(klass, reason)
             occ.append(Occurrence(rel, node.lineno, node.col_offset,
-                                  _norm_value(node.value), klass, reason))
+                                  _norm_value(node.value), klass, reason, surface))
 
     # COMMENT-token occurrences (always doc-example-safe; not in the baseline)
     try:
@@ -401,7 +482,7 @@ def audit_file(path: Path, rel: str) -> list[Occurrence]:
         for tok in toks:
             if tok.type == tokenize.COMMENT and _SLASHED_RE.search(tok.string):
                 occ.append(Occurrence(rel, tok.start[0], tok.start[1],
-                                      _norm_value(tok.string), DOC_EXAMPLE_SAFE, "comment"))
+                                      _norm_value(tok.string), DOC_EXAMPLE_SAFE, "comment", surface))
     except (tokenize.TokenError, IndentationError, SyntaxError):
         pass  # comment harvest is best-effort (3.12+ tokenizer may raise SyntaxError — m2); AST pass is load-bearing
 
@@ -409,8 +490,12 @@ def audit_file(path: Path, rel: str) -> list[Occurrence]:
 
 
 def _iter_scan_files(root: Path) -> list[Path]:
-    """tools/*.py (flat) + skills/**/*.py (recursive), excluding the audit's own
-    module. Archived/test/derived dirs are outside both roots → never scanned."""
+    """PRODUCTION surface: tools/*.py (flat) + skills/**/*.py (recursive), excluding
+    the audit's own module. TESTS surface (slice-102 / [[ADR-092]]): tests/**/*.py
+    (recursive), EXCLUDING any path with a `fixtures/` segment — fixture dirs hold
+    test-INPUT artifacts (synthetic / deliberately-malformed data), not vault-resolving
+    test logic (documented residual: a vault literal inside a `fixtures/` dir is out
+    of scan scope — pinned by test_fixtures_dir_vault_literal_out_of_scope)."""
     self_name = "vault_flip_readiness_audit.py"
     files: list[Path] = []
     tools_dir = root / "tools"
@@ -419,6 +504,10 @@ def _iter_scan_files(root: Path) -> list[Path]:
     skills_dir = root / "skills"
     if skills_dir.exists():
         files += list(skills_dir.glob("**/*.py"))
+    tests_dir = root / "tests"
+    if tests_dir.exists():
+        files += [p for p in tests_dir.glob("**/*.py")
+                  if "fixtures" not in p.relative_to(root).parts]
     return sorted(files)
 
 
@@ -435,16 +524,24 @@ def audit_root(root: Path) -> AuditResult:
 # ── output / gate ─────────────────────────────────────────────────────────────
 def _format_human(result: AuditResult, baseline_drift: tuple | None) -> str:
     counts = {k: len(result.by_class(k)) for k in _ALL_CLASSES}
+    # m3: only bracket the SURFACE-EXCLUSIVE classes by surface (must-rewrite is
+    # production-only; update-at-flip + collection-pathspec are tests-only). The
+    # remaining classes span both surfaces, so report them as cross-surface totals.
     out = [
-        "Vault-flip readiness audit (ADR-091): "
+        "Vault-flip readiness audit (ADR-091/092): "
         f"{result.files_scanned} file(s); "
-        f"{counts[MUST_REWRITE]} must-rewrite, {counts[ALREADY_SEAM_ROUTED]} already-routed, "
+        f"[production] {counts[MUST_REWRITE]} must-rewrite; "
+        f"[tests] {counts[TEST_UPDATE_AT_FLIP]} update-at-flip, "
+        f"{counts[TEST_COLLECTION_PATHSPEC]} collection-pathspec(review); "
+        f"[both] {counts[ALREADY_SEAM_ROUTED]} already-routed, "
         f"{counts[DOC_EXAMPLE_SAFE]} doc/example, {counts[NEEDS_HUMAN]} needs-human.\n",
     ]
     for o in result.by_class(MUST_REWRITE):
-        out.append(f"  [must-rewrite] {o.path}:{o.line} ({o.reason}) {o.value!r}\n")
+        out.append(f"  [must-rewrite]     {o.path}:{o.line} ({o.reason}) {o.value!r}\n")
+    for o in result.by_class(TEST_UPDATE_AT_FLIP):
+        out.append(f"  [test-update]      {o.path}:{o.line} ({o.reason}) {o.value!r}\n")
     for o in result.needs_human:
-        out.append(f"  [needs-human]  {o.path}:{o.line} ({o.reason}) {o.value!r}\n")
+        out.append(f"  [needs-human]      {o.path}:{o.line} ({o.reason}) {o.value!r}\n")
     if baseline_drift is not None:
         added, removed = baseline_drift
         out.append("\n--strict BASELINE DRIFT:\n")

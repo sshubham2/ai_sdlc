@@ -16,6 +16,8 @@ from tools.vault_flip_readiness_audit import (
     ALREADY_SEAM_ROUTED,
     DOC_EXAMPLE_SAFE,
     NEEDS_HUMAN,
+    TEST_UPDATE_AT_FLIP,
+    TEST_COLLECTION_PATHSPEC,
     _ALL_CLASSES,
     _BASELINE,
 )
@@ -191,3 +193,130 @@ def test_os_path_join_and_open_are_path_construction(tmp_path):
     assert audit_file(p, "tools/ospj.py")[0].klass == MUST_REWRITE
     p2 = _write_tool(tmp_path, "openb.py", 'P = open("architecture/x.md")\n')
     assert audit_file(p2, "tools/openb.py")[0].klass == MUST_REWRITE
+
+
+# ══ slice-102 / [[ADR-092]]: the tests/**/*.py surface ════════════════════════
+# Floors are emptiness/collapse guards (m1), set comfortably below the measured
+# live counts at slice-102 (test-update-at-flip 160; test-collection-pathspec 49);
+# they catch a silent collapse of EITHER classification branch, NOT exact membership.
+FLOOR_TEST_UPDATE_AT_FLIP = 120
+FLOOR_TEST_COLLECTION_PATHSPEC = 30
+
+
+# ── AC1: tests surface scanned + classified; production unchanged ─────────────
+def test_tests_surface_scanned_and_classified():
+    result = audit_root(REPO_ROOT)
+    tests_occ = [o for o in result.occurrences if o.surface == "tests"]
+    assert tests_occ, "the tests/**/*.py surface must be scanned and classified"
+    for o in tests_occ:
+        assert o.path.startswith("tests/")
+        assert o.line >= 1 and o.col >= 0 and o.reason
+        assert o.klass in _ALL_CLASSES
+    klasses = {o.klass for o in tests_occ}
+    assert TEST_UPDATE_AT_FLIP in klasses
+    assert TEST_COLLECTION_PATHSPEC in klasses
+
+
+def test_production_baseline_unchanged_vs_slice100():
+    # AC1: extending to the tests surface must NOT perturb the production classification.
+    result = audit_root(REPO_ROOT)
+    prod_baseline = tuple(sorted(
+        o.key() for o in result.occurrences
+        if o.surface == "production" and o.klass in (MUST_REWRITE, NEEDS_HUMAN)))
+    assert prod_baseline == tuple(sorted(_BASELINE))
+    assert not [o for o in result.occurrences
+                if o.surface == "production" and o.klass == NEEDS_HUMAN], \
+        "slice-100 invariant: production needs-human is empty"
+
+
+# ── AC2: loud-vs-silent two-class fidelity + write_text-content fix ───────────
+def test_tests_path_resolve_is_test_update_at_flip(tmp_path):
+    # a path-CONSTRUCTION literal the test resolves → the loud-breakage update checklist;
+    # the IDENTICAL literal on production stays the silent must-rewrite class.
+    p = _write_tool(tmp_path, "x.py", 'import pathlib\nP = pathlib.Path("architecture/triage.md")\n')
+    occ = audit_file(p, "tests/methodology/x.py")
+    assert len(occ) == 1
+    assert occ[0].klass == TEST_UPDATE_AT_FLIP and occ[0].surface == "tests"
+    assert audit_file(p, "tools/x.py")[0].klass == MUST_REWRITE
+
+
+def test_tests_collection_pathspec_is_review_not_checklist(tmp_path):
+    # a collection-member git-pathspec/Class-B mirror → the REVIEW list, distinct from
+    # the update checklist AND from fail-closed needs-human; on production it is needs-human.
+    p = _write_tool(tmp_path, "h.py", 'S = ("architecture/shippability.md",)\n')
+    occ = audit_file(p, "tests/skills/parallel_conflict_resolver/h.py")
+    assert len(occ) == 1
+    assert occ[0].klass == TEST_COLLECTION_PATHSPEC
+    assert occ[0].klass not in (TEST_UPDATE_AT_FLIP, NEEDS_HUMAN)
+    assert audit_file(p, "tools/h.py")[0].klass == NEEDS_HUMAN
+
+
+def test_write_text_content_is_not_path(tmp_path):
+    # ADR-092 correctness fix: the write_text/write_bytes ARG is content, not a path —
+    # on BOTH surfaces it must NOT be a resolving-path class (the receiver still is).
+    p = _write_tool(tmp_path, "wt.py",
+                    'def f(p):\n    return p.write_text("see architecture/triage.md")\n')
+    assert audit_file(p, "tools/wt.py")[0].klass == DOC_EXAMPLE_SAFE
+    assert audit_file(p, "tests/methodology/wt.py")[0].klass == DOC_EXAMPLE_SAFE
+    # the f-string-content shape (the real test_drift_check_audit.py:35) — not needs-human
+    p2 = _write_tool(tmp_path, "wt2.py",
+                     'def f(p, mode):\n    return p.write_text(f"Mode {mode} see architecture/triage.md")\n')
+    assert audit_file(p2, "tests/methodology/wt2.py")[0].klass == DOC_EXAMPLE_SAFE
+
+
+# ── AC3: fail-closed completeness invariant + non-vacuity + per-class floors ──
+def test_tests_surface_needs_human_empty():
+    # fail-closed completeness: every tests-surface vault literal lands in a definite
+    # class; nothing unclassifiable silently slips. Keyed (relpath, value, klass).
+    result = audit_root(REPO_ROOT)
+    leftover = [o.key() for o in result.occurrences
+                if o.surface == "tests" and o.klass == NEEDS_HUMAN]
+    assert leftover == [], f"tests-surface needs-human must be empty; got {leftover}"
+
+
+def test_tests_surface_needs_human_pin_non_vacuous(tmp_path):
+    # non-vacuity: a genuinely-unclassifiable tests literal (dynamic-fragment in a path
+    # context) MUST land in needs-human → the empty-pin above is not vacuously true.
+    p = _write_tool(tmp_path, "dyn.py",
+                    'import pathlib\ndef f(name):\n    return pathlib.Path("/r") / f"architecture/{name}"\n')
+    nh = [o for o in audit_file(p, "tests/methodology/dyn.py") if o.klass == NEEDS_HUMAN]
+    assert nh and nh[0].reason == "dynamic-fragment"
+
+
+def test_tests_surface_class_floors():
+    # m1 — per-class non-vacuity floors guard a silent collapse of EITHER branch
+    # (a single aggregate floor would miss 209→160). Floors < measured live counts.
+    result = audit_root(REPO_ROOT)
+    n_update = len(result.by_class(TEST_UPDATE_AT_FLIP))
+    n_coll = len(result.by_class(TEST_COLLECTION_PATHSPEC))
+    assert n_update >= FLOOR_TEST_UPDATE_AT_FLIP, f"test-update-at-flip={n_update}"
+    assert n_coll >= FLOOR_TEST_COLLECTION_PATHSPEC, f"test-collection-pathspec={n_coll}"
+
+
+# ── documented residuals (m3 + M-add-1; slice-095 honest-contract pattern) ────
+def test_fixtures_dir_vault_literal_out_of_scope(tmp_path):
+    # m3: a vault literal inside tests/**/fixtures/ is intentionally OUT of scan scope
+    # (fixture dirs hold test-INPUT artifacts, not vault-resolving logic).
+    (tmp_path / "tools").mkdir()
+    fx = tmp_path / "tests" / "methodology" / "fixtures"
+    fx.mkdir(parents=True)
+    (fx / "f.py").write_text('import pathlib\nP = pathlib.Path("architecture/triage.md")\n',
+                             encoding="utf-8")
+    result = audit_root(tmp_path)
+    assert not [o for o in result.occurrences if "fixtures" in o.path], \
+        "fixtures/ vault literals must be out of scan scope (documented residual)"
+
+
+def test_collection_member_genuine_resolve_is_review_residual(tmp_path):
+    # M-add-1 (meta-Critic): a GENUINE path-resolve that is a bare collection-display
+    # member is classified test-collection-pathspec (REVIEW, not the checklist, not
+    # fail-closed) — the documented heterogeneity residual. Acceptable because the tests
+    # surface breaks LOUDLY at flip; flip-execute MUST consume the review list too.
+    p = _write_tool(tmp_path, "loop.py",
+                    'import pathlib\n'
+                    'for rel in ["architecture/slice-queue.md", "architecture/shippability.md"]:\n'
+                    '    pathlib.Path("/r", rel).write_text("x")\n')
+    occ = audit_file(p, "tests/methodology/loop.py")
+    klasses = {o.klass for o in occ}
+    assert klasses == {TEST_COLLECTION_PATHSPEC}, klasses
+    assert TEST_UPDATE_AT_FLIP not in klasses and NEEDS_HUMAN not in klasses
