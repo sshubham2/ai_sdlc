@@ -645,3 +645,25 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - No drift. R-31 root-cause-addressed + R-17 pre-build-residual-closed status flips are recorded at `/reflect` (risk-register update), not here — the pre-finish drift-check verifies vault-vs-code alignment, which holds.
+
+## Audit 2026-06-02 (slice-100-add-vault-flip-readiness-audit)
+
+**Trigger**: slice-100 pre-finish gate (/build-slice Step 6)
+**Scope**: full — ADR-091 vault-flip readiness audit: `tools/vault_flip_readiness_audit.py` (new), `tools/parallel_conflict_resolver.py` (_SOFT_FILE_SET Class-B marker, B2), `tests/methodology/test_vault_flip_readiness_audit.py` (new), `plugin.yaml` + `tools/install_audit.py` + `INSTALL.md` + `architecture/shippability.md` (#108) registration, `architecture/slices/slice-100-*/` artifacts + `architecture/decisions/ADR-091-*.md`.
+
+### Blockers
+(none)
+
+### Majors
+(none)
+
+### Verified aligned
+- **Vault claims match code**: ADR-091 §Decision (context-aware ordered ruleset; bare-or-slashed match; ≤1-hop path-construction à la VWS-1 `_resolve_target`; Class-B + error-message-prose marker recognition; 4-class taxonomy) matches the built `tools/vault_flip_readiness_audit.py` — verified by the real-tree run (49 files; 4 must-rewrite all bare-`"architecture"` path-construction in `project_frame_synth.py`:121/122/185/194; 24 already-routed; 60 doc/example; 0 needs-human) + the 13-test module.
+- **B-add-1 claim holds**: ADR-091/design/mission-brief/shippability #108 claim the matcher catches bare-segment path-construction (NOT slash-only); code confirms (the 4 `project_frame_synth.py` sites classify `must-rewrite`, would be silently missed by a slash-only rule).
+- **B2 claim holds**: design + ADR-091 claim `_SOFT_FILE_SET` defn is Class-B-marked → `already-seam-routed`; code confirms (PCR:60-61 carry the marker; 0 needs-human).
+- **Capability-without-flip (AC5)**: `tools/_vault_paths.py` default unchanged (`_DEFAULT = "architecture"`; `VAULT_ROOT == Path("architecture")`); full methodology suite green (no flip).
+- **Registration aligned**: plugin.yaml (`rule: ADR-091`) + `install_audit._CANONICAL_TOOLS` + INSTALL.md (40 tools) + cp1252 `_ROOT_ONLY_TOOLS` + shippability #108 — PMI-1 / INST-1 / UTF8-STDOUT-1 PASS.
+- **MEPD-1 EXCLUDE confirmed**: new public tool bumps PMI-1 inventory (handled) but no new RULE-ID / no VERSION bump / no `methodology-changelog.md` entry → MCFS-1 / AVFS-1 / TVFS-1 / BCI-1 / STP-1 / NAW-1 all PASS, unaffected.
+
+### Resolutions
+- No drift — vault and code aligned for the slice-100 surface. The `plugin.yaml` `rule: ADR-091` label is an ADR pointer (not a new RULE-ID) — consistent with the `pulse_worktree_resolver`/`stranded_slice_audit`/`stale_branch_classifier` `rule: ADR-NNN` convention.

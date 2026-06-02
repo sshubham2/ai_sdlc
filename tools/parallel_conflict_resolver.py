@@ -57,8 +57,8 @@ from tools._vault_paths import VAULT_ROOT
 # ---------------------------------------------------------------------------
 
 _SOFT_FILE_SET: frozenset[str] = frozenset({
-    "architecture/slice-queue.md",
-    "architecture/shippability.md",
+    "architecture/slice-queue.md",  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
+    "architecture/shippability.md",  # NOT VAULT_ROOT-routed (slice-068) -- Class-B git identity (ADR-089)
 })
 """SOFT-class file-set - 2 canonical files, forward-slash-keyed.
 
