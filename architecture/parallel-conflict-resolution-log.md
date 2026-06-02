@@ -20,3 +20,12 @@ Append-only audit trail of PCR-1 soft-conflict auto-resolutions. Each entry: ISO
 **code-review verdict**: CLEAN — PCR-2b code-review: no blockers/majors/minors; union-both-sides MIXED resolution of slice-098+slice-099 appends verified (no dropped side, no dup row numbers, CRLF preserved)
 **TRI-RESOLVE-1 disposition**: apply
 
+## Hard-conflict resolution - 2026-06-02T13:09:31.216370+00:00
+
+**Repo HEAD SHA pre-resolution**: 50a5148b1994d54e4ca849b1a752824d03ae9376
+**U-files resolved**: (none)
+**Concerned slices**: (none)
+**Resolution mechanism**: gate-on-hand-resolve (PCR-2b) — hand-resolved + code-review agent + TRI-RESOLVE-1 user gate
+**code-review verdict**: CLEAN
+**TRI-RESOLVE-1 disposition**: apply
+

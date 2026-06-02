@@ -2100,3 +2100,17 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - For any NEW AST/parser/classifier tool the code-Critic (execution-level adversarial pass) is mandatory — it reaches silent-breakage false-negatives the design+meta stack structurally cannot. APED-1-by-execution, N+1.
 - The new-public-tool count fan-out includes `tests/**/test_*_tool_inventory.py` count literals, not just `plugin.yaml`/`install_audit`/INSTALL.md prose. Grep EVERY count literal across `tests/` on a tool addition.
 - A marker/token detector must be node/region-anchored, never `marker in whole_line_text` (slice-099 + slice-100, N=2) — strong build-check candidate.
+
+## Slice 101 (add-gate-audit-cli-exit-code-tests) — 2026-06-02
+
+### Worked
+- In-process `main(argv)` int-assertion + a paired violation-kind cause-assert pins the CLI block-path of all 8 gate audits (PMI-1/TRI-1/LINT-MOCK/DR-1/WIRE-1/CSP-1/PTFCD-1/BRANCH-1) without subprocess fragility; AC2 non-vacuity proven by an 8-row mutation harness (each block test FAILS when `main()→return 0`).
+- Reusing proven on-disk fixtures inherited correct edge handling — `broken_impl_threat.md`'s em-dash `## TM-1 —` heading is accepted by `_ITEM_HEADING_RE` `[—\-]`, sidestepping the M-add-1 double-dash (`--`) false-exit-0 trap *by construction* (a hand-authored fixture copying the audit docstring's double-dash would have parsed 0 items → exit 0).
+- Deliberately-parallel-safe test-only cut: zero production change, no `VERSION` bump → zero R-28 forward-sync contention with parallel slice-100; full methodology suite 1345 + shippability 106/106.
+
+### Didn't work
+- A source-edit mutation harness with a byte-length-IDENTICAL `return 1`→`return 0` edit poisoned the `.pyc` cache: after `git checkout` reverted the source, Python's default `(mtime, size)` `.pyc` staleness check matched (same size + coarse mtime) and served the STALE MUTATED bytecode → a phantom `test_lintmock` failure in the full suite (passed alone pre-harness). Resolved by clearing `__pycache__`. NOT a deliverable defect (`git diff tools/` empty throughout).
+
+### Pattern
+- A source-edit non-vacuity/mutation harness MUST clear `__pycache__` after a `git checkout` revert — OR use a byte-length-CHANGING mutation, OR prefer `monkeypatch.setattr(module, "main", lambda argv: 0)` over editing source. Same-size source edits defeat Python's `(mtime, size)` `.pyc` invalidation. Extends the "execute against the real runtime" lesson family (slice-090/091) to bytecode-cache semantics.
+- 3-Critic stack complementarity held again: design-Critic (multi-kind exit-1 ambiguity + fixture under-spec + machine-fragility) / meta-Critic (the missed-by-one-row CSP-1 trap + a non-existent kind literal in the Builder's OWN M1 fix — "a Critic's own fix is a fresh claim" applied to the Builder's delta) / code-Critic (runtime env-dependence m1 + non-vacuity re-confirmation by independent probe). Three personas, three non-overlapping defect classes. Do NOT collapse the stack.
