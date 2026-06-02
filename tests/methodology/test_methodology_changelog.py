@@ -5493,41 +5493,44 @@ def test_v_0_77_0_pcr_2b_shippability_consumer_propagation():
     )
 
 
-def test_version_files_synchronized_at_v_0_80_0():
-    """AC — 5-part PMI-1 atomic bump 0.79.0 → 0.80.0 (slice-094).
+def test_version_files_synchronized_at_v_0_81_0():
+    """AC — 5-part PMI-1 atomic bump 0.80.0 → 0.81.0 (slice-099).
 
     Verifies the 5 canonical version-bearing legs are synchronized at
-    `0.80.0` post-bump:
+    `0.81.0` post-bump:
       (1) `VERSION` file
       (2) `plugin.yaml` version field
       (3) `pyproject.toml [project].version` field (PVFS-1)
-      (4) `## v0.80.0` header in `methodology-changelog.md`
+      (4) `## v0.81.0` header in `methodology-changelog.md`
       (5) installed `~/.claude/ai-sdlc-VERSION` (AVFS-1; verified separately
           by the AVFS-1 audit; this test asserts legs 1-4 only — leg 5 is
           environment-dependent and may be absent on a fresh checkout,
           where AVFS-1 returns WARN per slice-030A meta-M3 parity)
 
-    Renamed from `_at_v_0_79_0` at slice-094 per the slice-067/072/073/078/080/081/083/088/095 etc.
+    Renamed from `_at_v_0_80_0` at slice-099 per the slice-067/072/073/078/080/081/083/088/095/099 etc.
     rename precedent (the version-files test follows live version; the
-    historical v0.79.0 entry persists in the methodology-changelog body).
+    historical v0.80.0 entry persists in the methodology-changelog body).
+    slice-099 (BRANCH-3) corrected its design's "4-part" wording to this
+    canonical 5-part shape — `pyproject.toml` leg 3 is load-bearing for the
+    TVFS-1 pip-wheel rebuild.
     """
     version = read_file("VERSION").strip()
-    assert version == "0.80.0", (
-        f"VERSION file must equal '0.80.0' post-bump; got {version!r}. "
+    assert version == "0.81.0", (
+        f"VERSION file must equal '0.81.0' post-bump; got {version!r}. "
         "5-part PMI-1 leg 1 broken — re-run the bump or fix VERSION manually."
     )
     plugin_yaml = read_file("plugin.yaml")
-    assert "version: 0.80.0" in plugin_yaml or 'version: "0.80.0"' in plugin_yaml, (
-        "plugin.yaml must contain 'version: 0.80.0' post-bump (5-part PMI-1 leg 2)"
+    assert "version: 0.81.0" in plugin_yaml or 'version: "0.81.0"' in plugin_yaml, (
+        "plugin.yaml must contain 'version: 0.81.0' post-bump (5-part PMI-1 leg 2)"
     )
     pyproject = read_file("pyproject.toml")
-    assert 'version = "0.80.0"' in pyproject, (
-        "pyproject.toml [project].version must equal '0.80.0' post-bump (PVFS-1; "
+    assert 'version = "0.81.0"' in pyproject, (
+        "pyproject.toml [project].version must equal '0.81.0' post-bump (PVFS-1; "
         "5-part PMI-1 leg 3)"
     )
     changelog = read_file("methodology-changelog.md")
-    assert "## v0.80.0" in changelog, (
-        "methodology-changelog.md must contain '## v0.80.0' header post-bump "
+    assert "## v0.81.0" in changelog, (
+        "methodology-changelog.md must contain '## v0.81.0' header post-bump "
         "(5-part PMI-1 leg 4)"
     )
 
@@ -5594,4 +5597,109 @@ def test_v_0_80_0_vws_1_shippability_consumer_propagation():
     )
     assert "vault_write_safety_audit" in row, (
         "shippability.md row #104 must reference 'vault_write_safety_audit' (the new tool)"
+    )
+
+
+def test_v_0_81_0_branch_3_entry_present_in_repo():
+    """methodology-changelog v0.81.0 / BRANCH-3 worktree-at-pick entry-pin
+    (content-bearing per slice-051/058/.../066/094 precedent; NOT a thin
+    presence check).
+
+    Asserts substring presences in the v0.81.0 entry body (per design.md /
+    [[ADR-090]] §Decision):
+      (a) `## v0.81.0` dated header
+      (b) `BRANCH-3` rule reference (the new RULE-ID this entry mints)
+      (c) `ADR-090` reference (the ADR minting BRANCH-3)
+      (d) `ADR-063` lineage (the BRANCH-2 build-time timing this partial-supersedes)
+      (e) `pick-time` canonical-concept anchor (worktree created at /slice pick-time)
+      (f) `5-part PMI-1 atomic bump` (VERSION + plugin.yaml + pyproject.toml +
+          ## v0.81.0 header + installed ai-sdlc-VERSION — slice-099 corrected the
+          design's 4-part undercount to match the canonical 5-part convention)
+      (g) `R-31` (root-cause risk) + `R-17` (pre-build residual) addressed
+      (h) `Rule reference` literal (META-1 mandatory enforcing-assertion)
+      (i) `mints a new rule` AND `partial-supersedes` (compound lineage clauses)
+
+    Rule reference: BRANCH-3 (slice-099; ADR-090; partial-supersedes ADR-063
+    build-time worktree timing; methodology v0.81.0).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.81.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.81.0 entry header — "
+        "slice-099 BRANCH-3 entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.81.0")
+    assert "BRANCH-3" in body, (
+        "v0.81.0 entry body missing the 'BRANCH-3' rule reference (this slice "
+        "MINTS BRANCH-3 as a new rule on the BRANCH-N axis)"
+    )
+    assert "ADR-090" in body, (
+        "v0.81.0 entry body must reference ADR-090 (the ADR minting BRANCH-3)"
+    )
+    assert "ADR-063" in body, (
+        "v0.81.0 entry body must reference ADR-063 (the BRANCH-2 build-time "
+        "worktree timing this partial-supersedes)"
+    )
+    assert "pick-time" in body, (
+        "v0.81.0 entry body missing the 'pick-time' canonical-concept anchor — "
+        "BRANCH-3 moves worktree creation to /slice pick-time"
+    )
+    assert "5-part PMI-1 atomic bump" in body, (
+        "v0.81.0 entry body missing the '5-part PMI-1 atomic bump' anchor "
+        "(VERSION + plugin.yaml + pyproject.toml + ## v0.81.0 header + installed "
+        "ai-sdlc-VERSION)"
+    )
+    assert "R-31" in body, (
+        "v0.81.0 entry body must reference R-31 (the root-cause risk BRANCH-3 "
+        "addresses — branchless in-flight slices)"
+    )
+    assert "R-17" in body, (
+        "v0.81.0 entry body must reference R-17 (the pre-build residual BRANCH-3 closes)"
+    )
+    assert "Rule reference" in body, (
+        "v0.81.0 entry missing the literal 'Rule reference' line — META-1 "
+        "entry-pin obligation unmet"
+    )
+    assert "mints a new rule" in body, (
+        "v0.81.0 entry must state 'mints a new rule' (BRANCH-3 is a NEW rule on "
+        "the BRANCH-N axis)"
+    )
+    assert "partial-supersedes" in body, (
+        "v0.81.0 entry must reference the partial-supersedes lineage — ADR-090 "
+        "partial-supersedes ADR-063's build-time worktree timing"
+    )
+
+
+def test_v_0_81_0_branch_3_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the BRANCH-3 consumer
+    reference MUST propagate into `architecture/shippability.md` (the slice-099
+    row) so the critical path can never silently regress (BC-PROJ-10 paired
+    entry-pin precedent; BRANCH-2 v0.68.0 row-#66 precedent — a branch_workflow_
+    audit-refining rule still gets a catalog row + propagation pin).
+
+    BCR-1 traceability axis: the slice-099 row MUST cite BOTH the new RULE-ID
+    (BRANCH-3) AND the new ADR (ADR-090) AND the addressed risk (R-31) — severing
+    any silently breaks catalog→changelog→ADR→risk-register traceability.
+
+    Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability axis.
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "slice-099-create-worktree-at-slice-pick" in catalog, (
+        "architecture/shippability.md must contain a slice-099 row (BC-PROJ-10 "
+        "paired-entry-pin discipline; an uncatalogued pin is invisible to the catalog runner)"
+    )
+    row_start = catalog.find("slice-099-create-worktree-at-slice-pick")
+    row_end = catalog.find("\n| ", row_start)
+    row = catalog[row_start:row_end] if row_end > 0 else catalog[row_start:row_start + 8000]
+    assert "BRANCH-3" in row, (
+        "shippability.md slice-099 row must cite BRANCH-3 (the new RULE-ID) per BCR-1 traceability"
+    )
+    assert "ADR-090" in row, (
+        "shippability.md slice-099 row must cite ADR-090 (the new ADR) per BCR-1 traceability"
+    )
+    assert "R-31" in row, (
+        "shippability.md slice-099 row must cite R-31 (the risk BRANCH-3 addresses) per BCR-1 traceability"
+    )
+    assert "pick" in row.lower(), (
+        "shippability.md slice-099 row must reference 'pick' (the worktree-at-pick "
+        "discipline this row pins) for catalog-runner discoverability"
     )

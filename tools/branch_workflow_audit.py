@@ -58,6 +58,11 @@ import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from tools import _stdout
+from tools._worktree_paths import (  # slice-099 / BRANCH-3: single source of truth (AC5)
+    _SLICE_FOLDER_RE,
+    canonical_worktree_path as _shared_canonical_worktree_path,
+    slice_branch_name as _shared_slice_branch_name,
+)
 
 
 # Canonical regex for the `BRANCH=skip` escape-hatch line in build-log.md Events.
@@ -80,8 +85,9 @@ _WORKTREE_SKIP_LINE_RE = re.compile(
 # Slice-branch pattern: `slice/NNN-<slice-name>` (zero-padded 3-digit number).
 _SLICE_BRANCH_RE = re.compile(r"^slice/(\d{3})-(.+)$")
 
-# Slice-folder pattern: `slice-NNN-<slice-name>`.
-_SLICE_FOLDER_RE = re.compile(r"^slice-(\d{3})-(.+)$")
+# Slice-folder pattern `_SLICE_FOLDER_RE` is now imported from tools._worktree_paths
+# (slice-099 / BRANCH-3 — moved verbatim; single source of truth, AC5). Re-exported
+# above for this module's internal use + any external importer (slice-099 m3).
 
 # Diagnostic-only split-slice folder shape (slice-043 / ADR-046 / R-6). NOT an
 # accept regex — `_SLICE_FOLDER_RE` above stays the sole strict accept gate
@@ -191,13 +197,14 @@ def _current_branch(repo_root: Path) -> str | None:
 
 
 def _slice_branch_name(slice_folder: Path) -> str:
-    """Compute expected `slice/NNN-<slice-name>` branch from slice-folder name."""
-    folder_name = slice_folder.name
-    match = _SLICE_FOLDER_RE.match(folder_name)
-    if not match:
-        return ""
-    number, name = match.group(1), match.group(2)
-    return f"slice/{number}-{name}"
+    """Compute expected `slice/NNN-<slice-name>` branch from slice-folder name.
+
+    Delegates to the shared single-source helper (slice-099 / BRANCH-3 /
+    `tools._worktree_paths.slice_branch_name`); kept as a Path-taking wrapper
+    for this module's internal call sites + any external importer. Behavior is
+    byte-identical to the pre-slice-099 inline implementation.
+    """
+    return _shared_slice_branch_name(slice_folder.name)
 
 
 def _check_escape_hatch(slice_folder: Path) -> tuple[bool, str | None, BranchViolation | None]:
@@ -319,11 +326,11 @@ def _is_repo_root_a_worktree(repo_root: Path) -> tuple[bool, Path | None]:
 def _resolve_expected_worktree_path(slice_folder: Path, main_repo_root: Path) -> Path:
     """Canonical sibling-dir convention: `<main-parent>/<main-name>-wt/<slice-folder-name>`.
 
-    Per BRANCH-2 (slice-066; ADR-063 §Decision worktree path convention).
-    For `C:\\Users\\sshub\\ai_sdlc` main repo, slice-066 worktree resolves to
-    `C:\\Users\\sshub\\ai_sdlc-wt\\slice-066-add-worktree-per-slice-discipline`.
+    Delegates to the shared single-source helper (slice-099 / BRANCH-3 /
+    `tools._worktree_paths.canonical_worktree_path`). Per BRANCH-2 (ADR-063
+    §Decision worktree path convention), unchanged by BRANCH-3.
     """
-    return main_repo_root.parent / f"{main_repo_root.name}-wt" / slice_folder.name
+    return _shared_canonical_worktree_path(slice_folder.name, main_repo_root)
 
 
 def _paths_equivalent(a: Path, b: Path) -> bool:

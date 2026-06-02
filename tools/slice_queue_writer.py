@@ -116,6 +116,16 @@ _WARN_NO_GRAPH_LINE = (
 )
 _NO_CANDIDATES_PLACEHOLDER = "_(no candidates)_"
 
+# slice-099 / BRANCH-3 / [[ADR-090]]: the append-only pick-provenance section.
+# Preserved verbatim across queue regeneration via read-tail/re-append (a
+# DISTINCT path from PSQ-2 claim-preservation). Line shape:
+#   - slice-NNN-<name> — picked <ISO-8601 UTC> by <git user.name> <user.email>
+_PICK_LOG_HEADING = "## Pick log"
+# Anchored at line-start, exactly two hashes (a candidate is rendered `### <name>`,
+# so even a candidate literally named "## Pick log" → `### ## Pick log` never
+# false-matches this — the third hash breaks the `^## ` anchor).
+_PICK_LOG_BLOCK_RE = re.compile(r"(?m)^## Pick log\b.*\Z", re.S)
+
 # The 5 canonical on-disk PSQ-1 field labels, in render order. This is the
 # SINGLE render source: `_format_entry` (below) emits these verbatim via zip
 # (slice-085 / ADR-077 / M3) so the constant IS the contract, not a parallel
@@ -597,6 +607,7 @@ def format_queue_md(
     *,
     warn_no_graph: bool = False,
     active_slice_num: int | None = None,
+    pick_log_block: str = "",
 ) -> str:
     """Render the queue markdown body. Pure function (no I/O).
 
@@ -605,6 +616,13 @@ def format_queue_md(
       where None means "unknown" e.g. graph missing), ``parallel_safety``
       (str — one of the 4 enum values), ``effort`` (str — SMALL/MEDIUM/
       LARGE), ``risk_retired`` (str — HIGH/MEDIUM/LOW/NONE).
+
+    ``pick_log_block`` (slice-099 / BRANCH-3): the literal ``## Pick log``
+    section (heading-through-EOF) carried forward verbatim from the existing
+    queue, re-appended AFTER ``## Candidates``. This is the DISTINCT
+    pick-log preservation path (NOT PSQ-2 claim-preservation, which keys on
+    ``### entry`` headers a top-level ``## Pick log`` section lacks). Empty
+    string → no pick-log section emitted (first-pick / pre-BRANCH-3 queue).
     """
     iso_ts = provenance_ts.strftime("%Y-%m-%dT%H:%M:%S")
     # Add UTC offset suffix if tzinfo present.
@@ -636,7 +654,11 @@ def format_queue_md(
     else:
         for item in items:
             lines.extend(_format_entry(item))
-    return "\n".join(lines).rstrip("\n") + "\n"
+    body = "\n".join(lines).rstrip("\n") + "\n"
+    # slice-099 / BRANCH-3: re-append the preserved `## Pick log` section verbatim.
+    if pick_log_block:
+        body = body.rstrip("\n") + "\n\n" + pick_log_block.rstrip("\n") + "\n"
+    return body
 
 
 def _format_entry(item: dict) -> list[str]:
@@ -688,6 +710,90 @@ def _format_entry(item: dict) -> list[str]:
 
 
 # ---------------------------------------------------------------------
+# Pick log (slice-099 / BRANCH-3 / ADR-090)
+# ---------------------------------------------------------------------
+
+
+def _iso8601_utc(dt: datetime) -> str:
+    """ISO-8601 UTC with `+00:00`-suffixed offset (matches PSQ-1/PSQ-2 format)."""
+    iso = dt.strftime("%Y-%m-%dT%H:%M:%S")
+    if dt.tzinfo is not None:
+        offset = dt.strftime("%z")
+        if offset:
+            iso += f"{offset[:3]}:{offset[3:]}"
+    return iso
+
+
+def _extract_pick_log_block(text: str) -> str:
+    """Return the literal ``## Pick log`` section (heading-through-EOF), or "".
+
+    The pick log is ALWAYS the final section of the queue (re-appended after
+    ``## Candidates``), so a single anchored match captures it verbatim. CRLF
+    is normalized to LF before matching. Returns "" when no pick-log section
+    exists (first pick / pre-BRANCH-3 queue) — the first-pick edge (M-add-3).
+    """
+    if not text:
+        return ""
+    norm = text.replace("\r\n", "\n")
+    m = _PICK_LOG_BLOCK_RE.search(norm)
+    return m.group(0).rstrip("\n") if m else ""
+
+
+def record_pick(
+    repo_root: Path,
+    slice_name: str,
+    picker_identity: str,
+    now: datetime | None = None,
+    *,
+    out_path: Path | None = None,
+) -> Path:
+    """Append a pick-provenance line to ``slice-queue.md``'s ``## Pick log``.
+
+    Line shape: ``- <slice_name> — picked <ISO-8601 UTC> by <picker_identity>``.
+
+    - **Idempotent** (slice-099): scans the existing pick-log block for a line
+      beginning ``- <slice_name> —`` (the trailing `` —`` is the name boundary,
+      so ``slice-009-foo`` never matches ``slice-099-foo``); an already-recorded
+      pick is a no-op.
+    - **First-pick edge** (M-add-3): when no ``## Pick log`` section exists yet,
+      it is created after the existing body; when present, the new line is
+      appended to it.
+
+    ``picker_identity`` is the caller-supplied ``"<git user.name> <user.email>"``
+    (the cooperative git-identity model, ADR-067); the caller (``/slice``) obtains
+    it via ``slice_queue_claim.read_git_config_user`` which is fail-visible on an
+    unset git identity. Written via the R-32-safe ``safe_write_text``.
+    """
+    now = now or datetime.now(tz=timezone.utc)
+    if out_path is None:
+        out_path = repo_root / VAULT_ROOT / _QUEUE_FILENAME  # VAULT_ROOT-routed
+    line = f"- {slice_name} — picked {_iso8601_utc(now)} by {picker_identity}"
+    prefix = f"- {slice_name} —"
+
+    text = out_path.read_text(encoding="utf-8") if out_path.exists() else ""
+    norm = text.replace("\r\n", "\n")
+    block = _extract_pick_log_block(norm)
+
+    if block:
+        # Idempotent: already recorded → no-op.
+        for ln in block.splitlines():
+            if ln.startswith(prefix):
+                return out_path
+        new_block = block.rstrip("\n") + "\n" + line
+        head = norm[: norm.rfind(block)].rstrip("\n")
+        new_text = head + "\n\n" + new_block + "\n"
+    else:
+        # First-pick edge: create the `## Pick log` section after the body.
+        base = norm.rstrip("\n")
+        new_text = f"{base}\n\n{_PICK_LOG_HEADING}\n\n{line}\n" if base else (
+            f"{_PICK_LOG_HEADING}\n\n{line}\n"
+        )
+
+    safe_write_text(out_path, new_text)
+    return out_path
+
+
+# ---------------------------------------------------------------------
 # Top-level entrypoint
 # ---------------------------------------------------------------------
 
@@ -727,10 +833,17 @@ def write_slice_queue(
     # PSQ-2 module is unavailable (bootstrap safety per slice-067
     # ImportError-guard precedent).
     existing_claims: dict[str, dict[str, object]] = {}
+    existing_pick_log = ""  # slice-099 / BRANCH-3: preserve `## Pick log` across regen
     if out_path.exists():
         try:
-            from tools.slice_queue_claim import parse_queue_text  # noqa: PLC0415
             existing_text = out_path.read_text(encoding="utf-8")
+        except OSError:
+            existing_text = ""
+        # Pick-log extraction is independent of (and robust to) claim parsing —
+        # a malformed `### Candidates` block must NOT drop the pick log.
+        existing_pick_log = _extract_pick_log_block(existing_text)
+        try:
+            from tools.slice_queue_claim import parse_queue_text  # noqa: PLC0415
             existing_claims = parse_queue_text(existing_text)
         except Exception:
             # PSQ-2 module missing OR malformed existing queue — non-fatal
@@ -804,6 +917,7 @@ def write_slice_queue(
         items, now,
         warn_no_graph=graph_missing,
         active_slice_num=active_slice_num,
+        pick_log_block=existing_pick_log,  # slice-099 / BRANCH-3: preserve pick log
     )
 
     # slice-094 (VWS-1): routed through _vault_write.safe_write_text — the

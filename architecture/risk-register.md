@@ -547,13 +547,15 @@ Consequently the installed venv package can be missing a canonical tool while bo
 
 **Likelihood**: medium
 **Impact**: low
-**Status**: mitigating
+**Status**: retired
 **Reversibility**: cheap
 **Discovered**: slice-090-fix-pcr-git-subprocess-cp1252-decode (2026-05-31) — at slice-090's `/slice` prereq the stranded-slice consult returned `status: clean` while an in-flight slice-089 (`make-commit-slice-stale-branch-check-parallel-slice-aware`, stage=design) sat uncommitted in the main working tree. The detector (slice-087 / ADR-079) classifies only unmerged `slice/*` BRANCHES; a slice that has been `/slice`+`/design`'d but not yet branched (the normal pre-`/build-slice` state, where scaffold artifacts live uncommitted in the main tree) is structurally invisible to it.
 
 **Impact in practice**: low — a new slice can be defined "on top of" an in-flight branchless slice without the consult flagging it. Caught here only because a fresh `git status` (per the verify-before-gating discipline) surfaced the slice-089 folder + uncommitted scaffold. No data loss; cooperative — an operator who runs `git status` / `/pulse` first sees it. But the consult's `clean` is a false-reassurance for the branchless case.
 
 **Mitigation**: addressed by **slice-092-fix-stranded-audit-branchless-blindspot** ([[decisions/ADR-084]], 2026-05-31). `classify_branches` gained a third enumeration pass + the 5th INFORMATIONAL `DivergenceClass.BRANCHLESS_IN_FLIGHT` class: a non-archive `architecture/slices/slice-NNN-<name>/` folder in the invoking tree with a non-terminal `milestone.md` and no matching `slice/NNN-*` ref is surfaced as one `halt=False` entry (`vault_state="folder:<stage>"`), deduped against the union of worktree'd + bare `slice/*` ref keys so a foldered+branched slice is reported once (not double). `compute_status` stays `clean` (parallel-safe; NOT a security boundary). The `/pulse` + `/slice` consult prose now enumerate the new informational klass so it renders. **Residuals** (per ADR-084 §Consequences, out of scope — accepted, cooperative-model scope): (a) a branchless folder living in a *different* worktree than the invoking one is not cross-scanned; (b) an archived-but-never-branched folder is surfaced by neither pass.
+
+**Retired**: slice-099-create-worktree-at-slice-pick (2026-06-02; [[decisions/ADR-090]] / BRANCH-3 / methodology v0.81.0). Closed on BOTH axes: (1) **detection** -- slice-092 BRANCHLESS_IN_FLIGHT informational class makes branchless in-flight slices visible to the consult; (2) **root-cause occurrence** -- BRANCH-3 moves worktree+branch creation to /slice pick-time, so a picked slice has a slice/NNN-* branch immediately and the branchless-in-flight state no longer occurs in the normal flow. Residual: the `WORKTREE`=skip escape-hatch + bootstrap slices can still produce a branchless folder, but that residual is exactly what slice-092 informational detection covers (halt=false, parallel-safe) -- gap closed, not merely reduced. Validated slice-099 (5/5 ACs; the slice is its own bootstrap demonstration of pick-time-worktree).
 
 ## R-33 — parallel-slice worktree branched off pre-sibling-merge master shows non-regression full-suite failures
 

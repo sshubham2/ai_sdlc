@@ -20,7 +20,10 @@ def test_branch_state_section_returns_section_body() -> None:
     text = skill_md.read_text(encoding="utf-8")
     body = _branch_state_section(text)
     assert body, "Fix E regression: _branch_state_section returned empty body"
-    assert "If on default branch" in body, (
+    # BRANCH-3 (slice-099) reordered ### Branch state: point 1 is now the
+    # detect-existing-worktree case (pick-time create per ADR-090), so the
+    # canonical point-1 marker moved from "If on default branch" to this.
+    assert "If the worktree already exists" in body, (
         "Fix E regression: returned body does not contain the canonical point-1 marker"
     )
 

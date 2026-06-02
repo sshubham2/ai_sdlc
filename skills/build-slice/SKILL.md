@@ -40,6 +40,8 @@ Runs after `/critique` blockers + majors are addressed. Output: working code + t
 
 Per **BRANCH-2** (`methodology-changelog.md` v0.68.0; [[ADR-063]]; partial-supersedes ADR-019 / BRANCH-1 sub-mode (a) build-time branch-create + extends sub-mode (c) audit-time refusal): worktree-per-slice + branch workflow runs at /build-slice as a structural prerequisite (NOT a new Step — slice-021 follows slice-017 TPHD-1 sub-mode (c) precedent of placing prerequisite-class disciplines under `## Prerequisite check` rather than creating a numbered Step 0). The slice's own commits live in a **filesystem-isolated worktree** at the canonical sibling-dir path `<main-parent>/<main-name>-wt/slice-NNN-<slice-name>` on a dedicated `slice/NNN-<slice-name>` branch; `/commit-slice --merge` integrates back + tears the worktree down at slice end (BRANCH-1's `git checkout -b` on the main tree is superseded — closes R-17 / uncommitted-slice-A-WIP-contaminates-slice-B class structurally).
 
+Per **BRANCH-3** ([[ADR-090]]; `methodology-changelog.md` v0.81.0; partial-supersedes ADR-063's *timing*, NOT its path convention): the worktree is now created at `/slice` **pick-time** (`skills/slice/SKILL.md` Step 5.5), not here — so by `/build-slice` it almost always **already exists** (its scaffold + design + critique were written into it on the default branch's behalf, leaving the default tree clean). The numbered points below are therefore reordered so **detect-an-existing-worktree (point 1) is the primary path**; `/build-slice` creates a worktree only when none exists (legacy pre-BRANCH-3 slice, or a pick-time `WORKTREE=skip`). The canonical path + branch are computed from the shared `tools/_worktree_paths.py` helper — the SAME source `/slice` Step 5.5 and `branch_workflow_audit.py` use (slice-099 AC5, single source of truth on the primary create path).
+
 Resolve the repo's default branch at runtime (unchanged from BRANCH-1 per /critique M1 ACCEPTED-PENDING — canonical N=3-surface pin inherited by BRANCH-2; replaces hard-coded `master`/`main` for cross-project portability):
 
 ```bash
@@ -50,48 +52,51 @@ default=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/r
 # STOP if neither resolves
 ```
 
-Then apply the worktree-create logic (BRANCH-2). First compute the shared paths **once**, in this pre-amble above the numbered list — the numbered points are mutually-exclusive branches and the dirty-tree branch (point 4) references `$repo_root` / `$wt_base` without ever executing point 1's body, so these assignments MUST live here, NOT inside any single numbered point's codefence (slice-074 M1 / P1.1):
+Then apply the worktree logic (BRANCH-2 timing superseded by BRANCH-3 — see the reordered points). First compute the shared paths **once**, in this pre-amble above the numbered list — `$wt_base` locates an existing worktree (point 1, primary) and anchors the legacy dirty-tree dance (point 4); both reference `$repo_root` / `$wt_base` without ever executing the create path's (point 2) body, so these assignments MUST live here, NOT inside any single numbered point's codefence (slice-074 M1 / P1.1):
 
 ```bash
 repo_root="$(git rev-parse --show-toplevel)"
 wt_base="$(dirname "$repo_root")/$(basename "$repo_root")-wt"
 ```
 
-1. **If on default branch** (HEAD == resolved default): create the worktree at the canonical sibling path + branch in one git command, then `cd` into it:
-   ```bash
-   git worktree add "$wt_base/slice-NNN-<slice-name>" -b slice/NNN-<slice-name> "$default"
-   cd "$wt_base/slice-NNN-<slice-name>"
-   # Seed gitignored derived dirs from main tree (R-20): /diagnose + graphify outputs
-   if [ -d "$repo_root/diagnose-out" ]; then cp -r "$repo_root/diagnose-out" ./; fi
-   if [ -d "$repo_root/graphify-out" ]; then cp -r "$repo_root/graphify-out" ./; fi
-   ```
-   (POSIX shell; on Windows invoke via Git for Windows' bundled MSYS bash — same dependency convention as commit-slice Step 5b/5d.)
-
-   Slice-071 M2 + m4 FIXes (per slice-066 code-Critic M2/m4): `wt_base` is derived from `git rev-parse --show-toplevel` (the canonical `.git`-ancestor walk) rather than `$(pwd)` (cwd-derived). Pre-fix, running `/build-slice` from a subdirectory (e.g., `cwd=architecture/slices/`) computed `wt_base=architecture/slices-wt/...` while the audit at `tools/branch_workflow_audit.py:_resolve_expected_worktree_path` derived the canonical path from `.git` ancestry, surfacing a `worktree-path-shape-violation`. The two surfaces now agree on the same canonical path via the same mechanism.
-
-   The worktree's filesystem is physically isolated from the main tree; uncommitted slice-A WIP on the main tree cannot contaminate slice-B's worktree.
-2. **If the worktree already exists** at `<wt_base>/slice-NNN-<slice-name>` (resume after session death): `cd` into it and verify the branch matches the slice:
+1. **If the worktree already exists** at `<wt_base>/slice-NNN-<slice-name>` — the **BRANCH-3 normal case** (created at `/slice` pick-time per [[ADR-090]]; also the resume-after-session-death path): `cd` into it and verify the branch matches the slice:
    ```bash
    cd "$wt_base/slice-NNN-<slice-name>"
    git branch --show-current   # must match slice/NNN-<slice-name>
    ```
+   Do **NOT** re-seed the R-20 derived dirs — a BRANCH-3 pick already seeded them at `/slice`; only the create path (point 2) seeds (`seed_derived_dirs` skips an existing dir, but build must not re-enter the seed at all on this path). The worktree's filesystem is physically isolated from the main tree; uncommitted slice-A WIP on the main tree cannot contaminate slice-B's worktree.
+2. **If no worktree exists** (legacy pre-BRANCH-3 slice, a pick-time `WORKTREE=skip`, or HEAD == resolved default with a clean tree): create it now — the BRANCH-2 create path, and the **only** path that seeds (a BRANCH-3 pick already seeded at `/slice`, so build must never re-seed/clobber). Compute the path + branch from the shared `_worktree_paths` helper — the SAME source `/slice` Step 5.5 + `branch_workflow_audit` use, so the three surfaces cannot drift (AC5, primary create path):
+   ```bash
+   # path + branch from the ONE shared source (no duplicated convention):
+   $PY -m tools._worktree_paths --slice-folder slice-NNN-<slice-name> --repo-root "$repo_root"
+   # → line 1 = <wt_path>;  line 2 = slice/NNN-<slice-name>
+   git worktree add <wt_path> -b slice/NNN-<slice-name> "$default"
+   cd <wt_path>
+   # Seed gitignored derived dirs from main tree (R-20) — via the SAME shared helper:
+   $PY -c "from tools._worktree_paths import seed_derived_dirs; import pathlib; seed_derived_dirs(pathlib.Path(r'$repo_root'), pathlib.Path('.'))"
+   ```
+   (POSIX shell; on Windows invoke via Git for Windows' bundled MSYS bash — same dependency convention as commit-slice Step 5b/5d.)
+
+   Slice-071 M2 + m4 FIXes (per slice-066 code-Critic M2/m4): the canonical path is derived from `git rev-parse --show-toplevel` (the `.git`-ancestor walk) rather than `$(pwd)` (cwd-derived) — `_worktree_paths.canonical_worktree_path` and the audit at `tools/branch_workflow_audit.py:_resolve_expected_worktree_path` agree on the same canonical path via the same mechanism, so running `/build-slice` from a subdirectory (e.g., `cwd=architecture/slices/`) no longer surfaces a `worktree-path-shape-violation`.
+
+   The worktree's filesystem is physically isolated from the main tree; uncommitted slice-A WIP on the main tree cannot contaminate slice-B's worktree.
 3. **If on any other branch** (including stale `slice/<other-number>-*` from prior conflict OR a worktree for a different slice): STOP, ask user to switch context or document `WORKTREE=skip` escape-hatch in `build-log.md` Events per Step 7c canonical shape.
-4. **If working tree is dirty** in the main tree (`git status --porcelain` non-empty before `worktree add`): apply the canonical switch-commit-switch-worktree sequence below; NO auto-stash (the codified sequence requires explicit `git add` + `git commit` of the scaffolding, never silent shelve via `git stash`). The dirty state is typically `/slice`+`/critique`+`/critique-review` scaffolding (mission-brief.md + design.md + critique.md + critique-review.md + milestone.md + regenerated slice-queue.md) written before `/build-slice` per the post-vault-in-git slice lifecycle:
+4. **If working tree is dirty** in the main tree (`git status --porcelain` non-empty before `worktree add`) — **legacy-only**: under BRANCH-3 this never fires for a picked slice (whose default tree is clean — `/slice` wrote the scaffold into the worktree and committed only `slice-queue.md`). It remains for legacy pre-BRANCH-3 dirty-default scaffolding (mission-brief.md + design.md + critique.md + critique-review.md + milestone.md + regenerated slice-queue.md written on the default branch). Apply the canonical switch-commit-switch-worktree sequence below; NO auto-stash (the codified sequence requires explicit `git add` + `git commit` of the scaffolding, never silent shelve via `git stash`):
    ```bash
    # Canonical switch-commit-switch-worktree sequence for dirty pre-build state on default
    # (N=5 cumulative slice-070/071/072/073/074; canonical origin: slice-070 reflection L127;
-   # post-vault-in-git scaffolding-by-design class)
+   # legacy post-vault-in-git scaffolding-by-design class — superseded by BRANCH-3 pick-time create)
    git switch -c slice/NNN-<slice-name>          # carry dirty state to slice branch
    git add architecture/slices/slice-NNN-<slice-name>/ architecture/slice-queue.md   # explicit staging — no auto-stash (concrete scaffolding pathspec, slice-074 m1)
    git commit -m "scaffold(slice-NNN): mission-brief + design + critique + ..."  # scaffolding commit on slice branch
    git switch "$default"                           # back to clean default
    git worktree add "$wt_base/slice-NNN-<slice-name>" slice/NNN-<slice-name>   # no -b; branch exists
    cd "$wt_base/slice-NNN-<slice-name>"
-   # Then seed gitignored derived dirs per point 1's R-20 step
+   # Then seed gitignored derived dirs (legacy inline form retained for self-containment per slice-099 m2):
    if [ -d "$repo_root/diagnose-out" ]; then cp -r "$repo_root/diagnose-out" ./; fi
    if [ -d "$repo_root/graphify-out" ]; then cp -r "$repo_root/graphify-out" ./; fi
    ```
-   This sequence is **NOT idempotent by design** — re-running after a session death mid-scaffolding-commit fails LOUDLY at `git switch -c slice/NNN-<slice-name>` (`fatal: A branch named 'slice/NNN-<slice-name>' already exists`); recovery is via point 2 ("If the worktree already exists"), NOT silent state re-creation. **`-b` is OMITTED at `git worktree add`** because the branch was created at step 1 of this sequence; including `-b` would cause `fatal: A branch named '...' already exists`. Contrast with point 1's new-branch-at-worktree-create form `git worktree add ... -b slice/NNN-<slice-name> "$default"`. If you cannot or do not wish to apply this sequence (e.g., the dirty state is unrelated to slice scaffolding and you want to STOP for manual resolution), document `WORKTREE=skip` escape-hatch in `build-log.md` Events per Step 7c canonical shape.
+   This sequence is **NOT idempotent by design** — re-running after a session death mid-scaffolding-commit fails LOUDLY at `git switch -c slice/NNN-<slice-name>` (`fatal: A branch named 'slice/NNN-<slice-name>' already exists`); recovery is via point 1 ("If the worktree already exists"), NOT silent state re-creation. **`-b` is OMITTED at `git worktree add`** because the branch was created at step 1 of this sequence; including `-b` would cause `fatal: A branch named '...' already exists`. Contrast with point 2's new-branch-at-worktree-create form `git worktree add <wt_path> -b slice/NNN-<slice-name> "$default"`. If you cannot or do not wish to apply this sequence (e.g., the dirty state is unrelated to slice scaffolding and you want to STOP for manual resolution), document `WORKTREE=skip` escape-hatch in `build-log.md` Events per Step 7c canonical shape.
 
 The canonical `WORKTREE=skip` escape-hatch line shape (Step 7c-pinned per BRANCH-2; mirrors `BRANCH=skip`'s shape from BRANCH-1): `<YYYY-MM-DD HH:MM> DEVIATION: WORKTREE=skip — rationale: <text>`. The `tools/branch_workflow_audit.py` (BRANCH-2 audit) at Step 6 pre-finish refuses anything else. **`BRANCH=skip` is preserved as a parallel legacy escape-hatch** (per ADR-063 §Scope of supersession "Carried forward unchanged" 4th-surface inheritance) — both grammars coexist; `BRANCH=skip` for legacy single-tree-only escapes, `WORKTREE=skip` for the worktree-discipline-skip case + slice-066 bootstrap.
 
