@@ -667,3 +667,18 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - No drift — vault and code aligned for the slice-100 surface. The `plugin.yaml` `rule: ADR-091` label is an ADR pointer (not a new RULE-ID) — consistent with the `pulse_worktree_resolver`/`stranded_slice_audit`/`stale_branch_classifier` `rule: ADR-NNN` convention.
+
+## Audit 2026-06-02 (slice-101)
+
+**Trigger**: slice-101 pre-finish gate
+**Scope**: full (thin vault — ADRs + risk-register + active slices' design/mission-brief)
+**Findings**: 0 blockers, 0 majors
+
+### Notes
+- Test-only slice: one new module `tests/methodology/test_gate_audit_cli_exit_codes.py`; zero production code change (`git diff` against `tools/` / `skills/` / `plugin.yaml` / `INSTALL.md` / `shippability.md` / `VERSION` all empty).
+- All slice-101 `design.md` code references resolve to real files: the new test module + the 8 audit `main()` entrypoints (`plugin_manifest_audit`, `triage_audit`, `mock_budget_lint`, `critique_review_audit`, `wiring_matrix_audit`, `cross_spec_parity_audit`, `shippability_path_audit`, `branch_workflow_audit`) + reused fixtures (`mock_budget_too_many.py`, `broken_impl_threat.md`, etc.) — all verified present.
+- No ADR changed, no risk claimed retired, no code behavior changed → no vault-vs-code drift surface.
+- Parallel slice-100 (vault-flip-readiness-audit) untouched — disjoint file set.
+
+### Resolutions
+- No drift. Clean.
