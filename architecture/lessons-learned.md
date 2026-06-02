@@ -2083,3 +2083,20 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 ### Pattern
 - **Audit substring-collision false-positive class** (hit N=4 within this one slice, across branch_workflow_audit + SVW-1): an audit that bare-substring-scans a WHOLE prose artifact for a literal control token false-positives on any descriptive mention of that token. The durable fix is in the audit -- anchor the scan to its declared region (the m2 follow-up `anchor-worktree-skip-scan-to-events-section`) -- not eternal prose-discipline. Generalizable: a control-token detector must be anchored to its declared region, never a whole-file `token in content`.
+
+## Slice 100 (add-vault-flip-readiness-audit) — 2026-06-02
+
+### Worked
+- Capability-without-flip (slice-093 pattern) for the flip's reversible first cut — ship the readiness audit + `--strict` guard while the default stays `architecture/`; the irreversible flip (move/untrack/prose-rewrite) sits behind the seam for the next slice. The flip-execute slice now has a precise must-rewrite checklist (the 4 `project_frame_synth.py` sites) + a pre-flight gate.
+- The 3-Critic stack held with ZERO false-alarms across all three layers: design-Critic (contract — node-type-vs-context), meta-Critic (execution — the bare-segment false-negative the first Critic missed, B-add-1), code-Critic (execution — 3 silent-breakage false-negatives incl. a slice-099 recurrence). Each layer reached what the prior structurally couldn't.
+- The AC3 baseline pin, proven non-vacuous by mutation, caught the BUILDER's OWN fix-regression (the M2 reorder mis-classing `_vault_paths.py:53 _DEFAULT`) — a deterministic guard backstopping what adversarial review misses.
+
+### Didn't work
+- Reproduced the slice-099 whole-line-substring marker-scan anti-pattern (`marker in line_txt`) in a brand-new tool, despite it being aggregated-lesson #1. Prose-discipline isn't propagating the lesson; only the code-Critic caught it (M2).
+- The first INSTALL.md count bump (39→40) missed the 2 per-tool inventory-pin tests (`test_pulse_worktree_resolver_tool_inventory` / `test_stranded_slice_audit_tool_inventory`) that ALSO hardcode the L22/L166 count — the m2 fan-out is wider than the BC-PROJ-9 checklist; the full suite caught the residual.
+- My own M2 fix introduced a seam-internal-ordering regression (path-construction-before-seam-internal mis-classed the seam's own `_DEFAULT` as must-rewrite) — "a Critic's own fix is a fresh claim" recursing into the builder's fix.
+
+### Pattern
+- For any NEW AST/parser/classifier tool the code-Critic (execution-level adversarial pass) is mandatory — it reaches silent-breakage false-negatives the design+meta stack structurally cannot. APED-1-by-execution, N+1.
+- The new-public-tool count fan-out includes `tests/**/test_*_tool_inventory.py` count literals, not just `plugin.yaml`/`install_audit`/INSTALL.md prose. Grep EVERY count literal across `tests/` on a tool addition.
+- A marker/token detector must be node/region-anchored, never `marker in whole_line_text` (slice-099 + slice-100, N=2) — strong build-check candidate.
