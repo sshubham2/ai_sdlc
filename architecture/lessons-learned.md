@@ -2128,3 +2128,14 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 ### Pattern
 - **When a fix makes a fail-closed bucket go empty, ask: was the ambiguity RESOLVED or merely RE-ROUTED off the gate?** A reclassification that moves an exit-2 sub-population into a non-gating class is a waiver, not a win — sound only if the downstream consumer is contractually required to process the new bucket (here flip-execute consumes BOTH the checklist AND the review list; pinned + documented because the LOUD-breakage tests surface makes a missed item fail loudly, not silently). Strong `/critic-calibrate` probe; "a Critic's own fix is a fresh claim" now recurs on the classification-boundary axis (N: 089/097 → 102).
 - **Execute a freshly-EXTENDED classifier (not only a freshly-minted one) against the real corpus at design-probe time** — the extension axis of APED-1/BC-PROJ-13; it surfaced the latent `write_text`-arg false-positive that unit fixtures + the design+meta stack would have missed.
+
+## Slice 104 (fix-record-pick-identity-format) — 2026-06-02
+
+### Worked
+- Hardening the CONSUMER (`record_pick` normalizes the `(name, email)` tuple its real caller supplies) made the malformed pick-log line structurally impossible AND testable — a guarantee a prose-snippet fix alone cannot carry. A pre-pinned failing repro test + the full-suite regression (1398 PASS) substituted for adversarial review on a fix this mechanical (owner-waived Critic, streamlined ceremony).
+
+### Didn't work
+- The minimal fix candidate (fix only the `/slice` Step 6.5 snippet to `' '.join(...)`) would have left the next caller exposed and left no testable guarantee — a recurring prose bug needs a code-level guard, not more prose discipline.
+
+### Pattern
+- **When a documented code snippet glues two functions with mismatched types, pin the guarantee in the CONSUMER, not the prose.** `read_git_config_user()->tuple[str,str]` passed into `record_pick(picker_identity: str)` f-string-rendered a Python tuple repr into `## Pick log` and recurred every pick (prose carries no test; the well-formed historical lines were hand-corrected, masking it). Build-check / `/critic-calibrate` probe: "does any documented skill snippet pass a value whose type the called function's signature doesn't accept?" (R-34, retired.)

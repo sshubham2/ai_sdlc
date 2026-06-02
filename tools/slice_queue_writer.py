@@ -742,7 +742,7 @@ def _extract_pick_log_block(text: str) -> str:
 def record_pick(
     repo_root: Path,
     slice_name: str,
-    picker_identity: str,
+    picker_identity: str | tuple[str, str],
     now: datetime | None = None,
     *,
     out_path: Path | None = None,
@@ -763,10 +763,19 @@ def record_pick(
     (the cooperative git-identity model, ADR-067); the caller (``/slice``) obtains
     it via ``slice_queue_claim.read_git_config_user`` which is fail-visible on an
     unset git identity. Written via the R-32-safe ``safe_write_text``.
+
+    A ``(name, email)`` 2-tuple — the exact shape ``read_git_config_user``
+    returns — is accepted and space-joined to ``"name email"`` (slice-104), so the
+    documented ``/slice`` Step 6.5 invocation cannot serialise a Python tuple repr
+    (``by ('Name', 'email')``) into the pick-log line. A plain ``str`` is unchanged.
     """
     now = now or datetime.now(tz=timezone.utc)
     if out_path is None:
         out_path = repo_root / VAULT_ROOT / _QUEUE_FILENAME  # VAULT_ROOT-routed
+    # slice-104: normalize the (name, email) 2-sequence read_git_config_user
+    # returns so the line never serialises a tuple repr; str passes through.
+    if isinstance(picker_identity, (tuple, list)):
+        picker_identity = " ".join(str(part) for part in picker_identity)
     line = f"- {slice_name} — picked {_iso8601_utc(now)} by {picker_identity}"
     prefix = f"- {slice_name} —"
 
