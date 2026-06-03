@@ -2,7 +2,7 @@
 slice: slice-105-decouple-slice-loop-from-diagnose-out
 stage: build
 updated: 2026-06-03
-next-action: build Batch D — vault/config (shippability + changelog + R-20 + CLAUDE.md + v0.82.0 tests)
+next-action: build Batch E — version bump 0.81.0→0.82.0 (5 surfaces) + pip upgrade + OSDG-1 mirror (slice/build-slice/reflect SKILL.md)
 risk-tier: high
 critic-required: true
 ---
@@ -19,7 +19,7 @@ critic-required: true
 - [x] /slice — 2026-06-03
 - [x] /design-slice — 2026-06-03
 - [x] /critique — 2026-06-03 — CLEAN (first Critic BLOCKED → dual-review EXTEND → 13 findings ACCEPTED-FIXED, user-ratified)
-- [ ] /build-slice — in progress: Batches A/B/C done (3/6); D/E/F remain
+- [ ] /build-slice — in progress: Batches A/B/C/D done (4/6); E/F remain
 - [ ] /validate-slice
 - [ ] /reflect
 
@@ -29,9 +29,9 @@ critic-required: true
 
 ## On resume
 
-- **Last completed action**: /build-slice Batches A+B+C (seed removal + 3 SKILL.md surgical edits + test cleanups), all verified green except the expected unmirrored-drift fails.
-- **Current work**: none — paused at the Batch C→D boundary.
-- **Next immediate step — Batch D** (vault/config, in the worktree):
+- **Last completed action**: /build-slice Batch D (R-20 closure + shippability rows #54/#56/#79/#107/#53 + NEW row #112 + methodology-changelog v0.82.0 + CLAUDE.md consume-only + 2 v0.82.0 tests) — committed; 144 pass / 1 expected-red (VERSION<changelog, fixed by Batch E).
+- **Current work**: none — paused at the Batch D→E boundary.
+- **Next immediate step — Batch E** (version + mirror), then Batch F (gates + validate). See the "Then Batch E" / "Then Batch F" detail below; the Batch D recipe that follows is DONE (kept for provenance):
   1. `architecture/risk-register.md` R-20 → closure note via `vault_edit rewrite` CAS (capture base with `--out-file`, edit copy, rewrite; status stays `retired`, broaden to "fully closed — seed mechanism removed").
   2. `architecture/shippability.md` (giant file — edit by token, NEVER delete rows): row #54 (L64) + #56 (L66) drop `test_bcr_1_round_trip_end_to_end.py::...` token from BOTH command-cell copies + reword round-trip narrative past-tense (keep PVFS-1/SC-001 on #54, R-15 on #56); row #79 (L87) drop `test_build_slice_skill_cp_r_step.py` token (keep 4 survivors); row #107 (L116) rewrite narrative (drop "seeds via seed_derived_dirs"/"cp -r count is 2" + their regression clauses; keep BRANCH-3/ADR-090/R-31/pick); catalog row #53 (L63) narrow to consume-side; ADD new Row #105 (cite ADR-094/ADR-095/R-20/consume-only + runnable command).
   3. `methodology-changelog.md` (repo root): add `## v0.82.0 — 2026-06-03` entry citing ADR-094/ADR-095/BCR-1/R-20/consume-only + a `Rule reference` line (META-1).
