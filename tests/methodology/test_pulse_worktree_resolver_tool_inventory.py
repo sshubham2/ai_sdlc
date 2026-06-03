@@ -64,12 +64,12 @@ def test_pulse_worktree_resolver_in_canonical_tools_plugin_manifest_install_md_a
     )
     l22 = install_md_lines[21]  # 1-indexed line 22 → 0-indexed [21]
     l166 = install_md_lines[165]  # 1-indexed line 166 → 0-indexed [165]
-    assert "41" in l22, (
-        f"INSTALL.md L22 missing post-bump tool-count `41` (…→39→40→41, two-site; slice-103 +1 index_router_thinness_audit); "
+    assert "42" in l22, (
+        f"INSTALL.md L22 missing post-bump tool-count `42` (…→40→41→42, two-site; slice-107 +1 vault_flip_prose_inventory); "
         f"actual line content: {l22!r}"
     )
-    assert "41" in l166, (
-        f"INSTALL.md L166 missing post-bump tool-count `41`; actual line content: {l166!r}"
+    assert "42" in l166, (
+        f"INSTALL.md L166 missing post-bump tool-count `42`; actual line content: {l166!r}"
     )
 
     # 4. shippability.md row #77

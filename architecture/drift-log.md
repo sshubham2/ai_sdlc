@@ -737,3 +737,18 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-105 surface.
+
+## Audit (slice-107-inventory-vault-flip-prose-surface) — 2026-06-03
+
+**Trigger**: slice-107 pre-finish gate (/drift-check full mode)
+
+### Drift findings
+- Two build-time deviations from design.md/mission-brief were reconciled IN the artifacts (vault now reflects as-built code — "code is truth"):
+  (1) **ruleset recalibration** (user-ratified, build-log 11:16): in-code/operational vault path → `rewrite-at-flip` default (was: `needs-human`); final distribution 316/0/2/0. design.md §ruleset + mission-brief AC2 carry the ⚠ AS-BUILT callout; B2's goal (operational paths ON checklist, never off-checklist doc-example) preserved.
+  (2) **baseline storage** (forced by AC5/M1, build-log 11:40): in-module SHA-256 (`_BASELINE_SHA256`) instead of inlined 316 slashed-path tuples (which `readiness_audit` would classify needs-human, tripping slice-106). design.md §Baseline + §Data-model + mission-brief AC3 carry the ⚠ AS-BUILT callout; gate behavior identical; ADR-097 5-tuple disposition key unchanged.
+- No residual code↔vault divergence: `tools/vault_flip_prose_inventory.py` ↔ design.md ↔ mission-brief all describe the boundary-free `re.finditer` matcher (318, all-matches-per-line), the recalibrated ruleset, the SHA-256 baseline + per-class count floor, the 5-entry `_RESIDUAL`, and the 5-tuple disposition key.
+- Version cascade: **NONE** — slice-107 does not bump VERSION (MEPD-1-style: adds a tool to the open-ended `tools/` set + slice-local ADR-096/097; no RULE-ID / methodology-changelog mint). PMI-1 / AVFS-1 / MCFS-1 / TVFS-1 verified clean WITHOUT a bump (in-repo == installed, unchanged).
+- BC-PROJ-3 / BC-GLOBAL-2: this slice performed NO destructive git checkout/restore/stash revert of uncommitted work.
+
+### Resolutions
+- None required beyond the in-round artifact harmonization above — vault and code aligned for the slice-107 surface.

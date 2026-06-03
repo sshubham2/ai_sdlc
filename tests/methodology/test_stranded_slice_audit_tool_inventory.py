@@ -45,11 +45,11 @@ def test_stranded_slice_audit_in_canonical_inventory():
     assert len(install_md_lines) >= 166, (
         f"INSTALL.md has only {len(install_md_lines)} lines; expected >=166 for the L166 pin"
     )
-    assert "41" in install_md_lines[21], (
-        f"INSTALL.md L22 missing post-bump tool-count `41` (…→39→40→41; slice-103 +1 index_router_thinness_audit); actual: {install_md_lines[21]!r}"
+    assert "42" in install_md_lines[21], (
+        f"INSTALL.md L22 missing post-bump tool-count `42` (…→40→41→42; slice-107 +1 vault_flip_prose_inventory); actual: {install_md_lines[21]!r}"
     )
-    assert "41" in install_md_lines[165], (
-        f"INSTALL.md L166 missing post-bump tool-count `41`; actual: {install_md_lines[165]!r}"
+    assert "42" in install_md_lines[165], (
+        f"INSTALL.md L166 missing post-bump tool-count `42`; actual: {install_md_lines[165]!r}"
     )
 
     # 4. shippability.md row referencing slice-087 (row number != slice number here)

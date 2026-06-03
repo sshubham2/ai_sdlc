@@ -2193,3 +2193,17 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 ### Pattern
 - **Version-bumping methodology slices carry a deterministic, recurring obligation set** — 5 version surfaces + `pip install --upgrade .` + rolling version-sync-test rename (+4 legs +docstring) + its shippability row #75 citation bump + new-catalog-index = `max(existing)+1`. It recurs every version bump (N≥11 on the test rename alone, per that test's own docstring) yet lives only in tribal knowledge / a test docstring. Strong build-check candidate. The design-Critic's structural acuity is high (13/13 VALIDATED); its blind spot is mechanical version-bump bookkeeping.
+
+## Slice 107 (inventory-vault-flip-prose-surface) — 2026-06-03
+
+### Worked
+- Test-first flip (dual-review M-add-2): writing the 16 tests FIRST made the build-time recalibration + the two code-review fixes (M1 verb-gap, M2 disposition coverage) safe to apply — the harness caught regressions immediately.
+- The 3-Critic stack caught non-overlapping defects: design-Critic (regex/ruleset structure), meta-Critic (the first Critic's own 7× gap-arithmetic error + 2 missed Majors), code-Critic (the runtime verb-gap that re-opened B2). Complementarity confirmed again (AP-19).
+- An in-module SHA-256 baseline (not inlined literals) cleanly resolved the AC5 self-pollution that an enumerated slashed-path baseline caused — reusable for any audit that pins vault-path data on a `tools/*.py` surface a sibling lexical audit also scans.
+
+### Didn't work
+- The B2-ratified ruleset (inline-code→needs-human) was corpus-mis-calibrated (124 needs-human, overwhelmingly LIVE operational refs) — design-time dual-Critic review could not catch it; only build-execution did (AP-3). A ruleset slice should EXPECT a build recalibration.
+- The first design.md choice (in-module enumerated baseline) was incompatible with AC5 (self-pollution) — discovered only when `test_disjoint` failed at build. The disjointness constraint should have been executed against the PROPOSED baseline shape at design time, not just reasoned about.
+
+### Pattern
+- For any no-AST/lexical classifier slice: design review validates STRUCTURE, never CALIBRATION. Budget a build-time recalibration pass against the REAL corpus, gated by a Test-first harness written FIRST. Two of this slice's three most consequential findings were execution-only (recalibration + verb-gap). (AP-3 / APED-1, Nth confirmation — and a candidate to fold into AP-3's evidence.)
