@@ -43,10 +43,15 @@ def test_no_new_tool_migration_and_classification_map_documented() -> None:
     documents the original FS-path / git-or-worktree-coupled / never-migrate map
     (immutable history); slice-098 is the slice that acted on the deferral."""
     importers = _vault_root_importers()
-    assert len(importers) == 14, (
+    assert len(importers) == 15, (
         f"expected the 10 slice-068/072/081 consumers + slice-095's "
-        f"tools/vault_edit.py + slice-098's 3 git-coupled tools = 14 VAULT_ROOT "
+        f"tools/vault_edit.py + slice-098's 3 git-coupled tools + slice-103's "
+        f"tools/index_router_thinness_audit.py = 15 VAULT_ROOT "
         f"importer(s); found {len(importers)}: {sorted(importers)}"
+    )
+    assert "tools/index_router_thinness_audit.py" in importers, (
+        "slice-103's index_router_thinness_audit.py must consume VAULT_ROOT "
+        "(resolves slices/_index.md + archive/_index.md + action-points.md under it; ADR-093 / M5)"
     )
     assert "tools/vault_edit.py" in importers, (
         "slice-095's vault_edit.py must consume VAULT_ROOT (resolves --file under it)"

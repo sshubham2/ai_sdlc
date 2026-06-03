@@ -40,7 +40,7 @@ Read these files (non-recursive, small total):
 - `architecture/triage.md` → mode, classification, pipeline path, deferred steps
 - `architecture/concept.md` (if exists) → 1-line "what it does"
 - `architecture/risk-register.md` → risks with status (open / mitigating / retired / accepted) — use the **RR-1** audit (`$PY -m tools.risk_register_audit architecture/risk-register.md --json --filter-status open --sort score`) for scored, sorted output. Surface top-3 open by score in the "Risk exposure" section; older legacy table-format files emit zero risks and fall back to a grep-based summary with a one-line "register not migrated to RR-1 format" hint.
-- `architecture/slices/_index.md` → active slice list, recent-10, aggregated lessons
+- `architecture/slices/_index.md` → active slice list, recent-10; `architecture/slices/action-points.md` → the curated cross-slice action-points register (relocated out of `_index.md` at slice-103 / ADR-093)
 - Active slice folder (if any): `milestone.md` FIRST (primary source — explicit stage, next-action, progress, on-resume data in one file). Only read `mission-brief.md` for extra detail on intent or ACs if the milestone summary isn't enough. **Worktree precedence**: when a BRANCH-2 worktree on a `slice/NNN-<name>` branch exists (per the pre-read step above), the WORKTREE's milestone.md is authoritative for slice-NNN's state; consult both but prefer the worktree's when they diverge during a `BUILT_BUT_NOT_MERGED` window.
 - If `milestone.md` shows stage `build` (or later but `build-log.md` exists): also read the **tail (~last 15 lines) of `build-log.md`'s `## Events` section**. This is the append-only flight recorder written by `/build-slice` Step 7c. Tool failures and session deaths can leave `milestone.md` stale; the events trace is the durable record. Compare the latest event timestamp to milestone.md's last update — if events are newer, milestone.md is behind and the events tell the real story.
 - `architecture/shippability.md` (if exists) → count of critical paths
@@ -233,7 +233,7 @@ Recent lessons: image EXIF, multi-device validation, auth fix-slices
 Balanced view, plus:
 - All active HIGH risks detailed
 - All deferred items from last 5 reflections (candidates for next /slice)
-- All aggregated lessons (not just top 5)
+- All cross-slice action points from `slices/action-points.md` (not just top 5)
 - Shippability catalog full listing
 - Critic calibration history (all past runs)
 - Changelog bypass events in detail
