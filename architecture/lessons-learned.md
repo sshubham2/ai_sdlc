@@ -2221,3 +2221,17 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 ### Pattern
 - **Count-literal fan-out is wider than the obvious membership pin, even under a 3-Critic stack.** When a slice changes a counted set's cardinality (here VAULT_ROOT importers 15→16), multiple independent `== N` / "N-element" pins can live across different test files. The Critics enumerate the set-equality pin (the allowlist) and miss sibling hard-count pins elsewhere. `/critic-calibrate` heuristic to encode: *when a slice adds/removes the Nth member of a counted set, grep the WHOLE repo for every `== N` / "N-element" / "set to N" literal on that set — not just the membership pin.* The full suite (BC-PROJ-4) remains the irreplaceable backstop. (AP-10 N-higher; AP-21 — `/critic-calibrate` overdue, now with a sharp reproducible miss.)
+
+## Slice 108 (add-fbcd-1-cardinality-fanout-sub-mode) — 2026-06-03
+
+### Worked
+- The 3-Critic stack on a versioned methodology refinement: design-Critic caught the content-pin (M1) + literal-undercount (M2); the meta-Critic caught the count-fan-out miss in the slice's OWN diff (m-add-1 — the exact class the slice ships); the code-Critic executed the version-cascade grep + mutation-confirmed test non-vacuity. Zero false-alarm across all three.
+- The dogfood validated itself: a slice authoring the count-fan-out rule (FBCD-1 sub-mode c) survived that very rule — its un-swept sibling count-claim (L902 docstring) was caught by the review stack it strengthens.
+
+### Didn't work
+- The Builder's first RSAD-1 sweep enumerated only the L840 comment, missing the structurally-identical `_names_both_sub_modes` docstring "not three" at L902 — exactly the under-enumeration sub-mode (c) targets. Caught by the meta-Critic (m-add-1), not the first Critic or the Builder.
+- A combined `| 1, 4 |` TF-1 AC cell (not parsed as covering both ACs) + a `| — |` WIRE-1 placeholder row (read as an empty-cell row) both tripped the pre-finish audits — mechanical authoring conventions, fixed by row-split + placeholder-removal.
+
+### Pattern
+- A **versioned Critic-prompt refinement** (vN.N, no new `-D` rule-ID — FBCD-1 v1.1 / CCC-1 v1.1) is a FULL version-bumping slice carrying the entire BC-PROJ-16 cascade (rolling-test rename + 12-literal sweep + predecessor docstring line + precedent-chain append + shippability #75 repoint + #114=max+1), NOT a light 1-paragraph prose edit. Budget accordingly.
+- On a **counted-set-cardinality-changing slice, run the design's own count-pin grep recipe EXHAUSTIVELY and act on EVERY hit** — the slice's own rule (sub-mode c: "don't enumerate only the obvious site") applies first to its own diff. The meta-Critic remains the backstop for the one site the first sweep misses.

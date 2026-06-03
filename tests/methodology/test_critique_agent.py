@@ -837,8 +837,9 @@ def test_critique_dim_9_runtime_prerequisite_completeness_cites_substantive_disc
 # Per FBCD-1 codification (methodology-changelog.md v0.38.0 / ADR-022). The
 # `_sub_clause_present` + `_location_pinned` duality ratchets N=4 → N=5 stable
 # post-slice-024 (slice-011 RSAD-1 + slice-013 EPGD-1 + slice-015 SCPD-1 +
-# slice-016 RPCD-1 + slice-024 FBCD-1). Two sub-modes (not three like RPCD-1)
-# given FBCD-1's N=10-cumulative-cross-instance / N=4-distinct-slice base.
+# slice-016 RPCD-1 + slice-024 FBCD-1). FBCD-1 v1.1 (slice-108) added sub-mode
+# (c) — FBCD-1 now has three sub-modes (two temporal (a)/(b) + one scope (c))
+# over its N=10-cumulative-cross-instance / N=4-distinct-slice base.
 
 
 def test_critique_dim_9_fix_block_completeness_sub_clause_present():
@@ -898,8 +899,9 @@ def test_critique_dim_9_fix_block_completeness_names_both_sub_modes():
     first-Critic time + sub-mode (b) post-ACCEPTED-FIXED sibling-sweep at
     meta-Critic time). Symmetric pin for the new 10th sub-clause body (mirrors
     slice-011 RSAD-1 + slice-013 EPGD-1 + slice-015 SCPD-1 `_names_both_sub_modes`
-    body shapes — two sub-modes given FBCD-1's N=10-cumulative-cross-instance
-    evidence base, not three like RPCD-1).
+    body shapes. This test pins the temporal pair (a)/(b) only; FBCD-1 v1.1
+    (slice-108) added sub-mode (c) on the scope axis, pinned by the sibling
+    `_names_cardinality_fanout_sub_mode` test — FBCD-1 now has three sub-modes).
 
     Canonical sub-mode anchors are case-sensitive substrings derived from the
     canonical body literal-substring set.
@@ -920,6 +922,41 @@ def test_critique_dim_9_fix_block_completeness_names_both_sub_modes():
     assert "Post-ACCEPTED-FIXED sibling-sweep" in body, (
         "10th sub-clause body missing sub-mode (b) anchor "
         "'Post-ACCEPTED-FIXED sibling-sweep' — two-sub-mode pin broken"
+    )
+
+
+def test_critique_dim_9_fix_block_completeness_names_cardinality_fanout_sub_mode():
+    """10th sub-clause body must name sub-mode (c) (counted-set cardinality
+    fan-out) AND its count-arithmetic boundary.
+
+    Per FBCD-1 v1.1 (slice-108; /critic-calibrate 2026-06-03 Proposal 1; the
+    AP-10 count-literal fan-out blind spot): FBCD-1 gains a THIRD sub-mode on the
+    SCOPE axis — (c) mandates a WHOLE-repo hard-count-pin grep when a slice
+    changes a counted set's cardinality. Defect class: a body dropping the
+    sub-mode (c) heading loses the repo-wide count-fan-out discipline; a body
+    dropping the slice-091 count-arithmetic BOUNDARY would over-claim the static
+    grep over runtime-dependent counts (APED-1 territory). Both anchors pinned —
+    extends the slice-024 `_names_both_sub_modes` body-scoping precedent to the
+    third sub-mode (FBCD-1 now has three sub-modes, not two).
+
+    Rule reference: META-2 + CCC-1 + FBCD-1 (v1.1, slice-108 AC #1 + #4).
+    """
+    start_anchor = "Fix-block-completeness discipline"
+    end_anchor = "Phantom test-file citation discipline"
+    start_idx = CRITIQUE.find(start_anchor)
+    assert start_idx != -1, f"sub-clause anchor {start_anchor!r} not found"
+    end_idx = CRITIQUE.find(end_anchor, start_idx)
+    assert end_idx != -1, f"end anchor {end_anchor!r} not found AFTER sub-clause start"
+    body = CRITIQUE[start_idx:end_idx]
+    assert "Counted-set cardinality fan-out across repo-wide hard-count pins" in body, (
+        "10th sub-clause body missing sub-mode (c) heading 'Counted-set "
+        "cardinality fan-out across repo-wide hard-count pins' — FBCD-1 v1.1 "
+        "sub-mode (c) pin broken"
+    )
+    assert "new runtime behavior not yet a static literal" in body, (
+        "10th sub-clause body missing the sub-mode (c) count-arithmetic BOUNDARY "
+        "clause ('new runtime behavior not yet a static literal' — the slice-091 "
+        "APED-1 carve-out); sub-mode (c) would over-claim the static grep"
     )
 
 
