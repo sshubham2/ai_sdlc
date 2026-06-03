@@ -2207,3 +2207,17 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 ### Pattern
 - For any no-AST/lexical classifier slice: design review validates STRUCTURE, never CALIBRATION. Budget a build-time recalibration pass against the REAL corpus, gated by a Test-first harness written FIRST. Two of this slice's three most consequential findings were execution-only (recalibration + verb-gap). (AP-3 / APED-1, Nth confirmation — and a candidate to fold into AP-3's evidence.)
+
+## Slice 106 (route-project-frame-synth-via-vault-root) — 2026-06-03
+
+### Worked
+- The 3-Critic stack caught a genuine build-breaker (B1: routing must-rewrite→0 reds `test_emits_classified_inventory_with_evidence`) **by execution** — the design-Critic ran `audit_root` rather than reasoning from design prose, the meta-Critic independently reproduced it, the code-Critic verified the fix's coverage-relocation. Zero FALSE-ALARM on substantive findings; one self-resolved code-Critic m2.
+- MEPD-1 EXCLUDE routing onto the `VAULT_ROOT` seam (ADR-065) + the readiness audit's deterministic 4→0 success signal (ADR-091) made this a genuinely low-risk, no-behavior-change cut (AC3 byte-identical, SHA `97340A02`).
+- The mid-slice smoke tripwire (byte-identical frame + `[production] 0 must-rewrite`) confirmed the no-op at 50%, exactly as the meta-Critic flagged the partial-application risk.
+
+### Didn't work
+- The full 3-Critic stack (design + meta + code) ALL missed a 2nd, independent VAULT_ROOT-importer count-pin (`test_external_vault_adr_and_risk.py::test_no_new_tool_migration_and_classification_map_documented`, `== 15`). The meta-Critic specifically grepped for readers of `MUST_REWRITE`/`_BASELINE`/`project_frame_synth` — but not for hard-count pins on the importer-set *cardinality*. Caught only by the full suite (BC-PROJ-4). Fixed in-slice (→16 + membership assert + corrected the stale "to 14" docstring).
+- A pre-existing stale count narrative ("14-element" when the live set was already 15 — slice-103's un-bumped prose) compounded: the slice corrected 14→16, skipping 15, having to first notice the prior drift.
+
+### Pattern
+- **Count-literal fan-out is wider than the obvious membership pin, even under a 3-Critic stack.** When a slice changes a counted set's cardinality (here VAULT_ROOT importers 15→16), multiple independent `== N` / "N-element" pins can live across different test files. The Critics enumerate the set-equality pin (the allowlist) and miss sibling hard-count pins elsewhere. `/critic-calibrate` heuristic to encode: *when a slice adds/removes the Nth member of a counted set, grep the WHOLE repo for every `== N` / "N-element" / "set to N" literal on that set — not just the membership pin.* The full suite (BC-PROJ-4) remains the irreplaceable backstop. (AP-10 N-higher; AP-21 — `/critic-calibrate` overdue, now with a sharp reproducible miss.)

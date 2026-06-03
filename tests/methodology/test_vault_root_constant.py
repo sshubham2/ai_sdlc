@@ -38,8 +38,9 @@ from tools import _stdout
 _stdout.reconfigure_stdout_utf8()
 
 
-# The 14-element _MIGRATION_SITE_ALLOWLIST — every tools/*.py module that
-# hardcoded "architecture/" filesystem-resolving literals pre-slice-068.
+# The 16-element _MIGRATION_SITE_ALLOWLIST — every tools/*.py module that routes
+# vault filesystem reads through VAULT_ROOT (the original slice-068 migration set
+# plus later VAULT_ROOT consumers, each tagged inline with its slice).
 # Pinned per /critique B1 ACCEPTED-FIXED + M3 ACCEPTED-FIXED (scope-back of
 # tests/methodology/conftest.py to DEFERRED for follow-on slice).
 _MIGRATION_SITE_ALLOWLIST: frozenset[str] = frozenset({
@@ -60,6 +61,7 @@ _MIGRATION_SITE_ALLOWLIST: frozenset[str] = frozenset({
     "tools/pulse_worktree_resolver.py",
     "tools/stranded_slice_audit.py",
     "tools/index_router_thinness_audit.py",  # slice-103 / ADR-093 — resolves slices/_index.md + archive/_index.md + action-points.md under VAULT_ROOT (flip-safe; M5)
+    "tools/project_frame_synth.py",  # slice-106 / ADR-091 — routes the 4 vault reads (concept/triage/slice-queue/risk-register) through VAULT_ROOT (production must-rewrite 4→0)
 })
 
 # 5 enumerated EXCLUDED error-message-string sites (file, line) — these contain
@@ -288,7 +290,7 @@ def test_env_var_override_via_subprocess(tmp_path: Path) -> None:
 
 
 def test_migration_site_allowlist_pinned() -> None:
-    """AC4: the 14-element _MIGRATION_SITE_ALLOWLIST frozenset matches the
+    """AC4: the 16-element _MIGRATION_SITE_ALLOWLIST frozenset matches the
     actual post-migration tools/*.py modules importing VAULT_ROOT. Catches
     drift in two directions: (a) a new tool module added post-slice-068 that
     hardcodes Path("architecture") without migrating (drift IN); (b) a

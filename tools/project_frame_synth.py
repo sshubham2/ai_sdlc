@@ -41,7 +41,7 @@ Usage::
 
     # Library (preferred; called from skill prose via Bash capture)
     from tools.project_frame_synth import synthesize_frame
-    frame = synthesize_frame(Path("."), Path("architecture/slices/slice-NNN-x"))
+    frame = synthesize_frame(Path("."), VAULT_ROOT / "slices" / "slice-NNN-x")
 
     # CLI
     python -m tools.project_frame_synth --repo-root . \\
@@ -57,6 +57,7 @@ import sys
 from pathlib import Path
 
 from tools import _stdout
+from tools._vault_paths import VAULT_ROOT  # slice-106: route vault reads through the seam
 
 _MAX_FRAME_LINES = 40
 
@@ -118,8 +119,8 @@ def _section_body(text: str, heading: str) -> str:
 
 
 def _identity(repo_root: Path, warn) -> list[str]:
-    concept = _read(repo_root / "architecture" / "concept.md")
-    triage = _read(repo_root / "architecture" / "triage.md")
+    concept = _read(repo_root / VAULT_ROOT / "concept.md")
+    triage = _read(repo_root / VAULT_ROOT / "triage.md")
     one_liner = "(concept.md unavailable)"
     if concept:
         body = _section_body(concept, "What it does").strip()
@@ -182,7 +183,7 @@ def _active_families(repo_root: Path, warn) -> list[str]:
 
 
 def _pending_candidates(repo_root: Path, warn) -> list[str]:
-    queue = _read(repo_root / "architecture" / "slice-queue.md")
+    queue = _read(repo_root / VAULT_ROOT / "slice-queue.md")
     if not queue:
         warn("slice-queue.md missing")  # m3: match the sibling sections' degrade-WARN
         return []
@@ -191,7 +192,7 @@ def _pending_candidates(repo_root: Path, warn) -> list[str]:
 
 
 def _open_risks(repo_root: Path, warn) -> list[str]:
-    path = repo_root / "architecture" / "risk-register.md"
+    path = repo_root / VAULT_ROOT / "risk-register.md"
     text = _read(path)
     if not text:
         warn("risk-register.md missing")
