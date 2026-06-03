@@ -2,7 +2,7 @@
 slice: slice-105-decouple-slice-loop-from-diagnose-out
 stage: build
 updated: 2026-06-03
-next-action: build Batch F — mid-slice seedless-parity smoke + full suite + ~18 pre-finish audits + /drift-check + /validate-slice
+next-action: run /validate-slice
 risk-tier: high
 critic-required: true
 ---
@@ -19,7 +19,7 @@ critic-required: true
 - [x] /slice — 2026-06-03
 - [x] /design-slice — 2026-06-03
 - [x] /critique — 2026-06-03 — CLEAN (first Critic BLOCKED → dual-review EXTEND → 13 findings ACCEPTED-FIXED, user-ratified)
-- [ ] /build-slice — in progress: Batches A/B/C/D/E done (5/6); F remains (gates + validate)
+- [x] /build-slice — 2026-06-03 (all 6 batches done; pre-finish gate fully green; SHIPPED)
 - [ ] /validate-slice
 - [ ] /reflect
 
