@@ -2,7 +2,7 @@
 slice: slice-105-decouple-slice-loop-from-diagnose-out
 stage: build
 updated: 2026-06-03
-next-action: build Batch E — version bump 0.81.0→0.82.0 (5 surfaces) + pip upgrade + OSDG-1 mirror (slice/build-slice/reflect SKILL.md)
+next-action: build Batch F — mid-slice seedless-parity smoke + full suite + ~18 pre-finish audits + /drift-check + /validate-slice
 risk-tier: high
 critic-required: true
 ---
@@ -19,7 +19,7 @@ critic-required: true
 - [x] /slice — 2026-06-03
 - [x] /design-slice — 2026-06-03
 - [x] /critique — 2026-06-03 — CLEAN (first Critic BLOCKED → dual-review EXTEND → 13 findings ACCEPTED-FIXED, user-ratified)
-- [ ] /build-slice — in progress: Batches A/B/C/D done (4/6); E/F remain
+- [ ] /build-slice — in progress: Batches A/B/C/D/E done (5/6); F remains (gates + validate)
 - [ ] /validate-slice
 - [ ] /reflect
 
