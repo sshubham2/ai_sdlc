@@ -59,33 +59,14 @@ def test_helper_is_importable_from_conftest() -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC3 — structural pin: BCR-1 module no longer carries the literal RHS
+# (slice-105 / ADR-095 removed the AC3 structural pin
+# `test_test_bcr_1_module_no_longer_carries_hardcoded_slice_054_dir` here: its
+# target `tests/methodology/test_bcr_1_round_trip_end_to_end.py` is deleted by
+# slice-105 — the BCR-1 round-trip the module verified is retired — so the pinned
+# contract (that module no longer carries the archive-fragile literal RHS) no
+# longer has a subject. `_resolve_slice_dir(54)` itself stays exercised by the
+# archived-slice resolution tests below.)
 # ---------------------------------------------------------------------------
-
-
-def test_test_bcr_1_module_no_longer_carries_hardcoded_slice_054_dir() -> None:
-    """``tests/methodology/test_bcr_1_round_trip_end_to_end.py`` no longer
-    carries the archive-fragile literal-path RHS
-    ``REPO_ROOT / "architecture" / "slices" / "slice-054`` (per slice-056
-    AC3 ACCEPTED-FIXED + /critique m1 wording harmonization).
-
-    Wrapped forms (``SLICE_054_DIR = _resolve_slice_dir(54)``) are
-    ACCEPTED — the structural pin asserts absence of the LITERAL-PATH form,
-    not absence of the ``SLICE_054_DIR`` symbol name.
-    """
-    bcr_1_path = REPO_ROOT / "tests" / "methodology" / "test_bcr_1_round_trip_end_to_end.py"
-    assert bcr_1_path.is_file(), (
-        f"slice-054-authored BCR-1 test module missing at {bcr_1_path}"
-    )
-    text = bcr_1_path.read_text(encoding="utf-8")
-
-    forbidden_literal = 'REPO_ROOT / "architecture" / "slices" / "slice-054'
-    assert forbidden_literal not in text, (
-        f"archive-fragile literal-path RHS '{forbidden_literal}' "
-        f"re-introduced into test_bcr_1_round_trip_end_to_end.py — "
-        f"this is the slice-054-class R-15 regression slice-056 ships to "
-        f"prevent. Use _resolve_slice_dir(54) instead."
-    )
 
 
 # ---------------------------------------------------------------------------
