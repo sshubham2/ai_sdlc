@@ -59,6 +59,7 @@ _MIGRATION_SITE_ALLOWLIST: frozenset[str] = frozenset({
     "tools/parallel_conflict_resolver.py",
     "tools/pulse_worktree_resolver.py",
     "tools/stranded_slice_audit.py",
+    "tools/index_router_thinness_audit.py",  # slice-103 / ADR-093 — resolves slices/_index.md + archive/_index.md + action-points.md under VAULT_ROOT (flip-safe; M5)
 })
 
 # 5 enumerated EXCLUDED error-message-string sites (file, line) — these contain

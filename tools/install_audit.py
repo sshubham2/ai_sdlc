@@ -101,6 +101,7 @@ _CANONICAL_TOOLS: tuple[str, ...] = (
     "tools.cross_spec_parity_audit",
     "tools.drift_check_audit",
     "tools.exploratory_charter_audit",
+    "tools.index_router_thinness_audit",
     "tools.install_audit",
     "tools.methodology_changelog_forward_sync",
     "tools.mock_budget_lint",

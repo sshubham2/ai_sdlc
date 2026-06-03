@@ -111,6 +111,7 @@ _ROOT_ONLY_TOOLS = [
     "tools.skill_vault_write_safety_audit",  # slice-095 / SVW-1 (--root/--json, no positional slice arg; emits audit verdict to stdout)
     "tools.vault_write_safety_audit",  # slice-094 / VWS-1 (--repo-root/--json, no positional slice arg; emits audit verdict to stdout)
     "tools.vault_flip_readiness_audit",  # slice-100 / ADR-091 (--repo-root/--root/--json/--strict, no slice arg; emits audit verdict to stdout)
+    "tools.index_router_thinness_audit",  # slice-103 / ADR-093 (--root/--json, no positional slice arg; emits IRT verdict to stdout)
 ]
 
 

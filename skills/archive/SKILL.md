@@ -1,6 +1,6 @@
 ---
 name: archive
-description: "AI SDLC maintenance. Archive completed slices and maintain slices/_index.md — the single lookup point for any past slice. Convention: slices/ holds only ACTIVE slices (no reflection.md yet); slices/archive/ holds ALL completed slices. _index.md is how Claude finds past work — it holds the recent-10 catalog + aggregated lessons + pointers to archive/_index.md for the full catalog. /reflect auto-archives each completed slice; /archive is for rebuilding the index or batch operations on manually-moved folders. Trigger phrases: '/archive', 'archive completed slices', 'rebuild slice index', 'regenerate _index.md'."
+description: "AI SDLC maintenance. Archive completed slices and maintain slices/_index.md — the single lookup point for any past slice. Convention: slices/ holds only ACTIVE slices (no reflection.md yet); slices/archive/ holds ALL completed slices. _index.md is how Claude finds past work — it holds the recent-10 catalog (thin one-liners) + a pointer to the curated action-points.md register + pointers to archive/_index.md for the full catalog. /reflect auto-archives each completed slice; /archive is for rebuilding the index or batch operations on manually-moved folders. Trigger phrases: '/archive', 'archive completed slices', 'rebuild slice index', 'regenerate _index.md'."
 user_invokable: true
 argument-hint: [--index-only]
 ---
@@ -17,7 +17,7 @@ You archive completed slices to `slices/archive/` and maintain `slices/_index.md
 
 - `architecture/slices/` — ACTIVE slices only (no `reflection.md` yet)
 - `architecture/slices/archive/` — ALL completed slices (with `reflection.md`)
-- `architecture/slices/_index.md` — THE lookup: active list + recent-10 + aggregated lessons + pointer to archive catalog
+- `architecture/slices/_index.md` — THE lookup: active list + recent-10 (thin one-liners) + pointer to `action-points.md` + pointer to archive catalog
 - `architecture/slices/archive/_index.md` — full chronological catalog of archived slices
 
 Claude finds past work via `_index.md` — no mixing of "recent-but-completed" with active.
@@ -71,7 +71,7 @@ This is THE lookup file. Claude reads it to find past work instead of scanning i
 
 Read (the dispatched agent does this; listed here so the spec is clear):
 - Each active slice folder in `slices/` (for the Active table)
-- Last 10 archived slices in `slices/archive/` (for Recent table + Aggregated lessons)
+- Last 10 archived slices in `slices/archive/` (for the Recent-10 table one-liners, pulled from each slice's mission-brief Intent). The action-points register is NOT regenerated — it lives in the curated `slices/action-points.md`.
 
 Write `architecture/slices/_index.md` (via `vault_edit rewrite` per the Step-3 CAS protocol above):
 
@@ -110,21 +110,24 @@ Full catalog: [archive/_index.md](archive/_index.md)
 | 043 | [settings-page](archive/slice-043-settings-page/) | 2026-04-14 | user prefs + password change |
 | ... |
 
-One-line summary: pulled from the "Intent" section of `mission-brief.md`, trimmed to one line.
+**THIN-ROUTER CONTRACT (ADR-093 / slice-103, enforced by `tools/index_router_thinness_audit.py`):** EXACTLY the 10 most recent rows; each row is ONE physical line; the one-line summary is pulled from the slice's `mission-brief.md` "Intent" (first sentence, trimmed) and MUST be ≤ 500 chars. Do NOT paste the reflection's full summary paragraph — this table is a router, not a store. The audit fails the slice-finish gate (shippability) on a >500-char row or >10 rows.
 
-### Aggregated lessons (from recent reflections)
+### Cross-slice action points (pointer — NOT regenerated here)
 
-- <lesson from slice-045's "Lessons for next slice">
-- <lesson from slice-044's "Lessons for next slice">
-- <lesson from slice-043's "Lessons for next slice">
-- <etc. — up to ~10 from the most recent reflections>
+The synthesized, bounded action-points register lives in its OWN file **`architecture/slices/action-points.md`** (relocated out of `_index.md` at ADR-093 so the regen path physically cannot re-bloat it). It is a **curated** artifact — `/archive` and `/reflect` do NOT regenerate it; they leave it untouched. Emit only a pointer in `_index.md`:
 
-These are the patterns future slices should respect. Source: `archive/slice-NNN/reflection.md` (Lessons section).
+```
+## Cross-slice action points
+
+The bounded action-points register (pattern-recognition input for `/slice` + `/critique`) lives in [`action-points.md`](action-points.md). Full per-slice lesson history: [`../lessons-learned.md`](../lessons-learned.md).
+```
+
+Do NOT pull an all-history lesson dump into `_index.md` (the slice-103 root cause: the old "Aggregated lessons" section had grown to 631 lines / 542 bullets — every lesson already lives durably in `lessons-learned.md`).
 
 ## How Claude uses this index
 
 - **Looking up "did we build X?"** → scan "Most recent 10" and "Full catalog" (archive/_index.md); if match, read `archive/slice-NNN/` for details.
-- **Pattern recognition before /design-slice or /critique** → read "Aggregated lessons" section. For specific patterns, follow to the relevant archived slice.
+- **Pattern recognition before /design-slice or /critique** → read the curated [`action-points.md`](action-points.md) register. For specific patterns, follow to the relevant archived slice or `lessons-learned.md`.
 - **Finding a related past decision** → search ADRs (`decisions/`), then cross-reference slice that locked the ADR (`slice:` frontmatter field in ADR).
 - **Full-text search across archived slices** → grep `architecture/slices/archive/` (still works — archive is just a directory).
 ```
@@ -164,7 +167,7 @@ Close with:
 Archive sweep complete.
 - Active slices: <A> (in slices/)
 - Archived: <C> (in slices/archive/)
-- slices/_index.md regenerated (recent-10 + aggregated lessons)
+- slices/_index.md regenerated (thin recent-10 + action-points pointer; the curated action-points.md left untouched)
 - slices/archive/_index.md regenerated (full catalog)
 
 To find a past slice, check slices/_index.md first.
@@ -176,14 +179,14 @@ To find a past slice, check slices/_index.md first.
 - NEVER touch file contents during archive. Just move + regenerate indexes.
 - NEVER leave completed slices in `slices/` (with `reflection.md`). That breaks the convention.
 - DO regenerate both `_index.md` files on every run, writing each via `vault_edit rewrite` (R-32 CAS — Step 3 protocol).
-- DO pull the "Aggregated lessons" from actual reflection.md files — don't fabricate patterns.
+- The `_index.md` content stays a THIN router — recent-10 one-liners (≤500 chars, from each slice's mission-brief Intent, not the reflection's full summary) plus a pointer to the curated `slices/action-points.md` register; never an all-history lesson dump (the slice-103 / ADR-093 thin-router contract). `/archive` leaves `slices/action-points.md` untouched (it is curated, not regenerated here).
 - HEAVY MODE: same flow. Audit trail is preserved; archived slices remain accessible at `archive/slice-NNN/`.
 
 ## How other skills use `_index.md`
 
 - **`/reflect`**: auto-archives the slice after writing reflection.md (moves to `slices/archive/`), then calls `/archive --index-only` to refresh the index
-- **`/slice`**: reads `slices/_index.md` to see active work, recent completions, aggregated lessons — that's all; doesn't scan individual archived slice folders
-- **`/critique`**: reads "Aggregated lessons" + "Most recent 10" from `slices/_index.md` for pattern recognition; follows specific links only if a pattern is relevant to the current slice
+- **`/slice`**: reads `slices/_index.md` (active work, recent-10) + the curated `slices/action-points.md` register for pattern recognition — that's all; doesn't scan individual archived slice folders
+- **`/critique`**: reads `slices/action-points.md` + "Most recent 10" from `slices/_index.md` for pattern recognition; follows specific links only if a pattern is relevant to the current slice
 - **`/design-slice`**: same — reads index; archived slice files only as needed
 - **`/drift-check`**: scans `slices/` (active only now — no completed slices mixed in); ignores `slices/archive/` entirely
 - **`graphify`**: builds graph including `archive/` (archived slices remain queryable)

@@ -25,7 +25,7 @@ Convention: `slices/` holds only active slices (no completed ones). All complete
 **What to read for context**:
 - `_index.md` "Active" table — any slices still in progress
 - `_index.md` "Most recent 10" table — quick catalog of recently shipped work + one-line summaries
-- `_index.md` "Aggregated lessons" section — patterns from recent reflections (this is your pattern-recognition input)
+- `architecture/slices/action-points.md` — the curated cross-slice action-points register (this is your pattern-recognition input; relocated out of `_index.md` at slice-103 / ADR-093)
 
 **When to go deeper**: only if a specific past slice is clearly relevant to the new candidate (e.g., "we're building 'add-csv-export-v2' and slice-045 was 'add-csv-export'" → read `archive/slice-045/reflection.md` specifically).
 
@@ -65,10 +65,10 @@ The detector CLASSIFIES every unmerged `slice/*` branch into a 4-class divergenc
    ```
 
    Top open high-band risks are first-priority slice candidates — the slice would retire them. Open medium-band risks are second-priority. Retired / accepted risks are excluded automatically. If the audit emits zero risks (legacy table format or empty file), fall back to grepping the file directly and flag for migration.
-2. **Recent deferrals** (`slices/_index.md` "Aggregated lessons" + last 3 archived `reflection.md` files' "Deferred" sections): items deferred from prior slices are candidates
+2. **Recent deferrals** (`slices/action-points.md` register + last 3 archived `reflection.md` files' "Deferred" sections): items deferred from prior slices are candidates
 3. **Recent discoveries** (last 3 reflections' "Discovered" sections): new risks or gaps that surfaced during recent slices
 4. **Concept scope not yet built** (`architecture/concept.md` — compare stated scope to `_index.md` catalog of shipped work): MVP features still unbuilt
-5. **Aggregated lessons patterns** (`_index.md` "Aggregated lessons"): if a pattern suggests a slice ("we keep hitting X; should we fix X properly?"), surface it
+5. **Action-points patterns** (`slices/action-points.md`): if a `build-check-candidate` / `critic-calibrate-probe` entry suggests a slice ("we keep hitting X; should we fix X properly?"), surface it
 6. **User-stated intent**: if `/slice "<description>"` was invoked with a description, that's a candidate — validate it against risks/value, don't auto-accept
 8. **Diagnose-out backlog** (`diagnose-out/backlog.md`, when present) — per **BCR-1** (`methodology-changelog.md` v0.61.0; ADR-055 extends the BC-PROJ-10 / Inclusion-heuristic lineage), Claude **MUST consult diagnose-out/backlog.md as a mandatory candidate source when it exists**. The file is the `/diagnose → /slice-candidates` round-trip output: a pipeline-agnostic, topologically-sorted backlog of owner-confirmed slice candidates with severity × blast / effort scoring + must-do-together clusters + dependency map. The `## Recommended order` list is topo-sorted by dependency × severity / effort — read it as a primary input. Each candidate is an `### SC-NNN — <title>` block with `**Severity:** critical|high|medium|low`, `**Blast:** small|medium|large`, `**Reversibility:** cheap|expensive|irreversible`, `**Effort:** small|medium|large`, plus `**Dependencies:**` / `**Blocks:**` / `**Description:**` / `**Rationale:**` / `**Suggested approach:**` / `**Evidence:**` metadata. Treat the topmost CRITICAL or HIGH severity SC-NNN with all dependencies cleared as a first-priority candidate. Absent file → no-op clean (this source is skipped silently). NOT a substitute for sources #1–6: enumerate every source and rank across all.
 
@@ -218,7 +218,7 @@ Ask the user (or propose if obvious from the candidate):
 
 When producing the mission brief and milestone.md: scan the slice's scope for these triggers. If any match, set `critic-required: true` even if tier is `low`. Tell the user explicitly: "Tier is low, but slice touches auth — Critic will run anyway."
 
-> **Evidence for the In-house methodology surfaces trigger**: voluntary Critic on cross-cutting tooling slices has paid off N=9/9 across slices 1-9 in this project's reflection record (e.g., slice-006 INST-1 inventory drift; slice-007 install-time rename; slice-008 negative-anchor uniformity; slice-009 recursive self-application). Every voluntary Critic invocation on a cross-cutting tooling slice produced VALIDATED findings post-build with zero FALSE-ALARMs; see `architecture/slices/_index.md` "Aggregated lessons" and `archive/slice-NNN/reflection.md` "Critic calibration" sections for per-slice disposition records.
+> **Evidence for the In-house methodology surfaces trigger**: voluntary Critic on cross-cutting tooling slices has paid off N=9/9 across slices 1-9 in this project's reflection record (e.g., slice-006 INST-1 inventory drift; slice-007 install-time rename; slice-008 negative-anchor uniformity; slice-009 recursive self-application). Every voluntary Critic invocation on a cross-cutting tooling slice produced VALIDATED findings post-build with zero FALSE-ALARMs; see `architecture/slices/action-points.md` (the curated register, per slice-103 / ADR-093) and `archive/slice-NNN/reflection.md` "Critic calibration" sections for per-slice disposition records.
 
 ### Step 5: Scope check
 

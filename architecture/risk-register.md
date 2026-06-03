@@ -604,3 +604,15 @@ Consequently the installed venv package can be missing a canonical tool while bo
 **Impact in practice**: low — cosmetic provenance corruption only; `record_pick`'s idempotency prefix-scan (`- slice-NNN —`) and PSQ-2 claim-keying (`### entry`) are unaffected, so it never broke queue mechanics. The harm was unattributable/ugly provenance plus silent recurrence.
 
 **Mitigation (retired)**: `record_pick` now normalizes a `(name, email)` 2-sequence to `"name email"` (plain `str` passes through); the Step 6.5 snippet joins the identity (belt-and-suspenders); regression test `tests/bugs/test_record_pick_identity_tuple_repr.py` pinned in shippability #110; installed `~/.claude/skills/slice/SKILL.md` forward-synced. Retired at slice-104.
+
+## R-35 — Vault hot-index routers re-bloat silently (the "thin" contract was prose-only-enforced)
+
+**Likelihood**: medium
+**Impact**: low
+**Status**: retired
+**Reversibility**: cheap
+**Discovered**: slice-103-thin-vault-index-routers-and-enforce (2026-06-03) — `architecture/slices/_index.md` (read every `/slice`/`/critique`/`/design-slice`) had drifted from a thin router to 319.5 KB (recent-10 rows were 1,250–2,265-char paragraphs; a 631-line all-history "Aggregated lessons" log) and `archive/_index.md` to 414.1 KB (longest line 13,720). The "thin" contract was asserted in `skills/archive/SKILL.md` prose (L113/L115/L120) but enforced by nothing, so each `/reflect`→`/archive` regeneration accumulated instead of bounding (AP-3 "should-be-a-check" recurred).
+
+**Impact in practice**: low — context-budget waste on every hot-path skill run; no correctness break (the durable detail always lived in `lessons-learned.md` + the per-slice archive folders). The one real near-miss was D1 — slices 063/073 lessons were sole-copy in `_index.md` (a past `/reflect`-omission), caught + ported by the slice-103 AC2 orphan-diff before the cut.
+
+**Mitigation (retired)**: `tools/index_router_thinness_audit.py` (ADR-093, shippability #111) enforces region-anchored per-row ≤500 + recent-10 ≤10 rows + the standalone `action-points.md` register ≤25 verdict-tagged + total-size backstops, fail-closed; `skills/{archive,reflect}/SKILL.md` regen specs emit the thin form + leave the curated `action-points.md` untouched. Re-bloat now fails the slice-finish gate. Retired at slice-103.

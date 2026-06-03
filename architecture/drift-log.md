@@ -705,3 +705,17 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-102 surface.
+
+## Audit (slice-103-thin-vault-index-routers-and-enforce) — 2026-06-03
+
+**Trigger**: slice-103 pre-finish gate (drift-check full mode)
+**Scope**: ADR-093 + design.md (incl. the `## Critique resolution` build obligations) + mission-brief vs the slice's code — `tools/index_router_thinness_audit.py`, the thinned `_index.md` + `archive/_index.md`, the standalone `action-points.md` register, the 5 SKILL.md spec edits (archive/reflect writers + slice/critique/pulse readers), `plugin.yaml` + `install_audit` enumeration, INSTALL.md tool count 40->41, shippability row #111.
+
+### Drift findings
+- None. The audit + thinned routers (319.5->4.0 KB / 414.1->33.6 KB) + register + spec edits match design.md + ADR-093. IRT audit clean; all 15 Step-6 gates green; OSDG-1 drift tests (slice/critique/reflect/pulse) pass; SVW-1 clean (23 sites, 20 routed, 3 exempt).
+- ADR-093 (`status: accepted`, `reversibility: cheap`, `supersedes: null`) matches the standalone `action-points.md` (B1) + shippability-only wiring (M1) + MEPD-1 EXCLUDE (no VERSION bump — PMI-1/MCFS-1/AVFS-1/TVFS-1 all PASS, version stays 0.81.0).
+- The new tool is a legitimate 15th VAULT_ROOT importer (flip-safe, M5); the migration-allowlist + importer-count + cp1252-coverage + INSTALL-count pins updated accordingly (the slice-100 new-public-tool fan-out class).
+- BC-PROJ-3 / BC-GLOBAL-2: this slice performed NO destructive git checkout/restore/stash revert of uncommitted work (writes via vault_edit rewrite CAS + Edit/Write + vault_edit append + worktree ops only).
+
+### Resolutions
+- None required — vault and code aligned.

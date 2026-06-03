@@ -114,6 +114,8 @@ tools:
     rule: DCE-1
   - path: tools/exploratory_charter_audit.py
     rule: ETC-1
+  - path: tools/index_router_thinness_audit.py
+    rule: ADR-093
   - path: tools/install_audit.py
     rule: INST-1
   - path: tools/methodology_changelog_forward_sync.py
