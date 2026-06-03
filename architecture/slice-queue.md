@@ -1,16 +1,48 @@
 # Slice queue
 
-_Generated: 2026-06-03T15:12:26+00:00 by /slice during slice-108 definition_
+_Generated: 2026-06-03T18:16:14+00:00 by /slice during slice-109 definition_
 
 ## Candidates
 
-### add-fbcd-1-cardinality-fanout-sub-mode
+### flip-vault-execute-atomic-move
 
-- **Source:** critic-calibrate proposal 2026-06-03 (AP-10)
-- **Blast-radius:** `agents/critique.md`, `tests/methodology/test_critique_agent_fbcd1_cardinality_submode.py`
+- **Source:** external-vault initiative M4 (slice-098/106/107 residual; ADR-085/089)
+- **Blast-radius:** `tools/_vault_paths.py`, `tools/_vault_write.py`, `tools/slice_queue_writer.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** LARGE
+- **Risk-retired:** HIGH
+
+### add-count-pin-fanout-build-check
+
+- **Source:** slice-108 reflection deferral (AP-10 recurring N=5+)
+- **Blast-radius:** `agents/critique.md`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** MEDIUM
+- **Risk-retired:** MEDIUM
+
+### rewrite-vault-prose-references-for-flip
+
+- **Source:** slice-107 prose inventory (318 rewrite-at-flip sites)
+- **Blast-radius:** `CLAUDE.md`, `agents`, `skills`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** LARGE
+- **Risk-retired:** MEDIUM
+
+### fix-validate-layers-tomllib-fallback
+
+- **Source:** diagnose backlog SC-002 (VAL-1 Layer B silently disabled on Python 3.10)
+- **Blast-radius:** `pyproject.toml`, `tools/validate_slice_layers.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** SMALL
-- **Risk-retired:** MEDIUM
+- **Risk-retired:** LOW
+
+### reduce-dead-code-bundle
+
+- **Source:** diagnose backlog SC-022/024/025 (dead code + stale header)
+- **Blast-radius:** `skills/diagnose/assemble.py`, `skills/diagnose/write_pass.py`, `tests/skills/diagnose/test_assemble_errors.py`, `tests/skills/diagnose/test_normalize_finding.py`, `tools/install_audit.py`, `tools/supersede_audit.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** NONE
 
 ## Pick log
 
@@ -23,9 +55,4 @@ _Generated: 2026-06-03T15:12:26+00:00 by /slice during slice-108 definition_
 - slice-106-route-project-frame-synth-via-vault-root — picked 2026-06-03T09:30:31+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-107-inventory-vault-flip-prose-surface — picked 2026-06-03T09:37:32+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-108-add-fbcd-1-cardinality-fanout-sub-mode — picked 2026-06-03T15:12:27+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
-
-## ADR number reservations (cross-session coordination)
-
-Parallel slices author ADRs in their own worktrees and cannot see each other's uncommitted ADR numbers. To avoid max+1 collisions, reservations are recorded here (slice-107 dual-review M3 / ADR-079 stranded-slice-coordination spirit):
-
-- **ADR-096, ADR-097** — reserved for **slice-107-inventory-vault-flip-prose-surface** (authored in its worktree, not yet merged). The parallel **slice-106** session MUST mint **ADR-098+** when it runs `/design-slice` (master tops at ADR-095; both M1 siblings reach for 096+ otherwise).
+- slice-109-add-post-flip-vault-conflict-safety — picked 2026-06-03T18:16:28+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
