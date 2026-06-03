@@ -44,7 +44,11 @@ def test_emits_classified_inventory_with_evidence():
         assert o.klass in _ALL_CLASSES
         assert o.reason
     classes = {o.klass for o in result.occurrences}
-    assert MUST_REWRITE in classes
+    # slice-106 (B1): the production must-rewrite surface is now ∅ — all 4 project_frame_synth
+    # sites were routed through VAULT_ROOT — so MUST_REWRITE is legitimately absent from the
+    # real-repo inventory. Asserting its presence here would assert the slice's own goal failed.
+    # The classifier's must-rewrite non-vacuity is proven SYNTHETICALLY (not via a real-repo site)
+    # by test_new_unrouted_literal_fails_gate + test_every_hit_has_exactly_one_class.
     assert ALREADY_SEAM_ROUTED in classes
     assert DOC_EXAMPLE_SAFE in classes
 
@@ -218,7 +222,11 @@ def test_tests_surface_scanned_and_classified():
 
 
 def test_production_baseline_unchanged_vs_slice100():
-    # AC1: extending to the tests surface must NOT perturb the production classification.
+    # Production classification must equal the pinned `_BASELINE`. NOTE: slice-106 routed the
+    # 4 project_frame_synth must-rewrite sites → `_BASELINE` is now ∅, so this now asserts the
+    # production must-rewrite + needs-human surface is EMPTY. The slice-100/102 invariant still
+    # holds (tests-surface extension does not perturb production); the "vs_slice100" name is kept
+    # as a historical anchor — renaming would orphan by-name citations (AP-10/AP-13).
     result = audit_root(REPO_ROOT)
     prod_baseline = tuple(sorted(
         o.key() for o in result.occurrences

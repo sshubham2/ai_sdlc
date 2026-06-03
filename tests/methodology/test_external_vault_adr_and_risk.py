@@ -39,14 +39,17 @@ def test_no_new_tool_migration_and_classification_map_documented() -> None:
     the 3 git-coupled tools 093 AC4 deferred ("migrate-NONE") —
     parallel_conflict_resolver + pulse_worktree_resolver + stranded_slice_audit
     (Class-A ROUTE via VAULT_ROOT + Class-B RETIRE-when-external via vault_is_external)
-    — bringing the live importer set to 14. slice-093's archived design.md still
+    — bringing the live importer set to 14; slice-103 then added
+    tools/index_router_thinness_audit.py (15) and slice-106 added
+    tools/project_frame_synth.py (16). slice-093's archived design.md still
     documents the original FS-path / git-or-worktree-coupled / never-migrate map
     (immutable history); slice-098 is the slice that acted on the deferral."""
     importers = _vault_root_importers()
-    assert len(importers) == 15, (
+    assert len(importers) == 16, (
         f"expected the 10 slice-068/072/081 consumers + slice-095's "
         f"tools/vault_edit.py + slice-098's 3 git-coupled tools + slice-103's "
-        f"tools/index_router_thinness_audit.py = 15 VAULT_ROOT "
+        f"tools/index_router_thinness_audit.py + slice-106's "
+        f"tools/project_frame_synth.py = 16 VAULT_ROOT "
         f"importer(s); found {len(importers)}: {sorted(importers)}"
     )
     assert "tools/index_router_thinness_audit.py" in importers, (
@@ -55,6 +58,10 @@ def test_no_new_tool_migration_and_classification_map_documented() -> None:
     )
     assert "tools/vault_edit.py" in importers, (
         "slice-095's vault_edit.py must consume VAULT_ROOT (resolves --file under it)"
+    )
+    assert "tools/project_frame_synth.py" in importers, (
+        "slice-106's project_frame_synth.py must consume VAULT_ROOT (routes the 4 "
+        "concept/triage/slice-queue/risk-register reads under it; production must-rewrite 4→0; ADR-091)"
     )
     # slice-098 / ADR-089: the 3 once-deferred git-coupled tools are now migrated.
     for migrated in (

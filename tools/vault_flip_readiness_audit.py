@@ -154,21 +154,17 @@ _CONTENT_ARG_METHODS: frozenset[str] = frozenset({"write_text", "write_bytes"})
 # is now a single-edit / fail-loud change, not a silent fall-through).
 _REASON_UNMARKED_COLLECTION = "unmarked-collection-pathspec"
 
-# ── the regression baseline (AC3) — frozen at slice-100; (relpath, value, klass)
-# tuples for the must-rewrite + needs-human classes, DUPLICATES INCLUDED (so a new
-# occurrence in an already-listed file trips the pin — count-sensitive yet
-# line-number-independent per M2). Re-derived by running the audit; pinned by
-# tests/methodology/test_vault_flip_readiness_audit.py::test_must_rewrite_baseline_pinned.
-_BASELINE: tuple[tuple[str, str, str], ...] = (
-    # The 4 bare-"architecture" path-construction sites in project_frame_synth.py
-    # (slice-088-era, unrouted) — the genuine production-.py must-rewrite set at
-    # slice-100; B-add-1 (the bare-segment match) is what surfaces them. A 5th
-    # occurrence (here or elsewhere) changes this tuple → --strict + the AC3 pin trip.
-    ("tools/project_frame_synth.py", "architecture", "must-rewrite-before-flip"),
-    ("tools/project_frame_synth.py", "architecture", "must-rewrite-before-flip"),
-    ("tools/project_frame_synth.py", "architecture", "must-rewrite-before-flip"),
-    ("tools/project_frame_synth.py", "architecture", "must-rewrite-before-flip"),
-)
+# ── the regression baseline (AC3) — EMPTIED at slice-106. This was the 4 bare-
+# "architecture" `/`-BinOp path-construction sites in project_frame_synth.py (the
+# genuine production-.py must-rewrite set frozen at slice-100); slice-106 routed all
+# 4 through VAULT_ROOT, so the production must-rewrite surface is now ∅. (relpath,
+# value, klass) tuples for the must-rewrite + needs-human classes, DUPLICATES INCLUDED
+# (count-sensitive yet line-number-independent per M2). Re-derived by running the audit;
+# pinned by test_vault_flip_readiness_audit.py::test_must_rewrite_baseline_pinned.
+# A NEW unrouted production literal (here or elsewhere) re-populates this tuple →
+# --strict + the AC3 pin trip. The classifier's must-rewrite non-vacuity does NOT
+# depend on a real-repo site — it is proven synthetically by test_new_unrouted_literal_fails_gate.
+_BASELINE: tuple[tuple[str, str, str], ...] = ()
 
 
 # ── occurrence model ──────────────────────────────────────────────────────────

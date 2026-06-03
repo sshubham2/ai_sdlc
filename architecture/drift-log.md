@@ -752,3 +752,19 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required beyond the in-round artifact harmonization above — vault and code aligned for the slice-107 surface.
+
+## Audit (slice-106-route-project-frame-synth-via-vault-root) — 2026-06-03
+
+**Trigger**: slice-106 pre-finish gate (/drift-check full mode)
+**Scope**: full — design.md + mission-brief vs the slice's code: `tools/project_frame_synth.py` (4 vault reads routed through VAULT_ROOT + L44 docstring), `tools/vault_flip_readiness_audit.py` (`_BASELINE` → ∅ + comment), `tests/methodology/{test_vault_flip_readiness_audit,test_vault_root_constant,test_external_vault_adr_and_risk}.py`, `architecture/shippability.md` (rows #108/#109 narrative repointed). No ADR (MEPD-1 EXCLUDE); no VERSION bump.
+**Result**: CLEAN — vault and code aligned; no drift.
+
+### Drift findings
+- None. design.md "What's new" ↔ code: the 4 sites (concept/triage/slice-queue/risk-register) read `repo_root / VAULT_ROOT / "<file>"`; `from tools._vault_paths import VAULT_ROOT` present; L44 docstring carries no quote-prefixed `architecture/` literal. `vault_flip_readiness_audit` reports `[production] 0 must-rewrite` + `--strict` exit 0; `_BASELINE == ()`.
+- The /critique B1 fix is in code: `test_emits_classified_inventory_with_evidence` no longer asserts a real-repo `MUST_REWRITE` (the synthetic `test_new_unrouted_literal_fails_gate` proves classifier non-vacuity). M2 narrative repointed (rows #108/#109, `_BASELINE` comment, `test_production_baseline_unchanged_vs_slice100` comment). m1: allowlist membership 15→16; the `test_count == 15` function-count pin untouched. m2: design records the MEPD-1 EXCLUDE no-ADR justification.
+- Build-discovered consumer (NOT design/Critic-enumerated; AP-10 count-literal fan-out): `test_external_vault_adr_and_risk.py::test_no_new_tool_migration_and_classification_map_documented` hard-pinned the VAULT_ROOT-importer count == 15 → updated to 16 (+ project_frame_synth membership assert + stale "to 14" docstring corrected). Full suite 1529/0 confirms no other consumer.
+- No new ADR / no RULE-ID / no VERSION bump → PMI-1 / PVFS-1 / AVFS-1 / MCFS-1 / TVFS-1 unaffected. No SKILL.md edit (OSDG-1 N/A); no risk-status change (STP-1 green).
+- BC-PROJ-3 / BC-GLOBAL-2: this slice performed NO destructive git checkout/restore/stash revert of uncommitted work.
+
+### Resolutions
+- None required — vault and code aligned for the slice-106 surface.
