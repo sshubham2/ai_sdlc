@@ -1,16 +1,16 @@
 ---
 slice: slice-105-decouple-slice-loop-from-diagnose-out
-stage: code-review
+stage: validate
 updated: 2026-06-03
-next-action: run /validate-slice
+next-action: run /reflect
 risk-tier: high
 critic-required: true
 ---
 
 # Milestone: slice-105 decouple-slice-loop-from-diagnose-out
 
-**Stage**: code-review
-**Next action**: run `/validate-slice`
+**Stage**: validate
+**Next action**: run `/reflect`
 **Updated**: 2026-06-03
 **Risk tier**: high — Critic required: yes (mandatory: touches `tools/**/*.py` + `skills/*/SKILL.md` + `methodology-changelog.md`; partial-supersedes two codified ADRs — ADR-090 seed-step + ADR-055 round-trip half)
 
@@ -21,12 +21,12 @@ critic-required: true
 - [x] /critique — 2026-06-03 — CLEAN (first Critic BLOCKED → dual-review EXTEND → 13 findings ACCEPTED-FIXED, user-ratified)
 - [x] /build-slice — 2026-06-03 (all 6 batches done; pre-finish gate fully green; SHIPPED)
 - [x] /code-review — 2026-06-03 — FINDINGS: 1 minor (m1, advisory) ADDRESSED; 0 blockers, 0 majors
-- [ ] /validate-slice
+- [x] /validate-slice — 2026-06-03 — PASS (5/5 ACs; shippability 111/111; VAL-1 clean)
 - [ ] /reflect
 
 ## Current focus
 
-**Build SHIPPED + code-review CLEAN.** All 6 build batches done; pre-finish gate fully green (suite 1387/0 seeded AND seedless; ~18 Step-6 audits exit 0; /drift-check CLEAN + DCE-1). Code-Critic returned 0 blockers / 0 majors / 1 minor (m1: two surviving docstrings cited the deleted test files) — m1 ADDRESSED in-code (preserve-and-annotate). **Next: `/validate-slice`** for formal per-AC PASS/FAIL → validation.md.
+**Validated PASS — slice is built, reviewed, and reality-checked.** /validate-slice: all 5 ACs PASS with evidence (AC1 headline = seedless full suite 1387/0 with diagnose-out/graphify-out absent); shippability catalog 111/111 PASS (no regression); VAL-1 clean (0 secrets / 0 hallucinated imports); WS-1/ETC-1 N/A; all pre-catalog gates exit 0. One out-of-scope ADR-094 path-citation note logged for /reflect. **Next (user-driven): `/reflect`**, then `/commit-slice` — both intentionally NOT auto-run (user asked to stop before /reflect).
 
 ## On resume
 
