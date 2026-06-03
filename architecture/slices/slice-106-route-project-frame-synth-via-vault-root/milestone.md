@@ -1,6 +1,6 @@
 ---
 slice: slice-106-route-project-frame-synth-via-vault-root
-stage: build
+stage: code-review
 updated: 2026-06-03
 next-action: run /validate-slice
 risk-tier: medium
@@ -9,7 +9,7 @@ critic-required: true
 
 # Milestone: slice-106 route-project-frame-synth-via-vault-root
 
-**Stage**: build
+**Stage**: code-review
 **Next action**: run `/validate-slice`
 **Updated**: 2026-06-03
 **Risk tier**: medium — Critic required: yes (touches `tools/*.py` — in-house methodology surface, mandatory-Critic trigger regardless of tier)
@@ -20,6 +20,7 @@ critic-required: true
 - [x] /design-slice — 2026-06-03
 - [x] /critique — 2026-06-03 — NEEDS-FIXES (1B/2M/2m; dual-review ACCEPT; triaged by user)
 - [x] /build-slice — 2026-06-03 — SHIPPED (6 tasks; full suite 1529/0; all Step 6 gates green)
+- [x] /code-review — 2026-06-03 — FINDINGS (0B/0M/2m advisory; code-Critic clean by execution)
 - [ ] /validate-slice
 - [ ] /reflect
 
@@ -33,8 +34,8 @@ This is the **M1 production cut** of the external-shared-vault flip roadmap (pro
 
 ## On resume
 
-- **Last completed action**: /build-slice — SHIPPED (4-file coupled chain + 1 build-discovered count-pin consumer; full suite 1529/0; all Step 6 gates green; BC-1 acks BC-PROJ-3/7 + BC-GLOBAL-2)
-- **Current work**: none — code + vault changes committed on `slice/106-…` (wip build commit)
+- **Last completed action**: /code-review — code-Critic clean (0B/0M/2m advisory; verified flip-correctness + B1 coverage-relocation + 16-count reconciliation by execution)
+- **Current work**: none — build committed at d0d37e9 on `slice/106-…`; code-review.md + milestone updates pending commit
 - **Next immediate step**: run `/validate-slice` (per-AC reality check: 0 production must-rewrite + byte-identical frame + suite green)
 
 ## Phase artifacts
@@ -44,6 +45,7 @@ This is the **M1 production cut** of the external-shared-vault flip roadmap (pro
 - [critique.md](critique.md) — written (NEEDS-FIXES; user-triaged)
 - [critique-review.md](critique-review.md) — written (dual-review ACCEPT)
 - [build-log.md](build-log.md) — written (SHIPPED; 6 tasks; all Step 6 gates green)
+- [code-review.md](code-review.md) — written (0B/0M/2m advisory; clean)
 - [validation.md](validation.md) — pending
 - [build-log.md](build-log.md) — pending
 - [validation.md](validation.md) — pending
