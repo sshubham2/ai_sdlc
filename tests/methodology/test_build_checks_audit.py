@@ -1989,6 +1989,53 @@ def test_bc_proj_16_has_expected_structural_identity():
     )
 
 
+def test_bc_proj_17_has_expected_structural_identity():
+    """BC-PROJ-17 (slice-107 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity (execute-classifier-against-real-corpus
+    rule). Canonical fixture = subject; these literal constants = git-tracked
+    oracle (ADR-028). BCI-1 separately asserts the gitignored live
+    build-checks.md matches the fixture.
+
+    Defect class: a silent truncation / mis-author of BC-PROJ-17 would lose the
+    "a lexical/AST classifier's CALIBRATION is invisible to design-time review —
+    execute it against the real corpus at build" evergreen check with no loud
+    signal (R-4 class). AP-3/APED-1 recurred N~=6 (slices 087/091/098/100/102/107);
+    the discipline needs a build-check, not the per-slice action-point memory.
+
+    Rule reference: BC-1 (slice-107 /reflect Step 5b; user-approved project
+    promotion of the execute-classifier-against-the-real-corpus discipline).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-17" in p_by_id, "BC-PROJ-17 not parsed from project fixture"
+    p17 = p_by_id["BC-PROJ-17"]
+    assert p17.severity == "Important", f"BC-PROJ-17 severity: {p17.severity!r}"
+    assert p17.applies_to == ("tools/*.py",), (
+        f"BC-PROJ-17 applies_to mismatch: got {p17.applies_to!r}"
+    )
+    assert p17.trigger_keywords == (
+        "classifier", "parser", "ruleset", "lexical", "regex", "audit",
+        "inventory", "taxonomy",
+    ), f"BC-PROJ-17 trigger_keywords mismatch: got {p17.trigger_keywords!r}"
+    assert p17.trigger_anchors == (), (
+        f"BC-PROJ-17 trigger_anchors mismatch (expected none): "
+        f"got {p17.trigger_anchors!r}"
+    )
+    assert p17.negative_anchors == (), (
+        f"BC-PROJ-17 negative_anchors mismatch (expected none): "
+        f"got {p17.negative_anchors!r}"
+    )
+    assert p17.check and p17.check.strip(), "BC-PROJ-17 check must be non-empty"
+    assert "EXECUTE it against the REAL corpus" in p17.check, (
+        "BC-PROJ-17 check body MUST cite executing the tool against the real corpus"
+    )
+
+
 def test_bc_global_5_has_expected_structural_identity():
     """BC-GLOBAL-5 (slice-090 /reflect Step-5b global promotion) MUST parse to
     its expected full structural identity. Canonical global fixture = subject;
