@@ -18,8 +18,11 @@ invisible to it, yet they break at the M4 flip. ``re.finditer`` (not one ``re.se
 per line) is load-bearing: 24 lines carry >1 match (32 extra occurrences;
 ``code-review.md:103`` carries 5), so a per-line single match would undercount 318→286.
 
-CLASSIFICATION — context-aware ordered ruleset, per match, every decision
-LINE/region-anchored (AP-1). RECALIBRATED at build-time against the real corpus
+CLASSIFICATION — context-aware ordered ruleset. The in-code state is column-anchored
+PER MATCH (`_in_inline_code(line, col)`); the marker detectors (pathspec / anchor /
+verb) are LINE-anchored, never a whole-FILE substring scan (AP-1) — so on a multi-match
+line a marker governs every match on that line (harmless on the current corpus where
+same-line matches share a class; m1). RECALIBRATED at build-time against the real corpus
 (user-ratified deviation, build-log 2026-06-03; see design.md §Build-time
 recalibration): an in-code / fenced / operational vault path defaults to
 ``rewrite-at-flip`` — the dominant case (a LIVE reference the M4 flip must update).
@@ -39,11 +42,12 @@ Order (first applicable wins):
   4. in-code (inline backticks OR fenced) OR an operational verb on the line → rewrite-at-flip
   5. plain prose mention (not in code, no signal)                          → doc-example
 
-On the current corpus the ruleset yields 316 rewrite-at-flip / 0 historical-anchor /
-2 doc-example / 0 needs-human (the narrow preserve-markers do not co-occur with an
-in-code literal anywhere today, so needs-human is empty without any disposition).
-The ``_DISPOSITION`` table + needs-human bucket remain the fail-closed mechanism for
-future drift. ``--strict`` pins the ``rewrite-at-flip`` + ``needs-human`` multiset
+On the current corpus the ruleset yields **318 rewrite-at-flip / 0 historical-anchor /
+0 doc-example / 0 needs-human** — every operational prose reference to the vault
+location goes stale at the M4 flip, so all 318 are rewrite-at-flip; doc-example,
+historical-anchor, and needs-human are all empty on this corpus (the classes exist for
+future drift / other surfaces). The ``_DISPOSITION`` table + needs-human bucket remain
+the fail-closed mechanism for future drift. ``--strict`` pins the ``rewrite-at-flip`` + ``needs-human`` multiset
 baseline + a per-class total-count floor (m2 — catches a silent
 ``rewrite-at-flip → doc-example`` demotion).
 
@@ -92,9 +96,15 @@ _PATH_TOKEN_RE = re.compile(r"(?:architecture|diagnose-out)/[^\s`'\"()\\|,]*")
 # is on the checklist when it didn't need to be costs a human a glance at flip; the
 # dangerous direction (a real path silently OFF the checklist) is what B2 closes) ──
 _OP_VERBS = (
-    "read", "run", "check", "consult", "open", "write", "mv", "move", "update",
-    "verify", "ls", "cat", "create", "delete", "rm", "append", "regenerate",
-    "scan", "edit", "commit", "add", "glob", "grep", "find", "copy", "cp",
+    # design.md rule-4 vocabulary (incl. see/note — m3 reconciliation)
+    "read", "run", "check", "consult", "see", "open", "write", "mv", "move",
+    "update", "note", "verify", "ls", "cat", "create", "delete", "rm", "append",
+    "regenerate", "scan", "edit", "commit", "add", "glob", "grep", "find", "copy", "cp",
+    # frontmatter / prose inflections (M1 — `Reads`/`Produces`/`Writes` are operational
+    # path references in skill `description:` fields; a \bword\b verb-list missed the
+    # plural form, sweeping two LIVE paths to the off-checklist doc-example bucket):
+    "reads", "produces", "produce", "writes", "defines", "define", "loads", "load",
+    "emits", "emit", "stored", "stores", "store", "reading", "produced", "located",
 )
 _OP_VERB_RE = re.compile(r"\b(?:" + "|".join(_OP_VERBS) + r")\b", re.IGNORECASE)
 
@@ -275,13 +285,13 @@ _DISPOSITION_MAP: dict[tuple, str] = {(p, n, f, o, c): k for (p, n, f, o, c, k) 
 # baseline (AC5 / M1 disjointness — discovered at build, build-log 2026-06-03). The
 # full enumerated inventory is the --json output; this hash is the drift identity
 # (exit 2 on ANY multiset change — same gate behavior as an enumerated multiset).
-_BASELINE_SHA256 = "cdcb4a1627043a9795f0873f06b733e071f5d473284b42d81eed485a62b8e5bb"
+_BASELINE_SHA256 = "1d150ca1764eedea5e52b5b3ecfcff3e4655d3a231e86bbbdfe03ea78f68f182"
 
 # per-class total-count floor (m2 — a silent shrink trips --strict).
 _CLASS_COUNT_FLOOR: dict[str, int] = {
-    REWRITE_AT_FLIP: 316,
+    REWRITE_AT_FLIP: 318,
     HISTORICAL_ANCHOR: 0,
-    DOC_EXAMPLE: 2,
+    DOC_EXAMPLE: 0,
     NEEDS_HUMAN: 0,
 }
 
@@ -294,7 +304,11 @@ _RESIDUAL: tuple[dict, ...] = (
     {'path': 'skills/sync/SKILL.md', 'line': 176, 'value': 'architecture', 'note': 'graphify vault architecture'},
 )
 
-# boundary-free corpus total (Builder-verified; pinned by AC1).
+# Boundary-free corpus total (m2 provenance): == `grep -rohE "(architecture|diagnose-out)/"`
+# over the 5 _PROSE_GLOBS, all-matches-per-line. Co-pinned with _BASELINE_SHA256 + the
+# REWRITE_AT_FLIP count-floor (all three move together on any corpus change): a count
+# change fails test_enumerates_full_corpus_318_…; a class/value change trips --strict.
+# Pinned by AC1 (test, the documented consumer) — re-derive all three when the corpus changes.
 EXPECTED_TOTAL = 318
 
 

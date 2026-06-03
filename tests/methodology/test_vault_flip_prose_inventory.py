@@ -221,6 +221,27 @@ def test_no_intra_line_ambiguous_multimatch():
     assert len(keys) == len(set(keys)), "intra-line matches must have distinct keys (column-offset)"
 
 
+def test_disposition_override_fires_and_is_column_keyed():
+    """ADR-097 mechanism (code-review M2 — closes the zero-coverage-on-a-non-empty-
+    table gap): a _DISPOSITION entry overrides the ruleset class for the EXACT 5-tuple
+    key (reason 'disposition'); a key with a wrong column-offset does NOT override —
+    proving the column-offset component (M-add-1) is load-bearing, not decorative."""
+    line = "Write `architecture/x.md`"  # ruleset → rewrite-at-flip
+    base = classify_line_occurrences(line, rel="skills/x/SKILL.md", lineno=1,
+                                     fenced=False, disposition={})[0]
+    assert base.klass == REWRITE_AT_FLIP
+    key = base.disposition_key()  # exact (path, norm_line, fenced, ordinal, col)
+    over = classify_line_occurrences(line, rel="skills/x/SKILL.md", lineno=1,
+                                     fenced=False, disposition={key: HISTORICAL_ANCHOR})[0]
+    assert over.klass == HISTORICAL_ANCHOR and over.reason == "disposition", \
+        "the disposition override must fire on the exact 5-tuple key"
+    wrong = (key[0], key[1], key[2], key[3], key[4] + 999)  # same line, wrong column
+    nochange = classify_line_occurrences(line, rel="skills/x/SKILL.md", lineno=1,
+                                         fenced=False, disposition={wrong: HISTORICAL_ANCHOR})[0]
+    assert nochange.klass == REWRITE_AT_FLIP, \
+        "a wrong-column disposition key must NOT override (column-offset is load-bearing)"
+
+
 # ── AC5: disjointness — no new production must-rewrite literal ────────────────
 def test_disjoint_no_new_production_must_rewrite():
     """The new tool's own source adds NO production `must-rewrite` literal to

@@ -1,6 +1,6 @@
 ---
 slice: slice-107-inventory-vault-flip-prose-surface
-stage: build
+stage: code-review
 updated: 2026-06-03
 next-action: run /validate-slice
 risk-tier: medium
@@ -9,7 +9,7 @@ critic-required: true
 
 # Milestone: slice-107 inventory-vault-flip-prose-surface
 
-**Stage**: build
+**Stage**: code-review
 **Next action**: run `/validate-slice`
 **Updated**: 2026-06-03
 **Risk tier**: medium — Critic required: yes (new `tools/*.py` classifier — in-house methodology surface; AP-4)
@@ -19,7 +19,8 @@ critic-required: true
 - [x] /slice — 2026-06-03
 - [x] /design-slice — 2026-06-03
 - [x] /critique — 2026-06-03 — NEEDS-FIXES (dual review: first-Critic BLOCKED + meta-Critic EXTEND; user-triaged)
-- [x] /build-slice — 2026-06-03 — SHIPPED (318 enumerated; 15/15 tool tests; full methodology suite 1404 green; 2 deviations logged + harmonized)
+- [x] /build-slice — 2026-06-03 — SHIPPED (318 enumerated; tool tests green; 2 deviations logged + harmonized)
+- [x] /code-review — 2026-06-03 — FINDINGS (0B/2M/3m; ALL addressed in-round — M1 verb-gap closed → 318/0/0/0; M2 disposition test added; m1/m2/m3 fixed)
 - [ ] /validate-slice
 - [ ] /reflect
 
