@@ -8,3 +8,10 @@
 skills/**/SKILL.md text eol=lf
 skills/diagnose/passes/*.md text eol=lf
 agents/*.md text eol=lf
+
+# slice-109 / ADR-098 (Critic B1): the slice-queue is a tool-owned, regenerable
+# artifact written via the EOL-PRESERVING CAS channel (safe_rewrite_text). Pin it
+# LF so a core.autocrlf=true checkout cannot make it CRLF on disk — which would
+# diverge the CAS write's bytes from the prior LF-faithful safe_write_text output
+# (the AC4 byte-identity precondition is now ENFORCED here, not assumed).
+architecture/slice-queue.md text eol=lf

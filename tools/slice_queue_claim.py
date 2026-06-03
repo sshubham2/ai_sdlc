@@ -95,7 +95,14 @@ from pathlib import Path
 
 from tools import _stdout
 from tools._vault_paths import VAULT_ROOT
-from tools._vault_write import safe_write_text  # slice-094 VWS-1: R-32-safe routed write
+from tools._vault_write import (  # slice-094 VWS-1 + slice-109 / ADR-098 CAS routing
+    StaleVaultBaseError,
+    safe_rewrite_text,
+    safe_write_text,
+)
+
+# slice-109 / ADR-098: bounded CAS retry budget (mirrors ADR-088 vault_edit rewrite).
+_CAS_RETRIES = 5
 
 
 _QUEUE_FILENAME = "slice-queue.md"
@@ -533,10 +540,44 @@ def _atomic_write_text(path: Path, text: str) -> None:
     EPERM-retry. Byte output is IDENTICAL to the prior inline ``.tmp`` +
     ``write_text(newline="")`` + ``os.replace`` pattern (``safe_write_text`` is
     LF-faithful per slice-094 B1), so PSQ-2 byte-equal round-trip assertions are
-    preserved. The wrapper is retained so its callers are unchanged. NB: the
-    read-modify-write window in the callers is a documented flip-residual (B2).
+    preserved. **slice-109 (code-review m1)**: this wrapper is now PRODUCTION-
+    ORPHANED — `main`'s claim/release RMW routes through `_cas_rewrite` (ADR-098);
+    it is retained ONLY for its direct-helper test (`test_psq_2_claim_machinery`)
+    + as the slice-094 byte-equality anchor, NOT a production write path. Full
+    removal is deferred to a slice-061 AI-bloat / cleanup pass (out of this slice's
+    tight scope; the retained `safe_write_text` import stays VWS-1-routed).
     """
     safe_write_text(path, text)
+
+
+def _cas_rewrite(path: Path, compose, *, always_write: bool) -> bool:
+    """Read → compose → compare-and-swap write, with bounded retry (slice-109 /
+    [[ADR-098]]) — the post-flip lost-update-safe replacement for PCR's git-merge
+    reconciliation of the claim/release RMW.
+
+    ``compose(current_text: str) -> str`` re-runs on the FRESH re-read base each
+    attempt (single-read invariant, Critic M1) — a concurrent claim/release is
+    re-applied on top, never clobbered. ``expected_base`` is the read bytes (never
+    a constant — VWS-1 m1). Returns ``True`` if a write occurred, ``False`` if a
+    no-op (``new == current`` and not ``always_write``). Raises
+    ``StaleVaultBaseError`` on retry-budget exhaustion (fail-visible — never a
+    silent fall-back to a clobbering whole-file write). ``compose`` exceptions
+    (e.g. ``ClaimUsageError``) propagate to the caller unchanged."""
+    for _attempt in range(_CAS_RETRIES):
+        base = path.read_bytes() if path.exists() else b""
+        current = base.decode("utf-8")
+        new_text = compose(current)
+        if not always_write and new_text == current:
+            return False
+        try:
+            safe_rewrite_text(path, new_text, expected_base=base)
+            return True
+        except StaleVaultBaseError:
+            continue  # a concurrent writer landed first — re-read + re-apply
+    raise StaleVaultBaseError(
+        f"_cas_rewrite: CAS retry budget ({_CAS_RETRIES}) exhausted for {path} "
+        f"(persistent concurrent contention)"
+    )
 
 
 # ---------------------------------------------------------------------
@@ -592,28 +633,37 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        text = queue_path.read_text(encoding="utf-8")
+        # slice-109 / ADR-098: the read→apply→write RMW routes through _cas_rewrite
+        # (compare-and-swap, bounded retry) — post-flip lost-update safety without
+        # git/PCR. apply_claim/apply_release re-run on the fresh re-read base each
+        # attempt; a concurrent claim/release is re-applied, not clobbered (Critic M1).
         if args.claim is not None:
             name, email = read_git_config_user()
             claim_user = f"{name} {email}"
             claim_at = _now_iso8601_utc()
-            new_text = apply_claim(text, args.claim, claim_user, claim_at, force=False)
-            if new_text != text:
-                _atomic_write_text(queue_path, new_text)
+            _cas_rewrite(
+                queue_path,
+                lambda t: apply_claim(t, args.claim, claim_user, claim_at, force=False),
+                always_write=False,
+            )
             print(f"CLAIMED {args.claim} by {claim_user} at {claim_at}")
             return 0
         if args.force_claim is not None:
             name, email = read_git_config_user()
             claim_user = f"{name} {email}"
             claim_at = _now_iso8601_utc()
-            new_text = apply_claim(text, args.force_claim, claim_user, claim_at, force=True)
-            _atomic_write_text(queue_path, new_text)
+            _cas_rewrite(
+                queue_path,
+                lambda t: apply_claim(t, args.force_claim, claim_user, claim_at, force=True),
+                always_write=True,
+            )
             print(f"FORCE-CLAIMED {args.force_claim} by {claim_user} at {claim_at}")
             return 0
         # args.release is not None
-        new_text = apply_release(text, args.release)
-        if new_text != text:
-            _atomic_write_text(queue_path, new_text)
+        wrote = _cas_rewrite(
+            queue_path, lambda t: apply_release(t, args.release), always_write=False
+        )
+        if wrote:
             print(f"RELEASED {args.release}")
         else:
             print(f"RELEASED {args.release} (already unclaimed; no-op)")

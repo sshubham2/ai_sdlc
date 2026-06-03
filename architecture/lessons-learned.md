@@ -2235,3 +2235,15 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 ### Pattern
 - A **versioned Critic-prompt refinement** (vN.N, no new `-D` rule-ID — FBCD-1 v1.1 / CCC-1 v1.1) is a FULL version-bumping slice carrying the entire BC-PROJ-16 cascade (rolling-test rename + 12-literal sweep + predecessor docstring line + precedent-chain append + shippability #75 repoint + #114=max+1), NOT a light 1-paragraph prose edit. Budget accordingly.
 - On a **counted-set-cardinality-changing slice, run the design's own count-pin grep recipe EXHAUSTIVELY and act on EVERY hit** — the slice's own rule (sub-mode c: "don't enumerate only the obvious site") applies first to its own diff. The meta-Critic remains the backstop for the one site the first sweep misses.
+
+## Slice 109 (add-post-flip-vault-conflict-safety) — 2026-06-04
+
+### Worked
+- The CAS channel (slice-097's `safe_rewrite_text`) transferred cleanly to the Python queue writers; the barrier-synced `multiprocessing(spawn)` proof (mirroring slice-097's pattern) gave a real, non-vacuous cross-process lost-update proof first try (distinct picks + empty-base create-race + mixed 3-writer all 0-lost; naive arm loses).
+- The 3-Critic stack again caught NON-OVERLAPPING defect classes (design: B1/M1/M2; meta: M-add-1/M-add-2; code: the M1 name-indirection AST-shape gap the design+meta stack reasoned past). AP-19 N+1.
+
+### Didn't work
+- The first m1 plan ("recognize routed only when `expected_base=` present") was near-VACUOUS — Python already makes the bare form a `TypeError`. It took plan-mode (→ non-constant) AND /code-review (→ resolve name-indirection) to make the guard actually close the CAS-defeat class. A defense-in-depth guard's leverage must be measured against what the language already enforces.
+
+### Pattern
+- A guard checking "is X a constant" must resolve ONE hop of NAME-INDIRECTION (a module-level name bound to a constant), and the APED-1 battery must EXECUTE the name-bound variant — the design+meta stack reasons about "constant" abstractly; only code-execution finds the `ast.Name`-vs-`ast.Constant` gap (AP-4 code-Critic-mandatory-for-AST-tools + AP-2 fix-is-a-fresh-claim, both N+1).

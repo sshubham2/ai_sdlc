@@ -109,9 +109,15 @@ _VAULT_ROOT_FUNCS: frozenset[str] = frozenset({"resolve_vault_root"})
 # safe channel — exempt by construction.
 _EXEMPT_MODULES: frozenset[str] = frozenset({"_vault_write"})
 
-# The routed safe-channel functions. A Call to either (by bare name) is a routed
-# site — the post-routing seam writers + vault_edit use these.
-_ROUTED_FUNCS: frozenset[str] = frozenset({"safe_write_text", "safe_append_text"})
+# The routed safe-channel functions. A Call to one of these (by bare name) is a
+# routed site — the post-routing seam writers + vault_edit use these. slice-109 /
+# ADR-098 adds the CAS channel `safe_rewrite_text`; UNLIKE the other two it is
+# routed ONLY with a non-constant `expected_base=` (a literal base, e.g. b"", is
+# CAS-defeating — Critic m1), enforced in `_is_routed_call`. The set is pinned
+# closed by test_routed_funcs_pinned so a 4th channel needs an explicit review.
+_ROUTED_FUNCS: frozenset[str] = frozenset(
+    {"safe_write_text", "safe_append_text", "safe_rewrite_text"}
+)
 
 # Scoped-out allowlist: module STEM -> COUNT of CLEAN-SCOPED-OUT vault write ops.
 # parallel_conflict_resolver is git-coupled (its concurrent mutation surfaces as
@@ -355,14 +361,21 @@ def _write_target(call: ast.Call) -> tuple[ast.expr, str] | None:
     Covered channels (M1 — the set whose absence is the docstring 'fail-closed'
     guarantee): `.write_text`/`.write_bytes`; builtin `open`/`io.open`(w/a/x);
     `os.open`(write-flags); `Path.open`(w/a/x); `os.replace`/`os.rename`(→dst);
-    `shutil.move`/`copyfile`/`copy`/`copy2`(→dst). A channel outside this set is
-    NOT a silent pass to ignore lightly — extend this set + the APED-1 battery
-    before a new write API enters `tools/`."""
+    `shutil.move`/`copyfile`/`copy`/`copy2`(→dst); `safe_rewrite_text`(→arg0,
+    slice-109/ADR-098 — detected so a degenerate constant-base CAS call is flagged,
+    not silently skipped). A channel outside this set is NOT a silent pass to ignore
+    lightly — extend this set + the APED-1 battery before a new write API enters
+    `tools/`."""
     func = call.func
     # Bare-name builtin open(target, mode)
     if isinstance(func, ast.Name) and func.id == "open":
         tgt = _builtin_open_target(call)
         return (tgt, "open") if tgt is not None else None
+    # slice-109 / ADR-098 (Critic m1): bare-name safe_rewrite_text(target, ...).
+    # Reached only when _is_routed_call rejected it (constant/absent expected_base)
+    # → surface the degenerate CAS-defeat as an un-routed vault write.
+    if isinstance(func, ast.Name) and func.id == "safe_rewrite_text":
+        return (call.args[0], "safe_rewrite_text") if call.args else None
     if isinstance(func, ast.Attribute):
         attr = func.attr
         recv = func.value
@@ -395,17 +408,47 @@ def _write_target(call: ast.Call) -> tuple[ast.expr, str] | None:
             if len(call.args) >= 2:
                 return (call.args[1], f"shutil.{attr}")
             return None
+        if attr == "safe_rewrite_text":                    # m.safe_rewrite_text(target, ...) — slice-109/ADR-098
+            return (call.args[0], "safe_rewrite_text") if call.args else None
     return None
 
 
-def _is_routed_call(call: ast.Call) -> bool:
-    """A Call to safe_write_text / safe_append_text (the routed safe channel)."""
+def _is_routed_call(
+    call: ast.Call, module_consts: dict[str, ast.expr] | None = None
+) -> bool:
+    """A Call to a routed safe channel (safe_write_text / safe_append_text /
+    safe_rewrite_text). slice-109 / ADR-098 (Critic m1 + code-review M1):
+    `safe_rewrite_text` is routed ONLY when an `expected_base=` keyword is present
+    AND its value does not RESOLVE to a constant — a literal base (`b""`) **OR a
+    module-level name bound to a constant** (`expected_base=_EMPTY` where
+    `_EMPTY = b""`) is a CAS-defeat, so it is NOT auto-cleaned here; `_write_target`
+    then flags it as an un-routed vault write. A genuinely dynamic/local base (the
+    real writers' `expected_base=base` read-bytes result — not a module constant)
+    stays routed. The literal AND the name-indirection variants are both EXECUTED
+    by the APED-1 battery (code-review M1 closed the name-indirection gap)."""
     func = call.func
     if isinstance(func, ast.Name):
-        return func.id in _ROUTED_FUNCS
-    if isinstance(func, ast.Attribute):
-        return func.attr in _ROUTED_FUNCS
-    return False
+        name: str | None = func.id
+    elif isinstance(func, ast.Attribute):
+        name = func.attr
+    else:
+        return False
+    if name not in _ROUTED_FUNCS:
+        return False
+    if name == "safe_rewrite_text":
+        kw = next((k for k in call.keywords if k.arg == "expected_base"), None)
+        if kw is None:
+            return False
+        val = kw.value
+        # Resolve a module-level name to its bound value (the name-indirection
+        # CAS-defeat, code-review M1); a local/unresolvable name is dynamic → routed.
+        if isinstance(val, ast.Name) and module_consts is not None:
+            resolved = module_consts.get(val.id)
+            if resolved is not None:
+                val = resolved
+        if isinstance(val, ast.Constant):
+            return False
+    return True
 
 
 def _enclosing_func(node: ast.AST) -> ast.AST | None:
@@ -435,7 +478,7 @@ def audit_module(path: Path, rel: str, result: AuditResult) -> None:
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
-        if _is_routed_call(node):
+        if _is_routed_call(node, module_consts):
             result.sites_routed += 1
             continue
         wt = _write_target(node)

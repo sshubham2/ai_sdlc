@@ -250,6 +250,69 @@ def test_routed_call_not_flagged_and_counted(tmp_path: Path) -> None:
     assert result.sites_routed == 1
 
 
+def test_safe_rewrite_text_recognized_as_routed(tmp_path: Path) -> None:
+    """slice-109 / ADR-098 (AC3): a safe_rewrite_text call WITH a non-constant
+    expected_base= is the routed CAS channel — CLEAN, counted as a routed site."""
+    root = _plant(
+        tmp_path, "good_cas",
+        "from tools._vault_write import safe_rewrite_text\n"
+        "from pathlib import Path\n"
+        "def f(root: Path, base: bytes) -> None:\n"
+        "    safe_rewrite_text(root / 'architecture' / 'slice-queue.md', 'x', expected_base=base)\n",
+    )
+    result = audit_root(root)
+    assert result.status == "clean"
+    assert result.sites_routed == 1
+
+
+def test_safe_rewrite_text_degenerate_base_flagged(tmp_path: Path) -> None:
+    """slice-109 / ADR-098 (Critic m1): a safe_rewrite_text call with a CONSTANT
+    expected_base (e.g. b"") is CAS-defeating — NOT auto-cleaned; it surfaces as an
+    un-routed vault write VIOLATION rather than a silent skip."""
+    root = _plant(
+        tmp_path, "evil_cas",
+        "from tools._vault_write import safe_rewrite_text\n"
+        "from pathlib import Path\n"
+        "def f(root: Path) -> None:\n"
+        "    safe_rewrite_text(root / 'architecture' / 'slice-queue.md', 'x', expected_base=b'')\n",
+    )
+    result = audit_root(root)
+    assert len(result.violations) == 1, (
+        f"degenerate constant-base safe_rewrite_text not flagged: {result.violations}"
+    )
+    assert result.violations[0].channel == "safe_rewrite_text"
+    assert result.sites_routed == 0
+
+
+def test_safe_rewrite_text_name_bound_constant_base_flagged(tmp_path: Path) -> None:
+    """slice-109 / code-review M1: the name-indirection CAS-defeat — `expected_base`
+    bound to a MODULE-LEVEL constant (`_EMPTY = b''`) — resolves to a constant and
+    is FLAGGED, not just the literal form. A genuinely dynamic/local base stays
+    routed (covered by test_safe_rewrite_text_recognized_as_routed)."""
+    root = _plant(
+        tmp_path, "name_bound_cas",
+        "from tools._vault_write import safe_rewrite_text\n"
+        "from pathlib import Path\n"
+        "_EMPTY = b''\n"
+        "def f(root: Path) -> None:\n"
+        "    safe_rewrite_text(root / 'architecture' / 'slice-queue.md', 'x', expected_base=_EMPTY)\n",
+    )
+    result = audit_root(root)
+    assert len(result.violations) == 1, (
+        f"name-bound constant-base CAS-defeat not flagged: {result.violations}"
+    )
+    assert result.violations[0].channel == "safe_rewrite_text"
+    assert result.sites_routed == 0
+
+
+def test_routed_funcs_pinned() -> None:
+    """slice-109 / ADR-098 (AC3): the routed-channel set is pinned CLOSED — a 4th
+    channel needs an explicit, reviewed change (no silent widening of the hole)."""
+    assert vws._ROUTED_FUNCS == frozenset(
+        {"safe_write_text", "safe_append_text", "safe_rewrite_text"}
+    )
+
+
 def test_tmp_target_not_flagged(tmp_path: Path) -> None:
     """A write to a .tmp sibling (the atomic-replace staging file) is not a vault
     write — its name does not resolve to a vault literal."""

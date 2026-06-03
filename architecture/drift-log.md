@@ -784,3 +784,17 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-108 surface.
+
+## Audit (slice-109-add-post-flip-vault-conflict-safety) — 2026-06-04
+
+**Trigger**: slice-109 pre-finish gate (/drift-check full mode)
+**Scope**: full — design.md + mission-brief vs the slice's code: `tools/slice_queue_writer.py` (record_pick + write_slice_queue route the RMW through CAS `safe_rewrite_text`; graphify `active_blasts` hoisted OUT of the retry loop), `tools/slice_queue_claim.py` (`_cas_rewrite`; main claim/force-claim/release routed), `tools/vault_write_safety_audit.py` (`safe_rewrite_text` in `_ROUTED_FUNCS` + detected channel + non-constant-`expected_base` recognition), `.gitattributes` (`architecture/slice-queue.md eol=lf`), `tests/methodology/test_post_flip_queue_cas.py` + `test_post_flip_queue_cas_concurrency.py` (new) + `test_vault_write_safety_audit.py` (+3 tests), `architecture/shippability.md` (row #115), `architecture/risk-register.md` (R-32 residual-closed paragraph, stays `mitigating`), `architecture/decisions/ADR-098`. MEPD-1 EXCLUDE — no RULE-ID / no methodology-changelog entry / no VERSION bump.
+**Result**: CLEAN — vault and code aligned; no drift.
+
+### Drift findings
+- None. design.md "What's new" ↔ code: the 3 RMW writers call `safe_rewrite_text(..., expected_base=base)` (structural pin green); VWS-1 audit clean (7 routed) AND flags a constant-base degenerate call (negative test green); `.gitattributes` carries the `architecture/slice-queue.md eol=lf` rule; the concurrency proof is non-vacuous (naive arm loses); shippability row #115 + the R-32 slice-109 paragraph present.
+- No new RULE-ID / no VERSION bump (MEPD-1 EXCLUDE, mirrors slices 097/098) → MCFS-1/AVFS-1/TVFS-1/PMI-1 unaffected (all version surfaces unchanged at 0.83.0). No SKILL.md edit (OSDG-1 N/A — AC3 `/commit-slice` RETIRE deferred to the flip slice per ADR-089). R-32 stays `mitigating` (STP-1 green — no status change).
+- BC-PROJ-3 / BC-GLOBAL-2: this slice performed NO destructive git checkout/restore/stash revert of uncommitted work.
+
+### Resolutions
+- None required — vault and code aligned for the slice-109 surface.
