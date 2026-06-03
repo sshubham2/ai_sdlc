@@ -34,6 +34,24 @@ Rules are identified by short IDs (e.g., `META-1`, `LINT-MOCK-1`, `WIRE-1`) for 
 
 ---
 
+## v0.82.0 — 2026-06-03
+
+**Slice loop decoupled from `diagnose-out/` in both directions: the worktree derived-dir seed is retired ([[ADR-094]]) and BCR-1 is redefined consume-only ([[ADR-095]])** (slice-105; ADR-094 partial-supersedes [[ADR-090]]'s seed-step, ADR-095 partial-supersedes [[ADR-055]]'s round-trip half; mints **no new RULE-ID** — it retires one mechanic and redefines one existing rule; MEPD-1 posture: **INCLUDE** — a behaviour-changing slice (a `/reflect` that wrote the `**Addressed:**` round-trip line yesterday must not today; a `/slice`/`/build-slice` that seeded the worktree yesterday must not today), shipped with a 5-part PMI-1 atomic bump 0.81.0 → 0.82.0). **R-20 fully closed.**
+
+### Retired
+
+- **Worktree derived-dir seed (ADR-094)**
+  BRANCH-3 ([[ADR-090]]) seeded the gitignored `diagnose-out/` + `graphify-out/` into every fresh worktree (`tools/_worktree_paths.py::seed_derived_dirs` + the legacy `cp -r` in `skills/build-slice/SKILL.md`). Measured ~7 MB/worktree, mostly stale/junk: `graphify-out/graph.json` is regenerable and the copy is stale (reflects main-tree, not slice, code), a nested `diagnose-out/graphify-out/graph.json` was pure junk, and the only non-regenerable part (`diagnose-out/backlog.md`) had a single live consumer — `tests/methodology/test_bcr_1_round_trip_end_to_end.py` — which also failed on a fresh clone / CI. With BCR-1's round-trip retired (below) that test is deleted, so the seed has no consumer. `seed_derived_dirs()` + `_DERIVED_DIRS` are removed from `tools/_worktree_paths.py`; `/slice` Step 5.5 and `/build-slice` `### Branch state` no longer seed/`cp -r` on any path; `graphify-out/` is regenerated on demand (slice-accurate, not stale). **R-20** moves from `retired` (mitigated) to **fully closed** (mechanism removed). ADR-094 partial-supersedes ADR-090's seed-step ONLY — BRANCH-3's worktree-at-pick timing + path convention stay active; ADR-090 is left byte-unmodified per the append-only ADR-family convention.
+  - **Rule reference**: ADR-094 (slice-105; partial-supersedes ADR-090's seed-step; closes R-20).
+  - **Defect class**: ~7 MB of stale/junk derived data copied into every worktree + a non-portable self-hosting test reading the live gitignored `diagnose-out/backlog.md` (failed on fresh clone / CI).
+  - **Validation**: `tests/methodology/test_worktree_paths.py` (seed helper gone, path/branch intact), `tests/methodology/test_r_20_retired.py` (R-20 stays retired), the slice-105 seedless-parity mid-slice smoke (methodology suite green with no `diagnose-out/`/`graphify-out/` present), `tools/branch_workflow_audit.py` (unaffected — imports path/branch only).
+
+- **BCR-1 round-trip-write retired → BCR-1 is consume-only (ADR-095)**
+  BCR-1 ([[ADR-055]], slice-053) minted a two-direction "Backlog **Consume-and-Round-trip**" discipline: `/slice` consults `diagnose-out/backlog.md` when present (consume) and `/reflect` writes an `**Addressed:** slice-NNN` line into each closed `**Closes:** SC-NNN` block (round-trip). Under BRANCH-3 `/reflect` runs in the worktree where `diagnose-out/` is gitignored, so the round-trip-write lands in a copy **discarded at `/commit-slice --merge`** — a dead write that never reaches the main-tree backlog. ADR-095 retires it: **BCR-1 is now consume-only**. `/slice`'s source-#7 consume-side consult is **unchanged**; the `**Closes:** SC-NNN` sentinel is demoted to inert documentation (no automation consumer). The reflect-side anchor tests (`test_bcr_1_backlog_round_trip.py` #4–#8) + the input-contract end-to-end test (`test_bcr_1_round_trip_end_to_end.py`) are removed; the consume-side tests (#1–#3) stay. ADR-095 partial-supersedes ADR-055's round-trip half ONLY — the consume half remains active; ADR-055 is left byte-unmodified.
+  - **Rule reference**: ADR-095 (slice-105; partial-supersedes ADR-055's round-trip half; BCR-1 redefined consume-only).
+  - **Defect class**: a `/reflect` round-trip-write that is dead under BRANCH-3 (lost at merge) yet kept the slice loop coupled to `diagnose-out/` (forcing the ADR-094 seed).
+  - **Validation**: `tests/methodology/test_bcr_1_backlog_round_trip.py` (consume-side #1–#3 survive, reflect-side #4–#8 removed), `skills/reflect/SKILL.md` OSDG-1 drift test, the `test_v_0_82_0_decouple_*` entry-pins.
+
 ## v0.81.0 — 2026-06-02
 
 **BRANCH-3 — create the slice worktree at `/slice` pick-time (not `/build-slice`); `slice-queue.md` stays a shared main-tree ledger with an append-only `## Pick log`** (slice-099; [[ADR-090]] mints a new rule on the BRANCH-N axis; partial-supersedes [[ADR-063]] / BRANCH-2's build-time worktree *timing* (NOT its path convention); MEPD-1 posture: **INCLUDE** — a behavior-changing rule that moves *when* every slice's worktree is created, with a 5-part PMI-1 atomic bump 0.80.0 → 0.81.0).

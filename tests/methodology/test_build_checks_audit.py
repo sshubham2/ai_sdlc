@@ -1932,6 +1932,63 @@ def test_bc_proj_15_has_expected_structural_identity():
     )
 
 
+def test_bc_proj_16_has_expected_structural_identity():
+    """BC-PROJ-16 (slice-105 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity (version-bump-obligation-set rule).
+    Canonical fixture = subject; these literal constants = git-tracked oracle
+    (ADR-028). BCI-1 separately asserts the gitignored live build-checks.md
+    matches the fixture.
+
+    Defect class: a silent truncation / mis-author of BC-PROJ-16 would lose the
+    "version-bumping slices must rename the rolling version-sync test + bump its
+    shippability citation + use catalog-index=max+1" evergreen check with no loud
+    signal (R-4 class). The rolling-test rename recurred N>=11; the discipline
+    needs a build-check, not the per-version-bump tribal knowledge in one
+    test docstring.
+
+    BC-PROJ-16 carries NO trigger/negative anchors by design: its primary signal
+    is the version-file glob (`VERSION, plugin.yaml, pyproject.toml,
+    methodology-changelog.md`), and a negative-anchor final filter would suppress
+    the glob path too (BC-PROJ-4/5/11 precedent: glob rules without negative
+    anchors).
+
+    Rule reference: BC-1 (slice-105 /reflect Step 5b; user-approved project
+    promotion of the version-bump-obligation-set discipline).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-16" in p_by_id, "BC-PROJ-16 not parsed from project fixture"
+    p16 = p_by_id["BC-PROJ-16"]
+    assert p16.severity == "Important", f"BC-PROJ-16 severity: {p16.severity!r}"
+    assert p16.applies_to == (
+        "VERSION", "plugin.yaml", "pyproject.toml", "methodology-changelog.md",
+    ), f"BC-PROJ-16 applies_to mismatch: got {p16.applies_to!r}"
+    assert p16.trigger_keywords == (
+        "version bump", "pmi-1", "version cascade", "version-sync",
+        "ai-sdlc-version",
+    ), f"BC-PROJ-16 trigger_keywords mismatch: got {p16.trigger_keywords!r}"
+    assert p16.trigger_anchors == (), (
+        f"BC-PROJ-16 trigger_anchors mismatch (expected none): "
+        f"got {p16.trigger_anchors!r}"
+    )
+    assert p16.negative_anchors == (), (
+        f"BC-PROJ-16 negative_anchors mismatch (expected none): "
+        f"got {p16.negative_anchors!r}"
+    )
+    assert p16.check and p16.check.strip(), "BC-PROJ-16 check must be non-empty"
+    assert "rolling version-sync test" in p16.check, (
+        "BC-PROJ-16 check body MUST cite the rolling version-sync test rename"
+    )
+    assert "max(existing index)+1" in p16.check, (
+        "BC-PROJ-16 check body MUST cite the catalog-index=max+1 arithmetic"
+    )
+
+
 def test_bc_global_5_has_expected_structural_identity():
     """BC-GLOBAL-5 (slice-090 /reflect Step-5b global promotion) MUST parse to
     its expected full structural identity. Canonical global fixture = subject;

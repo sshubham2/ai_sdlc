@@ -64,16 +64,14 @@ wt_base="$(dirname "$repo_root")/$(basename "$repo_root")-wt"
    cd "$wt_base/slice-NNN-<slice-name>"
    git branch --show-current   # must match slice/NNN-<slice-name>
    ```
-   Do **NOT** re-seed the R-20 derived dirs — a BRANCH-3 pick already seeded them at `/slice`; only the create path (point 2) seeds (`seed_derived_dirs` skips an existing dir, but build must not re-enter the seed at all on this path). The worktree's filesystem is physically isolated from the main tree; uncommitted slice-A WIP on the main tree cannot contaminate slice-B's worktree.
-2. **If no worktree exists** (legacy pre-BRANCH-3 slice, a pick-time `WORKTREE=skip`, or HEAD == resolved default with a clean tree): create it now — the BRANCH-2 create path, and the **only** path that seeds (a BRANCH-3 pick already seeded at `/slice`, so build must never re-seed/clobber). Compute the path + branch from the shared `_worktree_paths` helper — the SAME source `/slice` Step 5.5 + `branch_workflow_audit` use, so the three surfaces cannot drift (AC5, primary create path):
+   (No derived-dir seed exists post-slice-105 / [[ADR-094]] — `diagnose-out/`/`graphify-out/` are no longer copied into worktrees on any path; a skill that needs the code graph regenerates it with `$PY -m graphify code .`.) The worktree's filesystem is physically isolated from the main tree; uncommitted slice-A WIP on the main tree cannot contaminate slice-B's worktree.
+2. **If no worktree exists** (legacy pre-BRANCH-3 slice, a pick-time `WORKTREE=skip`, or HEAD == resolved default with a clean tree): create it now — the BRANCH-2 create path. Compute the path + branch from the shared `_worktree_paths` helper — the SAME source `/slice` Step 5.5 + `branch_workflow_audit` use, so the three surfaces cannot drift (AC5, primary create path):
    ```bash
    # path + branch from the ONE shared source (no duplicated convention):
    $PY -m tools._worktree_paths --slice-folder slice-NNN-<slice-name> --repo-root "$repo_root"
    # → line 1 = <wt_path>;  line 2 = slice/NNN-<slice-name>
    git worktree add <wt_path> -b slice/NNN-<slice-name> "$default"
    cd <wt_path>
-   # Seed gitignored derived dirs from main tree (R-20) — via the SAME shared helper:
-   $PY -c "from tools._worktree_paths import seed_derived_dirs; import pathlib; seed_derived_dirs(pathlib.Path(r'$repo_root'), pathlib.Path('.'))"
    ```
    (POSIX shell; on Windows invoke via Git for Windows' bundled MSYS bash — same dependency convention as commit-slice Step 5b/5d.)
 
@@ -92,9 +90,6 @@ wt_base="$(dirname "$repo_root")/$(basename "$repo_root")-wt"
    git switch "$default"                           # back to clean default
    git worktree add "$wt_base/slice-NNN-<slice-name>" slice/NNN-<slice-name>   # no -b; branch exists
    cd "$wt_base/slice-NNN-<slice-name>"
-   # Then seed gitignored derived dirs (legacy inline form retained for self-containment per slice-099 m2):
-   if [ -d "$repo_root/diagnose-out" ]; then cp -r "$repo_root/diagnose-out" ./; fi
-   if [ -d "$repo_root/graphify-out" ]; then cp -r "$repo_root/graphify-out" ./; fi
    ```
    This sequence is **NOT idempotent by design** — re-running after a session death mid-scaffolding-commit fails LOUDLY at `git switch -c slice/NNN-<slice-name>` (`fatal: A branch named 'slice/NNN-<slice-name>' already exists`); recovery is via point 1 ("If the worktree already exists"), NOT silent state re-creation. **`-b` is OMITTED at `git worktree add`** because the branch was created at step 1 of this sequence; including `-b` would cause `fatal: A branch named '...' already exists`. Contrast with point 2's new-branch-at-worktree-create form `git worktree add <wt_path> -b slice/NNN-<slice-name> "$default"`. If you cannot or do not wish to apply this sequence (e.g., the dirty state is unrelated to slice scaffolding and you want to STOP for manual resolution), document `WORKTREE=skip` escape-hatch in `build-log.md` Events per Step 7c canonical shape.
 

@@ -1,8 +1,8 @@
 """Tests for tools/_worktree_paths.py (slice-099 / BRANCH-3 / ADR-090).
 
 Pins the shared single-source-of-truth helper: canonical worktree path +
-slice branch name + the R-20 derived-dir seed, plus that branch_workflow_audit
-still delegates to it (AC5 — no drift between the audit and the skill-prose CLI).
+slice branch name, plus that branch_workflow_audit still delegates to it
+(AC5 — no drift between the audit and the skill-prose CLI).
 """
 from __future__ import annotations
 
@@ -14,7 +14,6 @@ import pytest
 
 from tools._worktree_paths import (
     canonical_worktree_path,
-    seed_derived_dirs,
     slice_branch_name,
 )
 
@@ -47,54 +46,6 @@ def test_canonical_path_uses_main_name_wt_sibling():
     assert canonical_worktree_path("slice-001-foo", main) == (
         Path("/x/y/myrepo-wt/slice-001-foo")
     )
-
-
-# ------------------------------------------------------------------
-# seed_derived_dirs — idempotency (incl. partial-seed)
-# ------------------------------------------------------------------
-
-
-def _make_main_with_derived(tmp_path: Path) -> tuple[Path, Path]:
-    main = tmp_path / "main"
-    wt = tmp_path / "wt"
-    main.mkdir()
-    wt.mkdir()
-    (main / "diagnose-out").mkdir()
-    (main / "diagnose-out" / "report.html").write_text("x", encoding="utf-8")
-    (main / "graphify-out").mkdir()
-    (main / "graphify-out" / "graph.json").write_text("{}", encoding="utf-8")
-    return main, wt
-
-
-def test_seed_derived_dirs_copies_when_absent(tmp_path: Path):
-    main, wt = _make_main_with_derived(tmp_path)
-    seed_derived_dirs(main, wt)
-    assert (wt / "diagnose-out" / "report.html").read_text(encoding="utf-8") == "x"
-    assert (wt / "graphify-out" / "graph.json").read_text(encoding="utf-8") == "{}"
-
-
-def test_seed_derived_dirs_idempotent(tmp_path: Path):
-    """Second call is a no-op; an already-seeded (even partial) dir is never clobbered."""
-    main, wt = _make_main_with_derived(tmp_path)
-    seed_derived_dirs(main, wt)
-    # Partial-seed simulation: wt/graphify-out exists but is INCOMPLETE
-    # (content differs from main). The guard (dir-exists → skip) must NOT clobber it.
-    (wt / "graphify-out" / "graph.json").write_text("STALE", encoding="utf-8")
-    seed_derived_dirs(main, wt)  # idempotent re-run
-    assert (wt / "graphify-out" / "graph.json").read_text(encoding="utf-8") == "STALE"
-    # diagnose-out present from first call → untouched too
-    assert (wt / "diagnose-out" / "report.html").read_text(encoding="utf-8") == "x"
-
-
-def test_seed_derived_dirs_skips_missing_source(tmp_path: Path):
-    """No derived dirs in main → no-op, no error, no empty dirs created in wt."""
-    main = tmp_path / "main"
-    wt = tmp_path / "wt"
-    main.mkdir()
-    wt.mkdir()
-    seed_derived_dirs(main, wt)
-    assert not (wt / "diagnose-out").exists()
-    assert not (wt / "graphify-out").exists()
 
 
 # ------------------------------------------------------------------

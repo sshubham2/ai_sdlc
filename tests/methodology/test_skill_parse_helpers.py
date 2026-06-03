@@ -1,7 +1,9 @@
 """Pin slice-079 Fix E (slice-074 m4): shared `_branch_state_section` helper extracted from duplicated test corpus.
 
-Slice-074 m4: `tests/methodology/test_build_slice_skill_cp_r_step.py` + `test_build_slice_skill_dirty_tree_resolution.py`
-both define byte-equivalent `_branch_state_section` helpers. Fix E promotes to shared module.
+Slice-074 m4: `tests/methodology/test_build_slice_skill_cp_r_step.py` (deleted at slice-105 / ADR-094 with the
+worktree cp-r seed it pinned) + `test_build_slice_skill_dirty_tree_resolution.py` both defined byte-equivalent
+`_branch_state_section` helpers. Fix E promotes to shared module — still consumed by the surviving
+`test_build_slice_skill_dirty_tree_resolution.py` + `test_build_slice_skill_branch_state_preamble.py`.
 """
 from __future__ import annotations
 

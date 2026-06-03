@@ -5493,44 +5493,44 @@ def test_v_0_77_0_pcr_2b_shippability_consumer_propagation():
     )
 
 
-def test_version_files_synchronized_at_v_0_81_0():
-    """AC — 5-part PMI-1 atomic bump 0.80.0 → 0.81.0 (slice-099).
+def test_version_files_synchronized_at_v_0_82_0():
+    """AC — 5-part PMI-1 atomic bump 0.81.0 → 0.82.0 (slice-105).
 
     Verifies the 5 canonical version-bearing legs are synchronized at
-    `0.81.0` post-bump:
+    `0.82.0` post-bump:
       (1) `VERSION` file
       (2) `plugin.yaml` version field
       (3) `pyproject.toml [project].version` field (PVFS-1)
-      (4) `## v0.81.0` header in `methodology-changelog.md`
+      (4) `## v0.82.0` header in `methodology-changelog.md`
       (5) installed `~/.claude/ai-sdlc-VERSION` (AVFS-1; verified separately
           by the AVFS-1 audit; this test asserts legs 1-4 only — leg 5 is
           environment-dependent and may be absent on a fresh checkout,
           where AVFS-1 returns WARN per slice-030A meta-M3 parity)
 
-    Renamed from `_at_v_0_80_0` at slice-099 per the slice-067/072/073/078/080/081/083/088/095/099 etc.
+    Renamed from `_at_v_0_81_0` at slice-105 per the slice-067/072/073/078/080/081/083/088/095/099/105 etc.
     rename precedent (the version-files test follows live version; the
-    historical v0.80.0 entry persists in the methodology-changelog body).
+    historical v0.81.0 entry persists in the methodology-changelog body).
     slice-099 (BRANCH-3) corrected its design's "4-part" wording to this
     canonical 5-part shape — `pyproject.toml` leg 3 is load-bearing for the
     TVFS-1 pip-wheel rebuild.
     """
     version = read_file("VERSION").strip()
-    assert version == "0.81.0", (
-        f"VERSION file must equal '0.81.0' post-bump; got {version!r}. "
+    assert version == "0.82.0", (
+        f"VERSION file must equal '0.82.0' post-bump; got {version!r}. "
         "5-part PMI-1 leg 1 broken — re-run the bump or fix VERSION manually."
     )
     plugin_yaml = read_file("plugin.yaml")
-    assert "version: 0.81.0" in plugin_yaml or 'version: "0.81.0"' in plugin_yaml, (
-        "plugin.yaml must contain 'version: 0.81.0' post-bump (5-part PMI-1 leg 2)"
+    assert "version: 0.82.0" in plugin_yaml or 'version: "0.82.0"' in plugin_yaml, (
+        "plugin.yaml must contain 'version: 0.82.0' post-bump (5-part PMI-1 leg 2)"
     )
     pyproject = read_file("pyproject.toml")
-    assert 'version = "0.81.0"' in pyproject, (
-        "pyproject.toml [project].version must equal '0.81.0' post-bump (PVFS-1; "
+    assert 'version = "0.82.0"' in pyproject, (
+        "pyproject.toml [project].version must equal '0.82.0' post-bump (PVFS-1; "
         "5-part PMI-1 leg 3)"
     )
     changelog = read_file("methodology-changelog.md")
-    assert "## v0.81.0" in changelog, (
-        "methodology-changelog.md must contain '## v0.81.0' header post-bump "
+    assert "## v0.82.0" in changelog, (
+        "methodology-changelog.md must contain '## v0.82.0' header post-bump "
         "(5-part PMI-1 leg 4)"
     )
 
@@ -5702,4 +5702,100 @@ def test_v_0_81_0_branch_3_shippability_consumer_propagation():
     assert "pick" in row.lower(), (
         "shippability.md slice-099 row must reference 'pick' (the worktree-at-pick "
         "discipline this row pins) for catalog-runner discoverability"
+    )
+
+
+def test_v_0_82_0_decouple_entry_present_in_repo():
+    """methodology-changelog v0.82.0 / slice-105 decouple-slice-loop-from-
+    diagnose-out entry-pin (content-bearing per slice-051/.../099 precedent;
+    NOT a thin presence check).
+
+    Asserts substring presences in the v0.82.0 entry body (per design.md /
+    [[ADR-094]] + [[ADR-095]] §Decision):
+      (a) `## v0.82.0` dated header
+      (b) `ADR-094` (retire the worktree derived-dir seed)
+      (c) `ADR-095` (redefine BCR-1 consume-only)
+      (d) `BCR-1` (the rule redefined)
+      (e) `R-20` (fully closed by the seed removal)
+      (f) `consume-only` (BCR-1's new shape)
+      (g) `Rule reference` literal (META-1 mandatory enforcing-assertion)
+      (h) `partial-supersedes` (both ADRs partial-supersede their predecessors)
+
+    In-repo-only (reads the git-tracked changelog via `read_file`; no
+    `Path.home()` — classifies `clean`; the installed forward-sync is
+    covered by MCFS-1's whole-file gate).
+
+    Rule reference: slice-105 (ADR-094 partial-supersedes ADR-090's seed-step;
+    ADR-095 partial-supersedes ADR-055's round-trip half; methodology v0.82.0).
+    """
+    in_repo = read_file("methodology-changelog.md")
+    assert "## v0.82.0" in in_repo, (
+        "in-repo methodology-changelog.md missing v0.82.0 entry header — "
+        "slice-105 decouple entry was not added or was lost"
+    )
+    body = _extract_version_body(in_repo, "0.82.0")
+    assert "ADR-094" in body, (
+        "v0.82.0 entry body must reference ADR-094 (retire the worktree "
+        "derived-dir seed)"
+    )
+    assert "ADR-095" in body, (
+        "v0.82.0 entry body must reference ADR-095 (redefine BCR-1 consume-only)"
+    )
+    assert "BCR-1" in body, (
+        "v0.82.0 entry body must reference BCR-1 (the rule redefined consume-only)"
+    )
+    assert "R-20" in body, (
+        "v0.82.0 entry body must reference R-20 (fully closed by the seed removal)"
+    )
+    assert "consume-only" in body, (
+        "v0.82.0 entry body must state BCR-1 is 'consume-only' (the redefinition "
+        "ADR-095 ships)"
+    )
+    assert "Rule reference" in body, (
+        "v0.82.0 entry missing the literal 'Rule reference' line — META-1 "
+        "entry-pin obligation unmet"
+    )
+    assert "partial-supersedes" in body, (
+        "v0.82.0 entry must reference the partial-supersedes lineage — ADR-094 "
+        "partial-supersedes ADR-090's seed-step; ADR-095 partial-supersedes "
+        "ADR-055's round-trip half"
+    )
+
+
+def test_v_0_82_0_decouple_shippability_consumer_propagation():
+    """RPCD-1/SCPD-1 consumer-reference propagation: the slice-105 decouple
+    consumer reference MUST propagate into `architecture/shippability.md`
+    (the slice-105 catalog row) so the critical path can never silently
+    regress (BC-PROJ-10 paired entry-pin precedent).
+
+    BCR-1 traceability axis: the slice-105 row MUST cite the two new ADRs
+    (ADR-094 + ADR-095) AND the addressed risk (R-20) AND `consume-only` —
+    severing any silently breaks catalog→changelog→ADR→risk-register
+    traceability.
+
+    Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability axis.
+    """
+    catalog = read_file("architecture/shippability.md")
+    assert "slice-105-decouple-slice-loop-from-diagnose-out" in catalog, (
+        "architecture/shippability.md must contain a slice-105 row (BC-PROJ-10 "
+        "paired-entry-pin discipline; an uncatalogued pin is invisible to the catalog runner)"
+    )
+    row_start = catalog.find("| 112 | slice-105-decouple-slice-loop-from-diagnose-out")
+    assert row_start != -1, (
+        "architecture/shippability.md must contain the slice-105 catalog row "
+        "header `| 112 | slice-105-decouple-slice-loop-from-diagnose-out`"
+    )
+    row_end = catalog.find("\n| ", row_start + 1)
+    row = catalog[row_start:row_end] if row_end > 0 else catalog[row_start:row_start + 8000]
+    assert "ADR-094" in row, (
+        "shippability.md slice-105 row must cite ADR-094 (seed retirement) per BCR-1 traceability"
+    )
+    assert "ADR-095" in row, (
+        "shippability.md slice-105 row must cite ADR-095 (BCR-1 consume-only) per BCR-1 traceability"
+    )
+    assert "R-20" in row, (
+        "shippability.md slice-105 row must cite R-20 (the risk fully closed) per BCR-1 traceability"
+    )
+    assert "consume-only" in row, (
+        "shippability.md slice-105 row must reference 'consume-only' (BCR-1's new shape)"
     )

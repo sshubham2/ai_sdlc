@@ -719,3 +719,21 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned.
+
+## Audit (slice-105-decouple-slice-loop-from-diagnose-out) — 2026-06-03
+
+**Trigger**: slice-105 pre-finish gate (/drift-check full mode)
+**Scope**: full — ADR-094 (retire worktree derived-dir seed) + ADR-095 (BCR-1 consume-only) + design.md + mission-brief vs the slice's code/prose: `tools/_worktree_paths.py` (seed removal), `skills/{slice,build-slice,reflect}/SKILL.md` (seed/cp-r/round-trip prose removal + OSDG-1 mirror), `tests/methodology/{test_worktree_paths,test_resolve_slice_dir,test_bcr_1_backlog_round_trip,test_methodology_changelog}.py` + 2 deleted test modules, `architecture/risk-register.md` (R-20 closure), `architecture/shippability.md` (rows #53/#54/#56/#79/#107 reworded + new #112 + version-sync citation bump), `methodology-changelog.md` (v0.82.0), `CLAUDE.md` (BCR-1), VERSION/plugin.yaml/pyproject (0.82.0).
+**Result**: CLEAN — vault and code aligned; no drift.
+
+### Drift findings
+- None. ADR-094 claim ↔ code: `seed_derived_dirs()` + `_DERIVED_DIRS` + `import shutil` are absent from `tools/_worktree_paths.py`, and no `skills/*/SKILL.md` seeds or `cp -r`s `diagnose-out/`/`graphify-out/` (grep-clean across `tools/` + `skills/`; only historical / ADR / shippability-narrative references remain). `canonical_worktree_path` + `slice_branch_name` (the parts `branch_workflow_audit.py` imports) untouched — BRANCH-1 audit unaffected (exit 0).
+- ADR-095 claim ↔ code: `skills/reflect/SKILL.md` Step-2 round-trip bullet is now the RETIRED/consume-only note; the reflect-side anchor tests #4–#8 + `test_bcr_1_round_trip_end_to_end.py` are removed; the consume-side `/slice` source-#7 tests #1–#3 pass. BCR-1 is consume-only on every surface (CLAUDE.md, methodology-changelog v0.82.0, shippability #53).
+- Seedless-parity proven: full methodology suite 1387/0 with `diagnose-out/` + `graphify-out/` renamed aside → no live-`diagnose-out/` consumer remains in the slice loop.
+- ADR-094 (`status: accepted`, `reversibility: cheap`, `supersedes: ADR-090`) + ADR-095 (`status: accepted`, `reversibility: cheap`, `supersedes: ADR-055`) match design + their partial-supersession scope lines; ADR-055 + ADR-090 byte-unmodified (SUP-1 — `git diff --name-status master..HEAD -- architecture/decisions/` shows only `A ADR-094` / `A ADR-095`, zero `M`).
+- R-20 → `retired` with a slice-105 "fully closed — mechanism removed" closure note; no live test pins R-20 to a non-retired status (STP-1 green; `test_r_20_retired` passes).
+- Version cascade 0.81.0 → 0.82.0 across VERSION + plugin.yaml + pyproject + installed `~/.claude/ai-sdlc-VERSION` + methodology-changelog header; PMI-1 / PVFS-1 / AVFS-1 / MCFS-1 / TVFS-1 all PASS; OSDG-1 (slice/build-slice/reflect) drift tests green after the `~/.claude` mirror.
+- BC-PROJ-3 / BC-GLOBAL-2: this slice performed NO destructive git checkout/restore/stash revert of uncommitted work — the only temp-mutate-then-revert (seedless smoke) used `Rename-Item` aside + restore-in-`finally` (a temp-name swap), never git.
+
+### Resolutions
+- None required — vault and code aligned for the slice-105 surface.
