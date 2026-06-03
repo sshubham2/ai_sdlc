@@ -30,3 +30,6 @@ diagnose-out/
 # can leave one behind. The correct glob is `*.tmp` (v1's `*.<pid>.tmp` matched nothing —
 # temp files are `<name>.<pid>.tmp`). Never committed; never the replace target.
 *.tmp
+
+# Untracked documentation folder
+docs/
