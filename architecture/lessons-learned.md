@@ -2178,3 +2178,18 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 - **Before a destructive cut of an aggregate file, run a programmatic orphan-diff against the durable store** (slice-103 M2: 063/073 sole-copy). Strong build-check candidate — it just earned its keep with real data.
 - **The new-public-tool inventory fan-out recurs (N+1 on slice-100)** — one `tools/*.py` ripples into the migration-allowlist + VAULT_ROOT-importer count + cp1252-coverage list + every hardcoded INSTALL.md tool-count literal in `tests/methodology/test_*_tool_inventory.py`. Grep EVERY count literal across `tests/` on a new tool.
 - **The code-Critic is mandatory for a new parser/classifier tool (N+1 on slice-100)** — it caught two execution-level defects the design+meta stack structurally cannot reach: fail-OPEN empty-region (a heading-without-table passed silently) + a whole-line verdict-scan that re-introduced the slice's OWN AP-1 `marker in line_text` anti-pattern (RSAD-1). 3-Critic stack non-overlapping complementarity holds; do NOT collapse it on a new-parser-tool slice.
+
+## Slice 105 (decouple-slice-loop-from-diagnose-out) — 2026-06-03
+
+### Worked
+- Resuming a session-dead mid-build slice from a detailed `milestone.md` "On resume" + `build-log.md` Events reconstructed exact state (the Batch C→D boundary) with no lost work — the durable trackers earned their keep.
+- Establishing ground truth FIRST (full suite + targeted greps) before piling new batches on committed WIP correctly classified the transient PTFFD-1 red as an expected-Batch-D-fix, not a defect — avoided chasing a phantom.
+- The seedless-parity smoke (rename `diagnose-out/`+`graphify-out/` aside → run the full suite in a `finally`-protected block) is a high-signal, low-cost proof of a decoupling claim; it directly validated the headline AC and would have loudly caught any hidden live-`diagnose-out/` reader.
+- Atomic prose↔test batching (the Critic's M2 / M-add-1) held: every SKILL.md edit landed with its test cleanup in one batch, so no intermediate state red'd beyond the expected version/mirror drift fails.
+
+### Didn't work
+- The design's "Tests touched" table AND the design-Critic both missed the rolling version-sync test rename (`test_version_files_synchronized_at_v_0_81_0` → `_at_v_0_82_0` + its shippability #75 citation) — it surfaced late as the lone seedless-smoke red.
+- The design's "Row #105" shorthand propagated unchallenged through the Critic; the real next catalog index was #112 (indices ≠ slice numbers since slice-079 added two rows).
+
+### Pattern
+- **Version-bumping methodology slices carry a deterministic, recurring obligation set** — 5 version surfaces + `pip install --upgrade .` + rolling version-sync-test rename (+4 legs +docstring) + its shippability row #75 citation bump + new-catalog-index = `max(existing)+1`. It recurs every version bump (N≥11 on the test rename alone, per that test's own docstring) yet lives only in tribal knowledge / a test docstring. Strong build-check candidate. The design-Critic's structural acuity is high (13/13 VALIDATED); its blind spot is mechanical version-bump bookkeeping.

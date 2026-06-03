@@ -1,16 +1,16 @@
 ---
 slice: slice-105-decouple-slice-loop-from-diagnose-out
-stage: validate
+stage: complete
 updated: 2026-06-03
-next-action: run /reflect
+next-action: none (slice complete) — run /commit-slice to merge
 risk-tier: high
 critic-required: true
 ---
 
 # Milestone: slice-105 decouple-slice-loop-from-diagnose-out
 
-**Stage**: validate
-**Next action**: run `/reflect`
+**Stage**: complete
+**Next action**: run `/commit-slice` to generate the audit-grade commit + merge
 **Updated**: 2026-06-03
 **Risk tier**: high — Critic required: yes (mandatory: touches `tools/**/*.py` + `skills/*/SKILL.md` + `methodology-changelog.md`; partial-supersedes two codified ADRs — ADR-090 seed-step + ADR-055 round-trip half)
 
@@ -22,11 +22,11 @@ critic-required: true
 - [x] /build-slice — 2026-06-03 (all 6 batches done; pre-finish gate fully green; SHIPPED)
 - [x] /code-review — 2026-06-03 — FINDINGS: 1 minor (m1, advisory) ADDRESSED; 0 blockers, 0 majors
 - [x] /validate-slice — 2026-06-03 — PASS (5/5 ACs; shippability 111/111; VAL-1 clean)
-- [ ] /reflect
+- [x] /reflect — 2026-06-03 — Critic 13/13 VALIDATED + 3 MISSED (version-bump mechanics); BC-PROJ-16 promoted
 
 ## Current focus
 
-**Validated PASS — slice is built, reviewed, and reality-checked.** /validate-slice: all 5 ACs PASS with evidence (AC1 headline = seedless full suite 1387/0 with diagnose-out/graphify-out absent); shippability catalog 111/111 PASS (no regression); VAL-1 clean (0 secrets / 0 hallucinated imports); WS-1/ETC-1 N/A; all pre-catalog gates exit 0. One out-of-scope ADR-094 path-citation note logged for /reflect. **Next (user-driven): `/reflect`**, then `/commit-slice` — both intentionally NOT auto-run (user asked to stop before /reflect).
+**Slice shipped. Lessons captured. Auto-archiving.** /reflect complete: reflection.md written, lessons-learned appended, BC-PROJ-16 (version-bump-obligation-set) promoted + pinned (BCI-1 green), Critic calibration 13/13 VALIDATED with a 3-item MISSED pattern (version-bump mechanics). Slice moves to slices/archive/. **Next (user-driven): `/commit-slice --merge`** to merge slice/105 → master + tear down the worktree.
 
 ## On resume
 
