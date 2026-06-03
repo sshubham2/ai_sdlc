@@ -38,3 +38,9 @@ _Generated: 2026-06-03T09:37:29+00:00 by /slice during slice-107 definition_
 - slice-105-decouple-slice-loop-from-diagnose-out — picked 2026-06-03T06:00:57+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-106-route-project-frame-synth-via-vault-root — picked 2026-06-03T09:30:31+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-107-inventory-vault-flip-prose-surface — picked 2026-06-03T09:37:32+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
+
+## ADR number reservations (cross-session coordination)
+
+Parallel slices author ADRs in their own worktrees and cannot see each other's uncommitted ADR numbers. To avoid max+1 collisions, reservations are recorded here (slice-107 dual-review M3 / ADR-079 stranded-slice-coordination spirit):
+
+- **ADR-096, ADR-097** — reserved for **slice-107-inventory-vault-flip-prose-surface** (authored in its worktree, not yet merged). The parallel **slice-106** session MUST mint **ADR-098+** when it runs `/design-slice` (master tops at ADR-095; both M1 siblings reach for 096+ otherwise).
