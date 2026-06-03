@@ -76,10 +76,17 @@ from pathlib import Path
 
 from tools import _stdout
 from tools._vault_paths import VAULT_ROOT
-from tools._vault_write import safe_write_text  # slice-094 VWS-1: R-32-safe routed write
+from tools._vault_write import (  # slice-109 / ADR-098: CAS routing for the queue RMW
+    StaleVaultBaseError,
+    safe_rewrite_text,
+)
 
 
 _TOP_N = 10
+# slice-109 / ADR-098: bounded CAS retry budget (mirrors ADR-088 vault_edit rewrite).
+# On exhaustion the writer RAISES StaleVaultBaseError (fail-visible — never a silent
+# fall-back to a lost-update-prone whole-file write).
+_CAS_RETRIES = 5
 _QUEUE_FILENAME = "slice-queue.md"
 _INDEX_MD_REL = VAULT_ROOT / "slices" / "_index.md"  # VAULT_ROOT-routed (slice-068)
 _SLICES_DIR_REL = VAULT_ROOT / "slices"  # VAULT_ROOT-routed (slice-068)
@@ -779,27 +786,39 @@ def record_pick(
     line = f"- {slice_name} — picked {_iso8601_utc(now)} by {picker_identity}"
     prefix = f"- {slice_name} —"
 
-    text = out_path.read_text(encoding="utf-8") if out_path.exists() else ""
-    norm = text.replace("\r\n", "\n")
-    block = _extract_pick_log_block(norm)
-
-    if block:
-        # Idempotent: already recorded → no-op.
-        for ln in block.splitlines():
-            if ln.startswith(prefix):
+    # slice-109 / ADR-098: the read→compose→write cycle runs INSIDE a bounded CAS
+    # retry. Each attempt does ONE read_bytes() — its decode feeds the compose AND
+    # its bytes are the expected_base (single-read invariant, Critic M1) — so a
+    # concurrent writer that recorded a DIFFERENT slice's pick (distinct prefix) is
+    # seen on the re-read and both lines survive (Critic M2). The pick-log is
+    # non-regenerable provenance, so retry exhaustion RAISES loudly (Critic M-add-1).
+    for _attempt in range(_CAS_RETRIES):
+        base = out_path.read_bytes() if out_path.exists() else b""
+        norm = base.decode("utf-8").replace("\r\n", "\n")
+        block = _extract_pick_log_block(norm)
+        if block:
+            # Idempotent: this slice's line already present → no-op.
+            if any(ln.startswith(prefix) for ln in block.splitlines()):
                 return out_path
-        new_block = block.rstrip("\n") + "\n" + line
-        head = norm[: norm.rfind(block)].rstrip("\n")
-        new_text = head + "\n\n" + new_block + "\n"
-    else:
-        # First-pick edge: create the `## Pick log` section after the body.
-        base = norm.rstrip("\n")
-        new_text = f"{base}\n\n{_PICK_LOG_HEADING}\n\n{line}\n" if base else (
-            f"{_PICK_LOG_HEADING}\n\n{line}\n"
-        )
-
-    safe_write_text(out_path, new_text)
-    return out_path
+            new_block = block.rstrip("\n") + "\n" + line
+            head = norm[: norm.rfind(block)].rstrip("\n")
+            new_text = head + "\n\n" + new_block + "\n"
+        else:
+            # First-pick edge (incl. empty / no-pick-log base — the create race,
+            # Critic M-add-2): create the `## Pick log` section after the body.
+            head = norm.rstrip("\n")
+            new_text = f"{head}\n\n{_PICK_LOG_HEADING}\n\n{line}\n" if head else (
+                f"{_PICK_LOG_HEADING}\n\n{line}\n"
+            )
+        try:
+            safe_rewrite_text(out_path, new_text, expected_base=base)
+            return out_path
+        except StaleVaultBaseError:
+            continue  # a concurrent writer landed first — re-read + re-compose
+    raise StaleVaultBaseError(
+        f"record_pick: CAS retry budget ({_CAS_RETRIES}) exhausted for {out_path} "
+        f"(persistent concurrent contention)"
+    )
 
 
 # ---------------------------------------------------------------------
@@ -834,31 +853,11 @@ def write_slice_queue(
         out_path = repo_root / VAULT_ROOT / _QUEUE_FILENAME  # VAULT_ROOT-routed (slice-068)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # PSQ-2 (slice-072) integration: read existing queue and parse claims
-    # so they survive across /slice Step 6.5 regeneration on candidates
-    # whose names appear in the new top-10. Claims on dropped candidates
-    # are silently discarded per AC4. Per ADR-067 §Consequences + Critic
-    # B2 ACCEPTED-FIXED. Wrapped in try/except to keep PSQ-1 robust if
-    # PSQ-2 module is unavailable (bootstrap safety per slice-067
-    # ImportError-guard precedent).
-    existing_claims: dict[str, dict[str, object]] = {}
-    existing_pick_log = ""  # slice-099 / BRANCH-3: preserve `## Pick log` across regen
-    if out_path.exists():
-        try:
-            existing_text = out_path.read_text(encoding="utf-8")
-        except OSError:
-            existing_text = ""
-        # Pick-log extraction is independent of (and robust to) claim parsing —
-        # a malformed `### Candidates` block must NOT drop the pick log.
-        existing_pick_log = _extract_pick_log_block(existing_text)
-        try:
-            from tools.slice_queue_claim import parse_queue_text  # noqa: PLC0415
-            existing_claims = parse_queue_text(existing_text)
-        except Exception:
-            # PSQ-2 module missing OR malformed existing queue — non-fatal
-            # to PSQ-1's primary write; queue gets regenerated unclaimed.
-            existing_claims = {}
-
+    # slice-109 / ADR-098 (Critic M1 — graphify hoist): the graphify-derived blast
+    # radii + parallel-safety flags depend ONLY on hint_files / active slices /
+    # graph_path — NOT on the queue file's own bytes — so they are computed ONCE
+    # here, HOISTED OUT of the CAS retry loop below. A stale-base retry must never
+    # re-spawn the ~30s-per-candidate graphify subprocesses.
     graph_missing = graph_path is None or not graph_path.exists()
     # Active slices: skip blast-radius derivation entirely when graph
     # missing (per AC4-(c) — all candidates flag UNKNOWN-NO-GRAPH).
@@ -868,11 +867,9 @@ def write_slice_queue(
         active_blasts = derive_active_slice_blast_radius(
             repo_root, graph_path, blast_resolver=blast_resolver,
         )
-
     # Top-10 cap.
     top = candidates[:_TOP_N]
-
-    items: list[dict] = []
+    precomputed: list[tuple[dict, set[str] | None, str]] = []
     for c in top:
         hint_files = set(c.get("hint_files") or [])
         if graph_missing:
@@ -896,49 +893,70 @@ def write_slice_queue(
             flag, _ = compute_parallel_safety(
                 candidate_blast, active_blasts, graph_missing=False
             )
-        item = {
-            "name": c["name"],
-            "source": c["source"],
-            "blast_radius": blast_radius,
-            "parallel_safety": flag,
-            "effort": c["effort"],
-            "risk_retired": c["risk_retired"],
-        }
-        # PSQ-2 (slice-072) claim-preservation merge: copy claim metadata
-        # + forward-compat extras onto the item if the candidate name
-        # survived from the existing queue. Uses .get() to tolerate
-        # absent claim keys on unclaimed entries per meta-Critic m-add-2
-        # ACCEPTED-FIXED (parse_queue_text returns all entries; claim
-        # keys absent on unclaimed).
-        prev = existing_claims.get(c["name"])
-        if prev is not None:
-            claimed_by = prev.get("claimed_by")
-            claimed_at = prev.get("claimed_at")
-            if claimed_by and claimed_at:
-                item["claimed_by"] = claimed_by
-                item["claimed_at"] = claimed_at
-            extras = prev.get("_extra_field_lines") or []
-            if extras:
-                item["_extra_field_lines"] = list(extras)
-        items.append(item)
+        precomputed.append((c, blast_radius, flag))
 
-    body = format_queue_md(
-        items, now,
-        warn_no_graph=graph_missing,
-        active_slice_num=active_slice_num,
-        pick_log_block=existing_pick_log,  # slice-099 / BRANCH-3: preserve pick log
+    # slice-109 / ADR-098: the queue-byte-DEPENDENT compose (PSQ-2 claim-preservation
+    # parse + `## Pick log` preserve + format) runs INSIDE a bounded CAS retry. Each
+    # attempt does ONE read_bytes() — its decode feeds the compose AND its bytes are
+    # the expected_base (single-read invariant, Critic M1). The `## Candidates` list
+    # is regenerable, so retry exhaustion RAISES and is caught by /slice Step 6.5's
+    # ADR-064 non-fatal wrapper (Critic M-add-1) — NOT a silent lost-update.
+    for _attempt in range(_CAS_RETRIES):
+        base = out_path.read_bytes() if out_path.exists() else b""
+        existing_text = base.decode("utf-8")
+        # Pick-log extraction is independent of (and robust to) claim parsing —
+        # a malformed `### Candidates` block must NOT drop the pick log.
+        existing_pick_log = (
+            _extract_pick_log_block(existing_text) if existing_text else ""
+        )
+        existing_claims: dict[str, dict[str, object]] = {}
+        if existing_text:
+            try:
+                from tools.slice_queue_claim import parse_queue_text  # noqa: PLC0415
+                existing_claims = parse_queue_text(existing_text)
+            except Exception:
+                # PSQ-2 module missing OR malformed existing queue — non-fatal
+                # to PSQ-1's primary write; queue gets regenerated unclaimed.
+                existing_claims = {}
+        items: list[dict] = []
+        for c, blast_radius, flag in precomputed:
+            item = {
+                "name": c["name"],
+                "source": c["source"],
+                "blast_radius": blast_radius,
+                "parallel_safety": flag,
+                "effort": c["effort"],
+                "risk_retired": c["risk_retired"],
+            }
+            # PSQ-2 (slice-072) claim-preservation merge: copy claim metadata
+            # + forward-compat extras if the candidate survived from the existing
+            # queue. .get() tolerates absent claim keys on unclaimed entries.
+            prev = existing_claims.get(c["name"])
+            if prev is not None:
+                claimed_by = prev.get("claimed_by")
+                claimed_at = prev.get("claimed_at")
+                if claimed_by and claimed_at:
+                    item["claimed_by"] = claimed_by
+                    item["claimed_at"] = claimed_at
+                extras = prev.get("_extra_field_lines") or []
+                if extras:
+                    item["_extra_field_lines"] = list(extras)
+            items.append(item)
+        body = format_queue_md(
+            items, now,
+            warn_no_graph=graph_missing,
+            active_slice_num=active_slice_num,
+            pick_log_block=existing_pick_log,  # slice-099 / BRANCH-3: preserve pick log
+        )
+        try:
+            safe_rewrite_text(out_path, body, expected_base=base)
+            return out_path
+        except StaleVaultBaseError:
+            continue  # a concurrent writer landed first — re-read + re-compose
+    raise StaleVaultBaseError(
+        f"write_slice_queue: CAS retry budget ({_CAS_RETRIES}) exhausted for {out_path} "
+        f"(persistent concurrent contention)"
     )
-
-    # slice-094 (VWS-1): routed through _vault_write.safe_write_text — the
-    # R-32-safe vault writer (sidecar lock + LF-faithful newline="" + atomic
-    # os.replace + bounded EPERM-retry). Byte output is IDENTICAL to the prior
-    # inline .tmp + write_text(newline="") + os.replace pattern (safe_write_text
-    # is LF-faithful per slice-094 B1), so PSQ-1/PSQ-2 byte-equal
-    # claim-preservation round-trip assertions are preserved. NB: routing makes
-    # the WRITE atomic+locked; the read-modify-write window in the caller is a
-    # documented flip-residual (B2), not closed here.
-    safe_write_text(out_path, body)
-    return out_path
 
 
 # ---------------------------------------------------------------------
