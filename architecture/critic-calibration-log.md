@@ -924,3 +924,105 @@ All prior `critique.md`-targeted proposals SUSTAINED EFFECTIVE — 0 in-scope fi
 ### Effectiveness check
 
 Next run: verify Part B reduces the strategic-direction-fit miss class (target 0 recurrence). Once Part A (project-frame synthesizer slice) ships, the Dim-7 probe is handed the frame directly rather than reading trajectory artifacts itself — measure whether that further sharpens catch-rate.
+
+---
+
+## Calibration run — 2026-06-03 (post-slice-107)
+
+**Window**: last 20 reflections (slice-088 through slice-107). **Non-default widening from 15 → 20**, adopted with rationale: the prior run (2026-05-30 post-086, + live slice-087) left slices 088–107 entirely uncovered. The default 15 (093–107) would silently drop 088–092's miss data AND drop the FIRST post-application measurement of that run's accepted Part-B Dim-7 strategic-direction proposal — whose Part-A companion shipped as slice-088. 20 = the exact uncovered range since the last run.
+
+**Total misses analyzed**: ~30 distinct-slice miss instances across 13 categories; one category (count-literal / counted-set cardinality fan-out) reaches ≥3 distinct slices as an uncodified, (partially) design-Critic-reachable, first-Critic MISS. slice-104 ran with no Critic (owner-approved waiver) — a process data point, not a miss.
+
+### Pattern summary
+
+"DCR?" = design-Critic-reachable (→ candidate for a `critique.md` change) vs routed to a different surface.
+
+| # | Category | Distinct-slice MISSES | Slices | DCR? | Disposition |
+|---|---|---|---|---|---|
+| 1 | **Count-literal / counted-set cardinality fan-out** (sibling `== N` hard-count pins in OTHER test files + INSTALL.md + prose narratives go un-swept when a slice changes a counted set's cardinality) | **6** | 089, 091, 100, 103, 106 (+096 count-vs-disk-prose variant) | **Yes — partial** (static sibling-pin sub-class A reachable; count-arithmetic sub-class B routed out) | **PROPOSAL 1 — ACCEPTED** |
+| 2 | Version-bump mechanics (rolling version-sync test rename `test_version_files_synchronized_at_v_0_NN_0`; catalog next-free-index arithmetic; ADR path-citation drift on bump) | 1 | 105 | Yes | Watching (N=1) |
+| 3 | Ruleset/classifier CALIBRATION against the real corpus (design-time dual-Critic validates STRUCTURE; only build-execution reveals corpus mis-calibration) | 3 | 091, 107 (+098 guard-vs-real-fixtures) | No — structurally build-time (APED-1 / AP-3) | Routed out — code-Critic + BC-PROJ-4 backstop |
+| 4 | Code-Critic-only execution-level line defects (cp1252-at-import, git-decode/EPERM asymmetry, PowerShell `>` UTF-16 corruption, fail-open matcher/empty-region holes) | 8 | 093, 094, 095, 097, 098, 100, 102, 103 | No — structurally post-design (slice-037 audit-vs-real-artifact law) | Routed out — designed 3-Critic complementarity |
+| 5 | "A Critic's/Builder's own fix is a fresh claim" (second-order consequence of an accepted fix) | 4 | 097, 100, 101, 102 | Partial — meta-Critic's designed job (caught at 100/102) | Routed out — `critique-review.md` |
+| 6 | TF-1 row status for no-new-test / no-regression ACs | 1 | 090 | Yes | Watching (N=1) |
+| 7 | Lexicon/verb DETECTION-vs-CLASSIFICATION gap; negation/noun-prone real-corpus shapes | 2 | 095, 097 | Partial — design+meta missed; code-Critic caught | Routed out — APED-1 + code-Critic backstop |
+| 8 | Set-completeness adjective overstatement (final/lone/last/all/every for unstated scope) | 1 | 096 | Yes | Watching (N=1, self-nominated) |
+| 9 | Substring-collision self-trip in Builder's OWN prose (audit-grepped tokens contiguous in prose the same audit reads) | 1 | 099 | Partial | Watching (N=1, RSAD-1-adjacent) |
+| 10 | Parallel-branch-staleness vs master / full-suite integration (R-33) | 1 | 092 | No — outside both Critics' scope | Routed out — pre-finish gate definition |
+| 11 | Process/harness footguns (stale-`.pyc` mutation-harness; TF-1 deviation mechanics) | 1 | 101 | No — harness technique | Routed out — BC-PROJ-4 backstop |
+| 12 | Design-Critic fix-prescription fought an established codebase convention (prescribed `_ascii_fold()` ignoring canonical UTF8-STDOUT-1 `_stdout.py`) | 1 | 088 | Yes | Watching (N=1, self-nominated probe) |
+| 13 | 3-Critic stack value-validation / self-validating-slice (DISCOVERY, not a miss) | DISCOVERY | window-wide | n/a | Stable; do NOT collapse the stack |
+
+### Effectiveness on past proposals
+
+**Verified — post-086 Part-B Dim-7 "Strategic-direction fit + architectural-concurrency" (FIRST measurement):** baseline N=1 design-Critic MISS (slice-087 stranded-detector cry-wolf). Part A shipped as slice-088; Part B applied 2026-05-30. **Window result: 0 recurrences across 088–107. Verdict: EFFECTIVE (target 0 recurrence MET).** Positive internalization at slice-089 (B1 own-worktree self-exclusion + B-add-1 set-key — parallel-concurrency dimension correctly handled), and the frame-fed direction-fit probe fired correctly on every state-detector/gate/classifier slice (089/099/100/102/106), zero cry-wolf misses. Handing the frame directly (Part A) further sharpened catch-rate.
+
+**Verified — watch-items from post-084:**
+- **Clause-5 string-normalization variant**: baseline N=1 (slice-084); **no new recurrence 088–107**. Stays N=1 watch-listed; N=3 promotion threshold NOT met. The window's parse/normalize misses (095 negation-matcher, 107 ruleset-calibration) are corpus-CALIBRATION (build-time), not the proposed-fix-literal-not-executed shape clause-5 governs.
+- **"Found-the-class-under-swept-surfaces" (generic)**: stays N=2 (080 + 074/075). The count-literal *instantiation* of this class is what reaches threshold and is promoted via Proposal 1; the generic form does not.
+- **BC-PROJ-13 first measurement (085+)**: confirmed suppressing new-parser-parity *design-Critic* misses across the window's parser-minting slices (100/102/103/107); residual appears only as code-Critic execution-level catches (Category 4, routed out as designed).
+
+**Standing proposals — sustained-effectiveness roll-up (088–107):**
+
+| Proposal / Rule | Window result | Verdict |
+|---|---|---|
+| 2026-05-10 Proposal 1 (Dim-1 doc-vs-impl parity) | 0 source-code-level misses; ~100 consecutive clean slices (6–107) | SUSTAINED STRONGLY EFFECTIVE |
+| 2026-05-10 Proposal 2 (Dim-4 methodology-audit conformance) | 0 misses at named sub-sub-bullets | SUSTAINED STRONGLY EFFECTIVE |
+| CCC-1 user-override (Dim-9) | catch-rate range floor 60–100% UPHELD; ≤2 quantitative target stays RETIRED | Qualitatively SUSTAINED |
+| RPCD-1 (Dim-9 #9) | 0 first-Critic misses sub-modes a/b/c | SUSTAINED EFFECTIVE |
+| FBCD-1 (Dim-9 #10) | 0 sub-mode-(a) misses on the slice-authoring file-set; slice-106 m1 (allowlist 16 vs `==15` two-numbers trap) a load-bearing CATCH | SUSTAINED EFFECTIVE at (a) — see Proposal 1 for the **scope-boundary** finding |
+| PTFCD-1 / PTFFD-1 (Dim-9 #11) | 0 recurrence; slice-105 B2 (PTFCD-1 materialized exactly) = CATCH | SUSTAINED EFFECTIVE |
+| APED-1 + scope-extension + clause-5 (Dim-9 #12) | 091 B1 (executed vs real `git.exe`), 106 B1 (executed `audit_root`) = CATCHES; 0 self-referential-fix recurrence | SUSTAINED EFFECTIVE |
+| MEPD-1 (Dim-7 checklist) | 0 first-Critic misses; 106 m2 EXCLUDE correctly applied | SUSTAINED EFFECTIVE |
+| Part-B Dim-7 strategic-direction-fit (post-086) | 0 recurrence; FIRST measurement | **EFFECTIVE (target MET)** |
+
+**Critic-disposition accuracy**: ~100% on filed findings every slice in window. Two FALSE-ALARMS, both correctly handled — slice-091 M2 (design-Critic over-reach correctly DEFERRED to + adjudicated by the meta-Critic; override CONFIRMED — a designed-stack success), slice-106 code-Critic m2 (self-resolved by the code-Critic; honest non-finding). **Zero OVERRIDE-MISJUDGED.** No user-side calibration signal to surface.
+
+### Proposals
+
+| # | Pattern | Distinct slices | Proposed change | Target | User action |
+|---|---|---|---|---|---|
+| 1 | Count-literal / counted-set cardinality fan-out (design-Critic-reachable sub-class A) | 4 (089/100/103/106) + 096 prose sibling; sub-class B (091) routed out | Add **FBCD-1 sub-mode (c)**: when a slice's design declares a **counted-set cardinality change**, grep the WHOLE repo (not just the slice-authoring file-set) for every `== N` / `len(...) == N` / `"N-element"` / INSTALL.md count literal referencing that set, enumerate every site, verify lockstep updates; flag a plan enumerating only the membership pin as a Major. Boundary: counts whose correct value depends on new runtime behavior not yet a static literal (slice-091 decode-count) are OUT — that is APED-1 "execute the pin against built code." | `~/.claude/agents/critique.md` Dim-9 FBCD-1 sub-clause (~L194–198) | **ACCEPTED** (2026-06-03) — user to apply manually |
+
+**Reachability adjudication (the load-bearing question this run):** the cluster splits into sub-class A (static sibling `== N` pins already on disk at /critique time in `tests/methodology/test_*_tool_inventory.py`, `test_external_vault_adr_and_risk.py`, INSTALL.md — the design-Critic has Read/Grep and the slice's design declares the cardinality delta → **design-Critic-reachable; a real FBCD-1 scope gap**, since FBCD-1 greps count claims but only across `{mission-brief, design, ADR, milestone}`) and sub-class B (slice-091 count whose correct value depends on a new helper's own runtime `git rev-parse` decode site → **not a static literal → routed out** to the smoke / BC-PROJ-4 backstop). Honest-zero would have been wrong (sub-class A is reachable, N=4 clean witnesses); manufacturing a structurally-build-time proposal would also have been wrong (sub-class B). Anti-bloat: bounded sub-mode extension of an existing sub-clause, not a new dimension (Dim-9 already has 12 dense sub-clauses).
+
+### Watching but not proposing
+
+| Sub-class | N distinct slices (window) | Promotion criterion |
+|---|---|---|
+| Version-bump mechanics (rolling version-sync rename; catalog next-free-index; ADR path-citation drift) | 1 (105) | STRONG single-slice + recurring-within-slice (N≥11 on the rename). At N=2 distinct slices, propose a "version-bump obligations checklist" sub-bullet (slice-105's self-nominated cure). Distinct from Proposal 1 (version-string rename, not set cardinality). |
+| "Found-the-class-under-swept-surfaces" (generic) | 2 (080 + 074/075 prior) | At 3rd design-Critic MISS, propose a Dim-9 "swept-all-surfaces?" sub-clause. Count-literal instantiation promoted via Proposal 1; generic form stays N=2. |
+| Clause-5 string-normalization variant | 1 (084; 0 new) | At N=3, broaden APED-1 clause-5 to any minted parse/normalize transform. Decaying. |
+| Design-Critic fix-prescription fought a codebase convention (`_ascii_fold` vs UTF8-STDOUT-1) | 1 (088) | At N=2, Dim-1/Dim-3 sub-bullet: "fix must reuse the established convention for the flagged risk-class." |
+| TF-1 row status for no-new-test / no-regression ACs | 1 (090) | At N=2, refine Dim-4 sub-bullet-1 (TF-1 row coverage): "every AC needs a TF-1 row with a VALID `{PENDING,WRITTEN-FAILING,PASSING}` status, including no-regression ACs." |
+| Set-completeness adjective overstatement (final/lone/last/all/every) | 1 (096) | At N=2, Dim-1 sub-bullet (unfounded-completeness-claim). |
+| Substring-collision self-trip in Builder's OWN prose | 1 (099) | At N=2 distinct slices, route to a build-slice Builder-discipline note OR RSAD-1 refinement (decide target at promotion). |
+| Lexicon/verb DETECTION-vs-CLASSIFICATION gap; negation/noun-prone shapes | 2 (095, 097) | At N=3 AND if the code-Critic ALSO starts missing, revisit; else routed to APED-1 + code-Critic backstop. |
+| Parallel-branch-staleness vs master (R-33) | 1 (092) | Outside both Critics' scope (pre-finish gate definition). Not a Critic-prompt class. |
+| Stale-`.pyc` / harness-technique footguns | 1 (101) | Outside all 3 Critics' scope; BC-PROJ-4 backstop. Decaying. |
+| Self-validating-slice / 3-Critic stack value-validation | DISCOVERY | Stable structural observation; NOT a `critique.md` change; do NOT collapse the stack. |
+
+**Process data point for user awareness (not a Critic-prompt issue):** slice-104 ran with no Critic (owner-approved streamlined waiver), and a real recurring methodology-surface defect (R-34: a Python tuple-repr serialized into `## Pick log`) shipped on a pre-pinned-failing-repro + full-suite substitute. The 3-Critic stack was waived, not failed — surfaced for judgement-awareness that even "mechanical" fixes carry methodology-surface risk a quick adversarial pass might flag.
+
+### Effectiveness check
+
+Next `/critic-calibrate` run should verify:
+1. **Proposal 1 (FBCD-1 sub-mode c)** first measurement: count-literal fan-out first-Critic MISS count across slices 108+ → target 0 on the static-sibling-pin sub-class. If a counted-set-cardinality slice still leaks a sibling `== N` pin to the full suite, the sub-mode's trigger wording or grep targets need refinement.
+2. **Part-B Dim-7 strategic-direction-fit**: sustains 0 recurrence across 108+.
+3. **Version-bump mechanics** (105, N=1): if it recurs (→N=2), promote the version-bump-obligations checklist.
+4. **Critic-disposition accuracy / OVERRIDE-MISJUDGED streak**: currently zero OVERRIDE-MISJUDGED through the window; if broken, root-cause Critic over-reach vs a consistently-wrong user-override pattern.
+5. **sub-class B boundary** (count-arithmetic-against-built-code, slice-091): confirm the smoke / BC-PROJ-4 backstop keeps catching it and it is NOT mis-routed into Proposal 1's static grep.
+
+### Run summary
+
+| Metric | Value |
+|---|---|
+| Window | slices 088–107 (20 reflections; non-default widening to cover the full uncovered range + Part-B first measurement) |
+| Proposals generated | 1 |
+| Proposals accepted | 1 (FBCD-1 sub-mode c) — user to apply manually |
+| Proposals routed out at analysis | Categories 3/4/5/7/10/11 (structurally build-time, designed code-/meta-Critic complementarity, or outside Critic scope) |
+| Part-B Dim-7 strategic-direction-fit (post-086) | EFFECTIVE — 0 recurrence, target MET; first measurement |
+| All prior standing proposals | SUSTAINED EFFECTIVE — 0 in-scope first-Critic recurrence |
+| Critic-disposition accuracy | ~100% filed-finding accuracy; 2 correctly-adjudicated false-alarms; zero OVERRIDE-MISJUDGED |
+| Process note | slice-104 no-Critic waiver shipped R-34 on a repro+suite substitute (judgement-awareness) |
+| Next trigger | slices ~118+ default, OR earlier if version-bump-mechanics recurs (→N=2), OR if Proposal 1's first measurement needs verification across 108–115 |
