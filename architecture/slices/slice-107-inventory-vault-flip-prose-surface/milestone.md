@@ -2,7 +2,7 @@
 slice: slice-107-inventory-vault-flip-prose-surface
 stage: build
 updated: 2026-06-03
-next-action: Phase A — write 11 failing tests, then implement tools/vault_flip_prose_inventory.py
+next-action: run /validate-slice
 risk-tier: medium
 critic-required: true
 ---
@@ -10,7 +10,7 @@ critic-required: true
 # Milestone: slice-107 inventory-vault-flip-prose-surface
 
 **Stage**: build
-**Next action**: Phase A — write the 11 Test-first tests (failing), then implement `tools/vault_flip_prose_inventory.py`
+**Next action**: run `/validate-slice`
 **Updated**: 2026-06-03
 **Risk tier**: medium — Critic required: yes (new `tools/*.py` classifier — in-house methodology surface; AP-4)
 
@@ -19,7 +19,7 @@ critic-required: true
 - [x] /slice — 2026-06-03
 - [x] /design-slice — 2026-06-03
 - [x] /critique — 2026-06-03 — NEEDS-FIXES (dual review: first-Critic BLOCKED + meta-Critic EXTEND; user-triaged)
-- [ ] /build-slice — in progress: Phase A (tests-first)
+- [x] /build-slice — 2026-06-03 — SHIPPED (318 enumerated; 15/15 tool tests; full methodology suite 1404 green; 2 deviations logged + harmonized)
 - [ ] /validate-slice
 - [ ] /reflect
 

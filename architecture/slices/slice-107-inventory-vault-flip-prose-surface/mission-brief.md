@@ -14,8 +14,8 @@ The production-code (`tools/*.py` + `skills/**/*.py`) and tests (`tests/**/*.py`
 ## Acceptance criteria
 
 1. A new tool `tools/vault_flip_prose_inventory.py` enumerates **all 318** `architecture/` + `diagnose-out/` location-literals (Builder-verified count; **all matches per line** via `re.finditer`, NOT one `re.search`/line) across the prose surface — `skills/**/SKILL.md`, `agents/*.md`, root `CLAUDE.md`, `INSTALL.md`, `README.md` — via a **boundary-free** matcher (`(?:architecture|diagnose-out)/`, NOT the anchored readiness regex — B1/dual-review: the real `_SLASHED_RE` catches only **69** of 318, dropping **249** incl. 216 backtick-wrapped inline-code paths + operational `:(exclude)architecture/...` git-pathspecs), emitting `path:line:col` + the matched literal + assigned class, with `--json` / `--strict` / `--repo-root` flags and UTF8-safe stdout (mirrors the `vault_flip_readiness_audit` CLI + exit-code contract: 0 clean, 2 gate, 1 usage error).
-2. Each occurrence is classified by a **documented, context-aware ordered ruleset** into a small taxonomy (`rewrite-at-flip` | `historical-anchor` | `doc-example` | `needs-human`); any literal the ruleset cannot confidently classify routes to `needs-human` and the tool **exits 2** (fail-closed — never a silent skip). **`doc-example` is RESERVED for genuine plain-prose mentions ONLY** — an inline-code / fenced / git-pathspec vault path that is not positively classified as operational (`rewrite-at-flip`) or `historical-anchor` defaults to `needs-human`, NOT `doc-example` (B2 — so the fail-closed backstop genuinely fires for the ~119 verb-ambiguous inline-code paths, never silently re-routing them off the gate). `needs-human` is resolvable to empty via an explicit **in-tool disposition** (a curated classification map), **NOT** by editing the prose (prose edits are M4 / out of scope).
-3. A pinned in-module baseline + a methodology test (`tests/methodology/test_vault_flip_prose_inventory.py`) freeze the current `rewrite-at-flip` + `needs-human` classified set; `--strict` exits 2 on any drift — so a new/changed prose literal cannot enter the corpus unclassified and silently.
+2. Each occurrence is classified by a **documented, context-aware ordered ruleset** into a small taxonomy (`rewrite-at-flip` | `historical-anchor` | `doc-example` | `needs-human`); the tool **exits 2** when any `needs-human` is present (fail-closed). **`doc-example` is RESERVED for genuine plain-prose mentions ONLY** — an inline-code / fenced / git-pathspec vault path NEVER silently becomes `doc-example` (B2). **AS-BUILT (user-ratified recalibration, build-log 2026-06-03):** an in-code / fenced / operational vault path defaults to `rewrite-at-flip` (the dominant LIVE-reference case — on the M4 checklist, B2's goal); `needs-human` fires ONLY for a genuine preserve-marker on an in-code line (a true rewrite-vs-preserve conflict). Final distribution **316 `rewrite-at-flip` / 0 `historical-anchor` / 2 `doc-example` / 0 `needs-human`**. The `needs-human` bucket is resolvable to empty via an explicit **in-tool disposition** (`_DISPOSITION`), **NOT** by editing prose (M4 / out of scope) — the current corpus needs none.
+3. A pinned in-module baseline + a methodology test (`tests/methodology/test_vault_flip_prose_inventory.py`) freeze the current `rewrite-at-flip` + `needs-human` classified set; `--strict` exits 2 on any drift — so a new/changed prose literal cannot enter the corpus unclassified and silently. **AS-BUILT (forced by AC5/M1, build-log 2026-06-03):** the baseline is pinned as an in-module **SHA-256** (`_BASELINE_SHA256`) of the sorted multiset, NOT inlined slashed-path tuples (which `readiness_audit` would flag, tripping slice-106) — identical gate behavior, full inventory via `--json`.
 4. The classifier is proven **non-vacuous by mutation** (AP-5): a fixture mutation that changes a literal's surrounding context flips its class (or trips the gate); every marker detector is **region/line-anchored, never a whole-file substring scan** (AP-1); the disposition key disambiguates BOTH cross-line duplicates (`test_no_ambiguous_duplicate`, M2) AND intra-line multi-matches via column-offset (`test_no_intra_line_ambiguous_multimatch`, M-add-1 — `code-review.md:103`'s 5 same-line matches are the fixture).
 5. Full methodology suite green; the new tool is enumerated in `plugin.yaml` (PMI-1) + `tools/install_audit.py` (INST-1), carries its `architecture/shippability.md` row (RPCD-1 / SCPD-1), and introduces **NO new `[production] must-rewrite` literal** into slice-106's `vault_flip_readiness_audit` baseline (disjoint-blast-radius preservation).
 
@@ -25,17 +25,17 @@ The production-code (`tools/*.py` + `skills/**/*.py`) and tests (`tests/**/*.py`
 
 | AC | Test type | Test path | Test function | Status |
 |----|-----------|-----------|---------------|--------|
-| 1 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_enumerates_full_corpus_318_all_matches_per_line | PENDING |
-| 1 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_bare_vault_dir_arg_residual_enumerated | PENDING |
-| 2 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_inline_code_no_verb_routes_needs_human_not_doc_example | PENDING |
-| 2 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_doc_example_reserved_for_plain_prose | PENDING |
-| 2 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_unclassifiable_exits_2 | PENDING |
-| 3 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_baseline_pinned_and_strict_drift | PENDING |
-| 3 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_per_class_total_count_floor | PENDING |
-| 4 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_classifier_mutation_flips_class | PENDING |
-| 4 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_no_ambiguous_duplicate | PENDING |
-| 4 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_no_intra_line_ambiguous_multimatch | PENDING |
-| 5 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_disjoint_no_new_production_must_rewrite | PENDING |
+| 1 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_enumerates_full_corpus_318_all_matches_per_line | PASSING |
+| 1 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_bare_vault_dir_arg_residual_enumerated | PASSING |
+| 2 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_inline_code_routes_rewrite_not_doc_example | PASSING |
+| 2 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_doc_example_reserved_for_plain_prose | PASSING |
+| 2 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_anchor_plus_incode_routes_needs_human_exit_2 | PASSING |
+| 3 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_baseline_pinned | PASSING |
+| 3 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_per_class_total_count_floor | PASSING |
+| 4 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_classifier_mutation_flips_class | PASSING |
+| 4 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_no_ambiguous_duplicate | PASSING |
+| 4 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_no_intra_line_ambiguous_multimatch | PASSING |
+| 5 | unit | tests/methodology/test_vault_flip_prose_inventory.py | test_disjoint_no_new_production_must_rewrite | PASSING |
 
 ## Verification plan
 

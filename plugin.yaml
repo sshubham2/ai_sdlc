@@ -166,6 +166,8 @@ tools:
     rule: VAL-1
   - path: tools/vault_edit.py
     rule: SVW-1
+  - path: tools/vault_flip_prose_inventory.py
+    rule: ADR-096
   - path: tools/vault_flip_readiness_audit.py
     rule: ADR-091
   - path: tools/vault_write_safety_audit.py
