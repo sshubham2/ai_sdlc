@@ -1,6 +1,6 @@
 ---
 slice: slice-105-decouple-slice-loop-from-diagnose-out
-stage: build
+stage: code-review
 updated: 2026-06-03
 next-action: run /validate-slice
 risk-tier: high
@@ -9,8 +9,8 @@ critic-required: true
 
 # Milestone: slice-105 decouple-slice-loop-from-diagnose-out
 
-**Stage**: critique
-**Next action**: run `/build-slice`
+**Stage**: code-review
+**Next action**: run `/validate-slice`
 **Updated**: 2026-06-03
 **Risk tier**: high — Critic required: yes (mandatory: touches `tools/**/*.py` + `skills/*/SKILL.md` + `methodology-changelog.md`; partial-supersedes two codified ADRs — ADR-090 seed-step + ADR-055 round-trip half)
 
@@ -20,12 +20,13 @@ critic-required: true
 - [x] /design-slice — 2026-06-03
 - [x] /critique — 2026-06-03 — CLEAN (first Critic BLOCKED → dual-review EXTEND → 13 findings ACCEPTED-FIXED, user-ratified)
 - [x] /build-slice — 2026-06-03 (all 6 batches done; pre-finish gate fully green; SHIPPED)
+- [x] /code-review — 2026-06-03 — FINDINGS: 1 minor (m1, advisory) ADDRESSED; 0 blockers, 0 majors
 - [ ] /validate-slice
 - [ ] /reflect
 
 ## Current focus
 
-**Build in progress — Batches A/B/C done + verified.** The 3 atomic prose↔test batches (the structurally trickiest parts) are complete: A = seed removal in `_worktree_paths.py` + `test_worktree_paths.py` + 2 deleted test files + `test_resolve_slice_dir.py` guard + `slice/SKILL.md` Step 5.5; B = `build-slice/SKILL.md` seed/cp-r removal; C = `reflect/SKILL.md` round-trip→retired + `test_bcr_1_backlog_round_trip.py` #4-#8 removal. Suite collects 1385, consume-side green. **Next: Batch D** (vault/config), then E (version+mirror), F (audits+validate).
+**Build SHIPPED + code-review CLEAN.** All 6 build batches done; pre-finish gate fully green (suite 1387/0 seeded AND seedless; ~18 Step-6 audits exit 0; /drift-check CLEAN + DCE-1). Code-Critic returned 0 blockers / 0 majors / 1 minor (m1: two surviving docstrings cited the deleted test files) — m1 ADDRESSED in-code (preserve-and-annotate). **Next: `/validate-slice`** for formal per-AC PASS/FAIL → validation.md.
 
 ## On resume
 

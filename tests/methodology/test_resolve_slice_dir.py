@@ -23,7 +23,9 @@ remain" without waiting for cross-slice observational evidence.
 Rule references:
 - R-15 (slice-055-discovered; mitigating after slice-056 ship)
 - BFRD-1 (slice-056 reproduction: ``tests/methodology/test_bcr_1_round_trip_end_to_end.py::test_bcr_1_sc054_round_trip_inputs_invariant``
-  FAILING on master pre-fix; PASSING post-fix is the BFRD-1 invariant)
+  FAILING on master pre-fix; PASSING post-fix was the BFRD-1 invariant — that test module was
+  deleted at slice-105 / ADR-095 when the BCR-1 ``/reflect`` round-trip-write was retired; the
+  reference is retained as historical BFRD-1 reproduction lineage)
 - TPHD-1 (slice-017): test-function names match mission-brief TF-1 plan rows
 """
 from __future__ import annotations
