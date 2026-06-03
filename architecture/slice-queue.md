@@ -1,32 +1,16 @@
 # Slice queue
 
-_Generated: 2026-06-03T09:37:29+00:00 by /slice during slice-107 definition_
+_Generated: 2026-06-03T15:12:26+00:00 by /slice during slice-108 definition_
 
 ## Candidates
 
-### add-diagnose-cwd-warning-test
+### add-fbcd-1-cardinality-fanout-sub-mode
 
-- **Source:** risk-register R-2
-- **Blast-radius:** `skills/diagnose/SKILL.md`
+- **Source:** critic-calibrate proposal 2026-06-03 (AP-10)
+- **Blast-radius:** `agents/critique.md`, `tests/methodology/test_critique_agent_fbcd1_cardinality_submode.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** SMALL
-- **Risk-retired:** LOW
-
-### harden-forward-sync-parallel-contention
-
-- **Source:** risk-register R-28
-- **Blast-radius:** `tools/critique_agent_drift_audit.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** LOW
-
-### fix-version-keyed-install-blindspot
-
-- **Source:** risk-register R-29
-- **Blast-radius:** `tools/install_audit.py`, `tools/plugin_manifest_audit.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** LOW
+- **Risk-retired:** MEDIUM
 
 ## Pick log
 
@@ -38,6 +22,7 @@ _Generated: 2026-06-03T09:37:29+00:00 by /slice during slice-107 definition_
 - slice-105-decouple-slice-loop-from-diagnose-out — picked 2026-06-03T06:00:57+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-106-route-project-frame-synth-via-vault-root — picked 2026-06-03T09:30:31+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-107-inventory-vault-flip-prose-surface — picked 2026-06-03T09:37:32+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
+- slice-108-add-fbcd-1-cardinality-fanout-sub-mode — picked 2026-06-03T15:12:27+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 
 ## ADR number reservations (cross-session coordination)
 
