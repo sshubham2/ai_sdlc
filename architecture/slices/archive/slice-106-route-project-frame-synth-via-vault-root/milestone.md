@@ -1,16 +1,16 @@
 ---
 slice: slice-106-route-project-frame-synth-via-vault-root
-stage: validate
+stage: complete
 updated: 2026-06-03
-next-action: run /reflect
+next-action: none (slice complete)
 risk-tier: medium
 critic-required: true
 ---
 
 # Milestone: slice-106 route-project-frame-synth-via-vault-root
 
-**Stage**: validate
-**Next action**: run `/reflect`
+**Stage**: complete
+**Next action**: none (slice complete — run `/commit-slice --merge` to integrate)
 **Updated**: 2026-06-03
 **Risk tier**: medium — Critic required: yes (touches `tools/*.py` — in-house methodology surface, mandatory-Critic trigger regardless of tier)
 
@@ -22,7 +22,7 @@ critic-required: true
 - [x] /build-slice — 2026-06-03 — SHIPPED (6 tasks; full suite 1529/0; all Step 6 gates green)
 - [x] /code-review — 2026-06-03 — FINDINGS (0B/0M/2m advisory; code-Critic clean by execution)
 - [x] /validate-slice — 2026-06-03 — PASS (5/5 ACs + VAL-1 + WS-1/ETC-1 N/A + shippability 111/111)
-- [ ] /reflect
+- [x] /reflect — 2026-06-03 — shipped; lessons captured; AP-10 /critic-calibrate signal flagged; auto-archived
 
 ## Current focus
 
@@ -32,9 +32,9 @@ This is the **M1 production cut** of the external-shared-vault flip roadmap — 
 
 ## On resume
 
-- **Last completed action**: /validate-slice — PASS (5/5 ACs + VAL-1 + shippability 111/111; evidence in validation.md)
-- **Current work**: none — build committed at d0d37e9 + code-review at f776902 on `slice/106-…`; validation.md + milestone updates pending commit
-- **Next immediate step**: run `/reflect` (capture learnings + AP-10/critic-calibrate signal; auto-archives the slice). Then user invokes `/commit-slice --merge` (HARD-STOP — always user-invoked).
+- **Last completed action**: /reflect — shipped; lessons-learned appended; AP-10 `/critic-calibrate` signal flagged; no new shippability row (M1 ratified); no BC rule (user-confirmed); slice auto-archived to `slices/archive/`.
+- **Current work**: none — slice COMPLETE. Pipeline ran clean end-to-end on `slice/106` (3 wip commits; final reflect/archive commit pending).
+- **Next immediate step**: **user invokes `/commit-slice --merge`** (HARD-STOP — always user-invoked) to no-ff merge `slice/106` → master + tear down the worktree.
 
 ## Phase artifacts
 
@@ -45,7 +45,7 @@ This is the **M1 production cut** of the external-shared-vault flip roadmap — 
 - [build-log.md](build-log.md) — written (SHIPPED; 6 tasks; all Step 6 gates green)
 - [code-review.md](code-review.md) — written (0B/0M/2m advisory; clean)
 - [validation.md](validation.md) — written (PASS; 5/5 ACs + shippability 111/111)
-- [reflection.md](reflection.md) — pending
+- [reflection.md](reflection.md) — written (shipped; AP-10 /critic-calibrate signal)
 - [build-log.md](build-log.md) — pending
 - [validation.md](validation.md) — pending
 - [reflection.md](reflection.md) — pending
