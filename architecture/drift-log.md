@@ -768,3 +768,19 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-106 surface.
+
+## Audit (slice-108-add-fbcd-1-cardinality-fanout-sub-mode) — 2026-06-03
+
+**Trigger**: slice-108 pre-finish gate (/drift-check full mode)
+**Scope**: full — design.md + mission-brief vs the slice's code: `agents/critique.md` (FBCD-1 Dim-9 sub-clause: intro→"Three sub-modes", sub-mode (c) bullet, clause (1b); + forward-synced `~/.claude/agents/critique.md`), `methodology-changelog.md` v0.83.0 / FBCD-1 v1.1 entry (+ mirror), `VERSION`/`plugin.yaml`/`pyproject.toml`/`~/.claude/ai-sdlc-VERSION` (0.83.0; pip `ai-sdlc-tools` 0.83.0), `tests/methodology/test_critique_agent.py` (new sub-mode (c) regression test + RSAD-1 2-site "not three" sweep), `tests/methodology/test_methodology_changelog.py` (v0.83.0 entry-pin + rolling-test rename `_at_v_0_82_0`→`_at_v_0_83_0`), `architecture/shippability.md` (row #114 + row #75 repoint). No new ADR (versioned refinement of [[ADR-022]]; MEPD-1 INCLUDE via the v0.83.0 changelog entry).
+**Result**: CLEAN — vault and code aligned; no drift.
+
+### Drift findings
+- None. design.md "What's new" ↔ code: the FBCD-1 sub-clause body contains the sub-mode (c) heading + the slice-091 boundary clause (CAD-1 content-equal in-repo↔installed, sha256 6a1a0d35…); the v0.83.0 entry carries `FBCD-1 (v1.1)` + `Rule reference` + the substantive phrase `Counted-set cardinality fan-out` (content-bearing pin per M1, not presence-only); all 5 version surfaces == 0.83.0 (PMI-1/MCFS-1/AVFS-1/TVFS-1 exit 0); the rolling version-sync test renamed with zero `_at_v_0_82_0` survivor (full suite 1549/0).
+- RSAD-1 self-application (the slice passing its OWN sub-mode (c)): both stale "not three like RPCD-1" count-claims (test_critique_agent.py L840 comment + the `_names_both_sub_modes` docstring per meta-Critic m-add-1) swept; no Dim-9 sub-CLAUSE-count pin moved (`_lists_twelve_sub_clauses` green — a sub-MODE add ≠ a sub-CLAUSE add).
+- AP-10 / BC-PROJ-16 version-bump fan-out: rolling-test rename + shippability row #75 repoint (both cells) + new row #114 = max+1 (catalog tail 113, NOT the slice number) — all present; zero by-name `_at_v_0_82_0` survivor anywhere (the exact slice-105 miss-class this slice teaches, avoided in its own diff).
+- No new ADR / no RULE-ID minted (versioned refinement FBCD-1 v1.1, lineage preserved); no SKILL.md edit (OSDG-1 N/A); no risk-status change (STP-1 green); CAD-1/MCFS-1/AVFS-1/TVFS-1/PMI-1/BCI-1/SVW-1/WIRE-1/TF-1/PCA-1/NAW-1/BRANCH all green.
+- BC-PROJ-3 / BC-GLOBAL-2: this slice performed NO destructive git checkout/restore/stash revert of uncommitted work.
+
+### Resolutions
+- None required — vault and code aligned for the slice-108 surface.
