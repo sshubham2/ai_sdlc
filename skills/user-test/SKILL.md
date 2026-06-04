@@ -75,7 +75,7 @@ Tell the user:
 
 ### Step 5: After the session — capture findings
 
-Create `architecture/user-tests/<test-name>.md`:
+Create `<vault>/user-tests/<test-name>.md`:
 
 ```markdown
 # User test: <name>
@@ -112,7 +112,7 @@ Create `architecture/user-tests/<test-name>.md`:
 
 ### Step 6: Update risk register
 
-For each "Surprised" or "Stuck" finding, evaluate if it's a new risk. Add to `architecture/risk-register.md` with reversibility tag via `tools.vault_edit append` (SVW-1; never a raw `Write`/`Edit`).
+For each "Surprised" or "Stuck" finding, evaluate if it's a new risk. Add to `<vault>/risk-register.md` with reversibility tag via `tools.vault_edit append` (SVW-1; never a raw `Write`/`Edit`).
 
 ### Step 7: Tell user what's next
 

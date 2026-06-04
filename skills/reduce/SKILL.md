@@ -27,7 +27,7 @@ Maintenance skill. Runs:
 
 ### Step 1: Determine thresholds for this project
 
-Read `architecture/triage.md` for mode. Apply mode-specific thresholds:
+Read `<vault>/triage.md` for mode. Apply mode-specific thresholds:
 
 | Mode | Component cap | Contract cap | ADR cap | Files / total cap |
 |------|--------------|--------------|---------|-------------------|
@@ -77,7 +77,7 @@ except Exception as e: print(f'no path: {e}')
 Then walk the vault + code looking for:
 
 - **Components with <50 lines of doc + <100 lines of impl** → consolidate?
-- **ADRs never referenced after creation** (`grep -r "ADR-NNN" architecture/` returns only the ADR itself) → obsolete?
+- **ADRs never referenced after creation** (`grep -r "ADR-NNN" <vault>/` returns only the ADR itself) → obsolete?
 - **Contracts with single caller** (graph shows 1 inbound edge) → inline?
 - **Speculative interfaces** (1 implementation, 1 caller, abstracted "for flexibility") — graphify shows `interface → 1 impl → 1 caller` = over-engineered
 - **Configuration sprawl** (env vars / settings / flags that nothing reads — orphan config nodes in graph)
@@ -136,7 +136,7 @@ Mission brief acceptance criteria for a reduction slice are typically:
 - All tests still pass after reductions
 - No external behavior change (backward-compat preserved)
 
-### Step 8: Append to `architecture/lessons-learned.md` <!-- route: tools.vault_edit append -->
+### Step 8: Append to `<vault>/lessons-learned.md` <!-- route: tools.vault_edit append -->
 
 After the reduction slice, note the pattern that led to the over-engineering. Helps future slices avoid it. Append via `$PY -m tools.vault_edit append --file lessons-learned.md --content-file <tmp>` (the R-32 safe channel; never a raw `Write`/`Edit` — SVW-1 / [[ADR-087]]).
 

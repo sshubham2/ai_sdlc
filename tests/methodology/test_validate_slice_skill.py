@@ -62,9 +62,11 @@ def test_step4_5_5_consumes_machine_stable_command():
     Rule reference: SRSC-1 (supersedes the slice-031 SCMD-1 B2-v1 pin;
     ADR-039 / ADR-031).
     """
-    assert "$PY -m tools.shippability_runner architecture/shippability.md" in VALIDATE, (
+    # slice-113 (ADR-106): the command-arg vault path converted to the `<vault>/` seam
+    # (Claude substitutes at run). AP-13 consumer repoint in the same slice that converts it.
+    assert "$PY -m tools.shippability_runner <vault>/shippability.md" in VALIDATE, (
         "Step 5.5 must INVOKE the canonical pinned runner "
-        "`$PY -m tools.shippability_runner architecture/shippability.md` "
+        "`$PY -m tools.shippability_runner <vault>/shippability.md` "
         "(SRSC-1 / ADR-039), not hand-roll the catalog execution loop"
     )
     assert "canonical pinned runner" in VALIDATE, (

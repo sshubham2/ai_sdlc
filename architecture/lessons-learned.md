@@ -2292,3 +2292,18 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 ### Pattern
 - For a classifier/convention slice that authors classifier-visible prose, design-time review (even dual-Critic) validates STRUCTURE but is blind to (a) the corpus-classification of the slice's OWN new prose and (b) build-time count narratives — both execution/code-review-only (AP-3). The 3-Critic stack stays complementary: design→scope/sequencing, meta→consumption-axis (agent-context M-add-1, line-key durability M-add-2), code→build-artifact drift (M1 docstring).
+
+## Slice 113 (bulk-convert-remaining-skills-to-vault-seam) — 2026-06-04
+
+### Worked
+- The seam-aware op-gate (matcher `_OP_SINK_RE` + value-extractor `_OP_SINK_TOKEN_RE` in lockstep, ADR-106) preserved in-loop write-op protection across the `<vault>` convention rollout — floors `{6,11,23,0}` stable, NO AP-12 loosening. The principled choice (extend the gate to see `<vault>/`) beat the brief's anticipated "shrink floors downward."
+- The 3-Critic stack caught a clean partition of real defects: design-Critic B2 (the op-gate VALUE-extractor — not just the matcher), meta-Critic M-add-1 (the on-disk-vs-prose forward-sync roster — a finish-gate Blocker: 13 not 12), code-Critic B1 (3 git-pathspec PROSE mirrors the 1617-green suite missed).
+- Forward-sync roster derived from the on-disk `*_skill_drift.py` set, not a prose list — caught that `diagnose` has no drift test while `code-review`+`pulse` do (the project CLAUDE.md roster prose was itself stale).
+
+### Didn't work
+- The first active-folder discriminator pass over-converted 10 wildcard/placeholder/ellipsis active-folder refs (`slices/*/`, `slices/<x>/`, `slices/…`) — the `slice-NNN` regex was too literal. Caught only by executing `--json` + grepping the *output* for non-shared-aggregate `<vault>/slices/` (AP-3). Reset + re-converted with the broadened rule (`architecture/slices/X` carves UNLESS X is `_index.md`/`action-points.md`/`archive`/bare).
+- 3 git-pathspec PROSE mirrors in `code-review.md` (descriptions of `:(exclude)` pathspecs, but without `:(exclude)` on their own line) were wrongly converted — `_PATHSPEC_RE` is line-local. The full 1617-green suite missed it (the consumer test pins the COMMAND, not the prose); only the code-Critic's read of the diff caught it.
+- The BRANCH-3 worktree checked out CRLF against an `eol=lf` `.gitattributes` — failed the no-CRLF drift test until the eol=lf-scoped files were normalized to LF (git stores LF, so no spurious diff).
+
+### Pattern
+- For a slice that authors classifier-visible prose/code, design-time reasoning (even TRIPLE-Critic-ratified) is NOT proof — execute the rule against the real corpus and grep the OUTPUT for mis-buckets (AP-3, N-th confirmation). The code-Critic is the specific layer that catches build-time conversion-correctness the test suite structurally cannot reach (AP-4, N+1) — a consumer test that pins the command form leaves the prose-mirror form unguarded.

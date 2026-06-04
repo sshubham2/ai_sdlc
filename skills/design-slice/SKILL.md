@@ -65,10 +65,10 @@ Read `graphify-out/GRAPH_REPORT.md` — the one-page digest has god nodes, commu
 # Find past slices/reflections whose label contains a topic keyword
 $PY -m graphify query "<topic>" --graph graphify-out/vault-graph.json
 # Example: query "EXIF" finds slice-023's EXIF lesson if "EXIF" appears in its label or path.
-# Won't find conceptual matches without the literal word — fall back to grep -ri "<concept>" architecture/slices/archive/ for those.
+# Won't find conceptual matches without the literal word — fall back to grep -ri "<concept>" <vault>/slices/archive/ for those.
 
 # Pull specific relevant reflection(s) for full detail
-cat architecture/slices/archive/slice-NNN-<name>/reflection.md
+cat <vault>/slices/archive/slice-NNN-<name>/reflection.md
 ```
 
 Don't rely on `_index.md` alone past slice ~30 — keyword query catches files past the recent-10.
@@ -204,7 +204,7 @@ The `Exemption` cell, if used, MUST contain the substring `rationale:` followed 
 
 ### Step 5: Write new ADRs (one file per decision)
 
-`architecture/decisions/ADR-NNN-<short-name>.md`:
+`<vault>/decisions/ADR-NNN-<short-name>.md`:
 
 ```markdown
 ---
@@ -237,7 +237,7 @@ status: accepted
 
 ### Step 6: Heavy mode only — update component / contract files
 
-In Heavy mode (compliance / regulated): also create or update `architecture/components/<name>.md` and `architecture/contracts/<name>.md` for components/contracts this slice introduces or substantively changes. These serve as audit artifacts.
+In Heavy mode (compliance / regulated): also create or update `<vault>/components/<name>.md` and `<vault>/contracts/<name>.md` for components/contracts this slice introduces or substantively changes. These serve as audit artifacts.
 
 In Standard / Minimal mode: SKIP this step. Code is the source of truth; no separate component/contract files exist. The slice's `design.md` references code locations and that's enough.
 

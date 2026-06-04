@@ -52,7 +52,7 @@ Do NOT proceed to Step 1 with missing prerequisites — downstream skills will f
 
 ### Step 1: Detect re-triage
 
-Check if `architecture/triage.md` exists:
+Check if `<vault>/triage.md` exists:
 
 - **If YES**: this is a re-triage. Read the file. Acknowledge the existing mode and risks. Ask only what's needed to update — typically: "What changed?" and "Does this require mode change?"
 - **If NO**: fresh project. Proceed to Step 2.
@@ -123,10 +123,10 @@ For each HIGH-risk item, decide if it can be retired with `/risk-spike` (validat
 
 ### Step 5: Write the thin vault skeleton
 
-Create `architecture/` if needed. Write the thin vault skeleton — these files only:
+Create `<vault>/` if needed. Write the thin vault skeleton — these files only:
 
 ```
-architecture/
+<vault>/
   CLAUDE.md          ← project-level pipeline enforcement (Step 5b)
   triage.md          ← this step
   risk-register.md   ← this step
@@ -137,7 +137,7 @@ architecture/
 
 Do NOT pre-create `components/`, `contracts/`, `actors/`, `test-plan/`, `frontend/`, `schemas/` directories. Those are derived from code on demand. Heavy mode is the only exception — create them empty there for compliance.
 
-Write `architecture/triage.md`:
+Write `<vault>/triage.md`:
 
 ```markdown
 # Triage
@@ -160,7 +160,7 @@ You'll run: <ordered list of skill invocations for this mode>
 
 Per **RR-1** (`methodology-changelog.md` v0.12.0), risks are H2-structured with explicit Likelihood and Impact so the audit (`tools/risk_register_audit.py`) can score them and `/slice` / `/pulse` can sort by score. The legacy `| ID | Risk | Reversibility | Spike? |` table is retired for new projects.
 
-For each risk discovered during triage, write an entry to both `triage.md` (initial snapshot, won't be re-edited) and `architecture/risk-register.md` (running log; updated by `/reflect` and `/risk-spike`).
+For each risk discovered during triage, write an entry to both `triage.md` (initial snapshot, won't be re-edited) and `<vault>/risk-register.md` (running log; updated by `/reflect` and `/risk-spike`).
 
 ```markdown
 ## R1 — <short title>
@@ -176,7 +176,7 @@ For each risk discovered during triage, write an entry to both `triage.md` (init
 
 Score is computed as Likelihood × Impact (low=1, medium=2, high=3 -> 1..9). Band is derived: 1-2 low, 3-4 medium, 6-9 high. The audit refuses entries with missing required fields (Likelihood / Impact / Status) or invalid values. For each HIGH-band risk, decide if it can be retired with `/risk-spike` and note that in the Mitigation field.
 
-Also write `architecture/risk-register.md` with the same risks (this becomes the running risk log; verify with `$PY -m tools.risk_register_audit architecture/risk-register.md`). <!-- vault-write-safe: project-open-single-shot -->
+Also write `<vault>/risk-register.md` with the same risks (this becomes the running risk log; verify with `$PY -m tools.risk_register_audit <vault>/risk-register.md`). <!-- vault-write-safe: project-open-single-shot -->
 <!-- ^ SVW-1 (slice-095): triage writes the INITIAL risk-register at project open — a single-shot project-lifecycle write, not a parallel-append hazard (same class as discover/risk-spike). Surfaced by the slice-095 m1 CommonMark fence fix (this line renders OUTSIDE the triage.md template fence; the old naive ``` toggle hid it). triage:163 stays fence-hidden inside the template block — the separate, still-deferred triage-markdown bug. -->
 
 ### Step 5b-pre: Offer graphify integration
@@ -201,7 +201,7 @@ For detail on graphify capabilities, run `$PY -m graphify --help`.
 
 This file keeps Claude on the pipeline across sessions. Must be short (~15-20 lines) so Claude actually reads it instead of skimming. Detailed skill guidance already lives in the SKILL.md files — don't duplicate it here.
 
-**Do NOT create `architecture/CLAUDE.md`.** Single file at project root is enough. Skills themselves carry detail.
+**Do NOT create `<vault>/CLAUDE.md`.** Single file at project root is enough. Skills themselves carry detail.
 
 Check first: does `./CLAUDE.md` (project root) exist?
 
@@ -213,15 +213,15 @@ Check first: does `./CLAUDE.md` (project root) exist?
 ```markdown
 # AI SDLC pipeline
 
-**Mode**: <Minimal | Standard | Heavy> — details in `architecture/triage.md`
-**Vault**: `architecture/`
-**Active slice**: check `architecture/slices/_index.md`
+**Mode**: <Minimal | Standard | Heavy> — details in `<vault>/triage.md`
+**Vault**: `<vault>/`
+**Active slice**: check `<vault>/slices/_index.md`
 
 ## Hard rule before editing code
 
 If the change is more than a typo / single-line tweak / comment / local-variable rename:
 
-1. Check `architecture/slices/_index.md` for an active slice
+1. Check `<vault>/slices/_index.md` for an active slice
 2. If none → **ASK** the user via structured options (per the Ask discipline below): "Run `/slice` first, or is this small enough to skip?"
 3. Wait for explicit answer. Don't proceed by default.
 
@@ -237,7 +237,7 @@ If the change is more than a typo / single-line tweak / comment / local-variable
 
 ## Vault discipline
 
-- ADRs (`architecture/decisions/ADR-*.md`) are append-only — supersede with a new ADR, never edit in place
+- ADRs (`<vault>/decisions/ADR-*.md`) are append-only — supersede with a new ADR, never edit in place
 - Mid-build design deviations → update active slice's `design.md` + note in `build-log.md`
 - Run `/drift-check` before commit (or rely on the pre-commit hook)
 
@@ -254,7 +254,7 @@ Skills: `~/.claude/skills/<name>/SKILL.md`. Templates: `~/.claude/templates/`.
 
 ## AI SDLC pipeline
 
-**Mode**: <mode>. Vault: `architecture/`. Active slice: `architecture/slices/_index.md`.
+**Mode**: <mode>. Vault: `<vault>/`. Active slice: `<vault>/slices/_index.md`.
 
 **Hard rule**: before editing code (anything more than a typo / 1-line tweak / comment / local rename), check for an active slice. If none, **ASK** the user via structured options (per the Ask discipline below) — "Run `/slice` first, or is this small enough to skip?" Wait for the answer.
 
@@ -267,7 +267,7 @@ Skills: `~/.claude/skills/<name>/SKILL.md`. Templates: `~/.claude/templates/`.
 ADRs are append-only (supersede, don't edit). Run `/drift-check` before commit. Skills at `~/.claude/skills/<name>/SKILL.md`.
 ```
 
-That's it. No architecture/CLAUDE.md, no extensive lists, no re-declaration of skill catalog.
+That's it. No <vault>/CLAUDE.md, no extensive lists, no re-declaration of skill catalog.
 
 Why this works:
 - Claude loads `./CLAUDE.md` automatically every session

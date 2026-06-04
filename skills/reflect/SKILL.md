@@ -53,13 +53,13 @@ Things not done this slice. Will be addressed in next slice or backlog.
 The thin vault has fewer files to update. For each Corrected item, update the relevant file:
 
 - Decision wrong → supersede the ADR (procedure below)
-- Risk claim wrong → **Rewrite** `architecture/risk-register.md` in place (a `**Status**:` flip is a whole-file read-modify-write) via `vault_edit rewrite` (R-32 CAS — [[ADR-088]]): capture the byte-exact base with `$PY -m tools.vault_edit read --file risk-register.md --out-file base.bin` (use `--out-file`, NOT shell `>` — PowerShell's `>` re-encodes stdout to UTF-16LE+BOM and corrupts the base → guaranteed CAS livelock), edit a copy, then `$PY -m tools.vault_edit rewrite --file risk-register.md --base-file base.bin --content-file <edited>`; on exit 3 (a parallel slice wrote it first) re-read + re-apply + retry (bounded ~5, then STOP loudly). A NEW risk *entry* is an append → `vault_edit append` (unchanged).
-- Concept assumption wrong → update `architecture/concept.md` (the relevant section)
+- Risk claim wrong → **Rewrite** `<vault>/risk-register.md` in place (a `**Status**:` flip is a whole-file read-modify-write) via `vault_edit rewrite` (R-32 CAS — [[ADR-088]]): capture the byte-exact base with `$PY -m tools.vault_edit read --file risk-register.md --out-file base.bin` (use `--out-file`, NOT shell `>` — PowerShell's `>` re-encodes stdout to UTF-16LE+BOM and corrupts the base → guaranteed CAS livelock), edit a copy, then `$PY -m tools.vault_edit rewrite --file risk-register.md --base-file base.bin --content-file <edited>`; on exit 3 (a parallel slice wrote it first) re-read + re-apply + retry (bounded ~5, then STOP loudly). A NEW risk *entry* is an append → `vault_edit append` (unchanged).
+- Concept assumption wrong → update `<vault>/concept.md` (the relevant section)
 - Slice's own design wrong → update the slice's `design.md` (note the change in build-log too)
 - `diagnose-out/backlog.md` round-trip — **RETIRED at slice-105 / [[ADR-095]]** (BCR-1 is now *consume-only*): `/reflect` no longer writes an `**Addressed:** slice-NNN` line back into `diagnose-out/backlog.md`. Under BRANCH-3 `/reflect` runs in the worktree, where `diagnose-out/` is gitignored, so that write landed in a copy discarded at merge — a dead write. `/slice` still *consults* `backlog.md` as a candidate source when present (the consume side is unchanged); the `**Closes:** SC-NNN` sentinel is now inert documentation, not a round-trip trigger.
 
 For each Discovered item:
-- Add to `architecture/risk-register.md` with reversibility tag <!-- route: tools.vault_edit append -->
+- Add to `<vault>/risk-register.md` with reversibility tag <!-- route: tools.vault_edit append -->
 - If it affects current slice scope: note in this slice's `reflection.md`
 - If it spawns a future slice: leave a candidate note for next `/slice`
 
@@ -142,7 +142,7 @@ Per TRI-1, score each finding via the disposition in `critique.md` -> `## Triage
 
 > **Vault-write safety (SVW-1 / [[ADR-087]]; RMW class closed at slice-097 / [[ADR-088]])** — mutations of shared-aggregate vault files (`risk-register.md`, `lessons-learned.md`, `build-checks.md`, `shippability.md`, `_index.md`) go through the R-32 safe channel by OP-CLASS: **appends** via `$PY -m tools.vault_edit append --file <name> --content-file <tmp>` (write the block to a temp file first); **read-modify-writes** (the `_index.md` recent-10 regen + in-place risk-status flips) via `$PY -m tools.vault_edit rewrite` (compare-and-swap — capture the base with `read --out-file`, then `rewrite --base-file`; exit 3 → re-read + retry). NEVER a raw `Write`/`Edit` on these files (it bypasses the `_vault_write` lock — the silent lost-update/torn-write class once the vault goes shared). The RMW class is now ENFORCED, not deferred — a rewrite-class directive routed through the unsafe `append` channel is a channel-mismatch violation. Enforced by `tools/skill_vault_write_safety_audit.py`.
 
-### Step 5: Append to `architecture/lessons-learned.md` <!-- route: tools.vault_edit append -->
+### Step 5: Append to `<vault>/lessons-learned.md` <!-- route: tools.vault_edit append -->
 
 Append a chronological entry:
 
@@ -187,7 +187,7 @@ If the user answers yes, gather:
 6. **Rationale** — why this is permanent, not a one-time fix (one paragraph; reference prior slices where the pattern recurred)
 7. **Validation hint** — how to verify (grep, pytest -k, curl, etc.)
 
-Append the rule to `architecture/build-checks.md` under the `## Rules` heading, using the next available `BC-PROJ-NNN` ID. Format (parsed by `tools/build_checks_audit.py`): <!-- route: tools.vault_edit append -->
+Append the rule to `<vault>/build-checks.md` under the `## Rules` heading, using the next available `BC-PROJ-NNN` ID. Format (parsed by `tools/build_checks_audit.py`): <!-- route: tools.vault_edit append -->
 
 ```markdown
 ## BC-PROJ-NNN — <title>
@@ -204,7 +204,7 @@ Append the rule to `architecture/build-checks.md` under the `## Rules` heading, 
 **Validation hint**: <how to verify>
 ```
 
-If `architecture/build-checks.md` doesn't exist yet, create it with the canonical header (see `tests/methodology/fixtures/build_checks/clean_project_checks.md` for the template).
+If `<vault>/build-checks.md` doesn't exist yet, create it with the canonical header (see `tests/methodology/fixtures/build_checks/clean_project_checks.md` for the template).
 
 **Optional global promotion**: if the rule is generic enough to apply to **all projects** (not just this one), also offer to append it to `~/.claude/build-checks.md` with a `BC-GLOBAL-NNN` ID. Examples of globally generic rules: secrets in code, JWT signature verification, SQL injection prevention, file-upload size limits. Project-specific rules (e.g., "the `receipts` table requires `merchant_id`") stay project-only.
 
@@ -257,13 +257,13 @@ Per **TVFS-1** (`methodology-changelog.md` v0.63.0; slice-059; [[ADR-058]]; exte
 >
 > If it exits non-zero (`drift`/HALT): **STOP and report** — the installed `ai-sdlc-tools` pip package was not re-installed after this slice's version bump. Run `$PY -m pip install --upgrade <ai-sdlc-source>` (INSTALL.md Step 3g) and re-run until exit 0 (incl. the not-installed WARN, also exit 0). This is the deterministic downstream control retiring the installed-pip-artifact silent-drift class. TVFS-1 is also wired non-opt-out at `/build-slice` Step 6 (likewise ungated) — the two ungated points are complementary, neither gated on rule promotion.
 
-### Step 5.3: Add one entry to `architecture/shippability.md` <!-- route: tools.vault_edit append -->
+### Step 5.3: Add one entry to `<vault>/shippability.md` <!-- route: tools.vault_edit append -->
 
 Every completed slice contributes ONE critical-path test to the shippability catalog. Future `/validate-slice` runs execute the full catalog to catch regressions.
 
 Ask yourself: **"If this slice silently broke later, what's THE one test that would catch it first?"** That's the critical path for this slice.
 
-Append to `architecture/shippability.md`: <!-- route: tools.vault_edit append -->
+Append to `<vault>/shippability.md`: <!-- route: tools.vault_edit append -->
 
 ```markdown
 | <next-#> | slice-NNN-<name> | <one-line critical path> | `<runnable command>` | <expected runtime> |
@@ -276,7 +276,7 @@ Rules for the critical-path entry:
 - **Expected runtime** — keep to <10 seconds per entry. Shippability runs add up; if a slice's critical path takes minutes, split it into a faster smoke + a thorough CI-only version.
 - Must be TEST, not manual step. `/validate-slice` runs the catalog programmatically.
 
-If `architecture/shippability.md` doesn't exist yet, create it with header:
+If `<vault>/shippability.md` doesn't exist yet, create it with header:
 
 ```markdown
 # Shippability Catalog
@@ -318,8 +318,8 @@ The convention: `slices/` holds ACTIVE slices only; completed slices live in `sl
 After writing `reflection.md`, this slice is complete. Archive it immediately:
 
 1. `$PY -m tools.vault_edit move --from slices/slice-NNN-<name> --to slices/archive/` (R-32 seam-routed archive move — [[ADR-103]]; resolves BOTH endpoints under `VAULT_ROOT` so the move follows the vault to the external store at flip instead of a hardcoded in-tree path; refuses if `slices/archive/slice-NNN-<name>` already exists, preserving the no-overwrite semantic)
-2. Regenerate `architecture/slices/_index.md` — update the "Active" table (remove this slice), update the "Most recent 10" table (add this slice at the top as a THIN one-liner from this slice's mission-brief Intent, ≤500 chars, and drop the now-oldest row so the table stays EXACTLY 10 — the thin-router contract enforced by `tools/index_router_thinness_audit.py` per slice-103 / ADR-093). Do NOT touch the curated `slices/action-points.md` register and do NOT add an all-history "Aggregated lessons" dump (it was relocated out at ADR-093; `_index.md` carries only a `## Cross-slice action points` pointer); the slice's full "Lessons for next slice" items go to `lessons-learned.md` at Step 5 as usual. This is a read-modify-write, so apply it via `vault_edit rewrite` (R-32 CAS — [[ADR-088]]): `$PY -m tools.vault_edit read --file slices/_index.md --out-file base.bin` (use `--out-file`, NOT shell `>` — PowerShell's `>` corrupts the base to UTF-16LE+BOM → CAS livelock), regenerate into a copy, then `$PY -m tools.vault_edit rewrite --file slices/_index.md --base-file base.bin --content-file <regen>`; on exit 3 (a parallel slice completed first) re-read + re-regenerate + retry (bounded ~5, then STOP loudly). Verify byte-integrity afterward (no CRLF→LF churn).
-3. Prepend this slice's THIN one-liner row (4-col `| # | Slice | Shipped | one-liner ≤500 |`, the one-liner from this slice's mission-brief Intent — per the ADR-093 thin-router contract) to the TOP of `architecture/slices/archive/_index.md` (the catalog is newest-at-top — see its header), right after the table separator. This is a read-modify-write (insert at the top of an existing file), so apply it via `vault_edit rewrite` (R-32 CAS — [[ADR-088]]): `$PY -m tools.vault_edit read --file slices/archive/_index.md --out-file base.bin` (use `--out-file`, NOT shell `>`), insert the row after the separator in a copy, then `$PY -m tools.vault_edit rewrite --file slices/archive/_index.md --base-file base.bin --content-file <edited>`; on exit 3 re-read + re-apply + retry (bounded ~5). NOT `vault_edit append` — appending at EOF puts the row at the OLDEST position in a newest-first catalog (slice-097 /reflect live-fire discovery D1).
+2. Regenerate `<vault>/slices/_index.md` — update the "Active" table (remove this slice), update the "Most recent 10" table (add this slice at the top as a THIN one-liner from this slice's mission-brief Intent, ≤500 chars, and drop the now-oldest row so the table stays EXACTLY 10 — the thin-router contract enforced by `tools/index_router_thinness_audit.py` per slice-103 / ADR-093). Do NOT touch the curated `slices/action-points.md` register and do NOT add an all-history "Aggregated lessons" dump (it was relocated out at ADR-093; `_index.md` carries only a `## Cross-slice action points` pointer); the slice's full "Lessons for next slice" items go to `lessons-learned.md` at Step 5 as usual. This is a read-modify-write, so apply it via `vault_edit rewrite` (R-32 CAS — [[ADR-088]]): `$PY -m tools.vault_edit read --file slices/_index.md --out-file base.bin` (use `--out-file`, NOT shell `>` — PowerShell's `>` corrupts the base to UTF-16LE+BOM → CAS livelock), regenerate into a copy, then `$PY -m tools.vault_edit rewrite --file slices/_index.md --base-file base.bin --content-file <regen>`; on exit 3 (a parallel slice completed first) re-read + re-regenerate + retry (bounded ~5, then STOP loudly). Verify byte-integrity afterward (no CRLF→LF churn).
+3. Prepend this slice's THIN one-liner row (4-col `| # | Slice | Shipped | one-liner ≤500 |`, the one-liner from this slice's mission-brief Intent — per the ADR-093 thin-router contract) to the TOP of `<vault>/slices/archive/_index.md` (the catalog is newest-at-top — see its header), right after the table separator. This is a read-modify-write (insert at the top of an existing file), so apply it via `vault_edit rewrite` (R-32 CAS — [[ADR-088]]): `$PY -m tools.vault_edit read --file slices/archive/_index.md --out-file base.bin` (use `--out-file`, NOT shell `>`), insert the row after the separator in a copy, then `$PY -m tools.vault_edit rewrite --file slices/archive/_index.md --base-file base.bin --content-file <edited>`; on exit 3 re-read + re-apply + retry (bounded ~5). NOT `vault_edit append` — appending at EOF puts the row at the OLDEST position in a newest-first catalog (slice-097 /reflect live-fire discovery D1).
 
 This is the same work as `/archive --index-only` but triggered automatically by slice completion. If you'd rather skip auto-archive and batch it later, explicitly tell the user: "Leaving slice in `slices/` — run `/archive` to sweep later." Only do this if the user requests it.
 
@@ -359,7 +359,7 @@ State:
 - "Deferrals: <count> (surfaced above as slice candidates)."
 - "Run `/slice` to formally select + define the next cut. I've previewed candidates above."
 
-Archived slices are easy to find via `architecture/slices/_index.md`. Full catalog in `archive/_index.md`. Direct file access via `slices/archive/slice-NNN-<name>/` still works.
+Archived slices are easy to find via `<vault>/slices/_index.md`. Full catalog in `archive/_index.md`. Direct file access via `slices/archive/slice-NNN-<name>/` still works.
 
 ## Critical rules
 

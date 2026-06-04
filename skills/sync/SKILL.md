@@ -39,7 +39,7 @@ Maintenance skill in Heavy mode. Run:
 
 ## Prerequisite check
 
-- Read `architecture/triage.md` — confirm `mode: Heavy`
+- Read `<vault>/triage.md` — confirm `mode: Heavy`
 - If Standard or Minimal: STOP, suggest `/drift-check` instead
 - Confirm comprehensive vault exists (`components/`, `contracts/`, `schemas/` directories)
 - If `/heavy-architect` hasn't run: STOP, run that first
@@ -114,7 +114,7 @@ Per **CSP-1** (`methodology-changelog.md` v0.18.0), run the cross-spec parity au
 $PY -m tools.cross_spec_parity_audit --root .
 ```
 
-The audit walks `architecture/threat-model.md`, `architecture/requirements.md`, and `architecture/nfrs.md` and validates that every H2 item (TM-NN / REQ-NN / NFR-NN):
+The audit walks `<vault>/threat-model.md`, `<vault>/requirements.md`, and `<vault>/nfrs.md` and validates that every H2 item (TM-NN / REQ-NN / NFR-NN):
 
 - Has a `Status` field whose value is in the allowed vocabulary per artifact (TM: mitigated/accepted/open; REQ: implemented/pending/deferred; NFR: met/unmet/unverified)
 - For statuses that imply real implementation (mitigated / implemented / met): the `Implementation:` (TM/REQ) or `Verification:` (NFR) field references a file path that exists relative to project root
@@ -176,7 +176,7 @@ Rebuild $PY -m graphify vault graph after sync:
 $PY -m graphify vault architecture
 ```
 
-### Step 7: Write `architecture/sync-log.md`
+### Step 7: Write `<vault>/sync-log.md`
 
 Append a sync record:
 

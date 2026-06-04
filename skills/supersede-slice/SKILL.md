@@ -29,7 +29,7 @@ For mid-iteration design corrections within an active slice (not yet archived), 
 
 ## Prerequisite check
 
-- An archived slice must exist at `architecture/slices/archive/<archived-slice-id>/`
+- An archived slice must exist at `<vault>/slices/archive/<archived-slice-id>/`
 - That folder must contain a `reflection.md` (the shipped retrospective)
 - An active slice (in `architecture/slices/<active-slice-id>/`) is typically the source of supersession; if no active slice yet, you can run `/supersede-slice` first and create the active slice next, but the bidirectional audit will fail until both ends are linked.
 
@@ -40,10 +40,10 @@ For mid-iteration design corrections within an active slice (not yet archived), 
 Confirm the archived slice exists:
 
 ```bash
-test -d architecture/slices/archive/<archived-slice-id>/
+test -d <vault>/slices/archive/<archived-slice-id>/
 ```
 
-If not: STOP. Tell the user the archived slice id wasn't found and list available ones from `architecture/slices/archive/`.
+If not: STOP. Tell the user the archived slice id wasn't found and list available ones from `<vault>/slices/archive/`.
 
 Read the archived slice's `reflection.md` to see what's being superseded. Surface a one-line summary of its result + main lessons so the user has context before writing the supersession reason.
 
@@ -64,7 +64,7 @@ Examples of bad reasons:
 
 ### Step 3: Update the archived slice's reflection.md
 
-Append a new section to `architecture/slices/archive/<archived-slice-id>/reflection.md`:
+Append a new section to `<vault>/slices/archive/<archived-slice-id>/reflection.md`:
 
 ```markdown
 ## Supersession
@@ -100,7 +100,7 @@ Expected: 1 link validated (no violations). If the audit reports `one-way-link` 
 
 ### Step 6: Update slices/_index.md
 
-Update `architecture/slices/_index.md` to mark the archived slice as superseded in its row of the catalog table — a read-modify-write, so apply it via `vault_edit rewrite` (R-32 CAS — [[ADR-088]]): `$PY -m tools.vault_edit read --file slices/_index.md --out-file base.bin` (use `--out-file`, NOT shell `>` — PowerShell `>` corrupts the base to UTF-16LE+BOM → CAS livelock), edit the row in a copy, then `$PY -m tools.vault_edit rewrite --file slices/_index.md --base-file base.bin --content-file <edited>`; on exit 3 re-read + re-apply + retry (bounded ~5). Format:
+Update `<vault>/slices/_index.md` to mark the archived slice as superseded in its row of the catalog table — a read-modify-write, so apply it via `vault_edit rewrite` (R-32 CAS — [[ADR-088]]): `$PY -m tools.vault_edit read --file slices/_index.md --out-file base.bin` (use `--out-file`, NOT shell `>` — PowerShell `>` corrupts the base to UTF-16LE+BOM → CAS livelock), edit the row in a copy, then `$PY -m tools.vault_edit rewrite --file slices/_index.md --base-file base.bin --content-file <edited>`; on exit 3 re-read + re-apply + retry (bounded ~5). Format:
 
 ```markdown
 | <archived-slice-id> | <date> | <result> | superseded by [[<active-slice-id>]] |

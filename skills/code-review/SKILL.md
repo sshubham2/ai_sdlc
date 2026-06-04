@@ -24,7 +24,7 @@ The three-persona model (extended from `/critique` + `/critique-review`): design
 
 ## Prerequisite check
 
-- Find the active slice folder (check `architecture/slices/_index.md` "Currently active slice", else stat `architecture/slices/slice-*/` for one stage-active `milestone.md`).
+- Find the active slice folder (check `<vault>/slices/_index.md` "Currently active slice", else stat `architecture/slices/slice-*/` for one stage-active `milestone.md`).
 - Read `mission-brief.md`, `design.md`, and any new `ADR-NNN-*.md` files in this slice.
 - Read `build-log.md` — if its frontmatter shows `Result: NOT-SHIPPED`: STOP with explicit message ("`/code-review` cannot review a slice that isn't built yet — run `/build-slice` first"). Do not auto-advance.
 - If `mission-brief.md` is missing: STOP, tell user to run `/slice` first.

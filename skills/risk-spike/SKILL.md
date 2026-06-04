@@ -1,6 +1,6 @@
 ---
 name: risk-spike
-description: "AI SDLC pipeline. Validate risky third-party API assumptions with throwaway code on real environments — BEFORE any design or architecture work. Use after /triage or /discover when HIGH-risk items exist in architecture/risk-register.md, or when /critique flags an unvalidated assumption. Trigger phrases: '/risk-spike', 'spike a risk early', 'validate assumption before design', 'run a feasibility spike'."
+description: "AI SDLC pipeline. Validate risky third-party API assumptions with throwaway code on real environments — BEFORE any design or architecture work. Use after /triage or /discover when HIGH-risk items exist in <vault>/risk-register.md, or when /critique flags an unvalidated assumption. Trigger phrases: '/risk-spike', 'spike a risk early', 'validate assumption before design', 'run a feasibility spike'."
 user_invokable: true
 argument-hint: [risk-id-or-name] | all
 ---
@@ -21,7 +21,7 @@ If a critical assumption fails after design (or worse, after build), you re-do d
 
 ## Prerequisite check
 
-Read `architecture/risk-register.md`. If it doesn't exist, run `/triage` first.
+Read `<vault>/risk-register.md`. If it doesn't exist, run `/triage` first.
 
 ## Your task
 
@@ -74,7 +74,7 @@ For multi-device / multi-user features: REQUIRE 2+ instances. Single-instance te
 
 **The agent returns**:
 
-1. **`field-recon.md` content** — write it to `architecture/spikes/spike-<name>/field-recon.md`.
+1. **`field-recon.md` content** — write it to `<vault>/spikes/spike-<name>/field-recon.md`.
 2. **Recommendation block** — `suggested_action` is one of `drop` / `proceed-with-caveats` / `proceed` / `inconclusive`.
 
 **WebSearch unavailable**: if the agent reports `Skipped — WebSearch unavailable`, write a stub `field-recon.md` containing that note and proceed to Step 3 with local prior art only. Tell the user the open-loop check didn't run.
@@ -94,7 +94,7 @@ For multi-device / multi-user features: REQUIRE 2+ instances. Single-instance te
 
 If the target environment is available (connected device, local server, cloud account with credentials):
 
-- Write the throwaway code at `architecture/spikes/code/spike-<name>/`
+- Write the throwaway code at `<vault>/spikes/code/spike-<name>/`
 - Execute it
 - Capture output, logs, screenshots
 
@@ -108,7 +108,7 @@ If environment isn't available: stop and tell the user what's needed, exact setu
 
 Be honest. Don't soft-pedal a NO-GO into a CONDITIONAL because it's inconvenient.
 
-### Step 5: Write `architecture/spikes/spike-<name>.md`
+### Step 5: Write `<vault>/spikes/spike-<name>.md`
 
 ```markdown
 # Spike: <name>
@@ -145,7 +145,7 @@ Be honest. Don't soft-pedal a NO-GO into a CONDITIONAL because it's inconvenient
 
 ### Step 6: Update risk register
 
-Update `architecture/risk-register.md` for each spiked risk: <!-- vault-write-safe: project-open-single-shot -->
+Update `<vault>/risk-register.md` for each spiked risk: <!-- vault-write-safe: project-open-single-shot -->
 
 - GO → mark "RETIRED — spike <name> validated"
 - NO-GO → mark "BLOCKING — spike <name> failed; redesign required" + flag what needs to change

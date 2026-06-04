@@ -16,10 +16,10 @@ In Standard/Minimal mode: this skill DOES NOT RUN. Per-slice design via `/design
 
 ## Prerequisite check
 
-- Read `architecture/triage.md` — confirm `mode: Heavy`
+- Read `<vault>/triage.md` — confirm `mode: Heavy`
 - If mode is Standard or Minimal: STOP, suggest `/triage --re-triage` if Heavy is actually needed
-- Read `architecture/concept.md`, `architecture/risk-register.md`, all `architecture/spikes/spike-*.md`, all `architecture/decisions/ADR-*.md`
-- Read all `architecture/actors/<actor>.md` (Heavy mode has separate actor files)
+- Read `<vault>/concept.md`, `<vault>/risk-register.md`, all `<vault>/spikes/spike-*.md`, all `<vault>/decisions/ADR-*.md`
+- Read all `<vault>/actors/<actor>.md` (Heavy mode has separate actor files)
 
 ## Your task
 
@@ -127,7 +127,7 @@ Total monthly cost per scale + per-user cost.
 
 ### Step 7: Test plan index
 
-For each component and contract, list the test categories that must exist. Populate per slice during `/build-slice`. The index is the placeholder — actual test specs live in `architecture/test-plan/<area>.md` files populated as slices complete.
+For each component and contract, list the test categories that must exist. Populate per slice during `/build-slice`. The index is the placeholder — actual test specs live in `<vault>/test-plan/<area>.md` files populated as slices complete.
 
 ### Step 8: Requirements
 
@@ -143,7 +143,7 @@ Two files:
 Write only the files that genuinely cannot be derived from code:
 
 ```
-architecture/
+<vault>/
   threat-model.md                # STRIDE per component (Step 5) — human rationale
   cost-estimation.md             # per-component infra costs (Step 6) — human estimate, not derivable
   requirements.md                # functional (Step 8) — human-authored intent

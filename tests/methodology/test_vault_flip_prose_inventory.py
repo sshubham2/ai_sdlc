@@ -306,3 +306,23 @@ def test_converted_files_membership_forward_slash_only():
         # the backslash-form of a member is NOT in the set (forward-slash is load-bearing)
         if "/" in p:
             assert p.replace("/", "\\") not in _CONVERTED_FILES
+
+
+def test_ratchet_fires_on_differing_value_despite_same_file_carveout(tmp_path):
+    """M3 (slice-113 / AP-5): the converted-file ratchet protects a RATCHETED file that carries
+    sanctioned carve-outs against a REAL (differing-value) regression — value-keyed carve-outs do
+    NOT vacuously whitelist arbitrary regressions. `skills/slice/SKILL.md` is the canonical case
+    the must-not-defer names: a sanctioned carve-out value (`architecture/slice-queue.md`, class-6)
+    stays exempt, but a fresh differing-value operational literal (`architecture/regression.md`)
+    is flagged. (The lone same-value `…`-ellipsis collision is documented non-exploitable — an
+    ellipsis is not a real path, so no real regression can match it.)"""
+    _write(tmp_path, "skills/slice/SKILL.md",
+           "Read the `architecture/slice-queue.md` ledger; also Read `architecture/regression.md`.\n")
+    res = audit_root(tmp_path)
+    regs = {o.value for o in converted_file_regressions(res) if o.path == "skills/slice/SKILL.md"}
+    assert "architecture/regression.md" in regs, (
+        "a differing-value regression in a ratcheted converted file MUST fire (non-vacuity, M3/AP-5)"
+    )
+    assert "architecture/slice-queue.md" not in regs, (
+        "the sanctioned carve-out value must stay exempt (the value-keyed allowlist works)"
+    )

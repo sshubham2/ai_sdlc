@@ -26,7 +26,7 @@ Independent of modes. Read-only — never modifies vault files.
 
 ## Prerequisite check
 
-- `architecture/` must exist. If not: project hasn't been opened via `/triage` or `/adopt`; suggest one of those.
+- `<vault>/` must exist. If not: project hasn't been opened via `/triage` or `/adopt`; suggest one of those.
 - Graphify is nice-to-have but not required.
 
 ## Your task
@@ -35,19 +35,19 @@ Independent of modes. Read-only — never modifies vault files.
 
 Read these files (non-recursive, small total):
 
-- **BRANCH-2 worktree detection** (per slice-077 / ADR-070; mandatory pre-read step BEFORE any milestone.md read): run `git worktree list --porcelain` (or invoke `python -m tools.pulse_worktree_resolver --detect --json` from the repo root) to enumerate non-main worktrees registered with the repo. For each worktree on a `slice/NNN-<name>` branch (canonical BRANCH-2 path `<main-parent>/<main-name>-wt/slice-NNN-<name>`), read that worktree's `architecture/slices/slice-NNN-<name>/milestone.md` (active path) OR `architecture/slices/archive/slice-NNN-<name>/milestone.md` (archive path — auto-archived in worktree by `/reflect` Step 6). The worktree's milestone is canonical for slice-NNN's state during the BRANCH-2 worktree window; the main-tree `architecture/slices/<active>/milestone.md` is stale until `/commit-slice --merge`. Then classify each worktree via `python -m tools.pulse_worktree_resolver --classify slice-NNN-<name> --json` to compute one of 4 `WorktreeState` values (`IN_PROGRESS` / `BUILT_BUT_NOT_MERGED` / `MERGED` / `UNKNOWN`) per ADR-070 § 4-state worktree taxonomy.
+- **BRANCH-2 worktree detection** (per slice-077 / ADR-070; mandatory pre-read step BEFORE any milestone.md read): run `git worktree list --porcelain` (or invoke `python -m tools.pulse_worktree_resolver --detect --json` from the repo root) to enumerate non-main worktrees registered with the repo. For each worktree on a `slice/NNN-<name>` branch (canonical BRANCH-2 path `<main-parent>/<main-name>-wt/slice-NNN-<name>`), read that worktree's `architecture/slices/slice-NNN-<name>/milestone.md` (active path) OR `<vault>/slices/archive/slice-NNN-<name>/milestone.md` (archive path — auto-archived in worktree by `/reflect` Step 6). The worktree's milestone is canonical for slice-NNN's state during the BRANCH-2 worktree window; the main-tree `architecture/slices/<active>/milestone.md` is stale until `/commit-slice --merge`. Then classify each worktree via `python -m tools.pulse_worktree_resolver --classify slice-NNN-<name> --json` to compute one of 4 `WorktreeState` values (`IN_PROGRESS` / `BUILT_BUT_NOT_MERGED` / `MERGED` / `UNKNOWN`) per ADR-070 § 4-state worktree taxonomy.
 - **Stranded-slice signal — bare branches (R-26 / ADR-079)**: the BRANCH-2 worktree pre-read above covers slices WITH a live worktree; it does NOT see a **bare unmerged `slice/*` branch without a worktree** (e.g. a committed-but-unmerged branch whose worktree was removed). Run `$PY -m tools.stranded_slice_audit --repo-root . --json` to classify every unmerged `slice/*` branch into the 4-class divergence model and surface any `halt: true` entry (`klass` ∈ {`stranded-complete`, `orphaned`, `indeterminate`}) in the **Drift & bypass** section as a one-line `⚠ stranded: <branch> (<klass>)` note. Informational `in-progress` / `claimed-by-other` / `branchless-in-flight` entries are parallel-normal — do NOT surface them as warnings (the detector classifies, it does not flag-all). The `branchless-in-flight` klass (a `/slice`+`/design`'d-but-not-yet-branched scaffold folder in the invoking tree, no `slice/*` ref — slice-092 / ADR-084) is surfaced, when present, as a one-line situational-awareness note (e.g. `parallel: <slice-NNN-name> in flight (branchless, stage=<stage>)`) alongside the parallel-state summary, NOT as a `⚠ stranded` warning — it is healthy parallel-safe work, never a halt.
-- `architecture/triage.md` → mode, classification, pipeline path, deferred steps
-- `architecture/concept.md` (if exists) → 1-line "what it does"
-- `architecture/risk-register.md` → risks with status (open / mitigating / retired / accepted) — use the **RR-1** audit (`$PY -m tools.risk_register_audit architecture/risk-register.md --json --filter-status open --sort score`) for scored, sorted output. Surface top-3 open by score in the "Risk exposure" section; older legacy table-format files emit zero risks and fall back to a grep-based summary with a one-line "register not migrated to RR-1 format" hint.
-- `architecture/slices/_index.md` → active slice list, recent-10; `architecture/slices/action-points.md` → the curated cross-slice action-points register (relocated out of `_index.md` at slice-103 / ADR-093)
+- `<vault>/triage.md` → mode, classification, pipeline path, deferred steps
+- `<vault>/concept.md` (if exists) → 1-line "what it does"
+- `<vault>/risk-register.md` → risks with status (open / mitigating / retired / accepted) — use the **RR-1** audit (`$PY -m tools.risk_register_audit <vault>/risk-register.md --json --filter-status open --sort score`) for scored, sorted output. Surface top-3 open by score in the "Risk exposure" section; older legacy table-format files emit zero risks and fall back to a grep-based summary with a one-line "register not migrated to RR-1 format" hint.
+- `<vault>/slices/_index.md` → active slice list, recent-10; `<vault>/slices/action-points.md` → the curated cross-slice action-points register (relocated out of `_index.md` at slice-103 / ADR-093)
 - Active slice folder (if any): `milestone.md` FIRST (primary source — explicit stage, next-action, progress, on-resume data in one file). Only read `mission-brief.md` for extra detail on intent or ACs if the milestone summary isn't enough. **Worktree precedence**: when a BRANCH-2 worktree on a `slice/NNN-<name>` branch exists (per the pre-read step above), the WORKTREE's milestone.md is authoritative for slice-NNN's state; consult both but prefer the worktree's when they diverge during a `BUILT_BUT_NOT_MERGED` window.
 - If `milestone.md` shows stage `build` (or later but `build-log.md` exists): also read the **tail (~last 15 lines) of `build-log.md`'s `## Events` section**. This is the append-only flight recorder written by `/build-slice` Step 7c. Tool failures and session deaths can leave `milestone.md` stale; the events trace is the durable record. Compare the latest event timestamp to milestone.md's last update — if events are newer, milestone.md is behind and the events tell the real story.
-- `architecture/shippability.md` (if exists) → count of critical paths
-- `architecture/critic-calibration-log.md` (if exists) → last calibration run date, slices since last run
-- `architecture/lessons-learned.md` → last 3-5 entries (most recent patterns)
-- `architecture/drift-log.md` (if exists) → unresolved drift count
-- `architecture/changelog.md` (if exists) → pipeline-bypass count
+- `<vault>/shippability.md` (if exists) → count of critical paths
+- `<vault>/critic-calibration-log.md` (if exists) → last calibration run date, slices since last run
+- `<vault>/lessons-learned.md` → last 3-5 entries (most recent patterns)
+- `<vault>/drift-log.md` (if exists) → unresolved drift count
+- `<vault>/changelog.md` (if exists) → pipeline-bypass count
 - `~/.claude/methodology-changelog.md` (if exists) → most recent dated entry; surfaces AI SDLC methodology version and last rule added
 - `~/.claude/ai-sdlc-VERSION` (if exists) → AI SDLC semver string
 
@@ -79,7 +79,7 @@ If fallback triggers: flag to user "milestone.md missing — consider running `/
 - If >3 slices since last full run AND catalog exists: ⚠️ flag
 
 **Critic calibration status (cadence enforcement per CAL-1)**:
-- Slices since last `/critic-calibrate` run (from `architecture/critic-calibration-log.md`)
+- Slices since last `/critic-calibrate` run (from `<vault>/critic-calibration-log.md`)
 - Threshold: every 10-20 archived slices
 - Categorize cadence into one of four states:
   - **within window** (0-9 slices): no flag
