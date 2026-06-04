@@ -18,7 +18,7 @@ invisible to it, yet they break at the M4 flip. ``re.finditer`` (not one ``re.se
 per line) is load-bearing: 24 lines carry >1 match (32 extra occurrences;
 ``code-review.md:103`` carries 5), so a per-line single match would undercount
 (318→286 on slice-107's corpus). (These sub-counts are slice-107's measurement; the
-LIVE total is the pinned ``EXPECTED_TOTAL`` — 313 after slice-111 / [[ADR-103]].)
+LIVE total is the pinned ``EXPECTED_TOTAL`` — 303 after slice-112 / [[ADR-105]].)
 
 CLASSIFICATION — context-aware ordered ruleset. The in-code state is column-anchored
 PER MATCH (`_in_inline_code(line, col)`); the marker detectors (pathspec / anchor /
@@ -44,12 +44,14 @@ Order (first applicable wins):
   4. in-code (inline backticks OR fenced) OR an operational verb on the line → rewrite-at-flip
   5. plain prose mention (not in code, no signal)                          → doc-example
 
-On the current corpus the ruleset yields **313 rewrite-at-flip / 0 historical-anchor /
-0 doc-example / 0 needs-human** (was 318 at slice-107; slice-111 / [[ADR-103]] routed
-K=5 archive-`mv`/drift-log literals through `vault_edit`) — every operational prose
-reference to the vault location goes stale at the M4 flip, so all 313 are
-rewrite-at-flip; doc-example, historical-anchor, and needs-human are all empty on this
-corpus (the classes exist for future drift / other surfaces). The ``_DISPOSITION`` table + needs-human bucket remain
+On the current corpus the ruleset yields **301 rewrite-at-flip / 0 historical-anchor /
+2 doc-example / 0 needs-human** (was 318 at slice-107; slice-111 / [[ADR-103]] → 313;
+slice-112 / [[ADR-105]] converted 12 operational refs to the ``<vault>/`` placeholder +
+added 2 plain-prose definitionals) — most operational prose references to the vault
+location go stale at the M4 flip (rewrite-at-flip); the 2 doc-example are the CLAUDE.md +
+agent-note resolution-rule defaults (the ``<vault>`` convention's plain-prose
+``architecture/`` default — slice-112); historical-anchor and needs-human remain empty on
+this corpus (the classes exist for future drift / other surfaces). The ``_DISPOSITION`` table + needs-human bucket remain
 the fail-closed mechanism for future drift. ``--strict`` pins the ``rewrite-at-flip`` + ``needs-human`` multiset
 baseline + a per-class total-count floor (m2 — catches a silent
 ``rewrite-at-flip → doc-example`` demotion).
@@ -288,13 +290,16 @@ _DISPOSITION_MAP: dict[tuple, str] = {(p, n, f, o, c): k for (p, n, f, o, c, k) 
 # baseline (AC5 / M1 disjointness — discovered at build, build-log 2026-06-03). The
 # full enumerated inventory is the --json output; this hash is the drift identity
 # (exit 2 on ANY multiset change — same gate behavior as an enumerated multiset).
-_BASELINE_SHA256 = "602c62fd58b7547cd9438b9e56d56051b1edc9f824d41d0a8032be51c163ca0a"
+_BASELINE_SHA256 = "ebc07dc27e618f743e2c8ae6fa5d08914171bfb8e3868a5f89dd331baa48797f"
 
 # per-class total-count floor (m2 — a silent shrink trips --strict).
 # slice-111 (ADR-103): routing the archive `mv` (/reflect, /archive) + drift-log
 # (/drift-check) through `vault_edit` removed K=5 `architecture/` literals → 318→313.
+# slice-112 (ADR-105): converting CLAUDE.md (5) + agents/critique.md (7) operational
+# refs to the `<vault>/` placeholder removed 12 rewrite-at-flip literals; the 2 new
+# plain-prose definitionals are doc-example → 313→301 rewrite-at-flip (DOC_EXAMPLE 0→2).
 _CLASS_COUNT_FLOOR: dict[str, int] = {
-    REWRITE_AT_FLIP: 313,
+    REWRITE_AT_FLIP: 301,
     HISTORICAL_ANCHOR: 0,
     DOC_EXAMPLE: 0,
     NEEDS_HUMAN: 0,
@@ -302,7 +307,7 @@ _CLASS_COUNT_FLOOR: dict[str, int] = {
 
 # bare-no-slash vault-dir args — the ONLY honest-contract residual (B1 + m-add-1).
 _RESIDUAL: tuple[dict, ...] = (
-    {'path': 'CLAUDE.md', 'line': 67, 'value': 'architecture', 'note': 'graphify vault architecture (rebuild vault graph)'},
+    {'path': 'CLAUDE.md', 'line': 70, 'value': 'architecture', 'note': 'graphify vault architecture (rebuild vault graph); line shifted 67→70 at slice-112 (added the <vault> resolution-rule bullet)'},
     {'path': 'skills/adopt/SKILL.md', 'line': 72, 'value': 'architecture', 'note': 'graphify vault architecture'},
     {'path': 'skills/discover/SKILL.md', 'line': 102, 'value': 'architecture', 'note': 'graphify vault architecture (vault graph)'},
     {'path': 'skills/heavy-architect/SKILL.md', 'line': 184, 'value': 'architecture', 'note': 'graphify vault architecture'},
@@ -316,7 +321,56 @@ _RESIDUAL: tuple[dict, ...] = (
 # change fails test_enumerates_full_corpus_all_matches_per_line; a class/value change trips --strict.
 # Pinned by AC1 (test, the documented consumer) — re-derive all three when the corpus changes.
 # slice-111 (ADR-103): 318 → 313 after K=5 archive-`mv`/drift-log literals routed via `vault_edit`.
-EXPECTED_TOTAL = 313
+# slice-112 (ADR-105): 313 → 303 — 12 operational refs converted to `<vault>/` (no longer match),
+# 2 new plain-prose definitionals added (CLAUDE.md + agents/critique.md self-sufficient note).
+EXPECTED_TOTAL = 303
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CONVERTED-FILE ONE-WAY RATCHET (slice-112 / [[ADR-105]]) — the `<vault>` prose-
+# seam convention's enforcement. A file in _CONVERTED_FILES has had its operational
+# vault literals rewritten to the `<vault>/` placeholder; it must NEVER silently
+# regress to a hardcoded operational `architecture/`/`diagnose-out/` literal. The
+# ratchet is INDEPENDENT of the re-pinnable _BASELINE_SHA256 (M3): it reds a
+# converted-file regression EVEN when the baseline is re-pinned to "cover" it.
+# ══════════════════════════════════════════════════════════════════════════════
+# Forward-slash repo-relative paths (match Occurrence.path, which audit_root
+# normalizes via .replace("\\","/")). A backslash member would silently never
+# match → vacuous-green (R-7); pinned forward-slash-only by the test (M3).
+_CONVERTED_FILES: frozenset[str] = frozenset({"CLAUDE.md", "agents/critique.md"})
+
+# Sanctioned carve-outs that legitimately STAY concrete inside a converted file:
+# the OPERATIONAL (in-code) literals of carve-out classes 5/6/7 (ADR-105) — per-slice
+# active-folder, the slice-queue ledger, diagnose-out (no seam yet, B5). Keyed
+# (path, sha256(value)) so this tools/*.py source carries NO slashed `architecture/`
+# literal that vault_flip_readiness_audit would flag (slice-107 AC5 disjointness;
+# same SHA-256 precedent as _BASELINE_SHA256 + slice-111's _OP_ALLOWLIST). The
+# definitional literal (class 2) is plain-prose doc-example — NOT rewrite-at-flip —
+# so it never enters this ratchet. An un-sanctioned carve-out is a regression.
+_CONVERTED_CARVEOUTS: frozenset[tuple[str, str]] = frozenset({
+    ("CLAUDE.md", "d38d844b56ab18a745e9d49a97975e4a37da983bb86d3b0c28b36ab8874044d1"),         # diagnose-out/backlog.md (B5)
+    ("CLAUDE.md", "5c7c173c05aa115363f9af90583148092d9558b610c7d92b09841078f95701c8"),         # diagnose-out/ (B5)
+    ("agents/critique.md", "39e937eae93854994eff21f409b9d87207fda490c42063ce39945d06c44e2bfe"),  # architecture/slice-queue.md (M1)
+    ("agents/critique.md", "9a4b7f08b84ba3a46ebd2e10938f6ef842719d477cfacbe9c3a8f71ba14c1f35"),  # architecture/slices/slice-NNN-<name>/critique.md (R-32.a)
+})
+
+
+def _carveout_key(path: str, value: str) -> tuple[str, str]:
+    return (path, hashlib.sha256(value.encode("utf-8")).hexdigest())
+
+
+def converted_file_regressions(result: AuditResult) -> list["Occurrence"]:
+    """The converted-file one-way ratchet (ADR-105): every `rewrite-at-flip`
+    occurrence inside a _CONVERTED_FILES member whose (path, value) is NOT a
+    sanctioned carve-out. Non-empty → the convention regressed; `--strict` exits 2.
+    INDEPENDENT of _BASELINE_SHA256 (M3 — keyed on the live occurrence set + the
+    carve-out allowlist, never the re-pinnable baseline hash)."""
+    return [
+        o for o in result.occurrences
+        if o.path in _CONVERTED_FILES
+        and o.klass == REWRITE_AT_FLIP
+        and _carveout_key(o.path, o.value) not in _CONVERTED_CARVEOUTS
+    ]
 
 
 # ── drift gate ────────────────────────────────────────────────────────────────
@@ -655,19 +709,26 @@ def main(argv: list[str] | None = None) -> int:
 
     drift = _baseline_drift(result) if args.strict else None
     shrink = _count_floor_shrink(result) if args.strict else []
+    regressions = converted_file_regressions(result) if args.strict else []
 
     if args.json:
         payload = result.to_dict()
         payload["baseline_drift"] = ({"live_hash": drift, "pinned_hash": _BASELINE_SHA256}
                                      if drift else None)
         payload["count_floor_shrink"] = shrink
+        payload["converted_file_regressions"] = [o.to_dict() for o in regressions]
         sys.stdout.write(json.dumps(payload, indent=2) + "\n")
     else:
         sys.stdout.write(_format_human(result, drift, shrink))
+        for o in regressions:
+            sys.stdout.write(
+                f"  --strict CONVERTED-FILE REGRESSED: {o.path}:{o.line}:{o.col} "
+                f"{o.value!r} — a converted file (ADR-105) must not hardcode an "
+                f"operational vault literal; use `<vault>/` or sanction a carve-out\n")
 
     if result.needs_human:
         return 2
-    if args.strict and (drift is not None or shrink):
+    if args.strict and (drift is not None or shrink or regressions):
         return 2
     return 0
 
