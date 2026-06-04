@@ -1,16 +1,24 @@
 # Slice queue
 
-_Generated: 2026-06-03T18:16:14+00:00 by /slice during slice-109 definition_
+_Generated: 2026-06-04T02:22:00+00:00 by /slice during slice-110 definition_
 
 ## Candidates
 
-### flip-vault-execute-atomic-move
+### rewrite-vault-prose-references-for-flip
 
-- **Source:** external-vault initiative M4 (slice-098/106/107 residual; ADR-085/089)
-- **Blast-radius:** `tools/_vault_paths.py`, `tools/_vault_write.py`, `tools/slice_queue_writer.py`
+- **Source:** external-vault M4 / slice-107 prose inventory (318 sites)
+- **Blast-radius:** `CLAUDE.md`, `agents/critique.md`, `skills/slice/SKILL.md`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** LARGE
-- **Risk-retired:** HIGH
+- **Risk-retired:** MEDIUM
+
+### implement-drift-check-enforcement
+
+- **Source:** diagnose backlog SC-007 (HIGH — documented-but-unenforced gate)
+- **Blast-radius:** `skills/drift-check/SKILL.md`, `skills/triage/SKILL.md`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** MEDIUM
+- **Risk-retired:** MEDIUM
 
 ### add-count-pin-fanout-build-check
 
@@ -20,17 +28,9 @@ _Generated: 2026-06-03T18:16:14+00:00 by /slice during slice-109 definition_
 - **Effort:** MEDIUM
 - **Risk-retired:** MEDIUM
 
-### rewrite-vault-prose-references-for-flip
-
-- **Source:** slice-107 prose inventory (318 rewrite-at-flip sites)
-- **Blast-radius:** `CLAUDE.md`, `agents`, `skills`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** LARGE
-- **Risk-retired:** MEDIUM
-
 ### fix-validate-layers-tomllib-fallback
 
-- **Source:** diagnose backlog SC-002 (VAL-1 Layer B silently disabled on Python 3.10)
+- **Source:** diagnose backlog SC-002 (VAL-1 Layer B silently disabled on Py3.10)
 - **Blast-radius:** `pyproject.toml`, `tools/validate_slice_layers.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** SMALL
@@ -44,6 +44,46 @@ _Generated: 2026-06-03T18:16:14+00:00 by /slice during slice-109 definition_
 - **Effort:** SMALL
 - **Risk-retired:** NONE
 
+### refactor-triage-audit-critique-file
+
+- **Source:** diagnose backlog SC-010 (HIGH — CC=37 on TRI-1 gate path)
+- **Blast-radius:** `tools/triage_audit.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** MEDIUM
+- **Risk-retired:** LOW
+
+### refactor-mock-budget-lint-linters
+
+- **Source:** diagnose backlog SC-012 (HIGH — CC=39/36 multi-language linters)
+- **Blast-radius:** `tools/mock_budget_lint.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** MEDIUM
+- **Risk-retired:** LOW
+
+### extract-shared-mdtable-helper
+
+- **Source:** diagnose backlog SC-017 (6-way table-helper duplication)
+- **Blast-radius:** `tools/cross_spec_parity_audit.py`, `tools/exploratory_charter_audit.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** MEDIUM
+- **Risk-retired:** LOW
+
+### reconcile-repo-root-sentinel
+
+- **Source:** diagnose backlog SC-019 (.git-OR-VERSION vs .git-only divergence)
+- **Blast-radius:** `tools/branch_workflow_audit.py`, `tools/shippability_path_audit.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** MEDIUM
+- **Risk-retired:** LOW
+
+### reconcile-reflect-successor-prose
+
+- **Source:** diagnose backlog SC-018 (/reflect declares two successors)
+- **Blast-radius:** `skills/reflect/SKILL.md`, `tools/pipeline_chain_audit.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** LOW
+
 ## Pick log
 
 - slice-100-add-vault-flip-readiness-audit — picked 2026-06-02T03:43:15+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
@@ -56,3 +96,4 @@ _Generated: 2026-06-03T18:16:14+00:00 by /slice during slice-109 definition_
 - slice-107-inventory-vault-flip-prose-surface — picked 2026-06-03T09:37:32+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-108-add-fbcd-1-cardinality-fanout-sub-mode — picked 2026-06-03T15:12:27+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-109-add-post-flip-vault-conflict-safety — picked 2026-06-03T18:16:28+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
+- slice-110-flip-vault-to-external-store — picked 2026-06-04T02:22:15+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
