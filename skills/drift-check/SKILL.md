@@ -106,7 +106,7 @@ Exit code: 0 if clean, 1 if blockers, 2 if warns only.
 
 #### Full mode (audit)
 
-Write `architecture/drift-log.md` (append, not overwrite):
+Append the audit entry below to `drift-log.md` via the R-32 seam-routed channel — [[ADR-103]] (resolves the `drift-log.md` path under `VAULT_ROOT` so it follows the vault to the external store at flip instead of a hardcoded in-tree path). Write the entry to a temp file, then `$PY -m tools.vault_edit append --file drift-log.md --content-file <entry-file>` (append-only, R-32 lock + `O_APPEND` — never overwrite):
 
 ```markdown
 ## Audit <YYYY-MM-DD HH:MM>

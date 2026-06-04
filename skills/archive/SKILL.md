@@ -48,7 +48,7 @@ If `--index-only`: skip to Step 3.
 
 For each slice in `slices/` that has `reflection.md`:
 
-- `mv architecture/slices/slice-NNN-* architecture/slices/archive/`
+- `$PY -m tools.vault_edit move --from slices/<slice-folder> --to slices/archive/` (per-slice; R-32 seam-routed move — [[ADR-103]]; resolves BOTH endpoints under `VAULT_ROOT` so it follows the vault to the external store at flip instead of a hardcoded in-tree path)
 - Preserve folder contents exactly
 
 Tell user: "Archived N slices to `slices/archive/`."
