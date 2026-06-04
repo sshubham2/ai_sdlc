@@ -10,8 +10,9 @@ production/tests surfaces). Pins:
   * AC5 — disjointness: the new tool adds NO production must-rewrite literal
 
 Dual-review corrections baked in: boundary-free matcher (real anchored=69 vs
-boundary-free=318), `re.finditer` all-matches-per-line, 5-tuple disposition key
-with column-offset, per-class count floor.
+boundary-free=318 at slice-107; EXPECTED_TOTAL=313 after slice-111 / ADR-103 routed
+K=5 archive-`mv`/drift-log literals via `vault_edit`), `re.finditer` all-matches-per-line,
+5-tuple disposition key with column-offset, per-class count floor.
 """
 from __future__ import annotations
 
@@ -48,7 +49,7 @@ def _write(tmp_path: Path, rel: str, content: str) -> Path:
 
 
 # ── AC1: boundary-free, all-matches-per-line enumeration ─────────────────────
-def test_enumerates_full_corpus_318_all_matches_per_line():
+def test_enumerates_full_corpus_all_matches_per_line():
     """The boundary-free matcher enumerates the full prose corpus (== grep
     -rohE count, EXPECTED_TOTAL) using re.finditer so intra-line multi-matches
     are NOT collapsed (M-add-1 / B3 residue: a per-line single re.search would

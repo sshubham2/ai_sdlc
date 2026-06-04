@@ -22,26 +22,39 @@ Subcommands:
 - ``read`` (slice-097) — emit the target's current RAW bytes to stdout (binary,
   no EOL normalization) so the skill can capture a byte-exact CAS base WITHOUT
   the ``Read`` tool's ``cat -n``/EOL-normalized framing (critique M2).
+- ``move`` (slice-111 / [[ADR-103]]) — seam-routed directory/file MOVE for the
+  in-loop archive ``mv`` (``slices/slice-NNN/`` → ``slices/archive/``). Both
+  ``--from`` and ``--to`` resolve under ``VAULT_ROOT`` (cross-store coherence —
+  one root governs both endpoints). ``shutil.move`` semantics: when ``--to`` is an
+  existing directory the source moves INSIDE it, so the guard checks the FINAL
+  landing path ``<--to>/<src-name>`` (NOT ``--to`` itself, which always exists for
+  ``slices/archive/``); a pre-existing landing → exit 2 (preserves ``/archive``
+  Step-2's "stop if the archived folder already exists"). One-shot rename — no
+  CAS/lock (a dir move is not a content read-modify-write).
 
 Usage::
 
     python -m tools.vault_edit append  --file risk-register.md --content-file entry.md
-    python -m tools.vault_edit read     --file slices/_index.md > base.bin
+    python -m tools.vault_edit read     --file slices/_index.md --out-file base.bin
     python -m tools.vault_edit rewrite  --file slices/_index.md --base-file base.bin --content-file new.md
+    python -m tools.vault_edit move     --from slices/slice-042-foo --to slices/archive/
 
-``--file`` is resolved against ``VAULT_ROOT`` (``tools/_vault_paths.py``); a path
-escaping the vault root (absolute, or via ``..``) is a usage error (exit 2).
+``--file`` / ``--from`` / ``--to`` are resolved against ``VAULT_ROOT``
+(``tools/_vault_paths.py``); a path escaping the vault root (absolute, or via
+``..``) is a usage error (exit 2).
 
 Exit codes:
-    0  success (appended / rewritten / read-emitted)
-    2  usage error — bad/escaping ``--file``, missing content/base, or a write
-       failure (fail-VISIBLE per the R-7 silent-disable class; never a silent no-op)
+    0  success (appended / rewritten / read-emitted / moved)
+    2  usage error — bad/escaping path, missing content/base, a missing move
+       source, a pre-existing move landing path, or a write failure (fail-VISIBLE
+       per the R-7 silent-disable class; never a silent no-op)
     3  ``rewrite`` ONLY — compare-and-swap CONFLICT (the on-disk file changed since
        ``--base-file`` was read; the retryable signal, DISTINCT from usage exit 2)
 """
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
 from pathlib import Path
 
@@ -50,7 +63,7 @@ from tools._vault_paths import VAULT_ROOT
 from tools._vault_write import StaleVaultBaseError, safe_append_text, safe_rewrite_text
 
 
-def _resolve_in_vault(file_arg: str) -> Path:
+def _resolve_in_vault(file_arg: str, *, arg_name: str = "--file") -> Path:
     """Resolve ``file_arg`` against ``VAULT_ROOT``; raise ``ValueError`` on a
     path that is empty, resolves to the vault-root directory ITSELF, or escapes
     the vault root (absolute or ``..``-escape).
@@ -59,19 +72,22 @@ def _resolve_in_vault(file_arg: str) -> Path:
     past the containment check (``target == root`` made the old guard False) and
     only failed downstream as an incidental ``IsADirectoryError``. It is now an
     INTENTIONAL rejection with an actionable message (fail-VISIBLE on purpose,
-    not by accident — the R-7 posture)."""
+    not by accident — the R-7 posture).
+
+    ``arg_name`` names the failing argument in the message (slice-111 code-review
+    m2 — ``move`` passes ``--from``/``--to`` so the error must not hardcode ``--file``)."""
     root = VAULT_ROOT.resolve()
     if not file_arg.strip():
-        raise ValueError("--file must name a vault file (got an empty path)")
+        raise ValueError(f"{arg_name} must name a vault file (got an empty path)")
     target = (VAULT_ROOT / file_arg).resolve()
     if target == root:
         raise ValueError(
-            f"--file {file_arg!r} resolves to the vault root directory itself, "
+            f"{arg_name} {file_arg!r} resolves to the vault root directory itself, "
             f"not a file under it — name a file (e.g. risk-register.md)"
         )
     if root not in target.parents:
         raise ValueError(
-            f"--file {file_arg!r} resolves outside the vault root "
+            f"{arg_name} {file_arg!r} resolves outside the vault root "
             f"({target} is not under {root})"
         )
     return target
@@ -182,6 +198,55 @@ def _cmd_read(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_move(args: argparse.Namespace) -> int:
+    """Seam-routed MOVE of a vault path (the in-loop archive ``mv``; [[ADR-103]]).
+
+    Both ``--from`` and ``--to`` resolve under ``VAULT_ROOT`` (cross-store
+    coherence). ``shutil.move`` semantics: when ``--to`` is an existing directory,
+    the source moves INSIDE it, so the dest-exists guard checks the FINAL landing
+    path ``<--to>/<src-name>`` — NOT ``--to`` itself (guarding ``--to`` would
+    refuse EVERY archive, since ``slices/archive/`` always exists; M2). A
+    pre-existing landing → exit 2 (preserves the ``/archive`` Step-2 semantic). No
+    CAS/lock — a one-shot directory rename, not a content read-modify-write."""
+    try:
+        src = _resolve_in_vault(args.src, arg_name="--from")
+        dst = _resolve_in_vault(args.dst, arg_name="--to")
+    except ValueError as exc:
+        sys.stderr.write(f"vault_edit: {exc}\n")
+        return 2
+    if src == dst:
+        # m3 (slice-111 code-review): a degenerate same-path move is a silent no-op
+        # otherwise (shutil.move(X, X)); fail-VISIBLE instead.
+        sys.stderr.write(
+            f"vault_edit: move --from and --to resolve to the same path ({src}) — "
+            f"refusing a no-op move\n"
+        )
+        return 2
+    if not src.exists():
+        # fail-VISIBLE (R-7): a missing source is loud + non-zero, never silent.
+        # (Post-flip, a worktree-local source under an external VAULT_ROOT surfaces
+        #  HERE as a loud source-not-found — R-32.b cross-store coherence.)
+        sys.stderr.write(
+            f"vault_edit: move source {src} does not exist (fail-visible per R-7)\n"
+        )
+        return 2
+    landing = dst / src.name if dst.is_dir() else dst
+    if landing.exists():
+        sys.stderr.write(
+            f"vault_edit: move landing path {landing} already exists — refusing to "
+            f"overwrite (preserves /archive Step-2 'stop if already archived')\n"
+        )
+        return 2
+    try:
+        shutil.move(str(src), str(dst))
+    except (OSError, shutil.Error) as exc:
+        sys.stderr.write(
+            f"vault_edit: move {src} -> {dst} failed (fail-visible per R-7): {exc}\n"
+        )
+        return 2
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _stdout.reconfigure_stdout_utf8()
     parser = argparse.ArgumentParser(
@@ -245,6 +310,20 @@ def main(argv: list[str] | None = None) -> int:
              "emit to stdout.buffer (safe only with a binary subprocess pipe).",
     )
 
+    mv = sub.add_parser(
+        "move",
+        help="seam-routed MOVE of a vault path (the in-loop archive mv; ADR-103)",
+    )
+    mv.add_argument(
+        "--from", dest="src", required=True,
+        help="vault-relative SOURCE path (resolved under VAULT_ROOT; ..-escape rejected)",
+    )
+    mv.add_argument(
+        "--to", dest="dst", required=True,
+        help="vault-relative DESTINATION (resolved under VAULT_ROOT). When an existing "
+             "directory, the source moves INSIDE it; the final landing path must not exist.",
+    )
+
     args = parser.parse_args(argv)
     if args.command == "append":
         return _cmd_append(args)
@@ -252,6 +331,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_rewrite(args)
     if args.command == "read":
         return _cmd_read(args)
+    if args.command == "move":
+        return _cmd_move(args)
     parser.error(f"unknown command {args.command!r}")  # unreachable (required=True)
     return 2
 

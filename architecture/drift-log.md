@@ -814,3 +814,12 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-110 (Phase-1) surface.
+
+## Audit 2026-06-04 16:25
+
+**Trigger**: slice-111 pre-finish gate
+**Scope**: full
+**Findings**: 0 blockers, 0 majors
+
+### Resolutions
+- none - vault (design.md / ADR-103 / ADR-104 / mission-brief) matches code: vault_edit move + the --op-gate mode are reflected in the design; the 318->313 inventory re-pin + AC1 skill routing all in sync. No drift.

@@ -2262,3 +2262,18 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 ### Pattern
 - When a mechanism **reloads a module** to re-point its state, it breaks any consumer test comparing that module's **class/enum/exception identity** (`is` / `isinstance` / `except SpecificError`). Prefer in-place `setattr` of the specific names. "Executed and sound" must cover identity-preservation, not just value-re-pointing — execution DEPTH is the calibration axis, not execution presence.
 - A slice's suite that reads **committed shared-ledger state** (`slice-queue.md`) can inherit a stale-vs-master red; the worktree's ledger copy can lag the main tree. Check currency before treating the red as a slice regression.
+
+## Slice 111 (route-in-loop-skill-vault-ops-via-seam) — 2026-06-04
+
+### Worked
+- The 3-Critic stack (design + meta + code) was load-bearing N+1: the design-Critic caught classifier-logic gaps (B2 source-literal escape); the meta-Critic caught the scan-scope-vs-taxonomy mismatch that would have made the op-gate un-green-able (M-add-1); the code-Critic caught implementation false-negative paths (M1 decoy-seam-token masking, M2 multi-verb single-dest collapse). Each layer found defect classes the others structurally could not (AP-19).
+- APED-1 corpus execution at build caught 3 footguns NO Critic predicted: explanatory prose re-introducing `architecture/` literals; bare `add` over-firing on slice-names + `Add --flag` prose; the `_OP_ALLOWLIST` inlining prose lines → an AC5-disjointness regression (readiness_audit flagging the new tools/*.py literals).
+- Hash-keying the allowlist on `(skill, sha256(normalized_line))` (the slice-107 SHA-256 baseline precedent) kept `tools/*.py` free of `architecture/` literals → AC5 disjointness restored.
+- VERIFYING the MEPD-1 precedent (m2) rather than asserting it CHANGED the enforcement design: flip-prep audits (slice-100/107) are suite-test + shippability enforced, NOT build-slice Step-6 RULE-ID gates → the op-gate followed suit, OSDG-1 narrowed to {/reflect}, build-slice/validate-slice untouched (a real simplification, not a guess).
+
+### Didn't work
+- The v1 op-gate detector over-fired (21 OP_UNROUTED): bare `add` matched slice-names, verb-after-literal caught descriptive prose, `slices/slice-\d+` missed the `slice-NNN` placeholder. Three detector iterations (git-add bigram + verb-before-literal + `slice-(?:\d+|NNN)` + in-code anchoring) to reach green.
+- The design's "wire the op-gate into /build-slice Step 6" was a wrong assumption (no flip-prep precedent) — caught only by the m2 precedent verification at build.
+
+### Pattern
+- For a dominant-risk lexical/AST classifier with a "routed/exempt vs flag" decision: design-time reasoning — even DUAL-Critic-ratified — cannot enumerate the false-positive/false-negative surface. The discipline that worked = APED-1 real-corpus execution (build) + the code-Critic's adversarial-fixture execution (post-build), each finding distinct classes; write the decoy/masking + multi-verb + verb-as-noun fixtures FIRST. The MASKING axis (a decoy or adjacent token suppressing a real flag) is a recurring shape across slice-098 (AP-15 cheap-proxy), slice-099/100 (AP-1 whole-file substring), and now slice-111 (M1 line-wide seam token) — the design-Critic should probe it explicitly on any new gate.

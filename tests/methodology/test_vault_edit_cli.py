@@ -161,3 +161,98 @@ def test_read_out_file_roundtrips_into_rewrite(tmp_path: pathlib.Path, monkeypat
     rc = vault_edit.main(["rewrite", "--file", "idx.md", "--base-file", str(base), "--content-file", str(new)])
     assert rc == 0, "documented read --out-file → rewrite protocol false-conflicted"
     assert (tmp_path / "idx.md").read_bytes() == b"z\r\nx\r\ny\r\n"
+
+
+# ─── slice-111 / ADR-103: move (seam-routed archive mv) CLI contract ──────
+
+
+def _seed_slice(tmp_path: pathlib.Path, name: str) -> pathlib.Path:
+    d = tmp_path / "slices" / name
+    d.mkdir(parents=True)
+    (d / "reflection.md").write_text("done\n", encoding="utf-8")
+    (tmp_path / "slices" / "archive").mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def test_move_into_existing_archive_dir_exit_0(tmp_path: pathlib.Path, monkeypatch) -> None:
+    """M2: the archive idiom `move --from slices/slice-X --to slices/archive/`
+    SUCCEEDS even though `slices/archive/` already exists — the dest-exists guard
+    checks the FINAL landing path `<--to>/<src-name>`, not the `--to` directory."""
+    _use_tmp_vault(monkeypatch, tmp_path)
+    src = _seed_slice(tmp_path, "slice-042-foo")
+    rc = vault_edit.main(["move", "--from", "slices/slice-042-foo", "--to", "slices/archive/"])
+    assert rc == 0
+    landed = tmp_path / "slices" / "archive" / "slice-042-foo"
+    assert landed.is_dir() and (landed / "reflection.md").exists()
+    assert not src.exists(), "source not removed after move"
+
+
+def test_move_refuses_pre_existing_landing_exit_2(tmp_path: pathlib.Path, monkeypatch, capsys) -> None:
+    """A pre-existing landing path `slices/archive/<same-name>` → exit 2 (preserves
+    the /archive Step-2 'stop if already archived' semantic); source untouched."""
+    _use_tmp_vault(monkeypatch, tmp_path)
+    src = _seed_slice(tmp_path, "slice-042-foo")
+    (tmp_path / "slices" / "archive" / "slice-042-foo").mkdir(parents=True)
+    rc = vault_edit.main(["move", "--from", "slices/slice-042-foo", "--to", "slices/archive/"])
+    assert rc == 2
+    assert "already exists" in capsys.readouterr().err
+    assert src.exists(), "source must be untouched on a refused move"
+
+
+def test_move_missing_source_exit_2(tmp_path: pathlib.Path, monkeypatch, capsys) -> None:
+    """A missing --from source → fail-VISIBLE exit 2 (R-7; also the post-flip
+    worktree-local-source-under-external-root R-32.b loud failure)."""
+    _use_tmp_vault(monkeypatch, tmp_path)
+    (tmp_path / "slices" / "archive").mkdir(parents=True)
+    rc = vault_edit.main(["move", "--from", "slices/slice-999-absent", "--to", "slices/archive/"])
+    assert rc == 2
+    assert "does not exist" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("escape", ["../outside", "../../etc"])
+def test_move_rejects_outside_root_from(tmp_path: pathlib.Path, monkeypatch, capsys, escape: str) -> None:
+    _use_tmp_vault(monkeypatch, tmp_path)
+    (tmp_path / "slices" / "archive").mkdir(parents=True)
+    rc = vault_edit.main(["move", "--from", escape, "--to", "slices/archive/"])
+    assert rc == 2
+    assert "outside the vault root" in capsys.readouterr().err
+
+
+def test_move_rejects_outside_root_to(tmp_path: pathlib.Path, monkeypatch, capsys) -> None:
+    _use_tmp_vault(monkeypatch, tmp_path)
+    _seed_slice(tmp_path, "slice-042-foo")
+    rc = vault_edit.main(["move", "--from", "slices/slice-042-foo", "--to", "../outside/"])
+    assert rc == 2
+    assert "outside the vault root" in capsys.readouterr().err
+
+
+def test_move_to_nonexistent_path_renames_exit_0(tmp_path: pathlib.Path, monkeypatch) -> None:
+    """When --to does NOT exist, shutil.move renames the source TO it (the dst-not-dir
+    branch); the guard then checks --to itself as the landing."""
+    _use_tmp_vault(monkeypatch, tmp_path)
+    src = _seed_slice(tmp_path, "slice-042-foo")
+    rc = vault_edit.main(["move", "--from", "slices/slice-042-foo", "--to", "slices/renamed-bar"])
+    assert rc == 0
+    assert (tmp_path / "slices" / "renamed-bar" / "reflection.md").exists()
+    assert not src.exists()
+
+
+def test_move_same_path_exit_2(tmp_path: pathlib.Path, monkeypatch, capsys) -> None:
+    """m3 (code-review): `move --from X --to X` (same resolved path) → exit 2, not a
+    silent exit-0 no-op."""
+    _use_tmp_vault(monkeypatch, tmp_path)
+    _seed_slice(tmp_path, "slice-042-foo")
+    rc = vault_edit.main(["move", "--from", "slices/slice-042-foo", "--to", "slices/slice-042-foo"])
+    assert rc == 2
+    assert "same path" in capsys.readouterr().err
+
+
+def test_move_error_names_from_not_file_arg(tmp_path: pathlib.Path, monkeypatch, capsys) -> None:
+    """m2 (code-review): a `move --from` failure names `--from`, NOT the hardcoded
+    `--file` (which would mislead — the user passed --from)."""
+    _use_tmp_vault(monkeypatch, tmp_path)
+    (tmp_path / "slices" / "archive").mkdir(parents=True)
+    rc = vault_edit.main(["move", "--from", "../escape", "--to", "slices/archive/"])
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "--from" in err and "--file" not in err
