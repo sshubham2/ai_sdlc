@@ -823,3 +823,14 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - none - vault (design.md / ADR-103 / ADR-104 / mission-brief) matches code: vault_edit move + the --op-gate mode are reflected in the design; the 318->313 inventory re-pin + AC1 skill routing all in sync. No drift.
+
+## Audit 2026-06-04 17:40
+
+**Trigger**: slice-112 pre-finish gate
+**Scope**: full
+**Findings**: 0 blockers, 0 majors
+
+### Resolutions
+- None required — vault and code aligned for slice-112. design.md / ADR-105 / mission-brief match code: the `<vault>` prose-seam convention, the converted-file ratchet (`converted_file_regressions` + the hash-keyed `_CONVERTED_CARVEOUTS` allowlist, AS-BUILT), the 313→303 re-pin (`_BASELINE_SHA256` / `_CLASS_COUNT_FLOOR`=301 / `EXPECTED_TOTAL`=303 + shippability rows 113/117/118), the CLAUDE.md + agents/critique.md conversions, and the agent self-sufficient `<vault>` note are all reflected in the vault docs.
+- BC-PROJ-3 / BC-GLOBAL-2: the single `git checkout master -- architecture/slice-queue.md` synced a stale committed shared ledger (R-33 worktree-current mitigation; no uncommitted WIP on it); NO destructive revert of uncommitted slice work.
+- All 5 version surfaces unchanged at 0.83.0 (MEPD-1 EXCLUDE; PMI-1/MCFS-1/AVFS-1/TVFS-1 exit 0); no risk-status change (STP-1 green); CAD-1 green (agents/critique.md forward-synced).

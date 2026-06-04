@@ -1,9 +1,9 @@
 # AI SDLC pipeline (adopted into existing codebase)
 
-**Mode**: Standard — see `architecture/triage.md`
+**Mode**: Standard — see `<vault>/triage.md`
 **Adopted**: 2026-05-13
-**Vault**: `architecture/`
-**Active slice**: check `architecture/slices/_index.md` (currently: none active; 18 slices archived)
+**Vault**: `<vault>/` (the vault root — see Vault discipline for resolution)
+**Active slice**: check `<vault>/slices/_index.md` (currently: none active; 18 slices archived)
 
 This repository IS the AI SDLC pipeline source — it dogfoods its own methodology. Read this with that context: the rules below aren't aspirational, they're the contracts the codebase audits against.
 
@@ -11,7 +11,7 @@ This repository IS the AI SDLC pipeline source — it dogfoods its own methodolo
 
 If the change is more than a typo / single-line tweak / comment / local-variable rename:
 
-1. Check `architecture/slices/_index.md` for an active slice
+1. Check `<vault>/slices/_index.md` for an active slice
 2. If none → **ASK** the user via structured options (per the Ask discipline below): "Run `/slice` first, or is this small enough to skip?"
 3. Wait for explicit answer.
 
@@ -45,10 +45,13 @@ This pipeline develops itself, so any methodology rule must be exercisable on th
 
 ## Vault discipline
 
+- **Vault location seam (`<vault>/`, per [[ADR-105]])**: `<vault>/` in pipeline prose denotes the vault root.
+  Its default value is architecture/ — the in-repo vault dir (overridable via `$AI_SDLC_VAULT_ROOT` or the git-common-dir `aisdlc/vault-root` config, per ADR-065/ADR-085).
+  Substitute `<vault>/` for the resolved root when reading a vault file or running a command. The convention covers operational prose in `skills/**/SKILL.md` + `agents/*.md` (each self-sufficient — a subagent carries its own copy of this rule) + this file. The `<diagnose-out>` placeholder is deliberately not minted; the seven carve-out classes that stay concrete are enumerated in [[ADR-105]].
 - ADRs are append-only — supersede via a new ADR with `supersedes: ADR-NNN`, never edit in place.
 - Design deviations → update the active slice's `design.md` (don't carry forward stale design claims).
 - Run `/drift-check` before commit.
-- Shippability catalog (`architecture/shippability.md`) is the single source of truth for "must never silently regress" claims. Per RPCD-1 / SCPD-1, every new audit rule MUST propagate its consumer references into the shippability catalog.
+- Shippability catalog (`<vault>/shippability.md`) is the single source of truth for "must never silently regress" claims. Per RPCD-1 / SCPD-1, every new audit rule MUST propagate its consumer references into the shippability catalog.
 
 ## Testing discipline
 

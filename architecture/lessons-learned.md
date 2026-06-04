@@ -2277,3 +2277,18 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 ### Pattern
 - For a dominant-risk lexical/AST classifier with a "routed/exempt vs flag" decision: design-time reasoning — even DUAL-Critic-ratified — cannot enumerate the false-positive/false-negative surface. The discipline that worked = APED-1 real-corpus execution (build) + the code-Critic's adversarial-fixture execution (post-build), each finding distinct classes; write the decoy/masking + multi-verb + verb-as-noun fixtures FIRST. The MASKING axis (a decoy or adjacent token suppressing a real flag) is a recurring shape across slice-098 (AP-15 cheap-proxy), slice-099/100 (AP-1 whole-file substring), and now slice-111 (M1 line-wide seam token) — the design-Critic should probe it explicitly on any new gate.
+
+## Slice 112 (make-prose-vault-location-agnostic) — 2026-06-04
+
+### Worked
+- The `<vault>/` placeholder fits the existing `<...>` prose-placeholder idiom; CLAUDE.md states the rule once + a converted agent embeds a self-sufficient copy (a subagent has no CLAUDE.md — M-add-1). Default → `architecture/`, zero pre-flip behaviour change.
+- The converted-file one-way ratchet — baseline-INDEPENDENT (M3, mutation-proven) + a hash-keyed value-durable `_CONVERTED_CARVEOUTS` allowlist (slice-107 AC5 disjointness precedent) — is the reusable enforcement the bulk follow-on draws on.
+- TRI-1 scope reduction (the CLAUDE.md + self-sufficient-agent pilot) sidestepped 4 skill-file blockers (B1/B2/B3/M1) while still proving every carve-out class via the agent's `:125`/`:260` carve-outs.
+
+### Didn't work
+- Design-time reasoning that "the gate keys on `rewrite-at-flip` only, so carve-outs are never flagged" — WRONG for OPERATIONAL carve-outs (in-code → `rewrite-at-flip` → they trip the ratchet); needed the hash-keyed allowlist, caught at build planning (not by the dual-Critic stack).
+- The new convention prose mis-classified at first run (a "historical anchors" marker → `needs-human`; "read/write" op-verbs → `rewrite-at-flip`) — only execution caught it (AP-3).
+- The count re-pin missed the tool's OWN module docstring (still "313") — only `/code-review` caught it (M1; N=2 with slice-111 m5). FBCD-1(c) is design-time, structurally blind to build-time-authored docstrings.
+
+### Pattern
+- For a classifier/convention slice that authors classifier-visible prose, design-time review (even dual-Critic) validates STRUCTURE but is blind to (a) the corpus-classification of the slice's OWN new prose and (b) build-time count narratives — both execution/code-review-only (AP-3). The 3-Critic stack stays complementary: design→scope/sequencing, meta→consumption-axis (agent-context M-add-1, line-key durability M-add-2), code→build-artifact drift (M1 docstring).

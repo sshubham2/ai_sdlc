@@ -20,10 +20,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+import tools.vault_flip_prose_inventory as V
 from tools.vault_flip_prose_inventory import (
     audit_file,
     audit_root,
     classify_line_occurrences,
+    converted_file_regressions,
     REWRITE_AT_FLIP,
     HISTORICAL_ANCHOR,
     DOC_EXAMPLE,
@@ -31,6 +33,7 @@ from tools.vault_flip_prose_inventory import (
     _BASELINE_SHA256,
     baseline_sha,
     _CLASS_COUNT_FLOOR,
+    _CONVERTED_FILES,
     _PROSE_GLOBS,
     _RESIDUAL,
     EXPECTED_TOTAL,
@@ -255,3 +258,51 @@ def test_disjoint_no_new_production_must_rewrite():
         "readiness --strict must stay exit 0 — the prose tool introduced a "
         f"production must-rewrite literal:\n{cp.stdout}\n{cp.stderr}"
     )
+
+
+# ── AC2 (slice-112): converted-file one-way ratchet ──────────────────────────
+def test_converted_file_regression_exits_2(tmp_path):
+    """A `rewrite-at-flip` literal re-introduced into a CONVERTED file (not on the
+    sanctioned carve-out allowlist) is a regression: the function flags it AND the
+    `--strict` CLI exits 2 with the distinct CONVERTED-FILE REGRESSED message."""
+    _write(tmp_path, "CLAUDE.md", "Read `architecture/regression.md` now\n")
+    res = audit_root(tmp_path)
+    regs = converted_file_regressions(res)
+    assert any(o.path == "CLAUDE.md" and o.value == "architecture/regression.md"
+               for o in regs), "the ratchet must flag the converted-file regression"
+    cp = subprocess.run(
+        [PY, "-m", TOOL, "--repo-root", str(tmp_path), "--strict"],
+        capture_output=True, text=True, encoding="utf-8", cwd=str(REPO_ROOT))
+    assert cp.returncode == 2, cp.stdout + cp.stderr
+    assert "CONVERTED-FILE REGRESSED" in cp.stdout, cp.stdout
+
+
+def test_ratchet_independent_of_repinned_baseline(tmp_path, monkeypatch):
+    """M3: the converted-file ratchet is INDEPENDENT of the re-pinnable
+    `_BASELINE_SHA256`. Even when an actor re-pins the baseline to MATCH the
+    regressed corpus (so baseline-drift is silenced), the ratchet still fires —
+    proving it is a true one-way ratchet, not subsumed by the baseline gate."""
+    _write(tmp_path, "CLAUDE.md", "Read `architecture/regression.md` now\n")
+    res = audit_root(tmp_path)
+    # re-pin the baseline to THIS regressed corpus → baseline-drift is now silent
+    monkeypatch.setattr(V, "_BASELINE_SHA256", baseline_sha(res))
+    assert V._baseline_drift(res) is None, "baseline re-pinned to match → no drift"
+    # ...but the converted-file ratchet STILL flags the regression (independence)
+    regs = converted_file_regressions(res)
+    assert any(o.path == "CLAUDE.md" for o in regs), (
+        "the ratchet must fire even when the baseline is re-pinned to cover the "
+        "regression — it is INDEPENDENT of _BASELINE_SHA256 (M3)"
+    )
+
+
+def test_converted_files_membership_forward_slash_only():
+    """M3: every `_CONVERTED_FILES` member is a forward-slash relpath matching
+    `Occurrence.path` (audit_root normalizes via `.replace("\\\\","/")`). A
+    backslash-form member would silently never match → vacuous-green ratchet
+    (the R-7 silent-disable class). Forward-slash is load-bearing."""
+    assert _CONVERTED_FILES, "_CONVERTED_FILES must be non-empty (the pilot)"
+    for p in _CONVERTED_FILES:
+        assert "\\" not in p, f"_CONVERTED_FILES member must be forward-slash: {p!r}"
+        # the backslash-form of a member is NOT in the set (forward-slash is load-bearing)
+        if "/" in p:
+            assert p.replace("/", "\\") not in _CONVERTED_FILES
