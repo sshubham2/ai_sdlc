@@ -1,13 +1,13 @@
 # Slice queue
 
-_Generated: 2026-06-04T09:22:32+00:00 by /slice during slice-111 definition_
+_Generated: 2026-06-04T12:15:58+00:00 by /slice during slice-112 definition_
 
 ## Candidates
 
-### route-in-loop-skill-vault-ops-via-seam
+### bulk-convert-remaining-skills-to-vault-seam
 
-- **Source:** slice-110 deferral (AC2/AC3/AC4) + ADR-102
-- **Blast-radius:** `skills/archive/SKILL.md`, `skills/commit-slice/SKILL.md`, `skills/design-slice/SKILL.md`, `skills/drift-check/SKILL.md`, `skills/reflect/SKILL.md`, `tools/vault_flip_prose_inventory.py`
+- **Source:** slice-112 AC5 follow-on (bulk prose conversion)
+- **Blast-radius:** `skills/adopt/SKILL.md`, `skills/build-slice/SKILL.md`, `skills/code-review/SKILL.md`, `skills/commit-slice/SKILL.md`, `skills/pulse/SKILL.md`, `skills/triage/SKILL.md`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
 - **Risk-retired:** NONE
@@ -19,14 +19,6 @@ _Generated: 2026-06-04T09:22:32+00:00 by /slice during slice-111 definition_
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** LARGE
 - **Risk-retired:** HIGH
-
-### rewrite-318-vault-location-prose
-
-- **Source:** slice-107 inventory + slice-110 OOS
-- **Blast-radius:** `CLAUDE.md`, `INSTALL.md`, `README.md`, `agents`, `skills`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** LARGE
-- **Risk-retired:** NONE
 
 ### fix-install-completeness-version-blind-spot
 
@@ -74,3 +66,4 @@ _Generated: 2026-06-04T09:22:32+00:00 by /slice during slice-111 definition_
 - slice-109-add-post-flip-vault-conflict-safety — picked 2026-06-03T18:16:28+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-110-make-pipeline-vault-location-agnostic — picked 2026-06-04T02:22:15+00:00 by Shubhendu Shubham s2.shubh2@gmail.com (re-scoped in place from flip-vault-to-external-store at TRI-1; flip deferred to a follow-on slice)
 - slice-111-route-in-loop-skill-vault-ops-via-seam — picked 2026-06-04T09:22:48+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
+- slice-112-make-prose-vault-location-agnostic — picked 2026-06-04T12:16:09+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
