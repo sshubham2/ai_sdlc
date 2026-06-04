@@ -1,20 +1,12 @@
 # Slice queue
 
-_Generated: 2026-06-04T12:15:58+00:00 by /slice during slice-112 definition_
+_Generated: 2026-06-04T15:36:00+00:00 by /slice during slice-113 definition_
 
 ## Candidates
 
-### bulk-convert-remaining-skills-to-vault-seam
-
-- **Source:** slice-112 AC5 follow-on (bulk prose conversion)
-- **Blast-radius:** `skills/adopt/SKILL.md`, `skills/build-slice/SKILL.md`, `skills/code-review/SKILL.md`, `skills/commit-slice/SKILL.md`, `skills/pulse/SKILL.md`, `skills/triage/SKILL.md`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** NONE
-
 ### flip-vault-to-external-store
 
-- **Source:** risk-register R-32 (physical flip + retirement)
+- **Source:** risk-register R-32 (physical move + retirement)
 - **Blast-radius:** `skills/commit-slice/SKILL.md`, `tools/_vault_git.py`, `tools/_vault_paths.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** LARGE
@@ -46,7 +38,7 @@ _Generated: 2026-06-04T12:15:58+00:00 by /slice during slice-112 definition_
 
 ### run-critic-calibrate-meta-pass
 
-- **Source:** action-points AP-21 (critic-calibrate-probe overdue)
+- **Source:** action-points AP-21 (critic-calibrate overdue)
 - **Blast-radius:** `agents/critique.md`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** SMALL
@@ -67,3 +59,4 @@ _Generated: 2026-06-04T12:15:58+00:00 by /slice during slice-112 definition_
 - slice-110-make-pipeline-vault-location-agnostic — picked 2026-06-04T02:22:15+00:00 by Shubhendu Shubham s2.shubh2@gmail.com (re-scoped in place from flip-vault-to-external-store at TRI-1; flip deferred to a follow-on slice)
 - slice-111-route-in-loop-skill-vault-ops-via-seam — picked 2026-06-04T09:22:48+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-112-make-prose-vault-location-agnostic — picked 2026-06-04T12:16:09+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
+- slice-113-bulk-convert-remaining-skills-to-vault-seam — picked 2026-06-04T15:36:06+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
