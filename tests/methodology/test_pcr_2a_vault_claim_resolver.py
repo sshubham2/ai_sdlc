@@ -16,6 +16,20 @@ from __future__ import annotations
 
 import subprocess
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+import tools._vault_git as _vgit
+import tools.parallel_conflict_resolver as _pcr
+
+# slice-110 / [[ADR-101]]: setattr-pin VAULT_ROOT (in-tree relative) on the
+# resolver + _vault_git (vault_is_external gate) + re-derive frozen _AUDIT_LOG_PATH
+# so the resolver reads/writes the test's own tmp fixtures under default AND an
+# external AI_SDLC_VAULT_ROOT override (the flip simulation).
+_pin_vault = vi.autouse_pin(
+    _vgit, _pcr,
+    derived=[(_pcr, "_AUDIT_LOG_PATH",
+              lambda vr: vr / "parallel-conflict-resolution-log.md")],
+)
+
 from tools.parallel_conflict_resolver import (
     ClaimEntry,
     ConflictClass,

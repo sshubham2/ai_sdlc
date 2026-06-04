@@ -12,8 +12,22 @@ Rule reference: SUP-1.
 """
 from pathlib import Path
 
+import pytest
+
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+import tools.supersede_audit as supa
 from tests.methodology.conftest import REPO_ROOT
 from tools.supersede_audit import run_audit
+
+
+@pytest.fixture(autouse=True)
+def _pin_vault_location_agnostic():
+    """slice-110 / [[ADR-101]]: pin VAULT_ROOT to the in-tree relative default so
+    each test reads its own ``<project_root>/architecture/...`` fixture — green
+    under the default suite AND under an external ``AI_SDLC_VAULT_ROOT`` override
+    (the flip simulation)."""
+    with vi.pin_vault_root(Path("architecture"), supa):
+        yield
 
 
 def _make_active(root: Path, slice_id: str, supersedes: str | None = None) -> None:

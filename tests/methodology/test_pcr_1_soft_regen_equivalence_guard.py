@@ -18,6 +18,11 @@ from __future__ import annotations
 import pathlib
 import subprocess
 
+import pytest
+
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+import tools._vault_git as _vgit
+import tools.parallel_conflict_resolver as _pcr
 from tools.parallel_conflict_resolver import (
     ConflictClass,
     classify_conflict,
@@ -26,6 +31,25 @@ from tools.parallel_conflict_resolver import (
 )
 
 _AUDIT_LOG = "architecture/parallel-conflict-resolution-log.md"
+
+
+@pytest.fixture(autouse=True)
+def _pin_vault_location_agnostic():
+    """slice-110 / [[ADR-101]]: pin VAULT_ROOT to the in-tree relative default so
+    the resolver reads/writes its own ``<repo_root>/architecture/...`` fixtures
+    (slice-queue, shippability, the frozen ``_AUDIT_LOG_PATH``) AND so
+    ``vault_is_external(repo_root)`` (parallel_conflict_resolver.py:329) returns
+    False (in-tree) rather than diverting to the RETIRE/STOP path. Green under the
+    default suite AND under an external ``AI_SDLC_VAULT_ROOT`` override (the flip
+    simulation). ``_vault_git`` is in the pin set because the resolver's
+    ``vault_is_external`` gate reads its frozen ``VAULT_ROOT``; the frozen
+    ``_AUDIT_LOG_PATH`` is re-derived via ``derived``."""
+    with vi.pin_vault_root(
+        pathlib.Path("architecture"), _vgit, _pcr,
+        derived=[(_pcr, "_AUDIT_LOG_PATH",
+                  lambda vr: vr / "parallel-conflict-resolution-log.md")],
+    ):
+        yield
 
 
 # ---------------------------------------------------------------------------

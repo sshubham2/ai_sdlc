@@ -30,11 +30,24 @@ from pathlib import Path
 
 import pytest
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+import tools.slice_queue_writer as _sqw
 from tools.slice_queue_writer import (
     write_slice_queue,
     compute_parallel_safety,
     format_queue_md,
     derive_active_slice_blast_radius,
+)
+
+# slice-110 / [[ADR-101]]: pin VAULT_ROOT (in-tree relative) + re-derive the frozen
+# index/slices constants so write_slice_queue returns/writes each test's own
+# <repo>/architecture/slice-queue.md under default AND an external override.
+_pin_vault = vi.autouse_pin(
+    _sqw,
+    derived=[
+        (_sqw, "_INDEX_MD_REL", lambda vr: vr / "slices" / "_index.md"),
+        (_sqw, "_SLICES_DIR_REL", lambda vr: vr / "slices"),
+    ],
 )
 
 

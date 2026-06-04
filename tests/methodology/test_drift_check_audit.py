@@ -14,9 +14,22 @@ from pathlib import Path
 
 import pytest
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
 from tools import drift_check_audit as dca
 
 SLICE_NAME = "slice-081-fix-drift-check-enforcement-gap"
+
+
+@pytest.fixture(autouse=True)
+def _pin_vault_location_agnostic():
+    """slice-110 / [[ADR-101]]: pin drift_check_audit's VAULT_ROOT to the in-tree
+    relative default so every test reads its own ``<repo_root>/architecture/...``
+    fixture — green under the default suite AND under an external
+    ``AI_SDLC_VAULT_ROOT`` override (the flip simulation). Without this, the
+    absolute override makes ``repo_root / VAULT_ROOT / x`` discard the test's tmp
+    ``repo_root`` and read the real external store."""
+    with vi.pin_vault_root(Path("architecture"), dca):
+        yield
 
 
 def _make_repo(

@@ -33,6 +33,15 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+import tools._vault_git as _vgit
+import tools.pulse_worktree_resolver as _pwr
+import tools.stranded_slice_audit as _ssa
+
+# slice-110 / [[ADR-101]]: location-agnostic VAULT_ROOT pin — detector +
+# _vault_git (vault_is_external) + pulse_worktree_resolver (classify_worktree_state).
+_pin_vault = vi.autouse_pin(_vgit, _pwr, _ssa)
+
 from tools.stranded_slice_audit import classify_branches, compute_status
 
 

@@ -2247,3 +2247,18 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 ### Pattern
 - A guard checking "is X a constant" must resolve ONE hop of NAME-INDIRECTION (a module-level name bound to a constant), and the APED-1 battery must EXECUTE the name-bound variant — the design+meta stack reasons about "constant" abstractly; only code-execution finds the `ast.Name`-vs-`ast.Constant` gap (AP-4 code-Critic-mandatory-for-AST-tools + AP-2 fix-is-a-fresh-claim, both N+1).
+
+## Slice 110 (make-pipeline-vault-location-agnostic) — 2026-06-04
+
+### Worked
+- The **setattr-pin test-isolation convention** ([[ADR-101]]): one shared helper (`tests/_vault_isolation.py`) re-points a consumer's frozen `VAULT_ROOT` + derived module-level constants for any vault-resolving test — green under the in-tree default AND a SEEDED external `AI_SDLC_VAULT_ROOT` (the flip simulation). 85 location breakers across 28 files repointed via small per-file autouse fixtures + a fixture factory (`autouse_pin`).
+- **APED-1 inventory-of-record**: measuring the live SEEDED flip-sim breaker set (86) FIRST and treating THAT as the gate, never copying forward the design's estimate (74) or the empty-external-dir number (99).
+- The design-Critic's **M1 call-graph-closure cause-model** (PCR family → `_vault_git` for the `vault_is_external` gate; stranded family → `pulse_worktree_resolver` for `classify_worktree_state`) held exactly at build — the right consumer set was load-bearing.
+
+### Didn't work
+- **ADR-101's original `importlib.reload` mechanism.** Reload re-executes the module body, rebinding its class/enum objects to NEW instances, so a test holding `from M import ConflictClass` and asserting `x is ConflictClass.SOFT` compares a stale object against the reloaded one → false failure. This reddened `test_pcr_1_*` under BOTH default and flip-sim. Switched to in-place `setattr`-pin (identity-safe). The design-Critic EXECUTED the reload cascade and called it "sound" — but only verified value-re-pointing (does `VAULT_ROOT` change?), not identity-preservation (do held class refs survive?).
+- A **worktree carried a STALE committed `slice-queue.md`** (pre-dated the slice-110 pick's queue regen on master → a malformed blast-radius cell) → a pre-existing red test (`psq_1`) unrelated to the slice. Synced from master (user-approved stale-ledger reconciliation).
+
+### Pattern
+- When a mechanism **reloads a module** to re-point its state, it breaks any consumer test comparing that module's **class/enum/exception identity** (`is` / `isinstance` / `except SpecificError`). Prefer in-place `setattr` of the specific names. "Executed and sound" must cover identity-preservation, not just value-re-pointing — execution DEPTH is the calibration axis, not execution presence.
+- A slice's suite that reads **committed shared-ledger state** (`slice-queue.md`) can inherit a stale-vs-master red; the worktree's ledger copy can lag the main tree. Check currency before treating the red as a slice regression.

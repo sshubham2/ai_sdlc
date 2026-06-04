@@ -22,8 +22,24 @@ from pathlib import Path
 
 import pytest
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+import tools.build_checks_integrity as bci
 from tests.methodology.conftest import REPO_ROOT
 from tools.build_checks_integrity import check_live, main
+
+
+@pytest.fixture(autouse=True)
+def _pin_vault_location_agnostic():
+    """slice-110 / [[ADR-101]]: pin VAULT_ROOT to the in-tree relative default and
+    re-derive the frozen ``_PROJECT_LIVE_REL = VAULT_ROOT / 'build-checks.md'`` so
+    ``check_live`` reads each test's own ``<root>/architecture/build-checks.md``
+    fixture — green under the default suite AND under an external
+    ``AI_SDLC_VAULT_ROOT`` override (the flip simulation)."""
+    with vi.pin_vault_root(
+        Path("architecture"), bci,
+        derived=[(bci, "_PROJECT_LIVE_REL", lambda vr: vr / "build-checks.md")],
+    ):
+        yield
 
 _REAL_PROJECT_FIXTURE = (
     REPO_ROOT / "tests" / "methodology" / "fixtures"

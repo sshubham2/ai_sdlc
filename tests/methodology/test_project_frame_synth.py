@@ -15,7 +15,14 @@ Rule reference: PFS-1 (slice-088; ADR-080).
 """
 from pathlib import Path
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
 from tools import project_frame_synth as pfs
+
+# slice-110 / [[ADR-101]]: setattr-pin VAULT_ROOT (in-tree relative) so the synth
+# reads each test's own ``<root>/architecture/...`` fixtures (concept/triage/
+# slice-queue/risk-register) — green under default AND an external
+# AI_SDLC_VAULT_ROOT override (the flip simulation).
+_pin_vault = vi.autouse_pin(pfs)
 
 
 def _build_fixture(root: Path, *, with_design: bool = False) -> Path:

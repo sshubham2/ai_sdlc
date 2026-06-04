@@ -80,6 +80,27 @@ _ERROR_MESSAGE_STRING_EXCLUSIONS: frozenset[tuple[str, int]] = frozenset({
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+@pytest.fixture(autouse=True)
+def _restore_vault_paths_resolution():
+    """slice-110 / [[ADR-101]] location-agnostic isolation: several tests here
+    ``importlib.reload(tools._vault_paths)`` under a mutated env (e.g.
+    ``test_vault_root_default_equals_path_architecture`` delenvs then reloads).
+    ``monkeypatch`` restores the env but NOT the module reload, leaving
+    ``tools._vault_paths.VAULT_ROOT`` pinned to the in-test resolution. Under the
+    default suite that's harmless (``architecture`` == ``architecture``); under an
+    external ``AI_SDLC_VAULT_ROOT`` override (the flip simulation) it pollutes
+    ``test_consumer_constants_are_frozen_at_first_import`` (ambient external root vs
+    a left-over ``architecture``). Reload after each test so the AMBIENT resolution
+    is restored — green in BOTH worlds, no cross-test leak.
+
+    NOTE: this is a non-``test_`` def, so it does NOT affect the
+    ``test_full_pytest_baseline_preserved`` ``== 15`` count-pin.
+    """
+    yield
+    import tools._vault_paths
+    importlib.reload(tools._vault_paths)
+
+
 # ─── AC1: module exports + default ──────────────────────────────────────
 
 
