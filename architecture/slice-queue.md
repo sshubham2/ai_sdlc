@@ -1,88 +1,64 @@
 # Slice queue
 
-_Generated: 2026-06-04T02:22:00+00:00 by /slice during slice-110 definition_
+_Generated: 2026-06-04T09:22:32+00:00 by /slice during slice-111 definition_
 
 ## Candidates
 
-### rewrite-vault-prose-references-for-flip
+### route-in-loop-skill-vault-ops-via-seam
 
-- **Source:** external-vault M4 / slice-107 prose inventory (318 sites)
-- **Blast-radius:** `CLAUDE.md`, `agents/critique.md`, `skills/slice/SKILL.md`
+- **Source:** slice-110 deferral (AC2/AC3/AC4) + ADR-102
+- **Blast-radius:** `skills/archive/SKILL.md`, `skills/commit-slice/SKILL.md`, `skills/design-slice/SKILL.md`, `skills/drift-check/SKILL.md`, `skills/reflect/SKILL.md`, `tools/vault_flip_prose_inventory.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** MEDIUM
+- **Risk-retired:** NONE
+
+### flip-vault-to-external-store
+
+- **Source:** risk-register R-32 (physical flip + retirement)
+- **Blast-radius:** `skills/commit-slice/SKILL.md`, `tools/_vault_git.py`, `tools/_vault_paths.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** LARGE
-- **Risk-retired:** MEDIUM
+- **Risk-retired:** HIGH
 
-### implement-drift-check-enforcement
+### rewrite-318-vault-location-prose
 
-- **Source:** diagnose backlog SC-007 (HIGH — documented-but-unenforced gate)
-- **Blast-radius:** `skills/drift-check/SKILL.md`, `skills/triage/SKILL.md`
+- **Source:** slice-107 inventory + slice-110 OOS
+- **Blast-radius:** `CLAUDE.md`, `INSTALL.md`, `README.md`, `agents`, `skills`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** LARGE
+- **Risk-retired:** NONE
+
+### fix-install-completeness-version-blind-spot
+
+- **Source:** risk-register R-29
+- **Blast-radius:** `plugin.yaml`, `tools/install_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
 - **Risk-retired:** MEDIUM
 
-### add-count-pin-fanout-build-check
+### harden-forward-sync-parallel-version-bump
 
-- **Source:** slice-108 reflection deferral (AP-10 recurring N=5+)
-- **Blast-radius:** `agents/critique.md`
+- **Source:** risk-register R-28
+- **Blast-radius:** `tools/critique_agent_drift_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
-- **Risk-retired:** MEDIUM
+- **Risk-retired:** LOW
 
-### fix-validate-layers-tomllib-fallback
+### add-diagnose-cwd-mismatch-runtime-test
 
-- **Source:** diagnose backlog SC-002 (VAL-1 Layer B silently disabled on Py3.10)
-- **Blast-radius:** `pyproject.toml`, `tools/validate_slice_layers.py`
+- **Source:** risk-register R-2
+- **Blast-radius:** `skills/diagnose/SKILL.md`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** SMALL
 - **Risk-retired:** LOW
 
-### reduce-dead-code-bundle
+### run-critic-calibrate-meta-pass
 
-- **Source:** diagnose backlog SC-022/024/025 (dead code + stale header)
-- **Blast-radius:** `skills/diagnose/assemble.py`, `skills/diagnose/write_pass.py`, `tests/skills/diagnose/test_assemble_errors.py`, `tests/skills/diagnose/test_normalize_finding.py`, `tools/install_audit.py`, `tools/supersede_audit.py`
+- **Source:** action-points AP-21 (critic-calibrate-probe overdue)
+- **Blast-radius:** `agents/critique.md`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** SMALL
 - **Risk-retired:** NONE
-
-### refactor-triage-audit-critique-file
-
-- **Source:** diagnose backlog SC-010 (HIGH — CC=37 on TRI-1 gate path)
-- **Blast-radius:** `tools/triage_audit.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** LOW
-
-### refactor-mock-budget-lint-linters
-
-- **Source:** diagnose backlog SC-012 (HIGH — CC=39/36 multi-language linters)
-- **Blast-radius:** `tools/mock_budget_lint.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** LOW
-
-### extract-shared-mdtable-helper
-
-- **Source:** diagnose backlog SC-017 (6-way table-helper duplication)
-- **Blast-radius:** `tools/cross_spec_parity_audit.py`, `tools/exploratory_charter_audit.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** LOW
-
-### reconcile-repo-root-sentinel
-
-- **Source:** diagnose backlog SC-019 (.git-OR-VERSION vs .git-only divergence)
-- **Blast-radius:** `tools/branch_workflow_audit.py`, `tools/shippability_path_audit.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** MEDIUM
-- **Risk-retired:** LOW
-
-### reconcile-reflect-successor-prose
-
-- **Source:** diagnose backlog SC-018 (/reflect declares two successors)
-- **Blast-radius:** `skills/reflect/SKILL.md`, `tools/pipeline_chain_audit.py`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
-- **Risk-retired:** LOW
 
 ## Pick log
 
@@ -97,3 +73,4 @@ _Generated: 2026-06-04T02:22:00+00:00 by /slice during slice-110 definition_
 - slice-108-add-fbcd-1-cardinality-fanout-sub-mode — picked 2026-06-03T15:12:27+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-109-add-post-flip-vault-conflict-safety — picked 2026-06-03T18:16:28+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-110-make-pipeline-vault-location-agnostic — picked 2026-06-04T02:22:15+00:00 by Shubhendu Shubham s2.shubh2@gmail.com (re-scoped in place from flip-vault-to-external-store at TRI-1; flip deferred to a follow-on slice)
+- slice-111-route-in-loop-skill-vault-ops-via-seam — picked 2026-06-04T09:22:48+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
