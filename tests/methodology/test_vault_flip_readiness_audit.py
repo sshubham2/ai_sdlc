@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+
 from tools.vault_flip_readiness_audit import (
     audit_file,
     audit_root,
@@ -141,8 +143,11 @@ def test_cli_strict_nonzero_on_baseline_drift(tmp_path):
 def test_vault_paths_default_unchanged():
     src = (REPO_ROOT / "tools" / "_vault_paths.py").read_text(encoding="utf-8")
     assert '_DEFAULT = "architecture"' in src
-    from tools import _vault_paths
-    assert _vault_paths.VAULT_ROOT == Path("architecture")
+    # slice-110 / [[ADR-101]]: assert the genuine NO-ENV default resolution so this
+    # AC5 capability-without-flip invariant is location-agnostic — green even under
+    # an external AI_SDLC_VAULT_ROOT override (the flip simulation).
+    with vi.default_vault_root() as vr:
+        assert vr == Path("architecture")
 
 
 # ── documented residual (slice-095 honest-contract) ──────────────────────────

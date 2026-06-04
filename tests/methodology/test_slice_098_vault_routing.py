@@ -144,15 +144,25 @@ def test_vault_is_external_signal_logic(tmp_path: Path) -> None:
 
 def test_audit_log_path_no_flip_byte_identity() -> None:
     # On the default in-tree repo (env unset), the routed audit-log path must be
-    # byte-identical to the pre-slice hardcoded join.
-    from tools._vault_paths import VAULT_ROOT
-    from tools.parallel_conflict_resolver import _AUDIT_LOG_PATH
+    # byte-identical to the pre-slice hardcoded join. slice-110 / [[ADR-101]]: pin
+    # the no-flip default so this no-flip-byte-identity contract is location-agnostic
+    # (green even under an external AI_SDLC_VAULT_ROOT override — the flip sim).
+    import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+    import tools.parallel_conflict_resolver as _pcr_mod
 
-    assert VAULT_ROOT == Path("architecture"), "this test runs on the no-flip default repo"
-    repo_root = Path("/some/repo")
-    assert (repo_root / _AUDIT_LOG_PATH) == (
-        repo_root / "architecture" / "parallel-conflict-resolution-log.md"
-    )
+    with vi.pin_vault_root(
+        "architecture", _pcr_mod,
+        derived=[(_pcr_mod, "_AUDIT_LOG_PATH",
+                  lambda vr: vr / "parallel-conflict-resolution-log.md")],
+    ):
+        from tools._vault_paths import VAULT_ROOT
+        from tools.parallel_conflict_resolver import _AUDIT_LOG_PATH
+
+        assert VAULT_ROOT == Path("architecture"), "this test runs on the no-flip default repo"
+        repo_root = Path("/some/repo")
+        assert (repo_root / _AUDIT_LOG_PATH) == (
+            repo_root / "architecture" / "parallel-conflict-resolution-log.md"
+        )
 
 
 # --------------------------------------------------------------------------- #

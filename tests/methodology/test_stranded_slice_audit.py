@@ -42,6 +42,19 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+import tools._vault_git as _vgit
+import tools.pulse_worktree_resolver as _pwr
+import tools.stranded_slice_audit as _ssa
+
+# slice-110 / [[ADR-101]]: setattr-pin VAULT_ROOT (in-tree relative) on the
+# stranded detector + _vault_git (its `vault_is_external` STOP guard at
+# stranded_slice_audit.py:328) + pulse_worktree_resolver (its
+# `classify_worktree_state` resolves the worktree milestone via VAULT_ROOT,
+# :482 / :222) so all reads resolve under each test's own tmp repo/worktree —
+# green under default AND an external AI_SDLC_VAULT_ROOT override (the flip sim).
+_pin_vault = vi.autouse_pin(_vgit, _pwr, _ssa)
+
 from tools.stranded_slice_audit import (
     DivergenceClass,
     classify_branches,

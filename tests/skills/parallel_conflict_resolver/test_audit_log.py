@@ -17,6 +17,26 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import sys
+
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+import tools._vault_git as _vgit
+import tools.parallel_conflict_resolver as _pcr
+
+# slice-110 / [[ADR-101]]: location-agnostic VAULT_ROOT pin (see autouse_pin).
+# This file also imports _AUDIT_LOG_PATH by name and builds `tmp / _AUDIT_LOG_PATH`
+# (L56), so the test module's OWN frozen copy is re-derived too — not just the
+# resolver's module attribute.
+_pin_vault = vi.autouse_pin(
+    _vgit, _pcr,
+    derived=[
+        (_pcr, "_AUDIT_LOG_PATH",
+         lambda vr: vr / "parallel-conflict-resolution-log.md"),
+        (sys.modules[__name__], "_AUDIT_LOG_PATH",
+         lambda vr: vr / "parallel-conflict-resolution-log.md"),
+    ],
+)
+
 from tools.parallel_conflict_resolver import (
     ConflictClass,
     ConflictDiagnostic,

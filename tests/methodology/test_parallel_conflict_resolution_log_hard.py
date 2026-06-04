@@ -8,6 +8,17 @@ exercises the dominant `_index.md`-sole HARD scenario (M4 fix).
 
 import subprocess
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+import tools._vault_git as _vgit
+import tools.parallel_conflict_resolver as _pcr
+
+# slice-110 / [[ADR-101]]: location-agnostic VAULT_ROOT pin (see autouse_pin).
+_pin_vault = vi.autouse_pin(
+    _vgit, _pcr,
+    derived=[(_pcr, "_AUDIT_LOG_PATH",
+              lambda vr: vr / "parallel-conflict-resolution-log.md")],
+)
+
 from tools.parallel_conflict_resolver import (
     ConflictClass,
     ConflictDiagnostic,

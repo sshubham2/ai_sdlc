@@ -11,6 +11,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+
 
 def _git(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
@@ -53,6 +55,10 @@ def _run_cli(
     env["PYTHONPATH"] = str(_REPO_ROOT) + (os.pathsep + existing if existing else "")
     if extra_env:
         env.update(extra_env)
+    # slice-110 / [[ADR-101]]: strip AI_SDLC_VAULT_ROOT (via the shared helper) so
+    # the child resolves its own --repo-root default, not a flip-sim external root
+    # inherited from the parent.
+    env = vi.subprocess_env(base=env)
     return subprocess.run(
         [sys.executable, "-m", "tools.pulse_worktree_resolver", *args],
         cwd=cwd,

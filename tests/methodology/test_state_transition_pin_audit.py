@@ -11,9 +11,20 @@ from pathlib import Path
 
 import pytest
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
 from tools import risk_register_audit, state_transition_pin_audit
 from tools.state_transition_pin_audit import _RISK_STATUS_FN_RE, audit, main
 from tests.methodology.conftest import REPO_ROOT
+
+
+@pytest.fixture(autouse=True)
+def _pin_vault_location_agnostic():
+    """slice-110 / [[ADR-101]]: pin VAULT_ROOT to the in-tree relative default so
+    ``root / VAULT_ROOT / 'risk-register.md'`` resolves to each test's own tmp
+    fixture — green under the default suite AND under an external
+    ``AI_SDLC_VAULT_ROOT`` override (the flip simulation)."""
+    with vi.pin_vault_root(Path("architecture"), state_transition_pin_audit):
+        yield
 
 _REGISTER_TMPL = """\
 # Risk Register

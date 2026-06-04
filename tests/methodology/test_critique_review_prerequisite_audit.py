@@ -17,7 +17,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+import tools.critique_review_prerequisite_audit as crpa
 from tools.critique_review_prerequisite_audit import audit, main
+
+
+@pytest.fixture(autouse=True)
+def _pin_vault_location_agnostic():
+    """slice-110 / [[ADR-101]]: pin VAULT_ROOT to the in-tree relative default so
+    ``repo_root / VAULT_ROOT / 'triage.md'`` resolves to each test's own tmp
+    fixture — green under the default suite AND under an external
+    ``AI_SDLC_VAULT_ROOT`` override (the flip simulation)."""
+    with vi.pin_vault_root(Path("architecture"), crpa):
+        yield
 
 
 def _make_repo(tmp_path: Path, mode: str = "STANDARD") -> Path:

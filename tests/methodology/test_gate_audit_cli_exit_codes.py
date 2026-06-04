@@ -56,6 +56,14 @@ from tools import (
     wiring_matrix_audit,
 )
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+
+# slice-110 / [[ADR-101]]: pin cross_spec_parity_audit's VAULT_ROOT (in-tree
+# relative) so its CLI main() reads each fixture's own architecture/triage.md —
+# green under default AND an external AI_SDLC_VAULT_ROOT override (the flip sim).
+# (cross_spec is the only VAULT_ROOT consumer among the 8 gate audits here.)
+_pin_vault = vi.autouse_pin(cross_spec_parity_audit)
+
 _FIXTURES = REPO_ROOT / "tests" / "methodology" / "fixtures"
 
 

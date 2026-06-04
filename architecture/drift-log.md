@@ -798,3 +798,19 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 
 ### Resolutions
 - None required — vault and code aligned for the slice-109 surface.
+
+## Audit (slice-110-make-pipeline-vault-location-agnostic) — 2026-06-04
+
+**Trigger**: slice-110 pre-finish gate (/drift-check full mode)
+**Scope**: full — Phase-1-only ship (location-agnostic test suite, AC1+AC5). design.md + mission-brief + ADR-101/ADR-102 vs the slice's code: `tests/_vault_isolation.py` (`pin_vault_root`/`default_vault_root`/`subprocess_env`/`autouse_pin`), `tests/conftest.py` (sys.path shim), `tests/methodology/test_vault_isolation.py` (self-tests), 28 repointed test files (per-file autouse pins / `subprocess_env` / `default_vault_root`), ADR-101 (test isolation), ADR-102 (prose op-gate). NO production code (`tools/*.py` / `skills/*` / `agents/*`) touched; NO VERSION/methodology-changelog change. `architecture/slice-queue.md` synced from master (stale-ledger reconciliation). MEPD-1 EXCLUDE — no RULE-ID / no methodology-changelog entry / no VERSION bump.
+**Result**: CLEAN — vault and code aligned; no drift.
+
+### Drift findings
+- None. design.md ↔ code: the isolation helper's in-process mechanism is **setattr-pin (not `importlib.reload`)**, matching the [[ADR-101]] build-time refinement § (reload breaks reloaded-module class/enum identity); the binding AC1 proof holds (DEFAULT 1574 == FLIP-SIM 1574, byte-identical).
+- [[ADR-102]] (SKILL.md-prose op-gate) is documented-as-DEFERRED (impl-status note + mission-brief Delivered-scope) and is correctly **absent from code** — no drift between the "deferred" claim and the (intentionally) un-implemented op-gate; `tools/vault_flip_prose_inventory.py` is unchanged.
+- AC2/AC3/AC4 deferred to the Phase-2 follow-on (Delivered-scope reframe) — no skill/tool/audit edits in this slice, so OSDG-1 / shippability / cp1252-coverage are N/A (BC-PROJ-7 keyword-triggered-not-applicable, attested in build-log).
+- No new tools/skills/agents/components → no component-doc drift; all 5 version surfaces unchanged at 0.83.0 (PMI-1/MCFS-1/AVFS-1/TVFS-1 exit 0); no risk-status change (STP-1 green).
+- BC-PROJ-3 / BC-GLOBAL-2: the single `git checkout master -- architecture/slice-queue.md` synced a stale committed shared ledger (no uncommitted WIP existed on it); NO destructive revert of uncommitted slice work.
+
+### Resolutions
+- None required — vault and code aligned for the slice-110 (Phase-1) surface.

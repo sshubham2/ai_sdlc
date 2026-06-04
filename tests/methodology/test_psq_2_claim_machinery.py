@@ -28,7 +28,21 @@ from tools.slice_queue_claim import (
     parse_queue_text,
     read_git_config_user,
 )
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+import tools.slice_queue_writer as _sqw
 from tools.slice_queue_writer import write_slice_queue
+
+# slice-110 / [[ADR-101]]: pin VAULT_ROOT (in-tree relative) + re-derive the frozen
+# index/slices constants so write_slice_queue writes each test's own
+# <repo>/architecture/slice-queue.md under default AND an external AI_SDLC_VAULT_ROOT
+# override (the flip simulation).
+_pin_vault = vi.autouse_pin(
+    _sqw,
+    derived=[
+        (_sqw, "_INDEX_MD_REL", lambda vr: vr / "slices" / "_index.md"),
+        (_sqw, "_SLICES_DIR_REL", lambda vr: vr / "slices"),
+    ],
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

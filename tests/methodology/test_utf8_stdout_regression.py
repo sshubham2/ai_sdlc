@@ -27,6 +27,8 @@ from pathlib import Path
 
 import pytest
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURE_DIR = REPO_ROOT / "tests" / "methodology" / "fixtures" / "utf8_stdout" / "slice-fixture"
@@ -42,6 +44,10 @@ def _run_under_cp1252(args: list[str], cwd: Path | None = None) -> subprocess.Co
     Windows default console encoding that the slice's helper fixes.
     """
     env = {**os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+    # slice-110 / [[ADR-101]]: strip AI_SDLC_VAULT_ROOT (via the shared helper) so
+    # each child tool resolves its own default vault, not a flip-sim external root
+    # inherited from the parent.
+    env = vi.subprocess_env(base=env)
     return subprocess.run(
         args,
         capture_output=True,
