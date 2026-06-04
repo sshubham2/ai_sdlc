@@ -16,20 +16,20 @@ Runs after `/discover` (for slice 1) or after `/reflect` (for slice N+1). Output
 ## Prerequisite check
 
 Read the vault state:
-- `architecture/triage.md` — exists? If not, run `/triage` (or `/adopt` for brownfield) first.
-- `architecture/risk-register.md` — exists? If not, run `/triage` then `/discover` (or `/adopt`).
-- `architecture/slices/_index.md` — THE primary source for past slices. Always read this.
+- `<vault>/triage.md` — exists? If not, run `/triage` (or `/adopt` for brownfield) first.
+- `<vault>/risk-register.md` — exists? If not, run `/triage` then `/discover` (or `/adopt`).
+- `<vault>/slices/_index.md` — THE primary source for past slices. Always read this.
 
 Convention: `slices/` holds only active slices (no completed ones). All completed slices are in `slices/archive/` — found via `_index.md`. Don't scan individual archived slice folders by default.
 
 **What to read for context**:
 - `_index.md` "Active" table — any slices still in progress
 - `_index.md` "Most recent 10" table — quick catalog of recently shipped work + one-line summaries
-- `architecture/slices/action-points.md` — the curated cross-slice action-points register (this is your pattern-recognition input; relocated out of `_index.md` at slice-103 / ADR-093)
+- `<vault>/slices/action-points.md` — the curated cross-slice action-points register (this is your pattern-recognition input; relocated out of `_index.md` at slice-103 / ADR-093)
 
 **When to go deeper**: only if a specific past slice is clearly relevant to the new candidate (e.g., "we're building 'add-csv-export-v2' and slice-045 was 'add-csv-export'" → read `archive/slice-045/reflection.md` specifically).
 
-**First slice**: if `_index.md` doesn't exist yet, read `architecture/concept.md` (or `triage.md`) for first-slice candidate.
+**First slice**: if `_index.md` doesn't exist yet, read `<vault>/concept.md` (or `triage.md`) for first-slice candidate.
 
 **Note on slice numbering**: new slice number = max(existing slice numbers including archive) + 1. Read `slices/_index.md` totals to get current max, or check `slices/archive/_index.md` if that's clearer. Numbers are globally unique across active + archived.
 
@@ -57,17 +57,17 @@ The detector CLASSIFIES every unmerged `slice/*` branch into a 4-class divergenc
 
 **Gather candidates from ALL these sources** — do NOT rely on the user to name the next slice:
 
-1. **Risk register** (`architecture/risk-register.md`) — per **RR-1** (`methodology-changelog.md` v0.12.0), use the audit tool to get scored, sorted candidates instead of grepping for "HIGH" or "active":
+1. **Risk register** (`<vault>/risk-register.md`) — per **RR-1** (`methodology-changelog.md` v0.12.0), use the audit tool to get scored, sorted candidates instead of grepping for "HIGH" or "active":
 
    ```bash
-   $PY -m tools.risk_register_audit architecture/risk-register.md \
+   $PY -m tools.risk_register_audit <vault>/risk-register.md \
      --json --filter-status open --sort score --top 5
    ```
 
    Top open high-band risks are first-priority slice candidates — the slice would retire them. Open medium-band risks are second-priority. Retired / accepted risks are excluded automatically. If the audit emits zero risks (legacy table format or empty file), fall back to grepping the file directly and flag for migration.
 2. **Recent deferrals** (`slices/action-points.md` register + last 3 archived `reflection.md` files' "Deferred" sections): items deferred from prior slices are candidates
 3. **Recent discoveries** (last 3 reflections' "Discovered" sections): new risks or gaps that surfaced during recent slices
-4. **Concept scope not yet built** (`architecture/concept.md` — compare stated scope to `_index.md` catalog of shipped work): MVP features still unbuilt
+4. **Concept scope not yet built** (`<vault>/concept.md` — compare stated scope to `_index.md` catalog of shipped work): MVP features still unbuilt
 5. **Action-points patterns** (`slices/action-points.md`): if a `build-check-candidate` / `critic-calibrate-probe` entry suggests a slice ("we keep hitting X; should we fix X properly?"), surface it
 6. **User-stated intent**: if `/slice "<description>"` was invoked with a description, that's a candidate — validate it against risks/value, don't auto-accept
 8. **Diagnose-out backlog** (`diagnose-out/backlog.md`, when present) — per **BCR-1** (`methodology-changelog.md` v0.61.0; ADR-055 extends the BC-PROJ-10 / Inclusion-heuristic lineage), Claude **MUST consult diagnose-out/backlog.md as a mandatory candidate source when it exists**. The file is the `/diagnose → /slice-candidates` round-trip output: a pipeline-agnostic, topologically-sorted backlog of owner-confirmed slice candidates with severity × blast / effort scoring + must-do-together clusters + dependency map. The `## Recommended order` list is topo-sorted by dependency × severity / effort — read it as a primary input. Each candidate is an `### SC-NNN — <title>` block with `**Severity:** critical|high|medium|low`, `**Blast:** small|medium|large`, `**Reversibility:** cheap|expensive|irreversible`, `**Effort:** small|medium|large`, plus `**Dependencies:**` / `**Blocks:**` / `**Description:**` / `**Rationale:**` / `**Suggested approach:**` / `**Evidence:**` metadata. Treat the topmost CRITICAL or HIGH severity SC-NNN with all dependencies cleared as a first-priority candidate. Absent file → no-op clean (this source is skipped silently). NOT a substitute for sources #1–6: enumerate every source and rank across all.
@@ -167,7 +167,7 @@ The bug-fix repro prelude discipline routes bug-fix slices through `/repro` as a
 - **Sub-mode (a) name-shape fast-path**: candidate verb-object name matches one of `fix-*` (prefix), `*-fix` (suffix — witnessed in-project at `slice-001-diagnose-orchestration-fix`), `bugfix-*`, `hotfix-*`, `defect-*`, `repair-*`, `patch-*`, or `harden-*-bug`. **Necessary-but-not-sufficient** — fast-path fallback only.
 - **Sub-mode (b) candidate-source signal (PRIMARY)**: candidate sourced from risk-register bug-class entry, prior reflection's "bug observed" note, user description explicitly identifying a defect, or `/repro` invocation context. When mode (a) misses (e.g., a `harden-X` security-hardening slice that fixes a latent defect), mode (b) catches.
 
-**Verification mechanism (shippability.md grep verification)**: when either detection mode fires, grep `architecture/shippability.md` for a row whose `Command` cell targets `tests/bugs/*` (the documented `/repro` skill convention at `skills/repro/SKILL.md` L87/L94/L114). If such a row exists → a failing repro test is already established; proceed to Step 4. If no such row exists → ask the user to paste the failing-test path and confirm it was just-added by `/repro` (verbal-claim-with-path is the documented fallback covering `/repro`'s "or project's convention for bug-fix tests" caveat at L87 — bug-fix tests outside `tests/bugs/`). If the user can't produce a path → proceed to the conditional confirm-then-auto-invoke behavior below (do NOT hand the user off).
+**Verification mechanism (shippability.md grep verification)**: when either detection mode fires, grep `<vault>/shippability.md` for a row whose `Command` cell targets `tests/bugs/*` (the documented `/repro` skill convention at `skills/repro/SKILL.md` L87/L94/L114). If such a row exists → a failing repro test is already established; proceed to Step 4. If no such row exists → ask the user to paste the failing-test path and confirm it was just-added by `/repro` (verbal-claim-with-path is the documented fallback covering `/repro`'s "or project's convention for bug-fix tests" caveat at L87 — bug-fix tests outside `tests/bugs/`). If the user can't produce a path → proceed to the conditional confirm-then-auto-invoke behavior below (do NOT hand the user off).
 
 **Conditional confirm-then-auto-invoke behavior** (per **ADR-048** — partial-supersedes ADR-018's unconditional STOP-route decision; refines BFRD-1's terminal action, mints no new rule; `methodology-changelog.md` v0.55.0): when detection fires and neither a `tests/bugs/*` shippability row exists nor the user produced an existing failing-test path, `/slice` does NOT punt the user away to run `/repro` themselves — it runs a **conditional confirm-then-auto-invoke** edge, removing the mechanical hand-off (PCA-1 v0.41.0 auto-advance philosophy) while preserving the only protection the original gate provided (a confirm checkpoint, not a user hand-off, is what prevents auto-establishing a test for the *wrong* failure signature — ADR-018 Failure mode 2):
 
@@ -218,7 +218,7 @@ Ask the user (or propose if obvious from the candidate):
 
 When producing the mission brief and milestone.md: scan the slice's scope for these triggers. If any match, set `critic-required: true` even if tier is `low`. Tell the user explicitly: "Tier is low, but slice touches auth — Critic will run anyway."
 
-> **Evidence for the In-house methodology surfaces trigger**: voluntary Critic on cross-cutting tooling slices has paid off N=9/9 across slices 1-9 in this project's reflection record (e.g., slice-006 INST-1 inventory drift; slice-007 install-time rename; slice-008 negative-anchor uniformity; slice-009 recursive self-application). Every voluntary Critic invocation on a cross-cutting tooling slice produced VALIDATED findings post-build with zero FALSE-ALARMs; see `architecture/slices/action-points.md` (the curated register, per slice-103 / ADR-093) and `archive/slice-NNN/reflection.md` "Critic calibration" sections for per-slice disposition records.
+> **Evidence for the In-house methodology surfaces trigger**: voluntary Critic on cross-cutting tooling slices has paid off N=9/9 across slices 1-9 in this project's reflection record (e.g., slice-006 INST-1 inventory drift; slice-007 install-time rename; slice-008 negative-anchor uniformity; slice-009 recursive self-application). Every voluntary Critic invocation on a cross-cutting tooling slice produced VALIDATED findings post-build with zero FALSE-ALARMs; see `<vault>/slices/action-points.md` (the curated register, per slice-103 / ADR-093) and `archive/slice-NNN/reflection.md` "Critic calibration" sections for per-slice disposition records.
 
 ### Step 5: Scope check
 

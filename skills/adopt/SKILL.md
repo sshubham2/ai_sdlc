@@ -57,7 +57,7 @@ If ANY prints "MISSING": **STOP**. Tell the user:
 ### Project-level
 
 - Working directory has code (not an empty repo)
-- If `architecture/triage.md` already exists: ask if this is a merge (continue) or if we should start fresh (abort and let user clean up first)
+- If `<vault>/triage.md` already exists: ask if this is a merge (continue) or if we should start fresh (abort and let user clean up first)
 
 ## Your task
 
@@ -68,7 +68,7 @@ Brownfield is where graphify shines — an existing codebase has real structure 
 ```bash
 # Build the graph FIRST — subsequent steps read graphify-out/ for structure
 $PY -m graphify code .                    # AST + INFERRED edges across source files
-# (Optional vault graph if architecture/ already exists from a prior run:)
+# (Optional vault graph if <vault>/ already exists from a prior run:)
 # $PY -m graphify vault architecture
 # (Optional file-watcher in a separate terminal — rebuilds on code changes:)
 # $PY -m graphify.watch .
@@ -102,7 +102,7 @@ Scanned codebase (code-derived, not doc-derived):
 - Main entry: src/main.py
 - Tests: tests/ (pytest, ~60 tests, ~70% coverage from conftest)
 - README.md: present (will be treated as hypothesis, not fact)
-- No existing architecture/ docs
+- No existing <vault>/ docs
 
 Proceeding to forensic analysis offer.
 ```
@@ -148,7 +148,7 @@ Tell the user:
 
 #### If user chooses SKIP
 
-Note in `architecture/triage.md` (Step 9) that diagnose was skipped + reason. Risk register (Step 6) will be built from user pain points only, not confirmed findings. Concept.md (Step 7) derives from code observations + user input only.
+Note in `<vault>/triage.md` (Step 9) that diagnose was skipped + reason. Risk register (Step 6) will be built from user pain points only, not confirmed findings. Concept.md (Step 7) derives from code observations + user input only.
 
 #### If user chooses "tell me more"
 
@@ -228,7 +228,7 @@ R3: Auth token rotation deferred — code path exists but never called
 
 ### Step 7: Reverse-engineer `concept.md`
 
-Write `architecture/concept.md` reflecting current state from CODE first, user input second:
+Write `<vault>/concept.md` reflecting current state from CODE first, user input second:
 
 ```markdown
 # Concept (brownfield)
@@ -270,7 +270,7 @@ Source priority:
 
 If the user answered Q8 with decisions they can articulate firsthand:
 
-For each, write `architecture/decisions/ADR-historical-<NNN>.md`:
+For each, write `<vault>/decisions/ADR-historical-<NNN>.md`:
 
 ```markdown
 ---
@@ -309,7 +309,7 @@ This is a historical ADR captured at adoption time from firsthand user recollect
 Same files as `/triage`, plus diagnose artifacts if /diagnose ran:
 
 ```
-architecture/
+<vault>/
   CLAUDE.md              ← brownfield-aware version (Step 10)
   triage.md              ← records adoption (not greenfield triage); notes whether /diagnose ran
   concept.md             ← Step 7
@@ -348,7 +348,7 @@ Ask user to review and confirm fidelity before marking `fidelity: confirmed`.
 
 ### Step 10: Generate/update `./CLAUDE.md` — KEEP IT SMALL
 
-Same discipline as `/triage`: short file (~30 lines) at project root, no `architecture/CLAUDE.md`. Skills carry detailed guidance.
+Same discipline as `/triage`: short file (~30 lines) at project root, no `<vault>/CLAUDE.md`. Skills carry detailed guidance.
 
 Check first: does `./CLAUDE.md` exist?
 
@@ -360,16 +360,16 @@ Check first: does `./CLAUDE.md` exist?
 ```markdown
 # AI SDLC pipeline (adopted into existing codebase)
 
-**Mode**: <Minimal | Standard | Heavy> — see `architecture/triage.md`
+**Mode**: <Minimal | Standard | Heavy> — see `<vault>/triage.md`
 **Adopted**: <YYYY-MM-DD>
-**Vault**: `architecture/`
-**Active slice**: check `architecture/slices/_index.md`
+**Vault**: `<vault>/`
+**Active slice**: check `<vault>/slices/_index.md`
 
 ## Hard rule before editing code
 
 If the change is more than a typo / single-line tweak / comment / local-variable rename:
 
-1. Check `architecture/slices/_index.md` for an active slice
+1. Check `<vault>/slices/_index.md` for an active slice
 2. If none → **ASK** the user via structured options (per the Ask discipline below): "Run `/slice` first, or is this small enough to skip?"
 3. Wait for explicit answer.
 
@@ -409,7 +409,7 @@ Skills: `~/.claude/skills/<name>/SKILL.md`. Templates: `~/.claude/templates/`.
 
 ## AI SDLC pipeline (brownfield-adopted)
 
-**Mode**: <mode>. Vault: `architecture/`. Active slice: `architecture/slices/_index.md`.
+**Mode**: <mode>. Vault: `<vault>/`. Active slice: `<vault>/slices/_index.md`.
 
 **Hard rule**: before editing code (beyond typos/trivial), check for active slice. If none, **ASK** the user via structured options (per the Ask discipline below) — "Run `/slice` first?" Wait for answer.
 
@@ -427,7 +427,7 @@ ADRs are append-only. Run `/drift-check` before commit.
 ```
 Adoption complete.
 
-Vault produced at architecture/:
+Vault produced at <vault>/:
 - concept.md (reverse-engineered from code first, user input second)
 - risk-register.md (N risks: <N1> from /diagnose findings, <N2> from user pain points)
 - decisions/ADR-historical-*.md (M historical ADRs, firsthand-only)

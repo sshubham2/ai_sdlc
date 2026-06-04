@@ -39,8 +39,8 @@ Vault rot is the biggest failure mode of spec-driven SDLC. A stale vault is wors
 
 The thin vault has a small drift surface. Read only:
 
-- `architecture/decisions/*.md` — chosen tech, libraries, approaches (status: accepted)
-- `architecture/risk-register.md` — risks claimed retired
+- `<vault>/decisions/*.md` — chosen tech, libraries, approaches (status: accepted)
+- `<vault>/risk-register.md` — risks claimed retired
 - `architecture/slices/*/design.md` — these are ACTIVE slices only (convention: completed slices move to `slices/archive/` via `/reflect`)
 - `architecture/slices/*/mission-brief.md` — active slice must-not-defer items
 
@@ -65,7 +65,7 @@ For thin vault, the checks are:
 | ADR chose library `pyheif` (status: accepted) | `$PY -m graphify query "is pyheif in dependencies?"` OR `grep pyheif pyproject.toml` |
 | ADR chose framework `FastAPI` | `$PY -m graphify query "what framework is imported?"` OR check imports |
 | Slice design references `src/api/receipts.py` | `$PY -m graphify reachable --from="src/api/receipts.py"` (file exists in graph? has neighbors?) |
-| Risk R3 marked "RETIRED" | Read the spike file directly: `cat architecture/spikes/spike-003*.md` |
+| Risk R3 marked "RETIRED" | Read the spike file directly: `cat <vault>/spikes/spike-003*.md` |
 | Mission brief must-not-defer item "auth on POST /receipts" | `$PY -m graphify query "does POST /receipts have auth?"` OR inspect route handler |
 
 For each mismatch: capture file, line, vault claim, code reality.

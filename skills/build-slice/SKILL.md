@@ -30,7 +30,7 @@ Runs after `/critique` blockers + majors are addressed. Output: working code + t
   Refusal semantics (exit 1 → STOP):
   - `mandatory-critique-review-absent`: mode ∈ {STANDARD, HEAVY} AND `milestone.md` `critic-required: true` AND `critique-review.md` absent AND no canonical `critique-review-skip` frontmatter key.
   - `escape-hatch-malformed`: `critique-review-skip` key present but value off-canonical (not `^skip — rationale: .+`).
-  - `usage-error` / `mode-unresolvable` (exit 2): slice folder / milestone.md missing, or mode unresolvable from `architecture/triage.md` frontmatter `mode:` → fallback `CLAUDE.md` `**Mode**:`.
+  - `usage-error` / `mode-unresolvable` (exit 2): slice folder / milestone.md missing, or mode unresolvable from `<vault>/triage.md` frontmatter `mode:` → fallback `CLAUDE.md` `**Mode**:`.
 
   On `mandatory-critique-review-absent`, STOP and tell the user verbatim: **"STOP: this slice has a mandatory `/critique-review` (DR-1) that has not been run. Run `/critique-review` for this slice before `/build-slice`. If the skip is deliberate, document it by adding `critique-review-skip: \"skip — rationale: <text>\"` to milestone.md frontmatter (per ADR-024)."** Do not enter Step 1 plan mode until the audit exits 0.
 
@@ -75,7 +75,7 @@ wt_base="$(dirname "$repo_root")/$(basename "$repo_root")-wt"
    ```
    (POSIX shell; on Windows invoke via Git for Windows' bundled MSYS bash — same dependency convention as commit-slice Step 5b/5d.)
 
-   Slice-071 M2 + m4 FIXes (per slice-066 code-Critic M2/m4): the canonical path is derived from `git rev-parse --show-toplevel` (the `.git`-ancestor walk) rather than `$(pwd)` (cwd-derived) — `_worktree_paths.canonical_worktree_path` and the audit at `tools/branch_workflow_audit.py:_resolve_expected_worktree_path` agree on the same canonical path via the same mechanism, so running `/build-slice` from a subdirectory (e.g., `cwd=architecture/slices/`) no longer surfaces a `worktree-path-shape-violation`.
+   Slice-071 M2 + m4 FIXes (per slice-066 code-Critic M2/m4): the canonical path is derived from `git rev-parse --show-toplevel` (the `.git`-ancestor walk) rather than `$(pwd)` (cwd-derived) — `_worktree_paths.canonical_worktree_path` and the audit at `tools/branch_workflow_audit.py:_resolve_expected_worktree_path` agree on the same canonical path via the same mechanism, so running `/build-slice` from a subdirectory (e.g., `cwd=<vault>/slices/`) no longer surfaces a `worktree-path-shape-violation`.
 
    The worktree's filesystem is physically isolated from the main tree; uncommitted slice-A WIP on the main tree cannot contaminate slice-B's worktree.
 3. **If on any other branch** (including stale `slice/<other-number>-*` from prior conflict OR a worktree for a different slice): STOP, ask user to switch context or document `WORKTREE=skip` escape-hatch in `build-log.md` Events per Step 7c canonical shape.
@@ -173,7 +173,7 @@ Before declaring slice done, ALL of these must be true:
 
 - [ ] All acceptance criteria PASS with evidence
 - [ ] All must-not-defer items addressed (no TODO, no stub, no silent except)
-- [ ] `/drift-check` passes (vault and code aligned) — run in **full mode**, which appends the slice's `**Trigger**:` entry to `architecture/drift-log.md` (the marker the DCE-1 gate verifies)
+- [ ] `/drift-check` passes (vault and code aligned) — run in **full mode**, which appends the slice's `**Trigger**:` entry to `<vault>/drift-log.md` (the marker the DCE-1 gate verifies)
 - [ ] Mid-slice smoke still passes (no regression)
 - [ ] No new TODOs / FIXMEs / debug prints / console.logs
 - [ ] **Mock-budget lint passes (LINT-MOCK-1)** — see "Mock-budget lint" below
@@ -211,7 +211,7 @@ Bootstrap (slice-095 only): slice-095 authors SVW-1; at slice-095's own Step 6 t
 
 Per **DCE-1** (`methodology-changelog.md` v0.76.0; slice-081; [[ADR-073]]; mints a new rule; supersedes nothing): `/drift-check` was the only pipeline discipline preached (CLAUDE.md "Run /drift-check before commit") and listed in this checklist yet enforced by nothing — no `tools/drift_check_audit.py`, no installed pre-commit hook, only the honor-system checkbox above (the R-7 / slice-022 silent-disable failure class). DCE-1 converts the drift-check checkbox into an audit-enforced gate.
 
-**Order is load-bearing**: run `/drift-check` **in full mode** FIRST (only full mode appends the `**Trigger**: slice-NNN pre-finish gate` entry to `architecture/drift-log.md`; `--fast` writes stdout only and leaves NO marker), THEN run the audit:
+**Order is load-bearing**: run `/drift-check` **in full mode** FIRST (only full mode appends the `**Trigger**: slice-NNN pre-finish gate` entry to `<vault>/drift-log.md`; `--fast` writes stdout only and leaves NO marker), THEN run the audit:
 
 ```bash
 $PY -m tools.drift_check_audit architecture/slices/slice-NNN-<name>
@@ -222,13 +222,13 @@ The audit is a procedural *was-it-marked* gate (ADR-073 § Scope honesty): it ve
 Refusal semantics:
 - `drift-check-not-run` (Important, exit 1): mode ∈ {STANDARD, HEAVY} AND no `**Trigger**:` line in `drift-log.md` references the slice number AND no canonical `drift-check-skip` milestone.md frontmatter key. A missing/empty `drift-log.md` is "no marker" → refuse (NOT usage-error).
 - `escape-hatch-malformed` (Important, exit 1): `drift-check-skip:` key present but value ≠ `^skip — rationale: .+`.
-- `usage-error` / `mode-unresolvable` (exit 2): slice folder / milestone.md missing, slice-folder name off-shape, or mode unresolvable from `architecture/triage.md` frontmatter `mode:` → `CLAUDE.md` `**Mode**:` fallback. Fail-visible, never a false refuse.
+- `usage-error` / `mode-unresolvable` (exit 2): slice folder / milestone.md missing, slice-folder name off-shape, or mode unresolvable from `<vault>/triage.md` frontmatter `mode:` → `CLAUDE.md` `**Mode**:` fallback. Fail-visible, never a false refuse.
 
 Accept (exit 0): a slice-referencing `**Trigger**:` line present, OR canonical `drift-check-skip` value present, OR resolved mode == MINIMAL (drift-check is skipped-by-default in Minimal).
 
 Escape-hatch: to deliberately skip drift-check for a slice, add `drift-check-skip: "skip — rationale: <text>"` to milestone.md frontmatter (Step 7b preserves it verbatim — see Step 7b). DCE-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1 / STP-1 / AVFS-1 / TVFS-1 / NAW-1) — its programmatic gate is `tools/drift_check_audit.py`.
 
-Bootstrap (slice-081 only): slice-081 authors DCE-1. At slice-081's own Step 6 the build runs `/drift-check` full mode (writing a `**Trigger**: slice-081 pre-finish gate` line to `architecture/drift-log.md`) BEFORE the audit, which must then exit 0 (self-application discharge). A non-zero before that drift-check run is the EXPECTED signal to run `/drift-check` first — NOT a slice defect; re-run until exit 0. Every slice after 081 inherits a self-gating DCE-1. (Same bootstrap shape as CRP-1 slice-026 / PCA-1 slice-027 / NAW-1 slice-063.)
+Bootstrap (slice-081 only): slice-081 authors DCE-1. At slice-081's own Step 6 the build runs `/drift-check` full mode (writing a `**Trigger**: slice-081 pre-finish gate` line to `<vault>/drift-log.md`) BEFORE the audit, which must then exit 0 (self-application discharge). A non-zero before that drift-check run is the EXPECTED signal to run `/drift-check` first — NOT a slice defect; re-run until exit 0. Every slice after 081 inherits a self-gating DCE-1. (Same bootstrap shape as CRP-1 slice-026 / PCA-1 slice-027 / NAW-1 slice-063.)
 
 #### Branch workflow audit (BRANCH-1)
 
@@ -299,14 +299,14 @@ Bootstrap (slice-027 only, per [[ADR-025]]): slice-027 authors PCA-1; the `## Pi
 
 #### Build-checks integrity audit (BCI-1)
 
-Per **BCI-1** (`methodology-changelog.md` v0.44.0; slice-030A; [[ADR-028]] + [[ADR-029]]): `/reflect` Step 5b promotion is LLM-executed prose with no deterministic source (R-4 witnessed both `architecture/build-checks.md` + `~/.claude/build-checks.md` silently truncated to the last-promoted rule). The only sound control for a non-deterministic step is a deterministic downstream gate. BCI-1 asserts the live build-checks files match the **git-tracked** canonical fixtures (`tests/methodology/fixtures/build_checks/canonical_{project,global}_checks.md`) on **full per-rule structural identity** — `(rule_id, severity, applies_to, trigger_keywords, trigger_anchors, negative_anchors)` + non-empty `check` — NOT rule-ID-set-only (slice-030A meta-M-add-2: an ID-only check passes a coverage-degraded file, re-opening R-4). Run:
+Per **BCI-1** (`methodology-changelog.md` v0.44.0; slice-030A; [[ADR-028]] + [[ADR-029]]): `/reflect` Step 5b promotion is LLM-executed prose with no deterministic source (R-4 witnessed both `<vault>/build-checks.md` + `~/.claude/build-checks.md` silently truncated to the last-promoted rule). The only sound control for a non-deterministic step is a deterministic downstream gate. BCI-1 asserts the live build-checks files match the **git-tracked** canonical fixtures (`tests/methodology/fixtures/build_checks/canonical_{project,global}_checks.md`) on **full per-rule structural identity** — `(rule_id, severity, applies_to, trigger_keywords, trigger_anchors, negative_anchors)` + non-empty `check` — NOT rule-ID-set-only (slice-030A meta-M-add-2: an ID-only check passes a coverage-degraded file, re-opening R-4). Run:
 
 ```bash
 $PY -m tools.build_checks_integrity
 ```
 
 Refusal semantics:
-- `drift` (exit 1, HALT): a present live file diverges from the canonical fixture — missing/extra rules, **empty present file**, or any structural-field mismatch — OR the project `architecture/build-checks.md` is absent. Message is attributed: *"LOCAL VAULT DRIFT — reconstruct from <fixture>; this is NOT a slice regression"* (retires the R-4 anti-pattern where a truncation read as a confusing slice regression).
+- `drift` (exit 1, HALT): a present live file diverges from the canonical fixture — missing/extra rules, **empty present file**, or any structural-field mismatch — OR the project `<vault>/build-checks.md` is absent. Message is attributed: *"LOCAL VAULT DRIFT — reconstruct from <fixture>; this is NOT a slice regression"* (retires the R-4 anti-pattern where a truncation read as a confusing slice regression).
 - `warn` (exit 0): `~/.claude/build-checks.md` **absent** (file does not exist) — the global file is untracked/environment-dependent; a machine that hasn't installed it must not HALT (slice-030A meta-M3). An *empty present* global file is `drift`/HALT, not WARN (empty != absent — R-4-global not silently reopened).
 - `usage` (exit 2): a canonical fixture (the tracked oracle) is missing/unreadable, emits its own parse violations, or repo root is unresolvable.
 
@@ -341,15 +341,15 @@ $PY -m tools.state_transition_pin_audit
 
 Two mechanically-detectable sub-forms (the fuzzy ADR `accepted`→`superseded` sub-form is out of scope per ADR-047):
 - **Sub-form A — SKILL.md-prose-repoint stale pin** (git-diff-independent standing invariant): a `tests/**/test_*skill*.py` positive-membership prose-pin whose folded-constant literal is absent from the *full* target `SKILL.md`. `not in` pins, `ast.Or`-disjunction operands, and mixed `ast.And`-with-`NotIn`/non-constant-sibling are excluded; a positive-only `ast.And` chain is checked per-operand.
-- **Sub-form B — risk-status-stale pin** (git-diff-independent standing invariant): a test `FunctionDef` name matching `(?:^|_)r[_-]?(\d+).*?_(stays|remains|is)_(open|mitigating|retired|accepted)(?:_|$)` whose claimed status differs from the live `architecture/risk-register.md` `**Status**:` (parsed via the object-identity-reused `risk_register_audit._parse_risks`).
+- **Sub-form B — risk-status-stale pin** (git-diff-independent standing invariant): a test `FunctionDef` name matching `(?:^|_)r[_-]?(\d+).*?_(stays|remains|is)_(open|mitigating|retired|accepted)(?:_|$)` whose claimed status differs from the live `<vault>/risk-register.md` `**Status**:` (parsed via the object-identity-reused `risk_register_audit._parse_risks`).
 
 Refusal semantics:
 - `stale-skill-prose-pin` (Important, exit 1): Sub-form A — names `tests/<file>::<fn>` + the missing folded literal + target SKILL.md + remediation.
 - `stale-risk-status-pin` (Important, exit 1): Sub-form B — names the risk ID + `claimed → live` + the stale `tests/<file>::<fn>` + remediation.
 - Per-scanned-file AST `SyntaxError` → **skip-with-visible-note, NO violation, NOT exit 2** (ADR-037/PTFFD-1 discipline, inherited from the `shippability_path_audit.py`/`_pyfn` precedent — a false-FAIL on a parse failure is the strictly-worse audit failure mode; e.g. the permanent `tests/methodology/fixtures/syntax_error.py`).
-- `usage-error` (Important, exit 2): hard-input failure ONLY — `architecture/risk-register.md` missing/unreadable/unparseable, `tests/`/`skills/` dir missing, or repo-root unresolvable. Fail-closed, never silent exit 0.
+- `usage-error` (Important, exit 2): hard-input failure ONLY — `<vault>/risk-register.md` missing/unreadable/unparseable, `tests/`/`skills/` dir missing, or repo-root unresolvable. Fail-closed, never silent exit 0.
 
-STP-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1) — its programmatic gate is `tools/state_transition_pin_audit.py`. It is **git-independent** (Sub-form B revised from a git-merge-base mechanism by the slice-044 plan-mode deviation — `architecture/` is gitignored).
+STP-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1) — its programmatic gate is `tools/state_transition_pin_audit.py`. It is **git-independent** (Sub-form B revised from a git-merge-base mechanism by the slice-044 plan-mode deviation — `<vault>/` is gitignored).
 
 Bootstrap (slice-044 only): slice-044 authors STP-1; at slice-044's Step 6 the audit IS run against the repo and MUST exit 0 (self-application discharge — no live test contradicts the register, no removed-anchor prose-pin, the lone unparseable fixture is skip-noted). Every slice after 044 inherits a self-gating STP-1.
 
@@ -404,7 +404,7 @@ NAW-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peer
 
 **Overbroad-pathspec known false-positive class** (m2 critique fix): the `agents/*.md` pathspec matches ANY `.md` file added under `agents/` — not just files registered in `tools/install_audit.py` `_CANONICAL_AGENTS`. A future slice that adds a prose-doc under `agents/` (e.g., `agents/CONVENTIONS.md`) will trigger a NAW-1 WARN even though no registry cache-miss can result. Accepted as a known-false-positive class with minimal cost — an extra WARN never HALTs.
 
-Bootstrap (slice-063 only): slice-063 authors NAW-1. The bootstrap is **conditional-clean** — the audit runs at slice-063's own Step 6 against slice-063's own working-tree + ls-files state; slice-063 adds zero `agents/*.md` (the slice ships a new `tools/*.py` audit + `skills/build-slice/SKILL.md` edit + `architecture/risk-register.md` flip; zero `agents/*.md` deltas), so all three sources return `[]` → audit exits 0 quietly. Vacuous-pass IS the structural self-application discharge. Every slice after 063 inherits a self-gating NAW-1.
+Bootstrap (slice-063 only): slice-063 authors NAW-1. The bootstrap is **conditional-clean** — the audit runs at slice-063's own Step 6 against slice-063's own working-tree + ls-files state; slice-063 adds zero `agents/*.md` (the slice ships a new `tools/*.py` audit + `skills/build-slice/SKILL.md` edit + `<vault>/risk-register.md` flip; zero `agents/*.md` deltas), so all three sources return `[]` → audit exits 0 quietly. Vacuous-pass IS the structural self-application discharge. Every slice after 063 inherits a self-gating NAW-1.
 
 #### Test-first audit (TF-1)
 
@@ -427,7 +427,7 @@ NFR-1 carry-over: slices whose `mission-brief.md` mtime predates 2026-05-06 are 
 
 #### Build-checks audit (BC-1)
 
-Per **BC-1** (`methodology-changelog.md` v0.10.0), every slice's pre-finish runs the build-checks audit to surface evergreen rules promoted from past lessons-learned. The audit reads `architecture/build-checks.md` (project-specific) and `~/.claude/build-checks.md` (global, cross-project), filters rules by applicability, and surfaces matches.
+Per **BC-1** (`methodology-changelog.md` v0.10.0), every slice's pre-finish runs the build-checks audit to surface evergreen rules promoted from past lessons-learned. The audit reads `<vault>/build-checks.md` (project-specific) and `~/.claude/build-checks.md` (global, cross-project), filters rules by applicability, and surfaces matches.
 
 Per **BCSG-1** (`methodology-changelog.md` v0.75.0; slice-080; [[ADR-072]]; refines BC-1 in place, supersedes nothing), this gate is **mechanically enforced under `--strict`**: an applicable Critical rule that is NOT acknowledged via `--ack-critical` becomes an `unacknowledged-critical` violation → gate-failure exit 1. The enumerate-then-ack pattern (run EVERY slice — BC-PROJ-3 + BC-GLOBAL-2 are `always:true` Critical rules that apply to every slice):
 
@@ -460,7 +460,7 @@ Refusal semantics:
 
 NFR-1 carry-over: slices whose `mission-brief.md` mtime predates BC-1's release date (2026-05-06) are exempt automatically. The audit returns `carry_over_exempt: true` and zero applicable rules for those.
 
-If neither `architecture/build-checks.md` nor `~/.claude/build-checks.md` exists, the audit returns zero applicable rules. Both files are populated manually at `/reflect` Step 5b when a recurring pattern emerges across slices.
+If neither `<vault>/build-checks.md` nor `~/.claude/build-checks.md` exists, the audit returns zero applicable rules. Both files are populated manually at `/reflect` Step 5b when a recurring pattern emerges across slices.
 
 BCSG-1 (slice-080) added exit-code enforcement: under `--strict` the exit code is a gate signal (acknowledgment-based), so an automated/CI consumer no longer gets a false-green on an applicable Critical rule. The acknowledgment is an attestation (the builder asserts the rule was addressed, recorded in build-log.md) — NOT machine proof the rule's required check actually ran. That executable per-rule auto-verification (parse + run each rule's `Validation hint`) remains the deferred BC-1 v2.
 
@@ -490,18 +490,18 @@ Per **LINT-MOCK-1** (Python; v0.6.0), **LINT-MOCK-2** (TypeScript / JavaScript; 
 
 ```bash
 $PY -m tools.mock_budget_lint <changed-test-files>
-# Add --seam-allowlist architecture/.cross-chunk-seams (if file exists)
+# Add --seam-allowlist <vault>/.cross-chunk-seams (if file exists)
 # Add --strict in Heavy mode (Important also blocks)
 ```
 
 Supported extensions: `.py` (LINT-MOCK-1), `.ts` `.tsx` `.js` `.jsx` `.mts` `.cts` (LINT-MOCK-2), `.go` (LINT-MOCK-3).
 
 Severity rules:
-- **Critical** (target is in `architecture/.cross-chunk-seams`): blocks pre-finish; cannot be deferred. *(Critical applies to LINT-MOCK-1 and LINT-MOCK-2 only; LINT-MOCK-3 v1 enforces mock-budget without internal-mock classification — no Critical findings emitted.)*
+- **Critical** (target is in `<vault>/.cross-chunk-seams`): blocks pre-finish; cannot be deferred. *(Critical applies to LINT-MOCK-1 and LINT-MOCK-2 only; LINT-MOCK-3 v1 enforces mock-budget without internal-mock classification — no Critical findings emitted.)*
 - **Important** in Standard / Minimal mode: surface to user; allow defer with rationale recorded in `build-log.md`
 - **Important** in Heavy mode: blocks pre-finish (`--strict` is mandatory)
 
-The `architecture/.cross-chunk-seams` allowlist (if present) names targets where mocking is escalated to Critical. One target per line; lines starting with `#` are comments. The same allowlist applies to Python and TS files; format matches each language's import-target string (e.g., `src.api.receipts.upload_receipt` for Python, `./api/receipts` for TS). Go v1 doesn't yet honor the allowlist; a later slice adds import-aware boundary classification for Go.
+The `<vault>/.cross-chunk-seams` allowlist (if present) names targets where mocking is escalated to Critical. One target per line; lines starting with `#` are comments. The same allowlist applies to Python and TS files; format matches each language's import-target string (e.g., `src.api.receipts.upload_receipt` for Python, `./api/receipts` for TS). Go v1 doesn't yet honor the allowlist; a later slice adds import-aware boundary classification for Go.
 
 If the slice didn't touch any Python, TS/JS, or Go test files: skip this gate (not applicable).
 

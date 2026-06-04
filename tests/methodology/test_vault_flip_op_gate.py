@@ -240,3 +240,56 @@ def test_single_clean_move_still_dest_only(tmp_path: Path) -> None:
     ops = op_audit_root(tmp_path)
     assert len(ops) == 1 and ops[0].klass == OP_UNROUTED
     assert "lessons-learned" in ops[0].value, "the DEST governs a single clean move (B2 preserved)"
+
+
+# ── slice-113 / B2 ([[ADR-106]]): SEAM-AWARE op-gate — a CONVERTED `<vault>/` sink stays
+# VISIBLE and correctly classified. AP-5 non-vacuity: each of these FAILs if the value
+# EXTRACTOR is not upgraded to `_OP_SINK_TOKEN_RE` in lockstep with `_OP_SINK_RE` — with the
+# old `_PATH_TOKEN_RE` the `<vault>/` value collapses to the bare prefix and every sink
+# sub-regex (`_ACTIVE_FOLDER_RE` / `_UNDECIDED_DISPOSITION_RE`) misses. ──
+def test_seam_aware_vault_active_folder_sink_deferred(tmp_path: Path) -> None:
+    """A converted `<vault>/slices/slice-NNN/...` in-loop active-folder write → OP_DEFERRED_TO_FLIP.
+    The EXTRACTOR non-vacuity proof: with the old `_PATH_TOKEN_RE` the value collapses to bare
+    `<vault>/`, `_ACTIVE_FOLDER_RE` misses, and it mis-flags OP_UNROUTED."""
+    _skill(tmp_path, "build-slice", "run `git add <vault>/slices/slice-NNN-foo/build-log.md`\n")
+    ops = op_audit_root(tmp_path)
+    assert len(ops) == 1
+    assert ops[0].klass == OP_DEFERRED_TO_FLIP, (
+        f"a converted <vault>/ active-folder sink must classify DEFERRED (the extractor must "
+        f"capture the full token, not bare '<vault>/'); got {ops[0].klass} value={ops[0].value!r}"
+    )
+    assert "slices/slice-NNN-foo" in ops[0].value, "the full <vault>/ token must be extracted"
+
+
+def test_seam_aware_vault_slice_queue_sink_out_of_scope(tmp_path: Path) -> None:
+    """A converted `<vault>/slice-queue.md` in-loop write → OP_OUT_OF_SCOPE (undecided-disposition
+    ledger). Proves `_UNDECIDED_DISPOSITION_RE` fires on the EXTRACTED `<vault>/` value."""
+    _skill(tmp_path, "slice", "run `git add <vault>/slice-queue.md`\n")
+    ops = op_audit_root(tmp_path)
+    assert len(ops) == 1
+    assert ops[0].klass == OP_OUT_OF_SCOPE, (
+        f"a converted <vault>/slice-queue.md write is the undecided-disposition ledger → "
+        f"OUT_OF_SCOPE; got {ops[0].klass}"
+    )
+
+
+def test_seam_aware_vault_unrouted_aggregate_still_bites(tmp_path: Path) -> None:
+    """The forward-protection ADR-106 promises: an un-routed in-loop write to a CONVERTED
+    `<vault>/` shared-aggregate still reds OP_UNROUTED — the gate is NOT blinded by the rollout
+    of the very convention it must police (R-32 write-safety)."""
+    _skill(tmp_path, "reflect", "run `git add <vault>/risk-register.md`\n")
+    ops = op_audit_root(tmp_path)
+    assert len(ops) == 1
+    assert ops[0].klass == OP_UNROUTED, (
+        f"the seam-aware op-gate must still catch an un-routed <vault>/ in-loop write "
+        f"(else the convention rollout defeats the gate — R-32); got {ops[0].klass}"
+    )
+    # m1 (/code-review): OP_UNROUTED is the failure-mode outcome too (a bare-`<vault>/` value
+    # from a reverted extractor falls through every sub-regex → OP_UNROUTED), so the klass
+    # assertion alone is vacuous against an extractor revert. Asserting the FULL token was
+    # extracted is what makes this test genuinely extractor-sensitive (red on the bare-prefix
+    # collapse) — restoring the "each of the three" non-vacuity claim.
+    assert "risk-register.md" in ops[0].value, (
+        f"the extractor must capture the full <vault>/ token, not the bare prefix; "
+        f"got value={ops[0].value!r}"
+    )

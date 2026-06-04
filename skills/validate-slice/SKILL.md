@@ -15,7 +15,7 @@ Runs after `/build-slice` completes its pre-finish gate. Output feeds `/reflect`
 ## Two phases
 
 1. **This slice's acceptance criteria** — real-device / real-user / real-data checks (this skill's traditional job)
-2. **Shippability catalog regression check** — run every past slice's critical-path test from `architecture/shippability.md` to catch regressions introduced by THIS slice breaking past work
+2. **Shippability catalog regression check** — run every past slice's critical-path test from `<vault>/shippability.md` to catch regressions introduced by THIS slice breaking past work
 
 Both must pass before the slice is considered validated.
 
@@ -124,7 +124,7 @@ $PY -m tools.validate_slice_layers \
 ```
 
 **Layer A — Credential scan (Critical, blocks)**
-Static regex patterns for AWS access keys, GitHub PATs (classic + fine-grained + bot tokens), Slack tokens, JWTs, PEM private keys, Anthropic / OpenAI API keys, and generic `api_key = "..."` literals. Each detected secret is a Critical finding that **cannot be deferred** — committed credentials are immediately exploitable. False positives (test fixtures, public-docs examples) are silenced via `architecture/.secrets-allowlist` (one regex per line; `#` comments).
+Static regex patterns for AWS access keys, GitHub PATs (classic + fine-grained + bot tokens), Slack tokens, JWTs, PEM private keys, Anthropic / OpenAI API keys, and generic `api_key = "..."` literals. Each detected secret is a Critical finding that **cannot be deferred** — committed credentials are immediately exploitable. False positives (test fixtures, public-docs examples) are silenced via `<vault>/.secrets-allowlist` (one regex per line; `#` comments).
 
 **Layer B — Dependency hallucination check (Important, surfaces)**
 Python `ast`-parses every changed `.py` file and resolves each top-level import against the project's declared deps from `pyproject.toml` (`[project.dependencies]`, `[project.optional-dependencies]`, `[tool.poetry.dependencies]`, `[tool.setuptools] packages` — explicit-list form) and `requirements.txt`. Stdlib imports (per `sys.stdlib_module_names`), relative imports (`from . import X`), and a small known-aliases table (`yaml`->`pyyaml`, `bs4`->`beautifulsoup4`, `PIL`->`pillow`, `cv2`->`opencv-python`, etc.) resolve cleanly. Anything else is an Important `hallucinated-import` finding — possible AI hallucination, or a real package that the project simply forgot to declare. Surface to user; defer-with-rationale allowed (consistent with the LINT-MOCK Important pattern).
@@ -197,17 +197,17 @@ NFR-1 carry-over: slices whose `mission-brief.md` mtime predates 2026-05-06 are 
 
 Before deciding next action, verify no past slice was silently broken by this one:
 
-1. Read `architecture/shippability.md` — the catalog of critical-path tests from every past slice
+1. Read `<vault>/shippability.md` — the catalog of critical-path tests from every past slice
 2. If the file doesn't exist (first slice, catalog empty): skip this step; `/reflect` will create the catalog
 3. **Pre-catalog gates (run BOTH before executing any catalog command)**:
    a. **SCMD-1 (`methodology-changelog.md` v0.45.0; slice-031 / ADR-031)** — non-opt-out:
    ```
-   $PY -m tools.shippability_decoupling_audit architecture/shippability.md
+   $PY -m tools.shippability_decoupling_audit <vault>/shippability.md
    ```
    Verifies every row carries a prose-free **Machine-cmd** (6th) column and that no catalog-cited test transitively reads gitignored/untracked *incidental* state (archive corpus / live build-checks / `~/.claude/build-checks.md`). If it exits non-zero, STOP: fix the row before running the catalog (a prose/missing Machine-cmd or a re-introduced incidental coupling would make the catalog environment-fragile — the R-4 false-PCA-1-HALT class).
    b. **PTFCD-1 sub-mode (b) (`methodology-changelog.md` v0.39.0)**:
    ```
-   $PY -m tools.shippability_path_audit architecture/shippability.md
+   $PY -m tools.shippability_path_audit <vault>/shippability.md
    ```
    Verifies every `tests/<...>.py` token in every row's **Machine-cmd** cell resolves to a file that exists on disk. If it exits non-zero (a phantom test-file citation — cf. slice-024 `test_shippability_catalog.py`), STOP: report the single PTFCD-1 violation and fix the catalog row's path before running the catalog. Running the catalog with a phantom citation produces N confusing per-row "file not found" FAILs that mask real regressions; this gate surfaces it as ONE clear violation. Do not proceed to step 4 until BOTH gates exit 0.
    c. **SVW-1 skill-vault-write-safety** (per **SVW-1**, `methodology-changelog.md` v0.79.0; slice-095; [[ADR-087]]):
@@ -218,7 +218,7 @@ Before deciding next action, verify no past slice was silently broken by this on
 4. Run the catalog via the **canonical pinned runner** — **do NOT hand-roll the execution loop** (per **SRSC-1**, `methodology-changelog.md` v0.51.0; slice-038 / [[ADR-039]]):
 
    ```
-   $PY -m tools.shippability_runner architecture/shippability.md
+   $PY -m tools.shippability_runner <vault>/shippability.md
    ```
 
    The runner reads each data row's prose-free **Machine-cmd** cell, splits on ` ; ` and **strips backticks + whitespace PER segment** — it **reuses SCMD-1 `_segments()`** (`tools.shippability_decoupling_audit`), it does NOT re-derive the split/strip. It then executes each interpreter-anchored segment from project root and reports PASS / FAIL per row (exit `0` all-PASS / `1` ≥1 FAIL / `2` usage error). This pins the R-8 false-FAIL class shut: a naive ad-hoc outer-fence-only strip mangles segment 2 of the lone multi-segment row (#28) into a leading-backtick `argv[0]` → `WinError 2` (recurred N=2: slice-032, slice-033, **despite** this step's prior prose). Prose binds nothing executable; the invoked runner does. Do NOT re-implement the `;`-split / backtick-strip in prose or an ad-hoc loop.
@@ -293,7 +293,7 @@ In Heavy mode, validation produces a compliance-grade record:
 
 - **Implementation bug**: fix code → re-run validation for that AC → if pass, proceed to `/reflect`
 - **Spec gap**: log in validation.md as cause; let `/reflect` capture; next slice incorporates
-- **Reality surprise**: add to `architecture/risk-register.md` immediately (don't wait) via `tools.vault_edit append` (SVW-1; never a raw `Write`/`Edit`); `/reflect` may trigger a follow-up slice
+- **Reality surprise**: add to `<vault>/risk-register.md` immediately (don't wait) via `tools.vault_edit append` (SVW-1; never a raw `Write`/`Edit`); `/reflect` may trigger a follow-up slice
 
 ## Next step
 

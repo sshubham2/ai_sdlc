@@ -15,10 +15,10 @@ You archive completed slices to `slices/archive/` and maintain `slices/_index.md
 
 ## Convention
 
-- `architecture/slices/` — ACTIVE slices only (no `reflection.md` yet)
-- `architecture/slices/archive/` — ALL completed slices (with `reflection.md`)
-- `architecture/slices/_index.md` — THE lookup: active list + recent-10 (thin one-liners) + pointer to `action-points.md` + pointer to archive catalog
-- `architecture/slices/archive/_index.md` — full chronological catalog of archived slices
+- `<vault>/slices/` — ACTIVE slices only (no `reflection.md` yet)
+- `<vault>/slices/archive/` — ALL completed slices (with `reflection.md`)
+- `<vault>/slices/_index.md` — THE lookup: active list + recent-10 (thin one-liners) + pointer to `action-points.md` + pointer to archive catalog
+- `<vault>/slices/archive/_index.md` — full chronological catalog of archived slices
 
 Claude finds past work via `_index.md` — no mixing of "recent-but-completed" with active.
 
@@ -31,7 +31,7 @@ No `--keep-last` flag: the convention is "no completed slices in `slices/`". If 
 
 ## Prerequisite check
 
-- `architecture/slices/` must exist
+- `<vault>/slices/` must exist
 
 ## Your task
 
@@ -73,7 +73,7 @@ Read (the dispatched agent does this; listed here so the spec is clear):
 - Each active slice folder in `slices/` (for the Active table)
 - Last 10 archived slices in `slices/archive/` (for the Recent-10 table one-liners, pulled from each slice's mission-brief Intent). The action-points register is NOT regenerated — it lives in the curated `slices/action-points.md`.
 
-Write `architecture/slices/_index.md` (via `vault_edit rewrite` per the Step-3 CAS protocol above):
+Write `<vault>/slices/_index.md` (via `vault_edit rewrite` per the Step-3 CAS protocol above):
 
 ```markdown
 # Slice Index
@@ -114,7 +114,7 @@ Full catalog: [archive/_index.md](archive/_index.md)
 
 ### Cross-slice action points (pointer — NOT regenerated here)
 
-The synthesized, bounded action-points register lives in its OWN file **`architecture/slices/action-points.md`** (relocated out of `_index.md` at ADR-093 so the regen path physically cannot re-bloat it). It is a **curated** artifact — `/archive` and `/reflect` do NOT regenerate it; they leave it untouched. Emit only a pointer in `_index.md`:
+The synthesized, bounded action-points register lives in its OWN file **`<vault>/slices/action-points.md`** (relocated out of `_index.md` at ADR-093 so the regen path physically cannot re-bloat it). It is a **curated** artifact — `/archive` and `/reflect` do NOT regenerate it; they leave it untouched. Emit only a pointer in `_index.md`:
 
 ```
 ## Cross-slice action points
@@ -129,7 +129,7 @@ Do NOT pull an all-history lesson dump into `_index.md` (the slice-103 root caus
 - **Looking up "did we build X?"** → scan "Most recent 10" and "Full catalog" (archive/_index.md); if match, read `archive/slice-NNN/` for details.
 - **Pattern recognition before /design-slice or /critique** → read the curated [`action-points.md`](action-points.md) register. For specific patterns, follow to the relevant archived slice or `lessons-learned.md`.
 - **Finding a related past decision** → search ADRs (`decisions/`), then cross-reference slice that locked the ADR (`slice:` frontmatter field in ADR).
-- **Full-text search across archived slices** → grep `architecture/slices/archive/` (still works — archive is just a directory).
+- **Full-text search across archived slices** → grep `<vault>/slices/archive/` (still works — archive is just a directory).
 ```
 
 ### Step 4: Regenerate `slices/archive/_index.md` (via `vault_edit rewrite` per the Step-3 CAS protocol)
@@ -156,7 +156,7 @@ Last updated: <YYYY-MM-DD>
 - Know the number? → `slice-NNN-<name>/` in this directory
 - Know a keyword from the name? → grep this file
 - Know an ADR that was locked? → check ADR's `slice:` frontmatter
-- Need full-text? → `grep -r "<keyword>" architecture/slices/archive/`
+- Need full-text? → `grep -r "<keyword>" <vault>/slices/archive/`
 ```
 
 ### Step 5: Summary
@@ -220,4 +220,4 @@ The convention scales to 500+ total slices with no scan-time degradation for the
 ## Next step
 
 - Normal: resume current slice work or run `/slice` for next cut
-- If something feels off (wrong number of active, missing archived): verify with `ls architecture/slices/` and `ls architecture/slices/archive/`, then `/archive --index-only` to refresh indexes
+- If something feels off (wrong number of active, missing archived): verify with `ls <vault>/slices/` and `ls <vault>/slices/archive/`, then `/archive --index-only` to refresh indexes

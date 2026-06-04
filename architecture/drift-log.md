@@ -834,3 +834,14 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 - None required — vault and code aligned for slice-112. design.md / ADR-105 / mission-brief match code: the `<vault>` prose-seam convention, the converted-file ratchet (`converted_file_regressions` + the hash-keyed `_CONVERTED_CARVEOUTS` allowlist, AS-BUILT), the 313→303 re-pin (`_BASELINE_SHA256` / `_CLASS_COUNT_FLOOR`=301 / `EXPECTED_TOTAL`=303 + shippability rows 113/117/118), the CLAUDE.md + agents/critique.md conversions, and the agent self-sufficient `<vault>` note are all reflected in the vault docs.
 - BC-PROJ-3 / BC-GLOBAL-2: the single `git checkout master -- architecture/slice-queue.md` synced a stale committed shared ledger (R-33 worktree-current mitigation; no uncommitted WIP on it); NO destructive revert of uncommitted slice work.
 - All 5 version surfaces unchanged at 0.83.0 (MEPD-1 EXCLUDE; PMI-1/MCFS-1/AVFS-1/TVFS-1 exit 0); no risk-status change (STP-1 green); CAD-1 green (agents/critique.md forward-synced).
+
+## Audit 2026-06-04 (slice-113)
+
+**Trigger**: slice-113 pre-finish gate (/drift-check full mode)
+**Scope**: full
+**Findings**: 0 blockers, 0 majors
+
+### Resolutions
+- None required — vault and code aligned for slice-113. design.md / ADR-106 / mission-brief match the converted code: the seam-aware op-gate (`_OP_SINK_RE` matcher + `_OP_SINK_TOKEN_RE` value-extractor in lockstep, B2), the bulk skill-prose `<vault>` conversion (174 convertible refs → `<vault>/`; 113 carve-outs), the re-pin (`EXPECTED_TOTAL`=129 / `_CLASS_COUNT_FLOOR[rewrite-at-flip]`=127 / `_BASELINE_SHA256` / the module docstring narrative), `_CONVERTED_FILES`=24 (`code-review` un-ratcheted — M3 same-value pathspec collisions), `_CONVERTED_CARVEOUTS`=43, and the 13-skill OSDG-1 forward-sync are all reflected in shippability rows 113/117/118/119 + design AS-BUILT.
+- BC-PROJ-3 / BC-GLOBAL-2: the one `git checkout -- skills/` was the DELIBERATE AP-3 re-convert reset — it discarded the first (over-converted + CRLF) conversion attempt to re-apply the corrected discriminator; the conversion is script-regenerated, so no valuable uncommitted work was lost. NO destructive revert of irreproducible slice work; no slice-A-WIP contamination (filesystem-isolated worktree).
+- All 5 version surfaces unchanged at 0.83.0 (MEPD-1 EXCLUDE; PMI-1/MCFS-1/AVFS-1/TVFS-1 exit 0); no risk-status change (STP-1 green); CAD-1 green (agents/critique.md EOL-normalized to LF, content-equal modulo EOL).

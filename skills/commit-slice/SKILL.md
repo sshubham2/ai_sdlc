@@ -11,7 +11,7 @@ You generate a commit message for the just-completed slice, pulling structured c
 
 ## Where this fits
 
-Runs after `/reflect` (which auto-archives the slice). The slice folder is now at `architecture/slices/archive/slice-NNN-<name>/`.
+Runs after `/reflect` (which auto-archives the slice). The slice folder is now at `<vault>/slices/archive/slice-NNN-<name>/`.
 
 Also useful mid-slice: `/commit-slice` can generate intermediate commits using the partial state (build-log so far + ACs passed so far), but those are optional; most value is at slice completion.
 
@@ -42,7 +42,7 @@ Per **ADR-020** the 3 modes are mutually exclusive; the no-flag default (generat
 
 ## Prerequisite check
 
-- Most recently archived slice folder exists (`architecture/slices/archive/slice-NNN-*/`)
+- Most recently archived slice folder exists (`<vault>/slices/archive/slice-NNN-*/`)
 - That folder has `reflection.md` (slice completed)
 - OR an active slice exists with `build-log.md` (for mid-slice commits)
 
@@ -67,7 +67,7 @@ From the target slice folder, read:
 - `reflection.md` → "Validated" items, any design corrections
 
 Also read:
-- New ADRs that reference this slice (`grep -l "slice: slice-NNN" architecture/decisions/`)
+- New ADRs that reference this slice (`grep -l "slice: slice-NNN" <vault>/decisions/`)
 - Relevant shippability.md entry (added by this slice)
 
 ### Step 3: Classify the slice type
@@ -107,7 +107,7 @@ The main thread does not generate the message text — Haiku does. The main thre
 
 <body paragraph: what was built / changed, in 2-3 sentences>
 
-Slice: [slice-NNN-<name>](architecture/slices/archive/slice-NNN-<name>/)
+Slice: [slice-NNN-<name>](<vault>/slices/archive/slice-NNN-<name>/)
 Acceptance criteria: <X>/<Y> PASS (see validation.md)
 Critic blockers addressed: <list or "none">
 ADRs: <ADR-NNN, ADR-MMM> (or "none")
@@ -125,7 +125,7 @@ Adds POST /transactions/:id/receipt accepting images up to 10MB
 with authorization restricted to transaction owner. Generates
 200x200 WebP thumbnails via Pillow + pyheif (for HEIC).
 
-Slice: architecture/slices/archive/slice-023-add-receipt-upload/
+Slice: <vault>/slices/archive/slice-023-add-receipt-upload/
 Acceptance criteria: 5/5 PASS (see validation.md)
 Critic blockers addressed: B1 (authz check), B2 (MIME validation strategy)
 ADRs: ADR-008 (object-storage-thumbnails)
@@ -189,9 +189,9 @@ Then the 5-step merge flow:
    - **Clean replay**: default has advanced past slice's branch-point but slice's commits replay cleanly atop the new default tip (the common second-to-merge case). Proceed to sub-step 3 (default checkout + no-ff merge).
    - **Conflict**: STOP. Do NOT proceed to sub-step 3 (default-checkout); do NOT delete worktree or branch. Print the conflicting file paths (extracted from `git status --porcelain` filtered to U-prefixed entries — `U` is the canonical git two-letter encoding for unmerged paths) + the `git rebase --abort` recovery hint.
 
-     **PCR-1 + PCR-2a dispatch** (per **PCR-1**, `methodology-changelog.md` v0.73.0; [[ADR-069]] AND **PCR-2a**, `methodology-changelog.md` v0.74.0; [[ADR-071]] — mints parallel-conflict-resolution v1 + v2a vault-claim sub-mechanism on the family axis; sibling rules to PSQ-1 / PSQ-2 / PSQ-3 / BRANCH-2): invoke `python -m tools.parallel_conflict_resolver --resolve-soft --json` FIRST (before the structured-options ask block below) to attempt auto-resolution. The helper classifies the conflict per ADR-069's 5-class taxonomy (SOFT / VAULT_CLAIM / HARD / MIXED / UNKNOWN). For SOFT (all U-files in the 2-member SOFT file-set `{architecture/slice-queue.md, architecture/shippability.md}` AND no same-candidate-different-identity claim collision), the helper regenerates each file deterministically (slice-queue.md via textual claim-overlay on rebase-target stage `:3:` per /critique-review M-add-1 ACCEPTED-FIXED; shippability.md via row-union by slice number) + `git add` + `git rebase --continue`. **For VAULT_CLAIM** (sole U-file is slice-queue.md AND a single same-candidate-different-identity collision is present), per PCR-2a / ADR-071 the helper now auto-resolves via the strictly-newer `Claimed-at` timestamp-winner rule (loser's name suggested as a read-only audit-row replacement from the post-overlay in-memory queue text per M-add-2; defensive post-overlay verification per M-add-1 catches silent-drop) + `git add` + `git rebase --continue`. For HARD / MIXED, the helper returns a structured STOP diagnostic. Branch on the JSON output's `action` field + the resolver's exit code:
+     **PCR-1 + PCR-2a dispatch** (per **PCR-1**, `methodology-changelog.md` v0.73.0; [[ADR-069]] AND **PCR-2a**, `methodology-changelog.md` v0.74.0; [[ADR-071]] — mints parallel-conflict-resolution v1 + v2a vault-claim sub-mechanism on the family axis; sibling rules to PSQ-1 / PSQ-2 / PSQ-3 / BRANCH-2): invoke `python -m tools.parallel_conflict_resolver --resolve-soft --json` FIRST (before the structured-options ask block below) to attempt auto-resolution. The helper classifies the conflict per ADR-069's 5-class taxonomy (SOFT / VAULT_CLAIM / HARD / MIXED / UNKNOWN). For SOFT (all U-files in the 2-member SOFT file-set `{architecture/slice-queue.md, <vault>/shippability.md}` AND no same-candidate-different-identity claim collision), the helper regenerates each file deterministically (slice-queue.md via textual claim-overlay on rebase-target stage `:3:` per /critique-review M-add-1 ACCEPTED-FIXED; shippability.md via row-union by slice number) + `git add` + `git rebase --continue`. **For VAULT_CLAIM** (sole U-file is slice-queue.md AND a single same-candidate-different-identity collision is present), per PCR-2a / ADR-071 the helper now auto-resolves via the strictly-newer `Claimed-at` timestamp-winner rule (loser's name suggested as a read-only audit-row replacement from the post-overlay in-memory queue text per M-add-2; defensive post-overlay verification per M-add-1 catches silent-drop) + `git add` + `git rebase --continue`. For HARD / MIXED, the helper returns a structured STOP diagnostic. Branch on the JSON output's `action` field + the resolver's exit code:
 
-     - **`exit 0` + `action: APPLIED`** (SOFT auto-resolution succeeded OR `VAULT_CLAIM` auto-resolves via PCR-2a strict-newer Claimed-at + read-only loser-replacement — slice-queue.md merged deterministically + `git rebase --continue` already invoked by the resolver) → log a single-line breadcrumb to the slice's build-log.md Events section (`<YYYY-MM-DD HH:MM> PCR auto-resolved — see architecture/parallel-conflict-resolution-log.md`) and proceed directly to sub-step 3 (SKIP the SOAD-1 STOP block below). The resolver has already staged the regenerated files + continued the rebase; no further skill action needed.
+     - **`exit 0` + `action: APPLIED`** (SOFT auto-resolution succeeded OR `VAULT_CLAIM` auto-resolves via PCR-2a strict-newer Claimed-at + read-only loser-replacement — slice-queue.md merged deterministically + `git rebase --continue` already invoked by the resolver) → log a single-line breadcrumb to the slice's build-log.md Events section (`<YYYY-MM-DD HH:MM> PCR auto-resolved — see <vault>/parallel-conflict-resolution-log.md`) and proceed directly to sub-step 3 (SKIP the SOAD-1 STOP block below). The resolver has already staged the regenerated files + continued the rebase; no further skill action needed.
      - **`exit 0` + `action: STOP`** → first print the resolver's full-detail diagnostic from `python -m tools.parallel_conflict_resolver --diagnose --json` per U-file: (a) the concerned slices map (active slices whose `mission-brief.md` blast-radius includes the U-file path); (b) blast-radius for each concerned slice (the file paths the slice declares it touches); (c) claim history (PSQ-2 Claimed-by / Claimed-at lines parsed from BOTH branches' versions of slice-queue.md, surfacing same-candidate-different-identity collisions); (d) last-commit time per concerned slice via `git log -1 --format=%cI <slice-branch>` (the most recent commit on each concerned slice's branch, ISO-8601 UTC); (e) mission-brief link rendered as a markdown-relative path (`architecture/slices/<slice-id>/mission-brief.md`) so the user can `Read` it directly. Then branch on the JSON `conflict_class`:
        - **`conflict_class` ∈ {`HARD`, `MIXED`}** (incl. a SOFT→HARD shippability escalation — keyed on the *returned class*, NOT on which internal path produced it, per [[ADR-075]] design §M2) → enter the **PCR-2b HARD/MIXED gate-on-hand-resolve flow** below (do NOT bare-fall-through to SOAD-1).
        - **`conflict_class` = `VAULT_CLAIM`** (corner cases — `claimed_at`-tie / multi-candidate collision / overlay silent-drop per ADR-071 Error model) → fall through to the existing SOAD-1 3-option block below for user-side disposition.
@@ -201,7 +201,7 @@ Then the 5-step merge flow:
      **PCR-2b HARD/MIXED gate-on-hand-resolve** (per **PCR-2b** + **TRI-RESOLVE-1**, `methodology-changelog.md` v0.77.0; [[ADR-075]] — mints two new rules; PCR-2b sibling to PCR-1 / PCR-2a on the parallel-conflict-resolution axis, TRI-RESOLVE-1 sibling to TRI-1): when `--resolve-soft --json` returns `action: STOP` with `conflict_class` ∈ {`HARD`, `MIXED`}, drive this gate instead of bare-falling-through to SOAD-1. Every leg is fail-closed — any failure STOPs with NO `git rebase --continue`:
 
        1. **Bootstrap guard**: if `python -m tools.parallel_conflict_resolver` is unavailable / fails to import (pre-PCR-2b install, broken module), SKIP the gate and fall through to the existing SOAD-1 3-option block below (the pre-PCR-2b bare STOP — strictly no weaker than today; per slice-067 / [[ADR-064]] bootstrap-defense precedent).
-       2. **Diagnostic + `_index.md` hint**: the `--diagnose --json` output is already printed above. For an **`_index.md`-sole HARD conflict** (the high-frequency dominant HARD case per [[ADR-075]] §M4), additionally print the canonical hand-resolution hint: *"`architecture/slices/_index.md` is regenerated by `/archive` (Haiku-dispatched, non-deterministic) — resolve by re-running `/archive` to regenerate the lessons-block, then `git add` it"* (ADR-069:72).
+       2. **Diagnostic + `_index.md` hint**: the `--diagnose --json` output is already printed above. For an **`_index.md`-sole HARD conflict** (the high-frequency dominant HARD case per [[ADR-075]] §M4), additionally print the canonical hand-resolution hint: *"`<vault>/slices/_index.md` is regenerated by `/archive` (Haiku-dispatched, non-deterministic) — resolve by re-running `/archive` to regenerate the lessons-block, then `git add` it"* (ADR-069:72).
        3. **Hand-resolve**: the user — or Claude at the user's instruction — resolves the conflict markers in the working tree and `git add`s each resolved U-file.
        4. **Structural preflight**: run `python -m tools.parallel_conflict_resolver --verify-resolution --json`. Branch on the exit code FIRST, then `action` (per the slice-083 /code-review M1 fix — the `--verify-resolution` JSON emits `action: STOP` for BOTH a re-resolvable state AND an unreadable git state; only the exit code distinguishes them):
           - **`exit 1`** (`reason` starts `git-state-unreadable` — the rebase state itself is unreadable, not the resolution) → do NOT loop back to step 3; fall through to the SOAD-1 (a) abort/investigate block below (mirrors the `--resolve-soft` `exit 1` handling above — fail-closed on broken git state).
@@ -213,9 +213,9 @@ Then the 5-step merge flow:
           - **Re-resolve (edit again)** — return to step 3.
           - **Abort rebase** — fall through to the SOAD-1 (a) `git rebase --abort` path below.
           **Fail-closed**: every non-`Apply` option AND any interrupt / no-selection / session-end maps to STOP-no-continue. The skill NEVER calls `git rebase --continue` except on an explicit `Apply` selection with a non-blocking verdict (two-condition apply — no default-accept). An abandoned gate leaves the rebase in-progress + WT untouched; re-invoking `/commit-slice --merge` re-enters cleanly at this sub-step per [[ADR-068]] §Re-entry semantics (the WT-clean guardrail at sub-step 2.1 + fast-forward no-op semantics).
-       7. **On Apply**: run `python -m tools.parallel_conflict_resolver --record-hard-resolution --verdict "<code-review verdict>" --disposition apply --json` (best-effort audit append — a `## Hard-conflict resolution -` section; write failure logs to stderr but NEVER blocks), THEN `git rebase --continue`, log a build-log.md Events breadcrumb (`<YYYY-MM-DD HH:MM> PCR-2b HARD resolved + applied — see architecture/parallel-conflict-resolution-log.md`), and proceed to sub-step 3. Order is load-bearing: `--record-hard-resolution` runs while still mid-rebase (U-files + concerned slices still visible to `--diagnose`), THEN `git rebase --continue`.
+       7. **On Apply**: run `python -m tools.parallel_conflict_resolver --record-hard-resolution --verdict "<code-review verdict>" --disposition apply --json` (best-effort audit append — a `## Hard-conflict resolution -` section; write failure logs to stderr but NEVER blocks), THEN `git rebase --continue`, log a build-log.md Events breadcrumb (`<YYYY-MM-DD HH:MM> PCR-2b HARD resolved + applied — see <vault>/parallel-conflict-resolution-log.md`), and proceed to sub-step 3. Order is load-bearing: `--record-hard-resolution` runs while still mid-rebase (U-files + concerned slices still visible to `--diagnose`), THEN `git rebase --continue`.
 
-     PCR-1's SOFT-class auto-resolution is restricted to the 2-member SOFT file-set per ADR-069 § Decision: `architecture/slices/_index.md` is **NOT** in SOFT because `/archive`'s regen is Haiku-LLM-dispatched per COST-1 (not deterministic — PCR-1 cannot reproduce Haiku's lessons-block synthesis); `methodology-changelog.md` is **NOT** in SOFT because PMI-1 5-leg atomic-bump risk on concurrent bumps means subtly inconsistent merged entries (different RULE-IDs, paired-pin test names, ADR refs). **PCR-2a (slice-078 / ADR-071) ships VAULT_CLAIM auto-resolution** via strict-newer `Claimed-at` timestamp-winner (the dominant case is now auto-resolved; the `claimed_at`-tie + multi-candidate-collision + overlay-silent-drop corner cases fall through to SOAD-1 STOP per ADR-071 Error model). **PCR-2b (slice-083 / [[ADR-075]]) ships HARD + MIXED resolution** via the gate-on-hand-resolve flow above (hand-resolve → `--verify-resolution` → `code-review` agent on the resolved diff → TRI-RESOLVE-1 user gate → `git rebase --continue`); HARD = any source / ADR / SKILL.md / _index.md / methodology-changelog.md U-file, MIXED = SOFT + non-SOFT coexist (atomicity — never partially auto-resolve). UNKNOWN (fail-closed) still routes through SOAD-1.
+     PCR-1's SOFT-class auto-resolution is restricted to the 2-member SOFT file-set per ADR-069 § Decision: `<vault>/slices/_index.md` is **NOT** in SOFT because `/archive`'s regen is Haiku-LLM-dispatched per COST-1 (not deterministic — PCR-1 cannot reproduce Haiku's lessons-block synthesis); `methodology-changelog.md` is **NOT** in SOFT because PMI-1 5-leg atomic-bump risk on concurrent bumps means subtly inconsistent merged entries (different RULE-IDs, paired-pin test names, ADR refs). **PCR-2a (slice-078 / ADR-071) ships VAULT_CLAIM auto-resolution** via strict-newer `Claimed-at` timestamp-winner (the dominant case is now auto-resolved; the `claimed_at`-tie + multi-candidate-collision + overlay-silent-drop corner cases fall through to SOAD-1 STOP per ADR-071 Error model). **PCR-2b (slice-083 / [[ADR-075]]) ships HARD + MIXED resolution** via the gate-on-hand-resolve flow above (hand-resolve → `--verify-resolution` → `code-review` agent on the resolved diff → TRI-RESOLVE-1 user gate → `git rebase --continue`); HARD = any source / ADR / SKILL.md / _index.md / methodology-changelog.md U-file, MIXED = SOFT + non-SOFT coexist (atomicity — never partially auto-resolve). UNKNOWN (fail-closed) still routes through SOAD-1.
 
      Then surface a SOAD-1 structured-options ask (3-option decision tree — does NOT model as binary yes/no per [[ADR-050]] primary-form-of-ask scope; first SOAD-1 invocation in /commit-slice — the other 6 confirmation sites at L173/L175 + 4 other sites later in this file remain raw yes/no since they are binary confirmations):
      - **(a) Abort rebase + investigate** — print `Run \`git rebase --abort\` to restore the slice branch to its pre-rebase state, then investigate the conflict cause (e.g., recently-merged peer slice touched the same files). Re-invoke \`/commit-slice --merge\` after resolution.`
@@ -355,7 +355,7 @@ feat(scan): slice-001 — folder scan with duplicate CSV report
 Walks directory, computes perceptual hash via imagehash, groups by distance.
 Emits CSV with cluster_id, file_path, hash.
 
-Slice: architecture/slices/archive/slice-001-scan-folder-emit-csv/
+Slice: <vault>/slices/archive/slice-001-scan-folder-emit-csv/
 Acceptance criteria: 5/5 PASS
 Critic: skipped (Minimal mode)
 ADRs: ADR-001 (phash-library)
@@ -373,7 +373,7 @@ Reproduction established in /repro (failing test in tests/bugs/). Fix:
 switch from sync S3 PUT to multipart upload for files >5MB; bump timeout
 to 60s. Reproduction test now passes.
 
-Slice: architecture/slices/archive/slice-024-fix-heic-timeout/
+Slice: <vault>/slices/archive/slice-024-fix-heic-timeout/
 Acceptance criteria: 3/3 PASS
 Critic blockers addressed: B1 (progress feedback to client during multipart)
 ADRs: ADR-014 (multipart-upload-threshold)

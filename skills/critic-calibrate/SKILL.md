@@ -29,8 +29,8 @@ Independent of modes — runs in all three.
 
 ## Prerequisite check
 
-- `architecture/slices/archive/` exists with at least 5 archived slices (can't find patterns in <5)
-- `architecture/slices/_index.md` exists (optional; if present, use for quick navigation)
+- `<vault>/slices/archive/` exists with at least 5 archived slices (can't find patterns in <5)
+- `<vault>/slices/_index.md` exists (optional; if present, use for quick navigation)
 
 If fewer than 5 archived slices: tell user to return after more slices have accumulated.
 
@@ -42,13 +42,13 @@ Collect the four inputs the Meta-Critic agent needs:
 
 1. **Window of archived reflections**. List the last N (default 15) archived slice folders:
    ```bash
-   ls -t architecture/slices/archive/ | head -N
+   ls -t <vault>/slices/archive/ | head -N
    ```
    For each, read its `reflection.md` and extract the "Critic calibration" + "Missed by Critic" sections. Concatenate into one block tagged by slice.
 
 2. **Current Critic prompt**. Read `~/.claude/agents/critique.md` in full. (Note: prior versions of this skill referenced `~/.claude/skills/critique/SKILL.md` — the prompt has since moved to the agent file; this is the current canonical location.)
 
-3. **Past calibration log**. Read `architecture/critic-calibration-log.md` if it exists. Empty file or missing → "no prior runs".
+3. **Past calibration log**. Read `<vault>/critic-calibration-log.md` if it exists. Empty file or missing → "no prior runs".
 
 4. **Effectiveness data**. For any prior accepted proposal in the log, count misses in that category in the current window vs the equivalent window before the proposal was applied. Hand this to the agent so it knows whether prior fixes worked.
 
@@ -70,7 +70,7 @@ Slice range: slice-<first> through slice-<last>
 <paste full file contents>
 
 # Past calibration log
-# (from architecture/critic-calibration-log.md, or "no prior runs")
+# (from <vault>/critic-calibration-log.md, or "no prior runs")
 <paste contents>
 
 # Effectiveness check
@@ -125,7 +125,7 @@ User edits manually. If they want help applying, they can explicitly ask Claude 
 
 ### Step 5: Log the calibration run
 
-Append to `architecture/critic-calibration-log.md`:
+Append to `<vault>/critic-calibration-log.md`:
 
 ```markdown
 ## Calibration run — <YYYY-MM-DD>

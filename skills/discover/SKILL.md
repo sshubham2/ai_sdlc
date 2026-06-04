@@ -14,7 +14,7 @@ Runs after `/triage`. Outputs feed `/risk-spike` (if HIGH-risk items exist) or `
 
 ## Prerequisite check
 
-Read `architecture/triage.md`. If it doesn't exist, stop and tell the user: "Run `/triage` first to set the project mode and risk register."
+Read `<vault>/triage.md`. If it doesn't exist, stop and tell the user: "Run `/triage` first to set the project mode and risk register."
 
 Read the mode (Minimal / Standard / Heavy) — it controls what you produce.
 
@@ -109,19 +109,19 @@ Skip this step if the user has nothing to add — don't push.
 ### Step 5: Write outputs per mode
 
 **Minimal mode**:
-- `architecture/concept.md` — 1-page brief covering What/Who/Constraints (actors as a section inline, not separate files)
-- Update `architecture/risk-register.md` with discovery-phase risks <!-- vault-write-safe: project-open-single-shot -->
+- `<vault>/concept.md` — 1-page brief covering What/Who/Constraints (actors as a section inline, not separate files)
+- Update `<vault>/risk-register.md` with discovery-phase risks <!-- vault-write-safe: project-open-single-shot -->
 - First slice candidate stated in conversation
 
 **Standard mode** — all of Minimal, plus:
-- `architecture/concept.md` includes a richer "Actors" section with one paragraph per actor (NOT separate files in `actors/` — thin vault)
-- Tech decisions captured as ADRs in `architecture/decisions/` (one ADR per non-trivial tech choice with reversibility tag) — NOT a separate `tech-brief.md` file
+- `<vault>/concept.md` includes a richer "Actors" section with one paragraph per actor (NOT separate files in `actors/` — thin vault)
+- Tech decisions captured as ADRs in `<vault>/decisions/` (one ADR per non-trivial tech choice with reversibility tag) — NOT a separate `tech-brief.md` file
 - For B2C: recommend `/user-test mockup` next
 
 **Heavy mode** — all of Standard, plus:
 - Full role-play walkthrough per actor (first-time / load / error / waiting / collaboration / audit)
-- Separate `architecture/actors/<actor>.md` files allowed (compliance / audit artifacts)
-- `architecture/requirements.md` — functional + non-functional
+- Separate `<vault>/actors/<actor>.md` files allowed (compliance / audit artifacts)
+- `<vault>/requirements.md` — functional + non-functional
 - Per-tech-decision tradeoff analysis as full ADRs
 - Heavy mode is the only mode where the comprehensive vault structure is appropriate
 

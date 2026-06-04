@@ -18,7 +18,7 @@ invisible to it, yet they break at the M4 flip. ``re.finditer`` (not one ``re.se
 per line) is load-bearing: 24 lines carry >1 match (32 extra occurrences;
 ``code-review.md:103`` carries 5), so a per-line single match would undercount
 (318→286 on slice-107's corpus). (These sub-counts are slice-107's measurement; the
-LIVE total is the pinned ``EXPECTED_TOTAL`` — 303 after slice-112 / [[ADR-105]].)
+LIVE total is the pinned ``EXPECTED_TOTAL`` — 132 after slice-113 / [[ADR-106]].)
 
 CLASSIFICATION — context-aware ordered ruleset. The in-code state is column-anchored
 PER MATCH (`_in_inline_code(line, col)`); the marker detectors (pathspec / anchor /
@@ -44,17 +44,19 @@ Order (first applicable wins):
   4. in-code (inline backticks OR fenced) OR an operational verb on the line → rewrite-at-flip
   5. plain prose mention (not in code, no signal)                          → doc-example
 
-On the current corpus the ruleset yields **301 rewrite-at-flip / 0 historical-anchor /
-2 doc-example / 0 needs-human** (was 318 at slice-107; slice-111 / [[ADR-103]] → 313;
-slice-112 / [[ADR-105]] converted 12 operational refs to the ``<vault>/`` placeholder +
-added 2 plain-prose definitionals) — most operational prose references to the vault
-location go stale at the M4 flip (rewrite-at-flip); the 2 doc-example are the CLAUDE.md +
-agent-note resolution-rule defaults (the ``<vault>`` convention's plain-prose
-``architecture/`` default — slice-112); historical-anchor and needs-human remain empty on
-this corpus (the classes exist for future drift / other surfaces). The ``_DISPOSITION`` table + needs-human bucket remain
-the fail-closed mechanism for future drift. ``--strict`` pins the ``rewrite-at-flip`` + ``needs-human`` multiset
-baseline + a per-class total-count floor (m2 — catches a silent
-``rewrite-at-flip → doc-example`` demotion).
+On the current corpus the ruleset yields **130 rewrite-at-flip / 0 historical-anchor /
+2 doc-example / 0 needs-human** (132 total; was 318 at slice-107; slice-111 / [[ADR-103]] → 313;
+slice-112 / [[ADR-105]] converted 12 operational refs to the ``<vault>/`` placeholder + added 2
+plain-prose definitionals → 303; slice-113 / [[ADR-106]] converted 171 convertible skill-prose
+``architecture/`` refs across the 25 skill SKILL.md to ``<vault>/`` → 132, leaving 116 carve-outs
+[classes 1-pathspec / 4-worktree-composed / 5-active-folder / 6-slice-queue / 7-diagnose-out] +
+the 2 doc-example) — most operational prose references to the vault location go stale at the M4
+flip (rewrite-at-flip); the 2 doc-example are the CLAUDE.md + agent-note resolution-rule defaults
+(the ``<vault>`` convention's plain-prose ``architecture/`` default — slice-112); historical-anchor
+and needs-human remain empty on this corpus (the classes exist for future drift / other surfaces).
+The ``_DISPOSITION`` table + needs-human bucket remain the fail-closed mechanism for future drift.
+``--strict`` pins the ``rewrite-at-flip`` + ``needs-human`` multiset baseline + a per-class
+total-count floor (m2 — catches a silent ``rewrite-at-flip → doc-example`` demotion).
 
 DOCUMENTED RESIDUAL (B1 + m-add-1) — a bare ``architecture``/``diagnose-out`` dir
 *argument* with NO slash (e.g. ``graphify vault architecture``) is invisible to any
@@ -290,7 +292,7 @@ _DISPOSITION_MAP: dict[tuple, str] = {(p, n, f, o, c): k for (p, n, f, o, c, k) 
 # baseline (AC5 / M1 disjointness — discovered at build, build-log 2026-06-03). The
 # full enumerated inventory is the --json output; this hash is the drift identity
 # (exit 2 on ANY multiset change — same gate behavior as an enumerated multiset).
-_BASELINE_SHA256 = "ebc07dc27e618f743e2c8ae6fa5d08914171bfb8e3868a5f89dd331baa48797f"
+_BASELINE_SHA256 = "99480a6ad319b9e0d303d2f1592ecc94b91fe0490172b67ed8983439a005172e"
 
 # per-class total-count floor (m2 — a silent shrink trips --strict).
 # slice-111 (ADR-103): routing the archive `mv` (/reflect, /archive) + drift-log
@@ -298,8 +300,12 @@ _BASELINE_SHA256 = "ebc07dc27e618f743e2c8ae6fa5d08914171bfb8e3868a5f89dd331baa48
 # slice-112 (ADR-105): converting CLAUDE.md (5) + agents/critique.md (7) operational
 # refs to the `<vault>/` placeholder removed 12 rewrite-at-flip literals; the 2 new
 # plain-prose definitionals are doc-example → 313→301 rewrite-at-flip (DOC_EXAMPLE 0→2).
+# slice-113 (ADR-106): the BULK skill-prose conversion — 171 convertible shared-aggregate
+# `architecture/` literals across the 25 skill SKILL.md converted to `<vault>/` (carve-out
+# classes 1-pathspec/4/5/6/7 stay concrete: 116 carve-outs remain — incl. the 3 code-review
+# git-pathspec PROSE mirrors kept concrete per the /code-review B1 fix) → 301→130 rewrite-at-flip.
 _CLASS_COUNT_FLOOR: dict[str, int] = {
-    REWRITE_AT_FLIP: 301,
+    REWRITE_AT_FLIP: 130,
     HISTORICAL_ANCHOR: 0,
     DOC_EXAMPLE: 0,
     NEEDS_HUMAN: 0,
@@ -323,7 +329,9 @@ _RESIDUAL: tuple[dict, ...] = (
 # slice-111 (ADR-103): 318 → 313 after K=5 archive-`mv`/drift-log literals routed via `vault_edit`.
 # slice-112 (ADR-105): 313 → 303 — 12 operational refs converted to `<vault>/` (no longer match),
 # 2 new plain-prose definitionals added (CLAUDE.md + agents/critique.md self-sufficient note).
-EXPECTED_TOTAL = 303
+# slice-113 (ADR-106): 303 → 132 — 171 convertible skill-prose `architecture/` refs converted to
+# `<vault>/` (no longer match); 116 carve-outs (classes 1-pathspec/4/5/6/7) + the 2 doc-example stay.
+EXPECTED_TOTAL = 132
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -337,7 +345,40 @@ EXPECTED_TOTAL = 303
 # Forward-slash repo-relative paths (match Occurrence.path, which audit_root
 # normalizes via .replace("\\","/")). A backslash member would silently never
 # match → vacuous-green (R-7); pinned forward-slash-only by the test (M3).
-_CONVERTED_FILES: frozenset[str] = frozenset({"CLAUDE.md", "agents/critique.md"})
+# slice-113 (ADR-106): grown from the slice-112 pilot (CLAUDE.md + agents/critique.md) to the
+# 22 converted skill SKILL.md whose residual carve-outs are sound under VALUE-keying.
+# `skills/code-review/SKILL.md` is DELIBERATELY EXCLUDED (un-ratcheted, documented — M3 / slice-113
+# build-log): 5 of its git-pathspec carve-out VALUES (`architecture/decisions/**`,
+# `architecture/slices/_index.md`, …) equal converted shared-aggregate values in the same file, so a
+# per-value carve-out entry would also whitelist a real same-value regression (the M3 collision is
+# EXPLOITABLE there — real paths, not slice/SKILL.md's non-exploitable `…` ellipsis). code-review's 8
+# conversions are unprotected by the ratchet (its pathspecs are git-consumed flip-residual anyway).
+_CONVERTED_FILES: frozenset[str] = frozenset({
+    "CLAUDE.md",
+    "agents/critique.md",
+    "skills/adopt/SKILL.md",
+    "skills/archive/SKILL.md",
+    "skills/build-slice/SKILL.md",
+    "skills/commit-slice/SKILL.md",
+    "skills/critic-calibrate/SKILL.md",
+    "skills/critique/SKILL.md",
+    "skills/design-slice/SKILL.md",
+    "skills/diagnose/SKILL.md",
+    "skills/discover/SKILL.md",
+    "skills/drift-check/SKILL.md",
+    "skills/heavy-architect/SKILL.md",
+    "skills/pulse/SKILL.md",
+    "skills/reduce/SKILL.md",
+    "skills/reflect/SKILL.md",
+    "skills/repro/SKILL.md",
+    "skills/risk-spike/SKILL.md",
+    "skills/slice/SKILL.md",
+    "skills/supersede-slice/SKILL.md",
+    "skills/sync/SKILL.md",
+    "skills/triage/SKILL.md",
+    "skills/user-test/SKILL.md",
+    "skills/validate-slice/SKILL.md",
+})
 
 # Sanctioned carve-outs that legitimately STAY concrete inside a converted file:
 # the OPERATIONAL (in-code) literals of carve-out classes 5/6/7 (ADR-105) — per-slice
@@ -347,11 +388,68 @@ _CONVERTED_FILES: frozenset[str] = frozenset({"CLAUDE.md", "agents/critique.md"}
 # same SHA-256 precedent as _BASELINE_SHA256 + slice-111's _OP_ALLOWLIST). The
 # definitional literal (class 2) is plain-prose doc-example — NOT rewrite-at-flip —
 # so it never enters this ratchet. An un-sanctioned carve-out is a regression.
+# slice-113 (ADR-106): grown to the carve-out literals of the 22 ratcheted converted skill files.
+# Classes: 1-pathspec (git-consumed, M-add-2 — only in non-ratcheted code-review, so none appear here),
+# 5-active-folder (R-32.a), 6-slice-queue (M1), 7-diagnose-out (B5), 4-worktree-composed. The lone
+# `slices/…` ellipsis (skills/slice/SKILL.md) is a documented NON-exploitable same-value collision
+# (an `…` ellipsis is not a real path — a real regression cannot match it; M3 / slice-113 build-log).
 _CONVERTED_CARVEOUTS: frozenset[tuple[str, str]] = frozenset({
-    ("CLAUDE.md", "d38d844b56ab18a745e9d49a97975e4a37da983bb86d3b0c28b36ab8874044d1"),         # diagnose-out/backlog.md (B5)
-    ("CLAUDE.md", "5c7c173c05aa115363f9af90583148092d9558b610c7d92b09841078f95701c8"),         # diagnose-out/ (B5)
-    ("agents/critique.md", "39e937eae93854994eff21f409b9d87207fda490c42063ce39945d06c44e2bfe"),  # architecture/slice-queue.md (M1)
-    ("agents/critique.md", "9a4b7f08b84ba3a46ebd2e10938f6ef842719d477cfacbe9c3a8f71ba14c1f35"),  # architecture/slices/slice-NNN-<name>/critique.md (R-32.a)
+    # slice-112 pilot (CLAUDE.md + agents/critique.md):
+    ("CLAUDE.md", "d38d844b56ab18a745e9d49a97975e4a37da983bb86d3b0c28b36ab8874044d1"),  # diagnose-out/backlog.md
+    ("CLAUDE.md", "5c7c173c05aa115363f9af90583148092d9558b610c7d92b09841078f95701c8"),  # diagnose-out/
+    ("agents/critique.md", "39e937eae93854994eff21f409b9d87207fda490c42063ce39945d06c44e2bfe"),  # architecture/slice-queue.md
+    ("agents/critique.md", "9a4b7f08b84ba3a46ebd2e10938f6ef842719d477cfacbe9c3a8f71ba14c1f35"),  # architecture/slices/slice-NNN-<name>/critique.md
+    # skills/adopt/SKILL.md:
+    ("skills/adopt/SKILL.md", "5c7c173c05aa115363f9af90583148092d9558b610c7d92b09841078f95701c8"),  # [diagnose-out] diagnose-out/
+    ("skills/adopt/SKILL.md", "b31caff21eb6dab4d6839fb6ee62bea1c65c6cf7bbca8af04719357196158270"),  # [diagnose-out] diagnose-out/diagnosis.html
+    # skills/build-slice/SKILL.md:
+    ("skills/build-slice/SKILL.md", "39e937eae93854994eff21f409b9d87207fda490c42063ce39945d06c44e2bfe"),  # [slice-queue] architecture/slice-queue.md
+    ("skills/build-slice/SKILL.md", "cbd281686d3dae6380ffbb8d130c82a378f55cddb840bebce10787f4b0b34150"),  # [active-folder] architecture/slices/slice-NNN-<name>
+    ("skills/build-slice/SKILL.md", "a91b20d271865574a5d8a0b2e015f0b0c0294ca7676c9fcc4dfb9794aea752b5"),  # [active-folder] architecture/slices/slice-NNN-<name>/build-log.md
+    ("skills/build-slice/SKILL.md", "0048a558d7c8ded4e7d3037e97ac1768a849fd8f10ef2c7cab210de8e6a97730"),  # [active-folder] architecture/slices/slice-NNN-<slice-name>/
+    ("skills/build-slice/SKILL.md", "5c7c173c05aa115363f9af90583148092d9558b610c7d92b09841078f95701c8"),  # [diagnose-out] diagnose-out/
+    # skills/commit-slice/SKILL.md:
+    ("skills/commit-slice/SKILL.md", "39e937eae93854994eff21f409b9d87207fda490c42063ce39945d06c44e2bfe"),  # [slice-queue] architecture/slice-queue.md
+    ("skills/commit-slice/SKILL.md", "4b8447125928b34deddd2fa65efc2f91a8b1e5359d6707e4c2231b565c638219"),  # [active-folder] architecture/slices/<slice-id>/mission-brief.md
+    # skills/critique/SKILL.md:
+    ("skills/critique/SKILL.md", "cbd281686d3dae6380ffbb8d130c82a378f55cddb840bebce10787f4b0b34150"),  # [active-folder] architecture/slices/slice-NNN-<name>
+    ("skills/critique/SKILL.md", "9a4b7f08b84ba3a46ebd2e10938f6ef842719d477cfacbe9c3a8f71ba14c1f35"),  # [active-folder] architecture/slices/slice-NNN-<name>/critique.md
+    ("skills/critique/SKILL.md", "aa23f93ad8223e154a3d7e485a630eff0e8391b85438795787f80b5521d79be8"),  # [active-folder] architecture/slices/slice-NNN-<name>/milestone.md
+    # skills/design-slice/SKILL.md:
+    ("skills/design-slice/SKILL.md", "70421ea5582b58aa5c6428f716e93687f8a0ff40bc1057b8046e5bf7ece6a122"),  # [active-folder] architecture/slices/slice-NNN-*/
+    ("skills/design-slice/SKILL.md", "cbd281686d3dae6380ffbb8d130c82a378f55cddb840bebce10787f4b0b34150"),  # [active-folder] architecture/slices/slice-NNN-<name>
+    ("skills/design-slice/SKILL.md", "aa8442abe07c25ce43f8b6d82ee1ea369af46eda0e72a684045b5b43e6456283"),  # [active-folder] architecture/slices/slice-NNN-<name>/design.md
+    ("skills/design-slice/SKILL.md", "aa23f93ad8223e154a3d7e485a630eff0e8391b85438795787f80b5521d79be8"),  # [active-folder] architecture/slices/slice-NNN-<name>/milestone.md
+    ("skills/design-slice/SKILL.md", "612f1c6eb1253016a7556c3c82ecdfef0d1f5396fed5e13f9b5b428b82b1a222"),  # [active-folder] architecture/slices/slice-NNN/mission-brief.md.
+    # skills/diagnose/SKILL.md:
+    ("skills/diagnose/SKILL.md", "5c7c173c05aa115363f9af90583148092d9558b610c7d92b09841078f95701c8"),  # [diagnose-out] diagnose-out/
+    ("skills/diagnose/SKILL.md", "b31caff21eb6dab4d6839fb6ee62bea1c65c6cf7bbca8af04719357196158270"),  # [diagnose-out] diagnose-out/diagnosis.html
+    ("skills/diagnose/SKILL.md", "cb384b4b7598b959fd268d69e2d07b98b7a799331d8476ab12f295fbbd2f0557"),  # [diagnose-out] diagnose-out/graphify-out/
+    # skills/drift-check/SKILL.md:
+    ("skills/drift-check/SKILL.md", "dbabb63c90bf7d44f8025c20d81578f92fe06d853066118b88c8fa0aacd20779"),  # [active-folder] architecture/slices/*/design.md
+    ("skills/drift-check/SKILL.md", "265891161a7012ded01d6324b341d096f1e8aa234eedac4bef6191a7b965fcca"),  # [active-folder] architecture/slices/*/mission-brief.md
+    # skills/pulse/SKILL.md:
+    ("skills/pulse/SKILL.md", "74dcc480bb7d4fb8cc195e7aa3a4213d5f623d678b7c93c24679f27373be47ec"),  # [active-folder] architecture/slices/<active>/milestone.md
+    ("skills/pulse/SKILL.md", "aa23f93ad8223e154a3d7e485a630eff0e8391b85438795787f80b5521d79be8"),  # [active-folder] architecture/slices/slice-NNN-<name>/milestone.md
+    # skills/reflect/SKILL.md:
+    ("skills/reflect/SKILL.md", "aa23f93ad8223e154a3d7e485a630eff0e8391b85438795787f80b5521d79be8"),  # [active-folder] architecture/slices/slice-NNN-<name>/milestone.md
+    ("skills/reflect/SKILL.md", "6af578d89b8dd85bfdfdb45b0d47e4b48c54fafdb39605a380c5ef47c70fff7a"),  # [active-folder] architecture/slices/slice-NNN-<name>/reflection.md
+    ("skills/reflect/SKILL.md", "5c7c173c05aa115363f9af90583148092d9558b610c7d92b09841078f95701c8"),  # [diagnose-out] diagnose-out/
+    ("skills/reflect/SKILL.md", "d38d844b56ab18a745e9d49a97975e4a37da983bb86d3b0c28b36ab8874044d1"),  # [diagnose-out] diagnose-out/backlog.md
+    # skills/slice/SKILL.md:
+    ("skills/slice/SKILL.md", "39e937eae93854994eff21f409b9d87207fda490c42063ce39945d06c44e2bfe"),  # [slice-queue] architecture/slice-queue.md
+    ("skills/slice/SKILL.md", "f0bec21a0ababecb37a19f78f513b20f7d48093778b3338ac34ad44607eec2df"),  # [active-folder] architecture/slices/slice-NNN-<name>/
+    ("skills/slice/SKILL.md", "aa23f93ad8223e154a3d7e485a630eff0e8391b85438795787f80b5521d79be8"),  # [active-folder] architecture/slices/slice-NNN-<name>/milestone.md
+    ("skills/slice/SKILL.md", "8103879a08054561e84ac18bb54e0cd1613e587aaae1992627a191c19075be5c"),  # [active-folder] architecture/slices/slice-NNN-<name>/mission-brief.md
+    ("skills/slice/SKILL.md", "21bfd206aad55f561435ef77ea1d32528ae258f4ce19042ed215689021cbeb83"),  # [active-folder] architecture/slices/slice-NNN-<name>/mission-brief.md.
+    ("skills/slice/SKILL.md", "0f5deb5f2c9776e1659d0d6e08bda7938931f1f88c7904bb842f5e930a8953ae"),  # [active-folder] architecture/slices/… (non-exploitable ellipsis collision — M3)
+    ("skills/slice/SKILL.md", "d38d844b56ab18a745e9d49a97975e4a37da983bb86d3b0c28b36ab8874044d1"),  # [diagnose-out] diagnose-out/backlog.md
+    # skills/supersede-slice/SKILL.md:
+    ("skills/supersede-slice/SKILL.md", "61fd8677b9ab75e69f2877f16d3c54bd4bd54596ee1e851908708c61f4c157da"),  # [active-folder] architecture/slices/<active-slice-id>/
+    # skills/validate-slice/SKILL.md:
+    ("skills/validate-slice/SKILL.md", "cbd281686d3dae6380ffbb8d130c82a378f55cddb840bebce10787f4b0b34150"),  # [active-folder] architecture/slices/slice-NNN-<name>
+    ("skills/validate-slice/SKILL.md", "aa23f93ad8223e154a3d7e485a630eff0e8391b85438795787f80b5521d79be8"),  # [active-folder] architecture/slices/slice-NNN-<name>/milestone.md
+    ("skills/validate-slice/SKILL.md", "61952ccd32863abd4b70deca452e237709b3844c60426cf99466e833a188ed30"),  # [active-folder] architecture/slices/slice-NNN-<name>/validation.md
 })
 
 
@@ -446,6 +544,22 @@ _MOVE_VERB_RE = re.compile(r"\b(?:mv|move|cp|copy)\b", re.IGNORECASE)
 # A routed op carries a seam token in its line.
 _SEAM_TOKEN_RE = re.compile(r"vault_edit|VAULT_ROOT")
 
+# Op-gate SINK matcher — SEAM-AWARE ([[ADR-106]] / slice-113): matches the `<vault>/`
+# placeholder IN ADDITION to architecture|diagnose-out/, so a CONVERTED in-loop write-op
+# stays VISIBLE to the gate. A gate blind to `<vault>/` would be permanently fail-OPEN for
+# the very convention slice-113 rolls out (an un-routed `<vault>/risk-register.md` write
+# would never red) — defeating the R-32 write-safety story. DELIBERATELY DISTINCT from the
+# inventory `_MATCH_RE` (which must NOT match `<vault>/`, else a converted literal re-appears
+# in the inventory baseline + the converted-file ratchet and EXPECTED_TOTAL never settles).
+# A maintainer who "unifies" the two silently re-breaks one half — a /code-review trap; do NOT.
+# B2 (slice-113 /critique): the value EXTRACTOR `_OP_SINK_TOKEN_RE` is CO-load-bearing with
+# the matcher — `_classify_op` keys on the extracted sink VALUE (`_ACTIVE_FOLDER_RE.search(sink)`
+# etc.), so a `<vault>/` match whose tail can't be extracted collapses to bare `<vault>/` and
+# every sub-regex misses. Matcher + extractor MUST move in lockstep (proven by the
+# `<vault>/`-sink op-gate tests — AP-5 non-vacuity).
+_OP_SINK_RE = re.compile(r"(?:architecture|diagnose-out)/|<vault>/")
+_OP_SINK_TOKEN_RE = re.compile(r"(?:(?:architecture|diagnose-out)|<vault>)/[^\s`'\"()\\|,]*")
+
 # Destination taxonomy (keyed on the op's SINK literal, NOT any literal on the line
 # — B2/AP-15). A per-slice ACTIVE folder (slices/slice-NNN…, NOT slices/archive/) is
 # the bootstrap-entangled DEFERRED class.
@@ -480,13 +594,16 @@ _IN_LOOP_SKILLS_COUNT = 11
 # Site comments name skill:line + the verified reason (no path literals in comments).
 _OP_ALLOWLIST: dict[tuple[str, str], tuple[str, str]] = {
     # build-slice:407 — NAW-1 bootstrap narrative; 'edit'/'flip' are nouns, not a write-op.
-    ("build-slice", "e659dabc58eca9bb0f452d10f39139e555ea7d46ae96ec5c6d2da587afbbbf58"):
+    # slice-113 (ADR-106): re-hashed — the line's `architecture/risk-register.md` converted to `<vault>/`.
+    ("build-slice", "afedad5b84f6eeff8e1b97130a5df2374fac497ba4cf1bb9ffee1f8793aec408"):
         (OP_OUT_OF_SCOPE, "lexical-false-positive: NAW-1 bootstrap narrative; 'edit'/'flip' are nouns, not a write-op"),
     # commit-slice:216 — parallel_conflict_resolver PCR log (git-coupled; retires at flip).
-    ("commit-slice", "ee0458b766ffb35f88bdac111345fadfe7141421331da3e75280ea9b7839a1ef"):
+    # slice-113 (ADR-106): re-hashed — the line's `architecture/parallel-conflict-resolution-log.md` converted.
+    ("commit-slice", "74c0303a1bc93e9d5e702a685b1bbf834e36fc3428cda3d49d33269de829498a"):
         (OP_OUT_OF_SCOPE, "parallel_conflict_resolver PCR log; git-coupled, retires at flip (ADR-098); owner = the flip slice's retire work"),
     # design-slice:240 — Heavy-mode component/contract write; out of slice-111 AC1 scope.
-    ("design-slice", "15f872b6c203d44bf91a337fe869f822c86b43816bf7443fb3e52f549425a94b"):
+    # slice-113 (ADR-106): re-hashed — the line's `architecture/components|contracts/<name>.md` converted.
+    ("design-slice", "f6e634537607b8529ceb94ff6b7b868548900f4ed010c84266e759c7fa0ff332"):
         (OP_OUT_OF_SCOPE, "Heavy-mode component/contract write; out of slice-111 AC1 scope (archive-mv + drift-log only); owner = prose-rewrite/flip slice"),
     # slice:264 — per-slice active-folder scaffold reference (abbreviated form).
     ("slice", "c965f3d99437c5b83bea62b4b11ae62d408f4e0e16ada17f8e9b46e0ffa2eab0"):
@@ -581,7 +698,7 @@ def scan_op_file(path: Path, rel: str) -> list[OpOccurrence]:
             continue
         first_verb = min(verb_cols)
         lits: list[tuple[int, str]] = []
-        for m in _MATCH_RE.finditer(line):
+        for m in _OP_SINK_RE.finditer(line):   # SEAM-AWARE (ADR-106): also matches <vault>/
             col = m.start()
             if col <= first_verb:
                 continue  # a write-op targets a path AFTER the verb; a literal before
@@ -589,7 +706,7 @@ def scan_op_file(path: Path, rel: str) -> list[OpOccurrence]:
                           # "`…/design.md` … completed slices move to …" / "…then `git add` it")
             if not (fenced or _in_inline_code(line, col)):
                 continue  # a real write target is an in-code path ref, not a mention
-            tok = _PATH_TOKEN_RE.match(line, col)
+            tok = _OP_SINK_TOKEN_RE.match(line, col)   # B2: extractor co-load-bearing with _OP_SINK_RE
             lits.append((col, tok.group(0) if tok else m.group(0)))
         if not lits:
             continue
