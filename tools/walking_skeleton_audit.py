@@ -51,9 +51,18 @@ from tools import _stdout
 # Date this rule shipped. NFR-1 carry-over.
 _WS_1_RELEASE_DATE: date = date(2026, 5, 6)
 
-# Field-line: `**Walking-skeleton**: true`
+# Field-line value pattern: `**Walking-skeleton**: true` — optionally annotated
+# (slice-116 / R-36; brought to parity with TF-1's `_TEST_FIRST_FIELD_RE` per
+# ADR-034 / TFFL-1). The boolean must be a standalone token followed by
+# whitespace, an opening `(` for the idiomatic annotation, or end-of-line. NOT
+# `(true|false)\s*$` — that rejected the mission-brief template's trailing
+# `(optional; …)` annotation, so `_detect_ws_flag` returned False and the
+# walking-skeleton gate passed vacuously (R-36 sibling defect). NOT
+# `(true|false)\b.*$` / `.*$` either — that would re-admit a malformed suffix
+# (`trueish` / `false-positive`) as a valid boolean (R-7 silent-bypass).
+# `re.match` semantics: the annotation remainder need not be consumed.
 _WS_FIELD_RE = re.compile(
-    r"^\*\*Walking[-\s]?skeleton\*\*\s*:\s*(true|false)\s*$",
+    r"^\*\*Walking[-\s]?skeleton\*\*\s*:\s*(true|false)(?=[\s(]|$)",
     re.IGNORECASE,
 )
 
