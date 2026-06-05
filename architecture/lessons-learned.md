@@ -2307,3 +2307,16 @@ Nothing material. The plan as approved at /build-slice Step 3 executed verbatim 
 
 ### Pattern
 - For a slice that authors classifier-visible prose/code, design-time reasoning (even TRIPLE-Critic-ratified) is NOT proof — execute the rule against the real corpus and grep the OUTPUT for mis-buckets (AP-3, N-th confirmation). The code-Critic is the specific layer that catches build-time conversion-correctness the test suite structurally cannot reach (AP-4, N+1) — a consumer test that pins the command form leaves the prose-mirror form unguarded.
+
+## Slice 114 (convert-agent-prose-to-vault-seam) — 2026-06-05
+
+### Worked
+- The 3-Critic stack caught a clean defect-class partition (N≥15): design-Critic → design-prose completeness/label gaps (M1 drift-test gap, M2 classifier mislabel, M3 carve-out hashing); meta-Critic → the root CLAUDE.md CAD-1 enumeration loose end (m-add-1); code-Critic → intra-file post-conversion consistency (`critic-calibrate.md:80` bare reference) that only a real post-conversion file-read reveals.
+- ADR-105's **value-keyed** carve-outs survived the +line-shift from the seam-note insert (`code-review.md` carve-outs `:25→:29`/`:233→:237`, values unchanged) — value/multiset keying (not line keying) proven robust under prose edits.
+- APED-1 held: every numeric claim (127/4/131, the 2 carve-out `sha256` hashes, the re-pinned baseline) was executed against the live corpus three independent times (design/build/code-review), never estimated.
+
+### Didn't work
+- The "4 agent files carry convertible refs" framing inherited from slice-113's reflection was imprecise — only 2 files (3 of 7 refs) were genuinely convertible; the other 4 refs were ADR-105-mandated-concrete carve-outs (classes 5/7). Cost a scope-sharpening round at `/design-slice` — cheap because caught early, but avoidable with per-occurrence `--json` classification up front rather than a file-count estimate.
+
+### Pattern
+- On a seam conversion, converting ONE reference to a vault artifact makes every OTHER bare/inconsistent reference to the SAME artifact in that file newly salient — a subagent can now resolve one form (`<vault>/X`) but not the bare sibling. Grep the whole file for sibling references to the just-converted artifact in the same pass, not just the inventory-flagged literals.
