@@ -85,6 +85,30 @@ def _stderr(msg: str) -> None:
         print(msg.encode("ascii", "replace").decode("ascii"), file=sys.stderr)
 
 
+def _stdout(msg: str) -> None:
+    """Encoding-safe stdout write (leaf-safe — stdlib only), mirroring
+    ``_stderr``. The discoverability CLI (``python -m tools._vault_paths``)
+    prints the resolved vault path, which may be non-ASCII; a bare ``print``
+    would raise ``UnicodeEncodeError`` on a cp1252 console (the AP-8 /
+    UTF8-STDOUT-1 footgun). This module cannot import ``tools._stdout`` —
+    that would break the stdlib-only leaf invariant — so it carries its own
+    tiny writer.
+    """
+    line = msg + "\n"
+    buf = getattr(sys.stdout, "buffer", None)
+    if buf is not None:
+        try:
+            buf.write(line.encode("utf-8", "replace"))
+            buf.flush()
+            return
+        except (OSError, ValueError):
+            pass
+    try:
+        print(msg)
+    except UnicodeEncodeError:
+        print(msg.encode("ascii", "replace").decode("ascii"))
+
+
 def _read_common_dir_config() -> str | None:
     """Return the vault path configured at ``$GIT_COMMON_DIR/aisdlc/vault-root``,
     or ``None`` when no config applies.
@@ -174,3 +198,23 @@ VAULT_ROOT: Path = _resolve_vault_root()
 # to True here, which is harmless — the in-tree vault IS tracked, so the
 # downstream tracked-check runs git normally.
 VAULT_ROOT_IS_DEFAULT: bool = VAULT_ROOT == Path(_DEFAULT)
+
+
+if __name__ == "__main__":  # pragma: no cover - thin discoverability CLI
+    # ``python -m tools._vault_paths`` — answer "where is my vault, and how
+    # was it resolved?" in ONE obvious command. Post-flip both `natural`
+    # checks come back empty BY DESIGN: the flip writes neither an env var nor
+    # a git-config key, but a plain FILE at ``<git-common-dir>/aisdlc/vault-root``
+    # (so ``git config --get aisdlc.vault-root`` is a red herring — it is not a
+    # config key). The source is re-derived from the already-resolved
+    # VAULT_ROOT (NO second git shell-out): env wins if set; else the relative
+    # default means no flip is configured; else it came from the config file.
+    _env = os.environ.get(_ENV_VAR)
+    if _env:
+        _source = f"{_ENV_VAR} env var"
+    elif VAULT_ROOT_IS_DEFAULT:
+        _source = f"default {_DEFAULT!r} (no external vault configured)"
+    else:
+        _source = f"git-common-dir config file (<git-common-dir>/{_CONFIG_REL})"
+    _stdout(f"vault-root: {VAULT_ROOT}")
+    _stdout(f"source:     {_source}")

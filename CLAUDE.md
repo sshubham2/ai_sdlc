@@ -48,6 +48,7 @@ This pipeline develops itself, so any methodology rule must be exercisable on th
 - **Vault location seam (`<vault>/`, per [[ADR-105]])**: `<vault>/` in pipeline prose denotes the vault root.
   Its default value is architecture/ — the in-repo vault dir (overridable via `$AI_SDLC_VAULT_ROOT` or the git-common-dir `aisdlc/vault-root` config, per ADR-065/ADR-085).
   Substitute `<vault>/` for the resolved root when reading a vault file or running a command. The convention covers operational prose in `skills/**/SKILL.md` + `agents/*.md` (each self-sufficient — a subagent carries its own copy of this rule) + this file. The `<diagnose-out>` placeholder is deliberately not minted; the seven carve-out classes that stay concrete are enumerated in [[ADR-105]].
+- **Finding the resolved vault root (don't guess)**: run `$PY -m tools._vault_paths` — it prints the path plus its resolution *source* (env / git-common-dir config file / default). `$AI_SDLC_VAULT_ROOT` and `git config aisdlc.vault-root` are **both empty by design** once flipped: the flip writes a plain **file** at `<git-common-dir>/aisdlc/vault-root`, not an env var and not a git-config key. Checking those two is a red herring (empty ≠ "not flipped") — use the command.
 - ADRs are append-only — supersede via a new ADR with `supersedes: ADR-NNN`, never edit in place.
 - Design deviations → update the active slice's `design.md` (don't carry forward stale design claims).
 - Run `/drift-check` before commit.
