@@ -20,7 +20,7 @@ critic-required: true
 - [x] /design-slice — 2026-06-05
 - [x] /critique — 2026-06-05 — NEEDS-FIXES (first Critic BLOCKED; 3B/5M/2m)
 - [x] /critique-review — 2026-06-05 — EXTEND (meta-Critic: 3 missed + 1 severity-adj; 0 suspicious)
-- [ ] /build-slice — in progress: 0/~6 tasks (A1 _vault_flip → A2 op-gate → A3 wire → A4 prose → A5 commit-slice → smoke → B flip → C finalize+VERSION)
+- [ ] /build-slice — in progress: A1 ✓ A2 ✓ | next A3 (wire gate) → A4 (prose ~12 files) → A5 (commit-slice) → smoke → B flip → C finalize+VERSION
 - [ ] /validate-slice
 - [ ] /reflect
 
@@ -35,10 +35,10 @@ Dual-Critic complete; TRI-1 ratified → **NEEDS-FIXES**. Design.md / ADR-107 / 
 
 ## On resume
 
-- **Last completed action**: /build-slice plan approved (Phase A→B→C; VERSION bump in scope); milestone→build
-- **Current work**: Phase A1 — writing `tools/_vault_flip.py` (flip+rollback engine) + `tests/methodology/test_vault_flip.py`. Files in the worktree.
-- **Next immediate step**: run `test_vault_flip.py` (cd worktree); then A2 op-gate reclassify. The flip itself (Phase B) is the LAST build step — vault stays in-tree through Phase A so the suite stays location-agnostic-green.
-- **Resume note**: the physical flip has NOT happened yet (vault still in-tree; `vault_is_external` = False). Phase B = quiesce → migrate → verify → config → git-untrack.
+- **Last completed action**: Phase A2 (op-gate drain) — committed `e5e876d`. A1 (_vault_flip) committed earlier. Both trees clean; targeted suites green (7 + 71).
+- **Current work**: none in flight — clean checkpoint after A2.
+- **Next immediate step**: **A3** — wire `--op-gate --strict` into `/build-slice` Step 6 + `/validate-slice` pre-finish + a `shippability.md` row (AP-18). Then **A4** (the big one) — convert carve-out prose classes 4–6 `architecture/…` → `<vault>/…` across ~12 skill SKILL.md + agent code-review.md, the 5-site `/slice` Step-6.5 queue-commit-on-master removal (M5), render `slice:264` cleanly (m1) + drop its now-dead allowlist entry, and re-pin the inventory `_BASELINE_SHA256`/converted-file ratchet. Then A5 (commit-slice RETIRE verify+prose) → mid-slice smoke (full pytest) → **Phase B the physical flip** → Phase C (R-32 retire + full audit suite + VERSION bump + forward-sync cascade + pip install --upgrade).
+- **Resume note**: the physical flip has NOT happened yet (vault still in-tree; `vault_is_external` = False; default resolution → `architecture/`). The suite stays location-agnostic-green through all of Phase A; the flip is the LAST build step (Phase B). Everything committed on `slice/115`; master holds only the queue-pick commit + is clean.
 
 ## Phase artifacts
 
