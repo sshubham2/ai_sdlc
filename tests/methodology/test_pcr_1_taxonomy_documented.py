@@ -18,10 +18,12 @@ pinned here per design.md L155 — they're tested via behavior
 """
 from __future__ import annotations
 
-from tests.methodology.conftest import read_file
+from tests.methodology.conftest import REPO_ROOT
+from tools._vault_paths import VAULT_ROOT
 
 
-_ADR_PATH = "architecture/decisions/ADR-069-mint-pcr-1-conflict-diagnostic-and-soft-regen.md"
+# Vault-relative (resolved under VAULT_ROOT — vault-location-aware, post-flip [[ADR-107]]).
+_ADR_PATH = "decisions/ADR-069-mint-pcr-1-conflict-diagnostic-and-soft-regen.md"
 
 
 def test_three_class_taxonomy_lists_soft_vault_claim_hard():
@@ -42,7 +44,7 @@ def test_three_class_taxonomy_lists_soft_vault_claim_hard():
     The literals appear in ADR-069's Decision section taxonomy table; this
     test ensures the table is not silently degraded by a future edit.
     """
-    body = read_file(_ADR_PATH)
+    body = (REPO_ROOT / VAULT_ROOT / _ADR_PATH).read_text(encoding="utf-8")
     assert "SOFT" in body, (
         "ADR-069 must document the SOFT class (the auto-regen-shipped class "
         "in slice-076) per design.md L131"

@@ -18,9 +18,10 @@ from pathlib import Path
 
 import tools.shippability_decoupling_audit as scmd1
 import tools.shippability_runner as runner
+from tools._vault_paths import VAULT_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-REAL_CATALOG = REPO_ROOT / "architecture" / "shippability.md"
+REAL_CATALOG = REPO_ROOT / VAULT_ROOT / "shippability.md"
 
 
 def _naive_outer_strip(cell: str) -> list[str]:
@@ -166,7 +167,7 @@ def test_code_review_dogfood_row_runs_clean():
     """
     from pathlib import Path
     catalog = (Path(__file__).resolve().parents[2]
-               / "architecture" / "shippability.md").read_text(encoding="utf-8")
+               / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     # Row existence pin (BCR-1 traceability axis)
     assert "| 60 | slice-060-add-code-review-skill" in catalog, (
         "architecture/shippability.md missing row #60 — CRSI-1 "

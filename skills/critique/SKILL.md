@@ -63,7 +63,7 @@ Collect the inputs the Critic needs:
 - The slice's mission brief (intent, acceptance criteria, must-not-defer, out of scope)
 - The slice's design.md
 - Any new ADRs from this slice
-- The **project-frame** (PFS-1, `methodology-changelog.md` v0.78.0; [[ADR-080]]): run `$PY -m tools.project_frame_synth --repo-root . --slice-dir architecture/slices/slice-NNN-<name>` via Bash and capture stdout — a tight Identity/Trajectory/Impact synthesis of where the project is **deliberately heading**. Hand it to the Critic agent so the review attacks against the project's direction, not only its static current artifacts (the agent's Dim-7 strategic-direction-fit probe consumes it). On non-zero/empty output, pass the literal `(project-frame unavailable)` — advisory, never a gate.
+- The **project-frame** (PFS-1, `methodology-changelog.md` v0.78.0; [[ADR-080]]): run `$PY -m tools.project_frame_synth --repo-root . --slice-dir <vault>/slices/slice-NNN-<name>` via Bash and capture stdout — a tight Identity/Trajectory/Impact synthesis of where the project is **deliberately heading**. Hand it to the Critic agent so the review attacks against the project's direction, not only its static current artifacts (the agent's Dim-7 strategic-direction-fit probe consumes it). On non-zero/empty output, pass the literal `(project-frame unavailable)` — advisory, never a gate.
 - Pattern recognition input: read the curated `<vault>/slices/action-points.md` register (relocated out of `_index.md` at slice-103 / ADR-093) + `<vault>/slices/_index.md` "Most recent 10" table. AND run semantic $PY -m graphify query against the full archive: `$PY -m graphify query "past lessons related to <this-slice's-topic>"`. The register + recent-10 cover recent; graphify catches long-archived relevant lessons (e.g., slice-008's issue surfaces for slice-108). Only open individual archived `reflection.md` files when semantic query or the register points to a specific match.
 - The principles being applied (risk-first, reversibility, two-persona, thin-vault)
 
@@ -115,7 +115,7 @@ Return the agent's complete critique.md content. Do not re-prompt for dimensions
 
 ### Step 3: Receive Critic findings
 
-Take the Critic's output and write it to `architecture/slices/slice-NNN-<name>/critique.md` using the template below.
+Take the Critic's output and write it to `<vault>/slices/slice-NNN-<name>/critique.md` using the template below.
 
 ### Step 4: Builder draft response per finding
 
@@ -186,7 +186,7 @@ Append to `critique.md` after the Findings + Dimensions sections:
 Then run the triage audit:
 
 ```bash
-$PY -m tools.triage_audit architecture/slices/slice-NNN-<name>
+$PY -m tools.triage_audit <vault>/slices/slice-NNN-<name>
 ```
 
 Refusal semantics:
@@ -218,7 +218,7 @@ In Heavy mode: BLOCKED requires human reviewer sign-off on the redesign before t
 
 ### Step 5b: Update milestone.md
 
-Update `architecture/slices/slice-NNN-<name>/milestone.md`:
+Update `<vault>/slices/slice-NNN-<name>/milestone.md`:
 
 - Frontmatter: `stage: critique`, `updated: <today>`, `next-action: run /build-slice` (or `address blockers in design.md then re-run /critique` if BLOCKED)
 - Check progress box: `- [x] /critique — <date> — <CLEAN | NEEDS-FIXES | BLOCKED>`

@@ -339,8 +339,9 @@ def test_committed_slice_queue_md_blast_radius_cells_contain_only_path_shaped_to
     OR the fix regressed. The slice's /build-slice Phase C is responsible
     for regenerating the live file post-fix.
     """
+    from tools._vault_paths import VAULT_ROOT  # vault-location-aware (post-flip [[ADR-107]])
     root = _project_root()
-    queue_path = root / "architecture" / "slice-queue.md"
+    queue_path = root / VAULT_ROOT / "slice-queue.md"
     assert queue_path.exists(), (
         f"architecture/slice-queue.md not present at {queue_path}; "
         "PSQ-1 helper has never been invoked or file was deleted"

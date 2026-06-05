@@ -126,7 +126,11 @@ def _value_matches(v: str) -> bool:
 # ── markers + seam (ADR-089 / slice-068 / ADR-065) ────────────────────────────
 _CLASS_B_MARKER = "Class-B git identity (ADR-089)"
 _ERROR_MSG_MARKER = "error-message prose"
-_SEAM_MODULE_STEMS: frozenset[str] = frozenset({"_vault_paths", "_vault_git"})
+# slice-115 / [[ADR-107]] adds `_vault_flip` — the flip ENGINE. Its bare-`"architecture"`
+# (`_VAULT_DIRNAME` → `repo_root / _VAULT_DIRNAME`) is the migration SOURCE dir-name, inherent
+# to its function; routing it through VAULT_ROOT would be circular (the flip is what SETS UP
+# VAULT_ROOT). So it is seam machinery, ALREADY_SEAM_ROUTED, not a must-rewrite.
+_SEAM_MODULE_STEMS: frozenset[str] = frozenset({"_vault_paths", "_vault_git", "_vault_flip"})
 _VAULT_ROOT_TOKEN = "VAULT_ROOT"
 
 # ── argparse-help kwargs (prose, not a runtime path) ──────────────────────────

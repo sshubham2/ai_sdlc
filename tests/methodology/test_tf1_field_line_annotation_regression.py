@@ -27,6 +27,7 @@ Rule reference: TF-1 / R-7.
 """
 from tests.methodology.conftest import REPO_ROOT
 from tools.test_first_audit import _detect_test_first_flag, audit_brief_file
+from tools._vault_paths import VAULT_ROOT
 
 
 # The idiomatic /slice mission-brief annotated form that triggers R-7.
@@ -97,7 +98,7 @@ def test_r7_retired_in_risk_register():
     R-7 or drops the slice-034 retirement, this fails.
     Rule reference: TF-1 / TFFL-1 / R-7.
     """
-    reg = (REPO_ROOT / "architecture" / "risk-register.md").read_text(
+    reg = (REPO_ROOT / VAULT_ROOT / "risk-register.md").read_text(
         encoding="utf-8"
     )
     # Isolate the R-7 section (## R-7 ... up to the next "## R-" heading).

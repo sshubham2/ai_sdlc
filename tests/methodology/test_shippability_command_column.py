@@ -17,8 +17,9 @@ from pathlib import Path
 
 from tests.methodology.conftest import REPO_ROOT
 from tools.shippability_decoupling_audit import audit, _SEGMENT_RE, _segments
+from tools._vault_paths import VAULT_ROOT
 
-_CATALOG = REPO_ROOT / "architecture" / "shippability.md"
+_CATALOG = REPO_ROOT / VAULT_ROOT / "shippability.md"
 
 
 def _kinds(violations) -> set[str]:

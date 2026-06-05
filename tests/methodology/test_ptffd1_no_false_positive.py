@@ -15,7 +15,14 @@ import re
 
 from tests.methodology.conftest import REPO_ROOT, _resolve_slice_dir
 from tools._pyfn import is_checkable_function_name
+from tools._vault_paths import VAULT_ROOT  # vault-location-aware (post-flip [[ADR-107]])
 from tools.shippability_path_audit import audit_catalog_file
+
+# `REPO_ROOT / VAULT_ROOT / x` resolves the LIVE vault file in BOTH worlds: the
+# in-repo `architecture/` default (relative VAULT_ROOT) AND the external store
+# (absolute VAULT_ROOT drops REPO_ROOT). Reading `REPO_ROOT / "architecture"`
+# directly would read the gitignored frozen orphan post-flip (stale, and gone
+# once /commit-slice removes it).
 
 
 def test_real_shippability_and_full_tf1_corpus_clean_under_func_level():
@@ -26,7 +33,7 @@ def test_real_shippability_and_full_tf1_corpus_clean_under_func_level():
 
     Rule reference: PTFFD-1 (AC3).
     """
-    catalog = REPO_ROOT / "architecture" / "shippability.md"
+    catalog = REPO_ROOT / VAULT_ROOT / "shippability.md"
     result = audit_catalog_file(catalog)
     assert result.violations == [], (
         "live shippability.md must be function-level-clean; got "
@@ -43,7 +50,7 @@ def _archived_brief_test_function_cells() -> list[str]:
     mission-brief TF-1-plan tables (5-col `| AC | type | path | fn | st |`).
     """
     vals: list[str] = []
-    slices_root = REPO_ROOT / "architecture" / "slices"
+    slices_root = REPO_ROOT / VAULT_ROOT / "slices"
     for brief in slices_root.rglob("mission-brief.md"):
         for line in brief.read_text(encoding="utf-8").splitlines():
             s = line.strip()

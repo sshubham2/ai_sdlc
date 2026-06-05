@@ -24,7 +24,7 @@ The three-persona model (extended from `/critique` + `/critique-review`): design
 
 ## Prerequisite check
 
-- Find the active slice folder (check `<vault>/slices/_index.md` "Currently active slice", else stat `architecture/slices/slice-*/` for one stage-active `milestone.md`).
+- Find the active slice folder (check `<vault>/slices/_index.md` "Currently active slice", else stat `<vault>/slices/slice-*/` for one stage-active `milestone.md`).
 - Read `mission-brief.md`, `design.md`, and any new `ADR-NNN-*.md` files in this slice.
 - Read `build-log.md` — if its frontmatter shows `Result: NOT-SHIPPED`: STOP with explicit message ("`/code-review` cannot review a slice that isn't built yet — run `/build-slice` first"). Do not auto-advance.
 - If `mission-brief.md` is missing: STOP, tell user to run `/slice` first.
@@ -95,16 +95,16 @@ Default-branch resolution mirrors the BRANCH-1 pattern (slice-021). `--diff-filt
 - `tools/**/*.py` — audit + lint Python modules
 - `tests/**/*.py` — test modules
 - Root-level config files — `plugin.yaml`, `pyproject.toml`, `VERSION`, `methodology-changelog.md`
-- `architecture/slices/*/build-log.md` + `validation.md` + `reflection.md` (post-slice-069 / [[ADR-066]] M5 INCLUDE direction — these post-build artifacts are tracked production content landing in every PR diff; entering /code-review scope rather than relying on the dual-Critic stack which structurally only reads design.md / ADRs at /critique time)
+- `<vault>/slices/*/build-log.md` + `validation.md` + `reflection.md` (post-slice-069 / [[ADR-066]] M5 INCLUDE direction — these post-build artifacts are tracked production content landing in every PR diff; entering /code-review scope rather than relying on the dual-Critic stack which structurally only reads design.md / ADRs at /critique time)
 
 **Out-of-scope paths** — pruned via inline `:(exclude)` pathspecs on each of the three union legs (per [[ADR-066]] / slice-069 M5 INCLUDE direction; rationale per excluded class):
 - `docs/**` — pure documentation if any
-- `architecture/decisions/**` — ADRs are reviewed by `/critique` (design-Critic) at /critique time
+- `<vault>/decisions/**` — ADRs are reviewed by `/critique` (design-Critic) at /critique time
 - `:(glob)architecture/*.md` — top-level vault docs (risk-register, lessons-learned, build-checks, shippability, slice-queue, concept, triage, principles, pipeline, tutorial) — reviewed by `/reflect` / `/risk-spike` / `/slice` on their own surfaces. **MUST use `:(glob)` pathspec magic** — without it, git's default fnmatch (no `FNM_PATHNAME` flag) makes `*` match across `/` segments and `architecture/*.md` would recursively re-exclude all `.md` files under `architecture/` (including the post-build artifacts M5 INCLUDE admits to scope). Slice-069 build-time discovery: the bare `architecture/*.md` pathspec silently re-excluded `architecture/slices/slice-069-track-vault-in-git/build-log.md` from the /code-review diff scope.
-- `architecture/slices/_index.md` — slice index, maintained by `/reflect`
-- `architecture/slices/archive/**` — archived slice content, frozen historical record
-- `architecture/slices/*/milestone.md` + `mission-brief.md` + `design.md` + `critique.md` + `critique-review.md` — slice non-post-build files (milestone is auto-generated; mission-brief / design / critique / critique-review reviewed by the design-Critic stack at /critique time)
-- `architecture/slices/*/code-review.md` — /code-review's own output, self-referentially excluded
+- `<vault>/slices/_index.md` — slice index, maintained by `/reflect`
+- `<vault>/slices/archive/**` — archived slice content, frozen historical record
+- `<vault>/slices/*/milestone.md` + `mission-brief.md` + `design.md` + `critique.md` + `critique-review.md` — slice non-post-build files (milestone is auto-generated; mission-brief / design / critique / critique-review reviewed by the design-Critic stack at /critique time)
+- `<vault>/slices/*/code-review.md` — /code-review's own output, self-referentially excluded
 
 **Error cases**:
 - `default-branch-unresolvable` (neither `git symbolic-ref` nor `git config init.defaultBranch` resolves): STOP with the BRANCH-1-shaped error and instruct user to re-run after default branch resolves.
@@ -157,11 +157,11 @@ Return the agent's complete `code-review.md` content. Do not re-prompt for dimen
 
 ### Step 3: Receive code-Critic findings and write `code-review.md`
 
-Take the agent's output and write it to `architecture/slices/slice-NNN-<name>/code-review.md` using the template below. v1 has NO `## Triage` section (slice-062 owns the TRI-1 extension); findings are advisory.
+Take the agent's output and write it to `<vault>/slices/slice-NNN-<name>/code-review.md` using the template below. v1 has NO `## Triage` section (slice-062 owns the TRI-1 extension); findings are advisory.
 
 ### Step 4: Update milestone.md
 
-Update `architecture/slices/slice-NNN-<name>/milestone.md`:
+Update `<vault>/slices/slice-NNN-<name>/milestone.md`:
 
 - Frontmatter: `stage: code-review`, `updated: <today>`, `next-action: run /validate-slice`
 - Check progress box: `- [x] /code-review — <date> — <FINDINGS-COUNT findings | NO-CODE-CHANGES | AGENT-EMPTY | AGENT-MALFORMED>`

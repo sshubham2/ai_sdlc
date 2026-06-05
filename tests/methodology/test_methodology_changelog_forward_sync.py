@@ -22,6 +22,7 @@ from pathlib import Path
 
 from tests.methodology.conftest import REPO_ROOT
 from tools import methodology_changelog_forward_sync as mcfs
+from tools._vault_paths import VAULT_ROOT
 
 
 def _write(p: Path, text: str, *, newline: str) -> None:
@@ -148,7 +149,7 @@ def test_mcfs1_module_is_non_catalog_relocation_proof():
     """
     from tools import shippability_decoupling_audit as scda
 
-    catalog = REPO_ROOT / "architecture" / "shippability.md"
+    catalog = REPO_ROOT / VAULT_ROOT / "shippability.md"
     result = scda.audit(catalog)
     all_quals = (
         list(result.incidental)

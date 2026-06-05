@@ -91,7 +91,7 @@ Per **TRI-1** (`methodology-changelog.md` v0.11.0), the calibration vocabulary n
 
 This data accumulates over time and informs Critic prompt tuning + user-judgement awareness across projects.
 
-### Step 4: Write `architecture/slices/slice-NNN-<name>/reflection.md`
+### Step 4: Write `<vault>/slices/slice-NNN-<name>/reflection.md`
 
 ```markdown
 # Reflection: Slice NNN <name>
@@ -302,7 +302,7 @@ This keeps GRAPH_REPORT.md current. The next slice's `/design-slice` and `/criti
 
 ### Step 5.8: Update milestone.md to complete
 
-Final update to `architecture/slices/slice-NNN-<name>/milestone.md`:
+Final update to `<vault>/slices/slice-NNN-<name>/milestone.md`:
 
 - Frontmatter: `stage: complete`, `updated: <today>`, `next-action: none (slice complete)`
 - Check progress box: `- [x] /reflect — <date>`

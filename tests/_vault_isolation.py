@@ -197,23 +197,32 @@ def default_vault_root() -> Iterator[Path]:
     For tests that assert the un-flipped default (``VAULT_ROOT == Path("architecture")``
     / the no-flip byte-identity contract): under the ``AI_SDLC_VAULT_ROOT=<seeded>``
     flip simulation the ambient ``VAULT_ROOT`` is the external root, so reading it
-    directly is no longer the default. This removes the env var and reloads
-    ``tools._vault_paths`` so it RE-RESOLVES through its real precedence (env →
-    git-common-dir config → ``architecture``); with no env and no config (this
-    repo) that yields ``Path("architecture")`` — proving the resolution logic, not
-    a tautology. Restores the env + reloads on exit. (``_vault_paths`` has no
-    classes, so reloading it is identity-safe — unlike a consumer reload.)
+    directly is no longer the default. It resolves through the real precedence (env →
+    git-common-dir config → ``architecture``) with BOTH the env AND the config
+    isolated, so the result is the genuine default — proving the resolution logic,
+    not a tautology.
+
+    slice-115 ([[ADR-107]] — THE flip): this repo is now genuinely FLIPPED — a live
+    ``$GIT_COMMON_DIR/aisdlc/vault-root`` config exists — so the original mechanism
+    (pop env + ``importlib.reload``) would RE-READ that live config and resolve
+    EXTERNAL (the slice-115 post-flip suite-run surfaced exactly this). The fix
+    isolates the config too: pop the env AND stub ``_read_common_dir_config`` → None,
+    then call ``_resolve_vault_root()`` DIRECTLY (no reload — a reload re-defines the
+    stubbed function, un-doing the stub; direct-resolve keeps it in effect and is
+    also identity-safe). With env None + config None the precedence falls to the
+    ``architecture`` default regardless of whether the live repo is flipped.
     """
     import tools._vault_paths as _vp
 
-    saved = os.environ.pop(ENV_VAR, _ENV_UNSET)
+    saved_env = os.environ.pop(ENV_VAR, _ENV_UNSET)
+    saved_reader = _vp._read_common_dir_config
     try:
-        importlib.reload(_vp)
-        yield _vp.VAULT_ROOT
+        _vp._read_common_dir_config = lambda: None  # isolate the live (flipped) config
+        yield _vp._resolve_vault_root()
     finally:
-        if saved is not _ENV_UNSET:
-            os.environ[ENV_VAR] = saved  # type: ignore[arg-type]
-        importlib.reload(_vp)
+        _vp._read_common_dir_config = saved_reader
+        if saved_env is not _ENV_UNSET:
+            os.environ[ENV_VAR] = saved_env  # type: ignore[arg-type]
 
 
 def autouse_pin(

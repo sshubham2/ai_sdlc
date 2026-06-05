@@ -2036,6 +2036,55 @@ def test_bc_proj_17_has_expected_structural_identity():
     )
 
 
+def test_bc_proj_18_has_expected_structural_identity():
+    """BC-PROJ-18 (slice-115 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity (a relocation/untrack slice must prove
+    "still green" with the moved-from location HIDDEN, not merely present).
+    Canonical fixture = subject; these literal constants = git-tracked oracle
+    (ADR-028). BCI-1 separately asserts the gitignored live build-checks.md
+    matches the fixture.
+
+    Defect class: a silent truncation / mis-author of BC-PROJ-18 would lose the
+    "a relocation's green must be proven with the moved-from location hidden"
+    evergreen check with no loud signal (R-4 false-green class). The capstone
+    vault flip (slice-115) shipped a FALSE-GREEN on two surfaces (orphan-
+    dependent suite reads + repo-root walk-up) caught only at /validate-slice.
+
+    Rule reference: BC-1 (slice-115 /reflect Step 5b; user-approved project
+    promotion of the prove-green-with-the-moved-from-location-hidden discipline).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-18" in p_by_id, "BC-PROJ-18 not parsed from project fixture"
+    p18 = p_by_id["BC-PROJ-18"]
+    assert p18.severity == "Critical", f"BC-PROJ-18 severity: {p18.severity!r}"
+    assert p18.applies_to == (".gitignore",), (
+        f"BC-PROJ-18 applies_to mismatch: got {p18.applies_to!r}"
+    )
+    assert p18.trigger_keywords == (
+        "move", "relocate", "relocation", "migrate", "migration", "flip",
+        "untrack", "rename", "mv",
+    ), f"BC-PROJ-18 trigger_keywords mismatch: got {p18.trigger_keywords!r}"
+    assert p18.trigger_anchors == (), (
+        f"BC-PROJ-18 trigger_anchors mismatch (expected none): "
+        f"got {p18.trigger_anchors!r}"
+    )
+    assert p18.negative_anchors == (), (
+        f"BC-PROJ-18 negative_anchors mismatch (expected none): "
+        f"got {p18.negative_anchors!r}"
+    )
+    assert p18.check and p18.check.strip(), "BC-PROJ-18 check must be non-empty"
+    assert "moved-from" in p18.check and "HIDDEN" in p18.check, (
+        "BC-PROJ-18 check body MUST cite proving green with the moved-from "
+        "location hidden"
+    )
+
+
 def test_bc_global_5_has_expected_structural_identity():
     """BC-GLOBAL-5 (slice-090 /reflect Step-5b global promotion) MUST parse to
     its expected full structural identity. Canonical global fixture = subject;

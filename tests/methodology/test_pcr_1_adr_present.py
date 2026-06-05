@@ -16,10 +16,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tests.methodology.conftest import REPO_ROOT, read_file
+from tests.methodology.conftest import REPO_ROOT
+from tools._vault_paths import VAULT_ROOT
 
 
-_ADR_PATH = "architecture/decisions/ADR-069-mint-pcr-1-conflict-diagnostic-and-soft-regen.md"
+# Vault-relative (resolved under VAULT_ROOT — vault-location-aware, post-flip [[ADR-107]]).
+_ADR_PATH = "decisions/ADR-069-mint-pcr-1-conflict-diagnostic-and-soft-regen.md"
 
 
 def test_adr_069_parallel_conflict_resolution_mechanism_exists():
@@ -39,12 +41,12 @@ def test_adr_069_parallel_conflict_resolution_mechanism_exists():
           HARD as the load-bearing classes; MIXED + UNKNOWN are fail-closed
           variants)
     """
-    adr_path = REPO_ROOT / _ADR_PATH
+    adr_path = REPO_ROOT / VAULT_ROOT / _ADR_PATH
     assert adr_path.exists(), (
         f"ADR-069 must exist at {_ADR_PATH} — PCR-1 mints a new ADR per "
         "design.md L5 and the 3-class taxonomy reference layer"
     )
-    body = read_file(_ADR_PATH)
+    body = adr_path.read_text(encoding="utf-8")
     assert "id: ADR-069" in body, (
         "ADR-069 frontmatter must contain 'id: ADR-069' per ADR schema"
     )

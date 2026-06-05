@@ -122,6 +122,10 @@ def test_resolves_active_slice_via_tmp_vault(
     # Repoint REPO_ROOT at the tmp vault. The helper reads REPO_ROOT at
     # call-time via module-globals, so this affects the next call.
     monkeypatch.setattr(conftest_mod, "REPO_ROOT", tmp_path)
+    # Pin VAULT_ROOT to the in-tree relative default so `REPO_ROOT / VAULT_ROOT /
+    # "slices"` resolves under the tmp vault. Post-flip ([[ADR-107]]) the ambient
+    # VAULT_ROOT is the absolute external store, which would ignore tmp_path.
+    monkeypatch.setattr(conftest_mod, "VAULT_ROOT", Path("architecture"))
 
     resolved = _resolve_slice_dir(1)
 

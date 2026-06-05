@@ -24,7 +24,7 @@ Runs after `/critique` blockers + majors are addressed. Output: working code + t
 - **Run CRP-1 critique-review-prerequisite check** (per `methodology-changelog.md` v0.40.0): runs AFTER the `critique.md`-exists check above (there can be no `/critique-review` without a `/critique`). Invoke:
 
   ```bash
-  $PY -m tools.critique_review_prerequisite_audit architecture/slices/slice-NNN-<name>
+  $PY -m tools.critique_review_prerequisite_audit <vault>/slices/slice-NNN-<name>
   ```
 
   Refusal semantics (exit 1 → STOP):
@@ -85,7 +85,7 @@ wt_base="$(dirname "$repo_root")/$(basename "$repo_root")-wt"
    # (N=5 cumulative slice-070/071/072/073/074; canonical origin: slice-070 reflection L127;
    # legacy post-vault-in-git scaffolding-by-design class — superseded by BRANCH-3 pick-time create)
    git switch -c slice/NNN-<slice-name>          # carry dirty state to slice branch
-   git add architecture/slices/slice-NNN-<slice-name>/ architecture/slice-queue.md   # explicit staging — no auto-stash (concrete scaffolding pathspec, slice-074 m1)
+   git add architecture/slices/slice-NNN-<slice-name>/ architecture/slice-queue.md   # explicit staging — no auto-stash (concrete scaffolding pathspec, slice-074 m1; CONCRETE git-pathspec — git runs this verbatim, NOT vault-placeholder-resolved; the LEGACY pre-flip in-tree-vault dirty-default path, moot once the vault is external per [[decisions/ADR-107]])
    git commit -m "scaffold(slice-NNN): mission-brief + design + critique + ..."  # scaffolding commit on slice branch
    git switch "$default"                           # back to clean default
    git worktree add "$wt_base/slice-NNN-<slice-name>" slice/NNN-<slice-name>   # no -b; branch exists
@@ -192,6 +192,7 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **New-agent session-restart warning (NAW-1)** — see "New-agent warning audit" below
 - [ ] **Drift-check enforcement audit passes (DCE-1)** — see "Drift-check enforcement audit" below
 - [ ] **Skill-vault-write-safety audit passes (SVW-1)** — see "Skill-vault-write-safety audit" below
+- [ ] **Vault op-gate passes ([[ADR-104]], promoted to a Step-6 gate by [[ADR-107]])** — see "Vault op-gate" below
 
 If any gate fails: don't declare done. Fix or escalate.
 
@@ -207,6 +208,18 @@ Refusal semantics: exit **1** (≥1 unrouted-and-unexempted mutation site, OR an
 
 Bootstrap (slice-095 only): slice-095 authors SVW-1; at slice-095's own Step 6 the audit runs against the routed worktree and MUST exit 0 (self-application discharge — the 10 append sites routed through `vault_edit append` + 12 RMW/project-open sites exempt-marked). Every slice after 095 inherits a self-gating SVW-1.
 
+#### Vault op-gate ([[ADR-104]]; promoted to a Step-6 gate at slice-115 / [[ADR-107]])
+
+The in-loop-scoped op-gate (the `--op-gate` mode of `tools/vault_flip_prose_inventory.py`, minted at slice-111 / [[ADR-104]]) fails closed (exit 2) on any un-routed in-loop-skill vault WRITE-op (`OP_UNROUTED`) or a per-op-class count-floor shrink. slice-111 enforced it via the suite test only; **slice-115 promotes it to a first-class `/build-slice` Step-6 gate** now that the flip has drained the `OP_DEFERRED_TO_FLIP` bucket (the R-32.a reclassify — active-folder writes are post-flip per-slice non-contended direct external writes), leaving the gate's sole job the forward `OP_UNROUTED` write-safety protection. Run:
+
+```bash
+$PY -m tools.vault_flip_prose_inventory --op-gate --strict
+```
+
+Refusal semantics: exit **2** — `OP_UNROUTED` (an un-routed in-loop shared-aggregate vault write; route it via `vault_edit`/`VAULT_ROOT` or carry a hand-verified `_OP_ALLOWLIST` entry) OR a `_OP_CLASS_FLOOR` shrink (a gate-visible bucket silently emptied — re-pin deliberately if the shrink is legitimate). Floors after the slice-115 R-32.a reclassify (independent of the physical flip — the op-gate scans skill prose): **6 routed / 0 deferred / 34 out-of-scope / 0 un-routed**. `/validate-slice` ALSO runs `--op-gate --strict` via its Step 5.5 shippability catalog (the slice-111 enforcement path, preserved — so both pre-finish phases gate it). This is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]) — its programmatic gate is `tools/vault_flip_prose_inventory.py --op-gate --strict`; no new RULE-ID (a promotion of the existing ADR-104 op-gate, not a new rule).
+
+Bootstrap (slice-115 only): slice-115 authors the promotion + the R-32.a reclassify; at slice-115's own Step 6 the gate MUST exit 0 (self-application discharge — the reclassify drained DEFERRED→0, OP_UNROUTED stays 0). Every slice after 115 inherits a self-gating op-gate.
+
 #### Drift-check enforcement audit (DCE-1)
 
 Per **DCE-1** (`methodology-changelog.md` v0.76.0; slice-081; [[ADR-073]]; mints a new rule; supersedes nothing): `/drift-check` was the only pipeline discipline preached (CLAUDE.md "Run /drift-check before commit") and listed in this checklist yet enforced by nothing — no `tools/drift_check_audit.py`, no installed pre-commit hook, only the honor-system checkbox above (the R-7 / slice-022 silent-disable failure class). DCE-1 converts the drift-check checkbox into an audit-enforced gate.
@@ -214,7 +227,7 @@ Per **DCE-1** (`methodology-changelog.md` v0.76.0; slice-081; [[ADR-073]]; mints
 **Order is load-bearing**: run `/drift-check` **in full mode** FIRST (only full mode appends the `**Trigger**: slice-NNN pre-finish gate` entry to `<vault>/drift-log.md`; `--fast` writes stdout only and leaves NO marker), THEN run the audit:
 
 ```bash
-$PY -m tools.drift_check_audit architecture/slices/slice-NNN-<name>
+$PY -m tools.drift_check_audit <vault>/slices/slice-NNN-<name>
 ```
 
 The audit is a procedural *was-it-marked* gate (ADR-073 § Scope honesty): it verifies a slice-referencing drift-log marker exists — NOT that the semantic comparison was performed (that stays Claude's irreducible judgement via the `/drift-check` skill). The match is **line-anchored** to lines beginning `**Trigger**:` AND slice-number-anchored (`slice[- ]?0*<N>\b`) — a cross-mention of the slice number in another entry's `**Scope**` / Notes / heading does NOT satisfy the gate (per /critique-review M-add-1, mirroring CRP-1's keyed-not-substring discipline per ADR-024).
@@ -235,7 +248,7 @@ Bootstrap (slice-081 only): slice-081 authors DCE-1. At slice-081's own Step 6 t
 Per **BRANCH-1** (`methodology-changelog.md` v0.35.0 sub-mode (c)): the slice's commits MUST live on a `slice/NNN-<slice-name>` branch matching the active slice (created at the `## Prerequisite check ### Branch state` sub-section above). Run:
 
 ```bash
-$PY -m tools.branch_workflow_audit architecture/slices/slice-NNN-<name>
+$PY -m tools.branch_workflow_audit <vault>/slices/slice-NNN-<name>
 ```
 
 Refusal semantics:
@@ -272,7 +285,7 @@ Self-application: `tools/utf8_stdout_audit.py` itself conforms; the audit run on
 Per **CRP-1** (`methodology-changelog.md` v0.40.0): the same audit invoked at the `## Prerequisite check` (above) is re-run at Step 6 pre-finish as a defense-in-depth layer — it catches `critique-review.md` deleted mid-build, or `critic-required` flipped `true` during a `/design-slice` scope expansion that post-dated the prerequisite check. It is idempotent and reads the Step-7b-preserved `critique-review-skip:` milestone.md frontmatter key (per ADR-024 the escape-hatch is a frontmatter key precisely so it survives Step 7b's continuous milestone.md rewrite). Run:
 
 ```bash
-$PY -m tools.critique_review_prerequisite_audit architecture/slices/slice-NNN-<name>
+$PY -m tools.critique_review_prerequisite_audit <vault>/slices/slice-NNN-<name>
 ```
 
 Refusal semantics: `mandatory-critique-review-absent` (Important, exit 1) — mode ∈ {STANDARD, HEAVY} AND `critic-required: true` AND `critique-review.md` absent AND no canonical `critique-review-skip` key; `escape-hatch-malformed` (Important, exit 1) — key present, value off-canonical; `usage-error` / `mode-unresolvable` (exit 2). CRP-1 is an **audit-enforced gate** (NON-`-D` per ADR-019; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1) — its programmatic gate is `tools/critique_review_prerequisite_audit.py`.
@@ -411,7 +424,7 @@ Bootstrap (slice-063 only): slice-063 authors NAW-1. The bootstrap is **conditio
 Per **TF-1** (`methodology-changelog.md` v0.13.0), when this slice's `mission-brief.md` declares `**Test-first**: true`, every Acceptance criterion must map to one or more tests with a status field whose value at pre-finish is `PASSING`. Run:
 
 ```bash
-$PY -m tools.test_first_audit architecture/slices/slice-NNN-<name> --strict-pre-finish
+$PY -m tools.test_first_audit <vault>/slices/slice-NNN-<name> --strict-pre-finish
 ```
 
 Refusal semantics:
@@ -434,7 +447,7 @@ Per **BCSG-1** (`methodology-changelog.md` v0.75.0; slice-080; [[ADR-072]]; refi
 1. Enumerate applicable Critical rules:
    ```bash
    $PY -m tools.build_checks_audit \
-     --slice architecture/slices/slice-NNN-<name> \
+     --slice <vault>/slices/slice-NNN-<name> \
      --changed-files <list of files changed by this slice> --json \
      | $PY -c "import sys,json; d=json.load(sys.stdin); print([r['rule_id'] for r in d['applicable'] if r['severity'].lower()=='critical'])"
    ```
@@ -442,7 +455,7 @@ Per **BCSG-1** (`methodology-changelog.md` v0.75.0; slice-080; [[ADR-072]]; refi
 3. Re-run with `--strict` and the acknowledged rule IDs (place `--ack-critical` LAST — `nargs="*"` is greedy):
    ```bash
    $PY -m tools.build_checks_audit \
-     --slice architecture/slices/slice-NNN-<name> \
+     --slice <vault>/slices/slice-NNN-<name> \
      --changed-files <list of files changed by this slice> \
      --strict --ack-critical <addressed Critical rule IDs>
    ```
@@ -469,7 +482,7 @@ BCSG-1 (slice-080) added exit-code enforcement: under `--strict` the exit code i
 Per **WIRE-1** (`methodology-changelog.md` v0.9.0), this slice's `design.md` must include a wiring matrix declaring a consumer entry point + consumer test for every new module, or an exemption with explicit rationale. Run:
 
 ```bash
-$PY -m tools.wiring_matrix_audit architecture/slices/slice-NNN-<name>
+$PY -m tools.wiring_matrix_audit <vault>/slices/slice-NNN-<name>
 ```
 
 Refusal on Important findings:
@@ -561,7 +574,7 @@ Keep entries to one line each. Detailed evidence (full command output, stack tra
 
 `/pulse` reads the tail of this section on resume to reconstruct recent activity — durable next-action signal that survives `milestone.md` staleness.
 
-### Step 8: Write `architecture/slices/slice-NNN-<name>/build-log.md`
+### Step 8: Write `<vault>/slices/slice-NNN-<name>/build-log.md`
 
 ```markdown
 # Build log: Slice NNN <name>

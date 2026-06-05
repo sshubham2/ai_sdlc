@@ -45,7 +45,7 @@ Collect the inputs the meta-Critic needs:
 - The slice's mission brief (intent, ACs, must-not-defer, out-of-scope)
 - The slice's design.md
 - The slice's critique.md (the first Critic's findings + verdict)
-- The **project-frame** (PFS-1, `methodology-changelog.md` v0.78.0; [[ADR-080]]): run `$PY -m tools.project_frame_synth --repo-root . --slice-dir architecture/slices/slice-NNN-<name>` via Bash and capture stdout; hand it to the meta-Critic so it re-checks the first Critic's review against where the project is **deliberately heading** (e.g. did the first Critic miss a direction-fit issue?). On non-zero/empty output, pass `(project-frame unavailable)` — advisory, never a gate.
+- The **project-frame** (PFS-1, `methodology-changelog.md` v0.78.0; [[ADR-080]]): run `$PY -m tools.project_frame_synth --repo-root . --slice-dir <vault>/slices/slice-NNN-<name>` via Bash and capture stdout; hand it to the meta-Critic so it re-checks the first Critic's review against where the project is **deliberately heading** (e.g. did the first Critic miss a direction-fit issue?). On non-zero/empty output, pass `(project-frame unavailable)` — advisory, never a gate.
 - Any new ADRs from this slice
 - The 8 review dimensions (the meta-Critic re-applies these independently)
 
@@ -91,7 +91,7 @@ Return the agent's complete `critique-review.md` content. Do not re-prompt for d
 
 ### Step 3: Receive meta-Critic findings
 
-Take the agent's output and write it to `architecture/slices/slice-NNN-<name>/critique-review.md` using the format the agent emits.
+Take the agent's output and write it to `<vault>/slices/slice-NNN-<name>/critique-review.md` using the format the agent emits.
 
 Per **TPHD-1** (`methodology-changelog.md` v0.32.0) sub-mode (b), when the meta-Critic's ACCEPTED-FIXED findings (during /critique Step 4.5 TRI-1) will change test function names or AC #N row references in `mission-brief.md` or `design.md`, harmonize the mission-brief TF-1 plan section in the same fix block. Sub-mode (a) lives in `/critique` Step 4 (post-fix-prose harmonization); (c) lives in `/build-slice` Prerequisite check (pre-flight harmonization bullet).
 
@@ -100,7 +100,7 @@ Per **TPHD-1** (`methodology-changelog.md` v0.32.0) sub-mode (b), when the meta-
 Validate the resulting file's structure:
 
 ```bash
-$PY -m tools.critique_review_audit architecture/slices/slice-NNN-<name>
+$PY -m tools.critique_review_audit <vault>/slices/slice-NNN-<name>
 ```
 
 The audit checks: 4 required sections present, dual-review verdict in `{ACCEPT, ADJUST, EXTEND}`, Reviewed-by + Date fields. If violations: surface them; if the agent's output was malformed, ask for a re-run.

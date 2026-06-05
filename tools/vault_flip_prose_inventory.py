@@ -296,7 +296,7 @@ _DISPOSITION_MAP: dict[tuple, str] = {(p, n, f, o, c): k for (p, n, f, o, c, k) 
 # baseline (AC5 / M1 disjointness — discovered at build, build-log 2026-06-03). The
 # full enumerated inventory is the --json output; this hash is the drift identity
 # (exit 2 on ANY multiset change — same gate behavior as an enumerated multiset).
-_BASELINE_SHA256 = "44b2287682bae389779623c59beae1dcdb4e9b0abe19c472075b29b26d701966"
+_BASELINE_SHA256 = "bee3d9ed3ab6ae6090f74ea6fd30a4f47dde4dbe752f39365e8c557804380906"
 
 # per-class total-count floor (m2 — a silent shrink trips --strict).
 # slice-111 (ADR-103): routing the archive `mv` (/reflect, /archive) + drift-log
@@ -315,7 +315,12 @@ _BASELINE_SHA256 = "44b2287682bae389779623c59beae1dcdb4e9b0abe19c472075b29b26d70
 # stay concrete (hash-keyed in _CONVERTED_CARVEOUTS); critique-review :78 + diagnose-narrator :19 are
 # note-less carve-outs (classes 5/7 — left untouched per ADR-105, the flip slice drains them).
 _CLASS_COUNT_FLOOR: dict[str, int] = {
-    REWRITE_AT_FLIP: 127,
+    # slice-115 (ADR-107 — THE flip): 127→65. The flip drains the class-4/5/6 carve-outs (62 convertible
+    # operational architecture/ refs across loop skills + agents → <vault>/; scaffold+queue resolve to the
+    # EXTERNAL store; slice/SKILL.md M5 removes commit-on-master). The 65 residual = code-review git-pathspec
+    # (37) + diagnose-out (25, class-7) + INSTALL/README (3, out of ADR-105 <vault>/ scope) + the
+    # build-slice:88 legacy dirty-tree-dance git-pathspec (2 — git runs it verbatim, kept concrete).
+    REWRITE_AT_FLIP: 67,
     HISTORICAL_ANCHOR: 0,
     DOC_EXAMPLE: 0,
     NEEDS_HUMAN: 0,
@@ -344,7 +349,11 @@ _RESIDUAL: tuple[dict, ...] = (
 # slice-114 (ADR-105): 132 → 131 — 3 agent-prose `architecture/` refs converted to `<vault>/` (no
 # longer match), +2 plain-prose definitional notes (doc-example 2→4); 4 agent carve-outs stay
 # (code-review :29 pathspec-mirror + :237 active-folder, critique-review :78, diagnose-narrator :19).
-EXPECTED_TOTAL = 131
+# slice-115 (ADR-107): 131 → 69 — 62 convertible operational architecture/ refs converted to `<vault>/`
+# (loop skills + agents; scaffold+queue → external store) + slice/SKILL.md M5 removed the commit-on-master
+# `git add architecture/slice-queue.md`. Residual 71 = 67 rewrite-at-flip + 4 doc-example (the 2
+# build-slice:88 git-pathspec literals stay concrete — git runs them verbatim, not <vault>/-resolved).
+EXPECTED_TOTAL = 71
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -371,12 +380,14 @@ _CONVERTED_FILES: frozenset[str] = frozenset({
     "agents/critique.md",
     "agents/code-review.md",        # slice-114 (ADR-105 agent-prose surface)
     "agents/critic-calibrate.md",   # slice-114 (ADR-105 agent-prose surface)
+    "agents/critique-review.md",    # slice-115 (ADR-107 — flip drains the :78 active-folder carve-out)
     "skills/adopt/SKILL.md",
     "skills/archive/SKILL.md",
     "skills/build-slice/SKILL.md",
     "skills/commit-slice/SKILL.md",
     "skills/critic-calibrate/SKILL.md",
     "skills/critique/SKILL.md",
+    "skills/critique-review/SKILL.md",   # slice-115 (ADR-107 — flip drains its 3 active-folder carve-outs)
     "skills/design-slice/SKILL.md",
     "skills/diagnose/SKILL.md",
     "skills/discover/SKILL.md",
@@ -624,19 +635,23 @@ _OP_ALLOWLIST: dict[tuple[str, str], tuple[str, str]] = {
     # slice-113 (ADR-106): re-hashed — the line's `architecture/components|contracts/<name>.md` converted.
     ("design-slice", "f6e634537607b8529ceb94ff6b7b868548900f4ed010c84266e759c7fa0ff332"):
         (OP_OUT_OF_SCOPE, "Heavy-mode component/contract write; out of slice-111 AC1 scope (archive-mv + drift-log only); owner = prose-rewrite/flip slice"),
-    # slice:264 — per-slice active-folder scaffold reference (abbreviated form).
-    ("slice", "c965f3d99437c5b83bea62b4b11ae62d408f4e0e16ada17f8e9b46e0ffa2eab0"):
-        (OP_DEFERRED_TO_FLIP, "per-slice active-folder scaffold (abbreviated); same bootstrap-deferred class as the slice:249 scaffold write"),
+    # slice:264 — RETIRED at slice-115 / [[ADR-107]]: the abbreviated `architecture/slices/…` ellipsis
+    # scaffold ref was rewritten to the explicit `<vault>/slices/slice-NNN-<name>/` (class-4 worktree-
+    # composed → external), which `_ACTIVE_FOLDER_RE` now matches directly → OP_OUT_OF_SCOPE via the
+    # active-folder branch, no allowlist entry needed. (The dead hash-keyed entry is removed; m1.)
 }
 
 # Per-op-class count floors (a silent shrink trips --strict; AP-12 — the deferred /
-# out-of-scope buckets must not silently empty). Finalized at build against the real
-# corpus (APED-1, 2026-06-04): 6 routed / 11 deferred / 23 out-of-scope / 0 unrouted.
+# out-of-scope buckets must not silently empty). slice-115 / [[ADR-107]] re-pin (APED-1
+# against the real corpus, 2026-06-05): the flip RECLASSIFIES the 11 active-folder ops
+# DEFERRED→OUT_OF_SCOPE (the R-32.a drain) → 6 routed / 0 deferred / 34 out-of-scope / 0
+# unrouted. BOTH floors re-pinned (Critic M-add-1 — moving ops between gate-visible buckets
+# must re-pin BOTH, else the destination gains silent anti-shrink slack).
 # Re-pin these (deliberately) when a slice routes / removes an op (a legit shrink).
 _OP_CLASS_FLOOR: dict[str, int] = {
     OP_UNROUTED: 0,           # the binding invariant: zero un-routed in-loop writes (the gate)
-    OP_DEFERRED_TO_FLIP: 11,  # AP-12: the flip slice's R-32.a drain bucket must stay visible
-    OP_OUT_OF_SCOPE: 23,      # AP-12: out-of-scope writes owned by the prose-rewrite/flip slice
+    OP_DEFERRED_TO_FLIP: 0,   # slice-115: DRAINED at the flip (R-32.a); the class is now structurally unreachable
+    OP_OUT_OF_SCOPE: 33,      # slice-115: 23 + 11 reclassified active-folder ops − 1 (M5 removed the slice/SKILL.md commit-on-master `git add`); tight, no slack (M-add-1)
 }
 
 
@@ -677,7 +692,14 @@ def _classify_op(line: str, sink: str, *, skill: str, routed: bool) -> tuple[str
     if routed:
         return (OP_ROUTED, "seam-token")
     if _ACTIVE_FOLDER_RE.search(sink) and not _ARCHIVE_DEST_RE.search(sink):
-        return (OP_DEFERRED_TO_FLIP, "active-folder-dest")
+        # slice-115 / [[ADR-107]]: post-flip a per-slice active-folder write resolves to
+        # the EXTERNAL store and is per-slice NON-CONTENDED (two worktrees never write the
+        # SAME slice folder) → a safe DIRECT write that needs no CAS routing. The pre-flip
+        # DEFERRED holding-pattern is RETIRED (the R-32.a drain). This branch is sink-keyed
+        # AND placed ABOVE the in-loop-skill check below (Critic M-add-1), so an IN-loop
+        # active-folder write classifies here (OUT_OF_SCOPE), never falling through to the
+        # allowlist / OP_UNROUTED path.
+        return (OP_OUT_OF_SCOPE, "active-folder-external-direct-write")
     if skill not in _IN_LOOP_SKILLS:
         return (OP_OUT_OF_SCOPE, "out-of-loop-skill")
     if _UNDECIDED_DISPOSITION_RE.search(sink):

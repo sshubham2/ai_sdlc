@@ -7,6 +7,7 @@ import pytest
 import yaml
 
 from tests.methodology.conftest import REPO_ROOT, read_file
+from tools._vault_paths import VAULT_ROOT
 
 
 def _extract_version_body(content: str, version: str) -> str:
@@ -654,7 +655,7 @@ def test_adr_013_exists_and_names_pmi_1_refactor_canonical_phrase():
     Rule reference: PMI-1 v1.1 (slice-014 AC #4 — ADR-013 surface of
     3-surface canonical-phrase pin).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-013-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-013 file at "
@@ -733,7 +734,7 @@ def test_adr_014_exists_and_names_scpd_1_canonical_phrase():
     Rule reference: SCPD-1 (slice-015 AC #4 — ADR-014 surface of
     3-surface canonical-phrase pin).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-014-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-014 file at "
@@ -935,7 +936,7 @@ def test_adr_015_exists_and_names_rpcd_1_canonical_phrase():
     Rule reference: RPCD-1 (slice-016 AC #3 — ADR-015 surface of 3-surface
     canonical-phrase pin).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-015-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-015 file at "
@@ -1119,7 +1120,7 @@ def test_adr_016_exists_and_names_tphd_1_canonical_phrase():
     Rule reference: TPHD-1 (slice-017 AC #3 — ADR-016 surface of 3-surface
     canonical-phrase pin).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-016-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-016 file at "
@@ -1294,7 +1295,7 @@ def test_adr_017_exists_and_names_layer_evid_1_canonical_phrase():
     Rule reference: LAYER-EVID-1 (slice-019 AC #4 — ADR-017 surface of
     N-surface canonical-phrase pin).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-017-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-017 file at "
@@ -1460,7 +1461,7 @@ def test_adr_018_exists_and_names_bfrd_1_canonical_phrase():
     Rule reference: BFRD-1 (slice-020 AC #3 — ADR-018 surface of
     N-surface canonical-phrase pin).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-018-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-018 file at "
@@ -1548,7 +1549,7 @@ def test_adr_019_branch_per_slice_workflow_exists_and_links_to_branch_1():
     Rule reference: BRANCH-1 (slice-021 AC #5 — ADR-019 surface of
     N-surface canonical-phrase pin).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-019-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-019 file at "
@@ -1642,7 +1643,7 @@ def test_adr_020_exists_and_supersedes_adr_019():
     Rule reference: slice-022 AC #4 + /critique-review M-add-1 ACCEPTED-FIXED
     (SUP-1 does NOT apply to ADRs; ADR family convention is one-directional).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-020-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-020 file at "
@@ -1761,7 +1762,7 @@ def test_adr_021_present_and_reversibility_cheap():
 
     Rule reference: slice-023 AC #5 (ADR-021).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-021-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-021 file at "
@@ -1790,7 +1791,7 @@ def test_adr_020_documents_three_mode_taxonomy():
 
     Rule reference: slice-022 AC #4.
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-020-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-020 file at "
@@ -1911,7 +1912,7 @@ def test_adr_022_exists_and_names_fbcd_1_canonical_phrase():
 
     Rule reference: slice-024 AC #4 (ADR-022).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-022-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-022 file at "
@@ -1971,7 +1972,7 @@ def test_adr_023_present_and_reversibility_cheap():
 
     Rule reference: slice-025 AC #4 (ADR-023).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-023-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-023 file at "
@@ -2043,7 +2044,7 @@ def test_v_0_40_0_crp_1_shippability_consumer_propagation():
 
     Rule reference: slice-026 AC #4 (shippability consumer propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "CRP-1" in catalog, (
         "architecture/shippability.md missing a CRP-1 row — SCPD-1 "
         "consumer-reference propagation broken"
@@ -2107,7 +2108,7 @@ def test_v_0_41_0_pca_1_shippability_consumer_propagation():
 
     Rule reference: slice-027 AC #5 (shippability consumer propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "PCA-1" in catalog, (
         "architecture/shippability.md missing a PCA-1 row — SCPD-1 "
         "consumer-reference propagation broken"
@@ -2127,7 +2128,7 @@ def test_adr_025_present_and_reversibility_cheap():
 
     Rule reference: slice-027 (ADR-025).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-025-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-025 file at "
@@ -2205,7 +2206,7 @@ def test_v_0_42_0_utf8_stdout_1_v1_1_shippability_consumer_propagation():
 
     Rule reference: slice-028 AC #5 (shippability consumer propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "UTF8-STDOUT-1 v1.1" in catalog, (
         "architecture/shippability.md missing a UTF8-STDOUT-1 v1.1 row — "
         "SCPD-1 consumer-reference propagation broken"
@@ -2227,7 +2228,7 @@ def test_adr_026_present_and_reversibility_cheap():
 
     Rule reference: slice-028 (ADR-026).
     """
-    decisions_dir = REPO_ROOT / "architecture" / "decisions"
+    decisions_dir = REPO_ROOT / VAULT_ROOT / "decisions"
     adr_files = list(decisions_dir.glob("ADR-026-*.md"))
     assert len(adr_files) == 1, (
         f"Expected exactly one ADR-026 file at "
@@ -2583,7 +2584,7 @@ def test_v_0_43_0_diagnose_sequential_dispatch_shippability_consumer_propagation
 
     Rule reference: slice-029 (shippability consumer propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-029" in catalog, (
         "architecture/shippability.md missing a slice-029 row — "
         "RPCD-1 / SCPD-1 consumer-reference propagation not done"
@@ -2656,7 +2657,7 @@ def test_v_0_50_0_ptffd_1_shippability_consumer_propagation():
 
     Rule reference: slice-037 AC5 (shippability consumer propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "PTFFD-1" in catalog, (
         "architecture/shippability.md missing a PTFFD-1 row — SCPD-1 "
         "consumer-reference propagation broken"
@@ -2739,7 +2740,7 @@ def test_v_0_51_0_srsc_1_shippability_consumer_propagation():
 
     Rule reference: slice-038 AC4 (shippability consumer propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "SRSC-1" in catalog, (
         "architecture/shippability.md missing an SRSC-1 row — SCPD-1 "
         "consumer-reference propagation broken"
@@ -2878,7 +2879,7 @@ def test_v_0_52_0_critique_proposals_shippability_consumer_propagation():
     Rule reference: SCPD-1 (slice-015) + APED-1/MEPD-1 (slice-039 AC5;
     DR-1 M-add-1 selector-token discriminator).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     LIVE_OLD = "::test_critique_dim_9_lists_eleven_sub_clauses"
     LIVE_NEW = "::test_critique_dim_9_lists_twelve_sub_clauses"
     FROZEN = "`_lists_ten_sub_clauses` -> `_lists_eleven_sub_clauses`"
@@ -2996,7 +2997,7 @@ def test_v_0_53_0_mcfs_1_shippability_consumer_propagation():
     Rule reference: MCFS-1 (slice-041; ADR-042 + ADR-043; RPCD-1/SCPD-1
     consumer-reference propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "| 41 | slice-041-reframe-installed-pin-forward-sync-invariant" \
         in catalog, (
             "architecture/shippability.md missing catalog row #41 for "
@@ -3078,7 +3079,7 @@ def test_v_0_54_0_stp_1_shippability_consumer_propagation():
     Rule reference: STP-1 (slice-044; ADR-047; RPCD-1/SCPD-1 consumer-
     reference propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "| 44 | slice-044-add-state-transition-stale-pin-audit" in catalog, (
         "architecture/shippability.md missing catalog row #44 for slice-044 "
         "— RPCD-1/SCPD-1 STP-1 consumer-reference propagation incomplete "
@@ -3202,7 +3203,7 @@ def test_v_0_56_0_soad_1_shippability_consumer_propagation():
     Rule reference: SOAD-1 (slice-048; ADR-050; RPCD-1/SCPD-1 consumer-
     reference propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "| 48 | slice-048-codify-structured-options-ask-rule" in catalog, (
         "architecture/shippability.md missing catalog row #48 for "
         "slice-048 — RPCD-1/SCPD-1 SOAD-1 consumer-reference propagation "
@@ -3273,7 +3274,7 @@ def test_v_0_57_0_osdg_1_shippability_consumer_propagation():
     Rule reference: OSDG-1 (slice-049; ADR-051; RPCD-1/SCPD-1 consumer-
     reference propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 49 | slice-049-add-triage-adopt-skill-drift-guards" in catalog
     ), (
@@ -3358,7 +3359,7 @@ def test_v_0_58_0_avfs_1_shippability_consumer_propagation():
     Rule reference: AVFS-1 (slice-050; ADR-052; RPCD-1/SCPD-1 consumer-
     reference propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 50 | slice-050-add-ai-sdlc-version-forward-sync-gate" in catalog
     ), (
@@ -3451,7 +3452,7 @@ def test_v_0_59_0_osdg_1_reflect_member_shippability_consumer_propagation():
     Rule reference: OSDG-1 (slice-049; ADR-051; member-added at slice-051 /
     ADR-053; RPCD-1/SCPD-1 consumer-reference propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 51 | slice-051-extend-osdg-1-to-reflect-skill" in catalog
     ), (
@@ -3537,7 +3538,7 @@ def test_v_0_60_0_obo_shippability_consumer_propagation():
     Rule reference: ADR-054 (slice-052; RPCD-1/SCPD-1 consumer-reference
     propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 52 | slice-052-add-slice-candidates-obo-mode" in catalog
     ), (
@@ -3643,7 +3644,7 @@ def test_v_0_61_0_bcr_1_shippability_consumer_propagation():
     Rule reference: BCR-1 (slice-053; ADR-055; RPCD-1/SCPD-1 consumer-
     reference propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 53 | slice-053-wire-backlog-md-into-slice-and-reflect" in catalog
     ), (
@@ -3742,7 +3743,7 @@ def test_v_0_62_0_pvfs_1_shippability_consumer_propagation():
     Rule reference: PVFS-1 (slice-054; ADR-056; RPCD-1/SCPD-1 consumer-
     reference propagation; M-add-1 BCR-1-traceability-axis expansion).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 54 | slice-054-fix-pyproject-toml-version-drift" in catalog
     ), (
@@ -3787,7 +3788,7 @@ def test_shippability_row_56_present_and_cites_r15():
     R-15 retirement part-(a) audit trail; slice-054 M-add-1 traceability-
     axis pin discipline analogously applied to risk-register-driven slices).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 56 | slice-056-fix-bcr1-round-trip-test-archive-paths" in catalog
     ), (
@@ -3833,7 +3834,7 @@ def test_shippability_row_57_present_and_cites_r15():
     axis pin discipline analogously applied to risk-register-driven
     slices per slice-056 row-#56 precedent).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 57 | slice-057-retire-r15-via-slice-034-resolve-slice-dir-retrofit" in catalog
     ), (
@@ -3924,7 +3925,7 @@ def test_v_0_63_0_tvfs_1_shippability_consumer_propagation():
     Rule reference: TVFS-1 (slice-059; ADR-058; RPCD-1/SCPD-1 consumer-
     reference propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 59 | slice-059-add-tools-package-version-gate" in catalog
     ), (
@@ -4018,7 +4019,7 @@ def test_v_0_64_0_crsi_1_shippability_consumer_propagation():
     Rule reference: CRSI-1 (slice-060; ADR-059; RPCD-1/SCPD-1 consumer-
     reference propagation).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 60 | slice-060-add-code-review-skill" in catalog
     ), (
@@ -4138,7 +4139,7 @@ def test_v_0_65_0_r15_scope_extension_shippability_consumer_propagation():
     Rule reference: ADR-060 (slice-062; RPCD-1/SCPD-1 consumer-reference
     propagation onto the R-15-scope-extension critical path).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 62 | slice-062-extend-r15-corpus-class-closure-scope" in catalog
     ), (
@@ -4260,7 +4261,7 @@ def test_v_0_66_0_naw_1_shippability_consumer_propagation():
     Rule reference: NAW-1 (slice-063; RPCD-1/SCPD-1 consumer-reference
     propagation onto the NAW-1 critical path).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 63 | slice-063-add-build-slice-new-agent-warning" in catalog
     ), (
@@ -4399,7 +4400,7 @@ def test_v_0_67_0_naw_extend_shippability_consumer_propagation():
     mechanism (slice-064; ADR-062; RPCD-1/SCPD-1 consumer-reference
     propagation onto the slice-064 critical path).
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert (
         "| 64 | slice-064-fix-code-review-diff-resolution-falsifier" in catalog
     ), (
@@ -4527,7 +4528,7 @@ def test_v_0_68_0_branch_2_shippability_consumer_propagation():
     Rule reference: BC-PROJ-10:173 (paired entry-pin precedent N≥17
     inclusive of this slice); BCR-1 traceability axis.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-066-add-worktree-per-slice-discipline" in catalog, (
         "architecture/shippability.md must contain a slice-066 row "
         "(catalog row #66 per BC-PROJ-10:173 paired-entry-pin discipline; "
@@ -4655,7 +4656,7 @@ def test_v_0_69_0_psq_1_shippability_consumer_propagation():
     Rule reference: BC-PROJ-10:173 (paired entry-pin precedent N≥18
     inclusive of this slice); BCR-1 traceability axis.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-067-add-parallel-slice-queue-output" in catalog, (
         "architecture/shippability.md must contain a slice-067 row "
         "(catalog row #67 per BC-PROJ-10:173 paired-entry-pin discipline; "
@@ -4781,7 +4782,7 @@ def test_v_0_70_0_adr_066_shippability_consumer_propagation():
     Rule reference: BC-PROJ-10:173 (paired entry-pin precedent N≥19
     inclusive of this slice); BCR-1 traceability axis.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-069-track-vault-in-git" in catalog, (
         "architecture/shippability.md must contain a slice-069 row "
         "(catalog row #69 per BC-PROJ-10:173 paired-entry-pin discipline)"
@@ -4901,7 +4902,7 @@ def test_v_0_71_0_psq_2_shippability_consumer_propagation():
     Rule reference: BC-PROJ-10:173 (paired entry-pin precedent N≥20
     inclusive of this slice); BCR-1 traceability axis.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-072-add-psq-2-claim-machinery" in catalog, (
         "architecture/shippability.md must contain a slice-072 row "
         "(catalog row #72 per BC-PROJ-10:173 paired-entry-pin discipline)"
@@ -5025,7 +5026,7 @@ def test_v_0_72_0_psq_3_shippability_consumer_propagation():
     Rule reference: BC-PROJ-10:173 (paired entry-pin precedent N≥21
     inclusive of this slice); BCR-1 traceability axis.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-073-add-rebase-and-conflict-discipline" in catalog, (
         "architecture/shippability.md must contain a slice-073 row "
         "(catalog row #73 per BC-PROJ-10:173 paired-entry-pin discipline)"
@@ -5166,7 +5167,7 @@ def test_v_0_75_0_bcsg_1_shippability_consumer_propagation():
 
     Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-080-harden-bc1-critical-rules-exit-gate" in catalog, (
         "architecture/shippability.md must contain a slice-080 row "
         "(catalog row #85 per BC-PROJ-10 paired-entry-pin discipline)"
@@ -5238,7 +5239,7 @@ def test_v_0_76_0_dce_1_shippability_consumer_propagation():
 
     Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     anchor = "test_v_0_76_0_dce_1_entry_present_in_repo"
     assert anchor in catalog, (
         "architecture/shippability.md must contain a DCE-1 gate row citing the "
@@ -5330,7 +5331,7 @@ def test_v_0_73_0_pcr_1_shippability_consumer_propagation():
     Rule reference: BC-PROJ-10:176 (paired entry-pin precedent N≥22
     inclusive of this slice); BCR-1 traceability axis.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-076-add-pcr-1-conflict-diagnostic-and-soft-regen" in catalog, (
         "architecture/shippability.md must contain a slice-076 row "
         "(catalog row #76 per BC-PROJ-10:176 paired-entry-pin discipline)"
@@ -5459,7 +5460,7 @@ def test_v_0_78_0_pfs1_shippability_consumer_propagation():
 
     Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-088-add-project-frame-synthesizer" in catalog, (
         "architecture/shippability.md must contain a slice-088 row (catalog row #93)"
     )
@@ -5472,7 +5473,7 @@ def test_v_0_77_0_pcr_2b_shippability_consumer_propagation():
 
     Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-083-add-pcr-2b-hard-class-conflict-resolution" in catalog, (
         "architecture/shippability.md must contain a slice-083 row (catalog row #83)"
     )
@@ -5493,44 +5494,44 @@ def test_v_0_77_0_pcr_2b_shippability_consumer_propagation():
     )
 
 
-def test_version_files_synchronized_at_v_0_83_0():
-    """AC — 5-part PMI-1 atomic bump 0.82.0 → 0.83.0 (slice-108).
+def test_version_files_synchronized_at_v_0_84_0():
+    """AC — 5-part PMI-1 atomic bump 0.83.0 → 0.84.0 (slice-115; THE flip).
 
     Verifies the 5 canonical version-bearing legs are synchronized at
-    `0.83.0` post-bump:
+    `0.84.0` post-bump:
       (1) `VERSION` file
       (2) `plugin.yaml` version field
       (3) `pyproject.toml [project].version` field (PVFS-1)
-      (4) `## v0.83.0` header in `methodology-changelog.md`
+      (4) `## v0.84.0` header in `methodology-changelog.md`
       (5) installed `~/.claude/ai-sdlc-VERSION` (AVFS-1; verified separately
           by the AVFS-1 audit; this test asserts legs 1-4 only — leg 5 is
           environment-dependent and may be absent on a fresh checkout,
           where AVFS-1 returns WARN per slice-030A meta-M3 parity)
 
-    Renamed from `_at_v_0_82_0` at slice-108 per the slice-067/072/073/078/080/081/083/088/095/099/105/108 etc.
+    Renamed from `_at_v_0_83_0` at slice-115 per the slice-067/072/073/078/080/081/083/088/095/099/105/108/115 etc.
     rename precedent (the version-files test follows live version; the
-    historical v0.82.0 entry persists in the methodology-changelog body).
+    historical v0.83.0 entry persists in the methodology-changelog body).
     slice-099 (BRANCH-3) corrected its design's "4-part" wording to this
     canonical 5-part shape — `pyproject.toml` leg 3 is load-bearing for the
     TVFS-1 pip-wheel rebuild.
     """
     version = read_file("VERSION").strip()
-    assert version == "0.83.0", (
-        f"VERSION file must equal '0.83.0' post-bump; got {version!r}. "
+    assert version == "0.84.0", (
+        f"VERSION file must equal '0.84.0' post-bump; got {version!r}. "
         "5-part PMI-1 leg 1 broken — re-run the bump or fix VERSION manually."
     )
     plugin_yaml = read_file("plugin.yaml")
-    assert "version: 0.83.0" in plugin_yaml or 'version: "0.83.0"' in plugin_yaml, (
-        "plugin.yaml must contain 'version: 0.83.0' post-bump (5-part PMI-1 leg 2)"
+    assert "version: 0.84.0" in plugin_yaml or 'version: "0.84.0"' in plugin_yaml, (
+        "plugin.yaml must contain 'version: 0.84.0' post-bump (5-part PMI-1 leg 2)"
     )
     pyproject = read_file("pyproject.toml")
-    assert 'version = "0.83.0"' in pyproject, (
-        "pyproject.toml [project].version must equal '0.83.0' post-bump (PVFS-1; "
+    assert 'version = "0.84.0"' in pyproject, (
+        "pyproject.toml [project].version must equal '0.84.0' post-bump (PVFS-1; "
         "5-part PMI-1 leg 3)"
     )
     changelog = read_file("methodology-changelog.md")
-    assert "## v0.83.0" in changelog, (
-        "methodology-changelog.md must contain '## v0.83.0' header post-bump "
+    assert "## v0.84.0" in changelog, (
+        "methodology-changelog.md must contain '## v0.84.0' header post-bump "
         "(5-part PMI-1 leg 4)"
     )
 
@@ -5625,7 +5626,7 @@ def test_v_0_80_0_vws_1_shippability_consumer_propagation():
 
     Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-094-harden-vault-write-safety" in catalog, (
         "architecture/shippability.md must contain a slice-094 row (catalog row #104)"
     )
@@ -5727,7 +5728,7 @@ def test_v_0_81_0_branch_3_shippability_consumer_propagation():
 
     Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability axis.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-099-create-worktree-at-slice-pick" in catalog, (
         "architecture/shippability.md must contain a slice-099 row (BC-PROJ-10 "
         "paired-entry-pin discipline; an uncatalogued pin is invisible to the catalog runner)"
@@ -5820,7 +5821,7 @@ def test_v_0_82_0_decouple_shippability_consumer_propagation():
 
     Rule reference: BC-PROJ-10 (paired entry-pin precedent); BCR-1 traceability axis.
     """
-    catalog = read_file("architecture/shippability.md")
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     assert "slice-105-decouple-slice-loop-from-diagnose-out" in catalog, (
         "architecture/shippability.md must contain a slice-105 row (BC-PROJ-10 "
         "paired-entry-pin discipline; an uncatalogued pin is invisible to the catalog runner)"

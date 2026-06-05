@@ -122,8 +122,9 @@ def test_crlf_on_disk_queue_behavior_pinned(tmp_path: Path) -> None:
 def test_shippability_catalog_pins_post_flip_cas() -> None:
     """AC5 / RPCD-1: the shippability catalog carries a slice-109 row pinning the
     post-flip CAS write-safety tests, so the guarantee can never silently regress."""
+    from tools._vault_paths import VAULT_ROOT  # vault-location-aware (post-flip [[ADR-107]])
     ship = (
-        Path(__file__).resolve().parents[2] / "architecture" / "shippability.md"
+        Path(__file__).resolve().parents[2] / VAULT_ROOT / "shippability.md"
     ).read_text(encoding="utf-8")
     assert "slice-109-add-post-flip-vault-conflict-safety" in ship, "no slice-109 shippability row"
     assert "test_post_flip_queue_cas_concurrency.py" in ship, (

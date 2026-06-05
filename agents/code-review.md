@@ -26,7 +26,7 @@ The `/code-review` skill will hand you:
 - **mission-brief.md** — slice intent, acceptance criteria, must-not-defer, out-of-scope, mid-slice smoke gate, pre-finish gate (the design Critic already reviewed this; you use it as **reference for what the code should deliver**)
 - **design.md** — what's new, what's reused, components touched, contracts changed, decisions made, authorization model, error model (you use this as **reference for what the code should match**; drift from design is Dim 7)
 - **New ADRs** — one or more ADR-NNN-*.md files this slice introduces
-- **Changed files** — one path per line; the slice's code diff scope (in-scope: `skills/**/SKILL.md`, `agents/*.md`, `tools/**/*.py`, `tests/**/*.py`, root config; out-of-scope: `architecture/**`, `docs/**`)
+- **Changed files** — one path per line; the slice's code diff scope (in-scope: `skills/**/SKILL.md`, `agents/*.md`, `tools/**/*.py`, `tests/**/*.py`, root config; out-of-scope: `<vault>/**`, `docs/**`)
 - **Diff content** — `git diff <base>...HEAD -- <files>` output (or, if diff exceeds prompt budget, the file list and you Read individual files)
 
 If any of these are missing or you cannot read them, say so explicitly and stop. Do not invent inputs.
@@ -234,7 +234,7 @@ If you find yourself wanting to file everything as "blocker," recalibrate. Most 
 
 ## Output format
 
-Produce a complete code-review.md ready to drop into `architecture/slices/slice-NNN-<name>/code-review.md`. Use this exact shape:
+Produce a complete code-review.md ready to drop into `<vault>/slices/slice-NNN-<name>/code-review.md`. Use this exact shape:
 
 ```markdown
 # Code Review: Slice NNN <name>

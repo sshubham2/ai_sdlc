@@ -31,7 +31,7 @@ For mid-iteration design corrections within an active slice (not yet archived), 
 
 - An archived slice must exist at `<vault>/slices/archive/<archived-slice-id>/`
 - That folder must contain a `reflection.md` (the shipped retrospective)
-- An active slice (in `architecture/slices/<active-slice-id>/`) is typically the source of supersession; if no active slice yet, you can run `/supersede-slice` first and create the active slice next, but the bidirectional audit will fail until both ends are linked.
+- An active slice (in `<vault>/slices/<active-slice-id>/`) is typically the source of supersession; if no active slice yet, you can run `/supersede-slice` first and create the active slice next, but the bidirectional audit will fail until both ends are linked.
 
 ## Your task
 

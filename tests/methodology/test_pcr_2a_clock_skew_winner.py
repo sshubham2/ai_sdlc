@@ -192,7 +192,11 @@ def test_skew_stop_audit_records_both_claims_and_signal(tmp_path) -> None:
     reason = "clock-skew suspected: ... escalate to PCR-2b hand-resolve + TRI-RESOLVE-1"
     _append_skew_stop_audit(tmp_path, reason, winner, loser, now)
 
-    log = (tmp_path / _AUDIT_LOG_PATH).read_text(encoding="utf-8")
+    # slice-115 ([[ADR-107]] — the flip): use the LIVE module attr `_pcr._AUDIT_LOG_PATH`
+    # (re-derived to "architecture/…" relative by the autouse pin), NOT the module-level import
+    # `_AUDIT_LOG_PATH` which froze to the live (post-flip ABSOLUTE external) value at test import —
+    # `tmp_path / <absolute>` resolves to the live external log, not this fixture.
+    log = (tmp_path / _pcr._AUDIT_LOG_PATH).read_text(encoding="utf-8")
     assert "clock-skew STOP" in log
     assert "alice <a@example.com>" in log and "2026-05-29T12:00:00+00:00" in log
     assert "bob <b@example.com>" in log and "2026-05-29T11:00:00+00:00" in log
@@ -222,7 +226,11 @@ def test_suspicious_ordering_returns_stop_with_skew_reason(tmp_path) -> None:
     assert result.conflict_class == ConflictClass.VAULT_CLAIM
     assert "clock-skew" in result.reason.lower() and "PCR-2b" in result.reason
     # forensic audit entry written
-    log = (tmp_path / _AUDIT_LOG_PATH).read_text(encoding="utf-8")
+    # slice-115 ([[ADR-107]] — the flip): use the LIVE module attr `_pcr._AUDIT_LOG_PATH`
+    # (re-derived to "architecture/…" relative by the autouse pin), NOT the module-level import
+    # `_AUDIT_LOG_PATH` which froze to the live (post-flip ABSOLUTE external) value at test import —
+    # `tmp_path / <absolute>` resolves to the live external log, not this fixture.
+    log = (tmp_path / _pcr._AUDIT_LOG_PATH).read_text(encoding="utf-8")
     assert "clock-skew STOP" in log
 
 
