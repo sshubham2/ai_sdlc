@@ -73,13 +73,15 @@ def test_move_source_active_folder_does_not_defer(tmp_path: Path) -> None:
     assert "lessons-learned.md" in ops[0].value, "the DEST literal governs, not the source"
 
 
-def test_move_into_archive_dest_active_source_deferred_only_if_dest_active(tmp_path: Path) -> None:
-    """A move whose DEST is a per-slice active folder → OP_DEFERRED_TO_FLIP (dest governs)."""
+def test_move_into_active_folder_dest_out_of_scope(tmp_path: Path) -> None:
+    """slice-115/[[ADR-107]]: a move whose DEST is a per-slice active folder → OP_OUT_OF_SCOPE
+    (the dest governs; post-flip active-folder writes are per-slice non-contended direct
+    external writes — the R-32.a drain reclassified them OUT of DEFERRED)."""
     _skill(tmp_path, "reflect",
            "run `mv architecture/foo.md architecture/slices/slice-NNN-x/keep.md`\n")
     ops = op_audit_root(tmp_path)
     assert len(ops) == 1
-    assert ops[0].klass == OP_DEFERRED_TO_FLIP
+    assert ops[0].klass == OP_OUT_OF_SCOPE
 
 
 # ── M-add-1: out-of-loop → OP_OUT_OF_SCOPE; in-loop still bites ───────────────
@@ -114,11 +116,13 @@ def test_seam_token_routes(tmp_path: Path) -> None:
     assert ops and all(o.klass == OP_ROUTED for o in ops)
 
 
-def test_active_folder_write_deferred(tmp_path: Path) -> None:
+def test_active_folder_write_out_of_scope(tmp_path: Path) -> None:
+    """slice-115/[[ADR-107]]: a per-slice active-folder write → OP_OUT_OF_SCOPE (was DEFERRED
+    pre-flip). Per-slice non-contended → safe direct external write (the R-32.a drain)."""
     _skill(tmp_path, "validate-slice",
            "Write `architecture/slices/slice-NNN-<name>/validation.md`\n")
     ops = op_audit_root(tmp_path)
-    assert len(ops) == 1 and ops[0].klass == OP_DEFERRED_TO_FLIP
+    assert len(ops) == 1 and ops[0].klass == OP_OUT_OF_SCOPE
 
 
 # ── non-over-flag: reads / bare mentions / bare-`add` NOT flagged ─────────────
@@ -167,25 +171,29 @@ def test_git_add_multipath_each_target(tmp_path: Path) -> None:
 
 # ── floor-shrink + real corpus ───────────────────────────────────────────────
 def test_floor_shrink_helper_reports_shrink() -> None:
-    """_op_floor_shrink flags a class whose count is below its pinned floor (a tmp
-    fixture has far fewer than the real-corpus floors of 11/23)."""
+    """_op_floor_shrink flags a class whose count is below its pinned floor. slice-115/
+    [[ADR-107]]: the OUT_OF_SCOPE floor is now 34 (M-add-1 — tight, no slack after absorbing
+    the 11 reclassified active-folder ops), so a tiny fixture with 1 OUT_OF_SCOPE op is a
+    shrink. This IS the M-add-1 anti-shrink non-vacuity proof (the destination bucket's floor
+    bites a silent shrink; DEFERRED's floor is now 0, so it could no longer carry this proof)."""
     from tools.vault_flip_prose_inventory import OpOccurrence
     tiny = [OpOccurrence("skills/x/SKILL.md", 1, 0, "architecture/x.md",
-                         OP_DEFERRED_TO_FLIP, "t", "x")]
+                         OP_OUT_OF_SCOPE, "t", "x")]
     shrink = _op_floor_shrink(tiny)
-    assert any(OP_DEFERRED_TO_FLIP in s for s in shrink)
+    assert any(OP_OUT_OF_SCOPE in s for s in shrink)
 
 
 def test_real_corpus_op_gate_green() -> None:
-    """After AC1 routing, the REAL corpus has ZERO OP_UNROUTED (the M-add-1 gate is
-    green) and the in-loop allowlist is pinned at 11 skills."""
+    """slice-115/[[ADR-107]]: after the flip's reclassify the REAL corpus has ZERO OP_UNROUTED
+    (gate green) AND ZERO OP_DEFERRED_TO_FLIP (the R-32.a bucket is DRAINED — the class is now
+    structurally unreachable); the in-loop allowlist is pinned at 11 skills."""
     ops = op_audit_root(REPO_ROOT)
     counts = _op_class_counts(ops)
     assert counts[OP_UNROUTED] == 0, (
         f"real corpus must be green; un-routed: "
         f"{[ (o.path,o.line,o.value) for o in ops if o.klass==OP_UNROUTED ]}"
     )
-    assert counts[OP_DEFERRED_TO_FLIP] > 0, "the deferred bucket must be non-empty (AP-12)"
+    assert counts[OP_DEFERRED_TO_FLIP] == 0, "the deferred bucket is DRAINED at the flip (R-32.a)"
     assert len(_IN_LOOP_SKILLS) == _IN_LOOP_SKILLS_COUNT
 
 
@@ -247,15 +255,16 @@ def test_single_clean_move_still_dest_only(tmp_path: Path) -> None:
 # EXTRACTOR is not upgraded to `_OP_SINK_TOKEN_RE` in lockstep with `_OP_SINK_RE` — with the
 # old `_PATH_TOKEN_RE` the `<vault>/` value collapses to the bare prefix and every sink
 # sub-regex (`_ACTIVE_FOLDER_RE` / `_UNDECIDED_DISPOSITION_RE`) misses. ──
-def test_seam_aware_vault_active_folder_sink_deferred(tmp_path: Path) -> None:
-    """A converted `<vault>/slices/slice-NNN/...` in-loop active-folder write → OP_DEFERRED_TO_FLIP.
-    The EXTRACTOR non-vacuity proof: with the old `_PATH_TOKEN_RE` the value collapses to bare
-    `<vault>/`, `_ACTIVE_FOLDER_RE` misses, and it mis-flags OP_UNROUTED."""
+def test_seam_aware_vault_active_folder_sink_out_of_scope(tmp_path: Path) -> None:
+    """slice-115/[[ADR-107]]: a converted `<vault>/slices/slice-NNN/...` in-loop active-folder
+    write → OP_OUT_OF_SCOPE (post-flip per-slice direct external write). The EXTRACTOR non-vacuity
+    proof is preserved: with the old `_PATH_TOKEN_RE` the value collapses to bare `<vault>/`,
+    `_ACTIVE_FOLDER_RE` misses, and it mis-flags OP_UNROUTED (≠ OUT_OF_SCOPE) → this test reds."""
     _skill(tmp_path, "build-slice", "run `git add <vault>/slices/slice-NNN-foo/build-log.md`\n")
     ops = op_audit_root(tmp_path)
     assert len(ops) == 1
-    assert ops[0].klass == OP_DEFERRED_TO_FLIP, (
-        f"a converted <vault>/ active-folder sink must classify DEFERRED (the extractor must "
+    assert ops[0].klass == OP_OUT_OF_SCOPE, (
+        f"a converted <vault>/ active-folder sink must classify OUT_OF_SCOPE (the extractor must "
         f"capture the full token, not bare '<vault>/'); got {ops[0].klass} value={ops[0].value!r}"
     )
     assert "slices/slice-NNN-foo" in ops[0].value, "the full <vault>/ token must be extracted"

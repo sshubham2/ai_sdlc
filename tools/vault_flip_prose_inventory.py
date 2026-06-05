@@ -624,19 +624,24 @@ _OP_ALLOWLIST: dict[tuple[str, str], tuple[str, str]] = {
     # slice-113 (ADR-106): re-hashed — the line's `architecture/components|contracts/<name>.md` converted.
     ("design-slice", "f6e634537607b8529ceb94ff6b7b868548900f4ed010c84266e759c7fa0ff332"):
         (OP_OUT_OF_SCOPE, "Heavy-mode component/contract write; out of slice-111 AC1 scope (archive-mv + drift-log only); owner = prose-rewrite/flip slice"),
-    # slice:264 — per-slice active-folder scaffold reference (abbreviated form).
+    # slice:264 — per-slice active-folder scaffold reference (abbreviated/ellipsis form
+    # _ACTIVE_FOLDER_RE can't match). slice-115 / [[ADR-107]]: reclassified OUT_OF_SCOPE
+    # with the rest of the active-folder class (post-flip per-slice direct external write).
     ("slice", "c965f3d99437c5b83bea62b4b11ae62d408f4e0e16ada17f8e9b46e0ffa2eab0"):
-        (OP_DEFERRED_TO_FLIP, "per-slice active-folder scaffold (abbreviated); same bootstrap-deferred class as the slice:249 scaffold write"),
+        (OP_OUT_OF_SCOPE, "per-slice active-folder scaffold (abbreviated); post-flip direct external write (slice-115/ADR-107)"),
 }
 
 # Per-op-class count floors (a silent shrink trips --strict; AP-12 — the deferred /
-# out-of-scope buckets must not silently empty). Finalized at build against the real
-# corpus (APED-1, 2026-06-04): 6 routed / 11 deferred / 23 out-of-scope / 0 unrouted.
+# out-of-scope buckets must not silently empty). slice-115 / [[ADR-107]] re-pin (APED-1
+# against the real corpus, 2026-06-05): the flip RECLASSIFIES the 11 active-folder ops
+# DEFERRED→OUT_OF_SCOPE (the R-32.a drain) → 6 routed / 0 deferred / 34 out-of-scope / 0
+# unrouted. BOTH floors re-pinned (Critic M-add-1 — moving ops between gate-visible buckets
+# must re-pin BOTH, else the destination gains silent anti-shrink slack).
 # Re-pin these (deliberately) when a slice routes / removes an op (a legit shrink).
 _OP_CLASS_FLOOR: dict[str, int] = {
     OP_UNROUTED: 0,           # the binding invariant: zero un-routed in-loop writes (the gate)
-    OP_DEFERRED_TO_FLIP: 11,  # AP-12: the flip slice's R-32.a drain bucket must stay visible
-    OP_OUT_OF_SCOPE: 23,      # AP-12: out-of-scope writes owned by the prose-rewrite/flip slice
+    OP_DEFERRED_TO_FLIP: 0,   # slice-115: DRAINED at the flip (R-32.a); the class is now structurally unreachable
+    OP_OUT_OF_SCOPE: 34,      # slice-115: 23 + the 11 reclassified active-folder ops (tight, no slack — M-add-1)
 }
 
 
@@ -677,7 +682,14 @@ def _classify_op(line: str, sink: str, *, skill: str, routed: bool) -> tuple[str
     if routed:
         return (OP_ROUTED, "seam-token")
     if _ACTIVE_FOLDER_RE.search(sink) and not _ARCHIVE_DEST_RE.search(sink):
-        return (OP_DEFERRED_TO_FLIP, "active-folder-dest")
+        # slice-115 / [[ADR-107]]: post-flip a per-slice active-folder write resolves to
+        # the EXTERNAL store and is per-slice NON-CONTENDED (two worktrees never write the
+        # SAME slice folder) → a safe DIRECT write that needs no CAS routing. The pre-flip
+        # DEFERRED holding-pattern is RETIRED (the R-32.a drain). This branch is sink-keyed
+        # AND placed ABOVE the in-loop-skill check below (Critic M-add-1), so an IN-loop
+        # active-folder write classifies here (OUT_OF_SCOPE), never falling through to the
+        # allowlist / OP_UNROUTED path.
+        return (OP_OUT_OF_SCOPE, "active-folder-external-direct-write")
     if skill not in _IN_LOOP_SKILLS:
         return (OP_OUT_OF_SCOPE, "out-of-loop-skill")
     if _UNDECIDED_DISPOSITION_RE.search(sink):
