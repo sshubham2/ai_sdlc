@@ -97,3 +97,47 @@ def test_interpreter_and_dash_m_dash_q_tokens_not_flagged(tmp_path):
     assert result.violations == [], (
         f"the one real token exists; expected clean, got {result.to_dict()}"
     )
+
+
+def test_external_vault_catalog_resolves_tests_against_repo_not_vault(tmp_path):
+    """Post-flip ([[ADR-107]]) regression: when shippability.md lives in the
+    EXTERNAL vault store (outside the repo), cited `tests/...` are repo-relative
+    and MUST resolve against the repo (cwd), NOT the external catalog dir.
+
+    Pre-fix, `_find_repo_root` fell back to the catalog's parent (the external
+    store), so every `tests/...` token resolved to `<external>/tests/...` and the
+    whole catalog phantom-FAILed (slice-115 /validate-slice surfaced 486 phantoms,
+    blocking the Step-5.5 shippability gate). This pins the vault-location-aware
+    resolution so a future post-flip /validate-slice never re-breaks.
+
+    Rule reference: PTFCD-1 (slice-115 — post-flip vault-location-awareness).
+    """
+    import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+    from tools import shippability_path_audit as spa
+
+    # Simulate the external vault store: an ABSOLUTE dir OUTSIDE the repo that
+    # holds the catalog but is not itself a repo.
+    ext_vault = tmp_path / "ext-aisdlc-store"
+    ext_vault.mkdir()
+    catalog = ext_vault / "shippability.md"
+    # Cite a test that genuinely exists in THIS repo (repo-relative).
+    catalog.write_text(
+        _HEADER
+        + "| 1 | slice-x | crit | `python -m pytest "
+        "tests/methodology/test_shippability_path_existence.py"
+        "::test_strips_backticks_before_path_resolution -q` | <1s |\n",
+        encoding="utf-8",
+    )
+    # Pin VAULT_ROOT to the simulated external store so the catalog is "under the
+    # external vault" — the post-flip discriminator that routes resolution to cwd.
+    with vi.pin_vault_root(ext_vault, "tools._vault_paths"):
+        root = spa._find_repo_root(catalog)
+        assert root != ext_vault and (root / "VERSION").exists(), (
+            f"_find_repo_root resolved {root!r}; expected the repo root (cwd), "
+            f"NOT the external vault catalog dir {ext_vault!r}"
+        )
+        result = spa.audit_catalog_file(catalog)
+        assert result.violations == [], (
+            "a repo-relative cited test must resolve under the repo post-flip; "
+            f"got {result.to_dict()}"
+        )

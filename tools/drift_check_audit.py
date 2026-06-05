@@ -252,11 +252,9 @@ def audit(slice_folder: Path, repo_root: Path | None = None) -> AuditResult:
 
     # Resolve repo_root if not provided (byte-faithful clone of CRP-1).
     if repo_root is None:
-        for parent in [slice_folder] + list(slice_folder.parents):
-            if (parent / ".git").exists():
-                repo_root = parent
-                break
-        else:
+        from tools._vault_git import resolve_repo_root_for_slice
+        repo_root = resolve_repo_root_for_slice(slice_folder)
+        if repo_root is None:
             return AuditResult(
                 slice_folder=str(slice_folder),
                 slice_number=slice_number,

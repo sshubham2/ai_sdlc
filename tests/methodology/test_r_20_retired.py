@@ -11,6 +11,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from tools._vault_paths import VAULT_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -22,7 +23,7 @@ def test_r_20_status_is_retired_in_risk_register():
             sys.executable,
             "-m",
             "tools.risk_register_audit",
-            str(REPO_ROOT / "architecture" / "risk-register.md"),
+            str(REPO_ROOT / VAULT_ROOT / "risk-register.md"),
             "--json",
             "--filter-status",
             "retired",
@@ -52,7 +53,7 @@ def test_audit_failure_surfaces_stderr():
             sys.executable,
             "-m",
             "tools.risk_register_audit",
-            str(REPO_ROOT / "architecture" / "risk-register.md"),
+            str(REPO_ROOT / VAULT_ROOT / "risk-register.md"),
             "--filter-status",
             "bogus-not-a-status",
         ],

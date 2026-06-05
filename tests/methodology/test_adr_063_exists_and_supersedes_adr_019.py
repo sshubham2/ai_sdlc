@@ -16,11 +16,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from tools._vault_paths import VAULT_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ADR_063_PATH = REPO_ROOT / "architecture" / "decisions" / "ADR-063-worktree-per-slice.md"
-ADR_019_PATH = REPO_ROOT / "architecture" / "decisions" / "ADR-019-branch-per-slice-workflow.md"
-ADR_021_PATH = REPO_ROOT / "architecture" / "decisions" / "ADR-021-utf8-stdout-1-default-utf8-stdout-in-audit-tools.md"
+ADR_063_PATH = REPO_ROOT / VAULT_ROOT / "decisions" / "ADR-063-worktree-per-slice.md"
+ADR_019_PATH = REPO_ROOT / VAULT_ROOT / "decisions" / "ADR-019-branch-per-slice-workflow.md"
+ADR_021_PATH = REPO_ROOT / VAULT_ROOT / "decisions" / "ADR-021-utf8-stdout-1-default-utf8-stdout-in-audit-tools.md"
 
 
 def _parse_frontmatter(path: Path) -> dict[str, str]:

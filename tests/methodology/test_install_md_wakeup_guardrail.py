@@ -18,9 +18,10 @@ Rule reference: INST-1 (INSTALL.md is the INST-1 install recipe).
 import re
 
 from tests.methodology.conftest import REPO_ROOT
+from tools._vault_paths import VAULT_ROOT
 
 INSTALL_MD = REPO_ROOT / "INSTALL.md"
-SHIPPABILITY_MD = REPO_ROOT / "architecture" / "shippability.md"
+SHIPPABILITY_MD = REPO_ROOT / VAULT_ROOT / "shippability.md"
 
 
 def _install_text() -> str:

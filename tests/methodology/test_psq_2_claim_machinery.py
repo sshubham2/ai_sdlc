@@ -31,6 +31,7 @@ from tools.slice_queue_claim import (
 import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
 import tools.slice_queue_writer as _sqw
 from tools.slice_queue_writer import write_slice_queue
+from tools._vault_paths import VAULT_ROOT
 
 # slice-110 / [[ADR-101]]: pin VAULT_ROOT (in-tree relative) + re-derive the frozen
 # index/slices constants so write_slice_queue writes each test's own
@@ -364,7 +365,7 @@ def test_r_19_retired_in_risk_register():
     `**Status**: retired` (NOT `mitigating`) AND a `**Retired**:` field-
     line citing slice-072.
     """
-    risk_register = (REPO_ROOT / "architecture" / "risk-register.md").read_text(encoding="utf-8")
+    risk_register = (REPO_ROOT / VAULT_ROOT / "risk-register.md").read_text(encoding="utf-8")
     r19_idx = risk_register.find("## R-19 ")
     assert r19_idx >= 0, "risk-register.md missing R-19 section"
     next_section = risk_register.find("\n## R-", r19_idx + 1)

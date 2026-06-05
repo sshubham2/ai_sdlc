@@ -25,6 +25,7 @@ from tools.shippability_decoupling_audit import (
     classify_fn,
     _index_module,
 )
+from tools._vault_paths import VAULT_ROOT
 
 _BC_MODULE = "tests/methodology/test_build_checks_audit.py"
 _CHANGELOG_MODULE = "tests/methodology/test_methodology_changelog.py"
@@ -195,7 +196,7 @@ def test_registered_key_resolves_against_real_catalog():
     relocation). Pin: every registered key, run through the audit over the
     REAL catalog, lands in essential_registered (resolves + classifies
     essential + is recognized as registered)."""
-    result = audit(REPO_ROOT / "architecture" / "shippability.md")
+    result = audit(REPO_ROOT / VAULT_ROOT / "shippability.md")
     registered_seen = set(result.essential_registered)
     for key in _REGISTERED_INSTALLED_READERS:
         assert key in registered_seen, (
@@ -299,7 +300,7 @@ def test_allowlist_membership_is_exactly():
 def test_real_catalog_scmd1_clean():
     """End-state: the real shippability.md passes SCMD-1 with zero
     violations. WRITTEN-FAILING until T3+T5+T7 complete."""
-    result = audit(REPO_ROOT / "architecture" / "shippability.md")
+    result = audit(REPO_ROOT / VAULT_ROOT / "shippability.md")
     assert not result.violations, (
         f"{len(result.violations)} SCMD-1 violation(s); first: "
         f"{result.violations[0].kind} — {result.violations[0].detail}"

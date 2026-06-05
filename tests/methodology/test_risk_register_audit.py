@@ -25,6 +25,7 @@ from tools.risk_register_audit import (
     filter_and_sort,
     main,
 )
+from tools._vault_paths import VAULT_ROOT
 
 
 FIXTURES = REPO_ROOT / "tests" / "methodology" / "fixtures" / "risk_register"
@@ -304,7 +305,7 @@ def test_json_filter_status_open_excludes_non_open_real_register_invariant(capsy
     discipline). Pre-fix R-5/R-7 (retired) leaked here.
     Rule reference: R-9 / RR-1.
     """
-    real = str(REPO_ROOT / "architecture" / "risk-register.md")
+    real = str(REPO_ROOT / VAULT_ROOT / "risk-register.md")
     rc, out, _ = _json_risks(capsys, real, "--json", "--filter-status", "open")
     assert rc == 0, f"real register should have no violations, rc={rc}"
     leaked = sorted(
@@ -623,7 +624,7 @@ def test_risk_register_md_schema_description_examples_match_actual_regex():
     """
     import re as re_module
 
-    register_path = REPO_ROOT / "architecture" / "risk-register.md"
+    register_path = REPO_ROOT / VAULT_ROOT / "risk-register.md"
     text = register_path.read_text(encoding="utf-8")
     lines = text.splitlines()
 

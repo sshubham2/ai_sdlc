@@ -87,14 +87,64 @@ class AuditResult:
         }
 
 
-def _find_repo_root(start: Path) -> Path:
-    """Walk up from `start` for a `.git` dir or `VERSION` file sentinel."""
-    cur = start.resolve()
+def _walk_for_repo_sentinel(origin: Path) -> Path | None:
+    """Walk up from `origin` for a `.git` dir/file or `VERSION` file sentinel."""
+    cur = origin.resolve()
     if cur.is_file():
         cur = cur.parent
     for cand in [cur, *cur.parents]:
         if (cand / ".git").exists() or (cand / "VERSION").exists():
             return cand
+    return None
+
+
+def _catalog_under_external_vault(catalog_path: Path) -> bool:
+    """True when `catalog_path` lives under the resolved EXTERNAL vault root.
+
+    Post-flip ([[ADR-107]]) `shippability.md` lives in the external store
+    (`~/.aisdlc/<project>/`), which is OUTSIDE the repo — so the cited
+    `tests/...` are repo-relative, not catalog-relative. This is consulted ONLY
+    when the catalog-anchored walk fails to find a repo, so it cleanly
+    distinguishes the external store's catalog (absolute VAULT_ROOT) from a
+    tmp_path fixture catalog (not under VAULT_ROOT). Returns False for the
+    in-repo `architecture/` default (a RELATIVE VAULT_ROOT) — there the catalog
+    walk already finds the repo and this branch is never reached.
+    """
+    try:
+        # Read the live module attribute (NOT `from … import VAULT_ROOT`) — this
+        # tool merely CONSULTS VAULT_ROOT as a discriminator, it does not route a
+        # vault read through it, so it is intentionally NOT a `_MIGRATION_SITE_
+        # ALLOWLIST` member (which keys on the `from tools._vault_paths import
+        # VAULT_ROOT` frozen-binding string).
+        import tools._vault_paths as _vp
+        vroot = Path(_vp.VAULT_ROOT)
+        if not vroot.is_absolute():
+            return False
+        vroot = vroot.resolve()
+        cat = catalog_path.resolve()
+        return cat == vroot or vroot in cat.parents
+    except Exception:
+        return False
+
+
+def _find_repo_root(start: Path) -> Path:
+    """Resolve the repo root that `tests/...` citations are relative to.
+
+    The catalog normally sits inside the repo (the in-repo `architecture/`
+    default), so walking up from it finds the repo root. Post-flip
+    ([[ADR-107]]) the catalog is the EXTERNAL vault store's `shippability.md`,
+    which is NOT inside the repo — there the cited tests are repo-relative, so
+    resolve from the invocation cwd (the repo worktree). tmp_path fixtures that
+    place fixture tests under the catalog dir keep the legacy catalog-parent
+    fallback (their catalog is not under the external VAULT_ROOT).
+    """
+    from_catalog = _walk_for_repo_sentinel(start)
+    if from_catalog is not None:
+        return from_catalog
+    if _catalog_under_external_vault(start):
+        from_cwd = _walk_for_repo_sentinel(Path.cwd())
+        if from_cwd is not None:
+            return from_cwd
     return start.resolve().parent
 
 

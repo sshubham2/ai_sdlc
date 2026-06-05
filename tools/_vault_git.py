@@ -95,3 +95,39 @@ def vault_is_external(repo_root: Path, vault_root: Path | None = None) -> bool:
     except OSError:
         return False  # resolve glitch → fail-open to in-tree (never spurious RETIRE)
     return resolved != root and root not in resolved.parents
+
+
+def resolve_repo_root_for_slice(slice_folder: "Path") -> "Path | None":
+    """Resolve the git repo root for an audit invoked with a slice-folder path.
+
+    Walk up from ``slice_folder`` for a ``.git`` entry (the pre-flip in-repo slice
+    path resolves immediately; tmp-fixture slice folders with their own ``.git``
+    resolve unchanged). Post-flip ([[ADR-107]]) the slice folder lives in the
+    EXTERNAL vault store, which is NOT inside the repo — no ``.git`` above it — so
+    when ``slice_folder`` is under the external (absolute) ``VAULT_ROOT``, fall back
+    to the invocation cwd's repo (the worktree where the audit runs). Returns the
+    repo root, or ``None`` when no repo can be resolved — preserving the genuine
+    "no .git" usage-error for a NON-external path with no ``.git`` ancestor (the
+    tmp-fixture usage-error tests).
+    """
+    def _walk(origin: Path) -> "Path | None":
+        for parent in [origin] + list(origin.parents):
+            if (parent / ".git").exists():
+                return parent
+        return None
+
+    found = _walk(slice_folder)
+    if found is not None:
+        return found
+    # slice_folder is not inside a repo. If it is the external vault store's slice
+    # folder (post-flip), resolve the repo from the invocation cwd (the worktree).
+    try:
+        vroot = Path(VAULT_ROOT)
+        if vroot.is_absolute():
+            sf = slice_folder.resolve()
+            vroot = vroot.resolve()
+            if sf == vroot or vroot in sf.parents:
+                return _walk(Path.cwd())
+    except OSError:
+        pass
+    return None

@@ -18,11 +18,19 @@ from tests.methodology.conftest import REPO_ROOT
 
 
 @pytest.fixture(autouse=True)
-def _pin_vault_location_agnostic():
+def _pin_vault_location_agnostic(request):
     """slice-110 / [[ADR-101]]: pin VAULT_ROOT to the in-tree relative default so
     ``root / VAULT_ROOT / 'risk-register.md'`` resolves to each test's own tmp
     fixture — green under the default suite AND under an external
-    ``AI_SDLC_VAULT_ROOT`` override (the flip simulation)."""
+    ``AI_SDLC_VAULT_ROOT`` override (the flip simulation).
+
+    Post-flip ([[ADR-107]]) the live self-application test reads the GENUINE
+    external vault: ``audit(root=REPO_ROOT)`` resolves ``REPO_ROOT / VAULT_ROOT /
+    risk-register.md`` → the external store. Pinning "architecture" would point it
+    at the in-tree (now gitignored orphan) copy, so it is excluded from the pin."""
+    if request.node.name == "test_live_repo_self_application_clean":
+        yield
+        return
     with vi.pin_vault_root(Path("architecture"), state_transition_pin_audit):
         yield
 

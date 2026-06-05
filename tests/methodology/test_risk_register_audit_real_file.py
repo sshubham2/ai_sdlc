@@ -15,6 +15,7 @@ Rule reference: slice-002 AC #3.
 """
 from tests.methodology.conftest import REPO_ROOT
 from tools.risk_register_audit import audit_register
+from tools._vault_paths import VAULT_ROOT
 
 
 def test_project_risk_register_audit_clean():
@@ -25,7 +26,7 @@ def test_project_risk_register_audit_clean():
     invisible to /slice's risk-first ranking. Slice-002 converts the
     file to RR-1; this test guards against future regressions.
     """
-    register_path = REPO_ROOT / "architecture" / "risk-register.md"
+    register_path = REPO_ROOT / VAULT_ROOT / "risk-register.md"
     assert register_path.exists(), (
         f"risk-register.md not found at {register_path}; "
         "expected by slice-002 AC #3"
@@ -56,7 +57,7 @@ def test_slice_004_no_regression_in_existing_risk_register():
     Slice-004 must-not-defer item #1.
     Rule reference: RR-1.
     """
-    register_path = REPO_ROOT / "architecture" / "risk-register.md"
+    register_path = REPO_ROOT / VAULT_ROOT / "risk-register.md"
     result = audit_register(register_path)
     by_id = {r.risk_id: r for r in result.risks}
     assert "R-1" in by_id, "R-1 missing from risk-register parse"
@@ -89,7 +90,7 @@ def test_r_3_added_post_slice_019_with_graphify_symbol_conflation_class():
 
     Rule reference: slice-019 AC #5 (RR-1 schema for new entry).
     """
-    register_path = REPO_ROOT / "architecture" / "risk-register.md"
+    register_path = REPO_ROOT / VAULT_ROOT / "risk-register.md"
     result = audit_register(register_path)
     by_id = {r.risk_id: r for r in result.risks}
     assert "R-3" in by_id, (
@@ -137,7 +138,7 @@ def test_r_4_retired_by_slice_041_030c_completes_the_split():
     Rule reference: slice-041 R-4 escalation (RR-1; MCFS-1 / ADR-042 +
     ADR-043; supersedes the slice-031-era `_stays_mitigating` pin).
     """
-    register_path = REPO_ROOT / "architecture" / "risk-register.md"
+    register_path = REPO_ROOT / VAULT_ROOT / "risk-register.md"
     result = audit_register(register_path)
     by_id = {r.risk_id: r for r in result.risks}
     assert "R-4" in by_id, "R-4 missing from risk-register parse"
@@ -182,7 +183,7 @@ def test_r_18_retired_post_slice_063():
     of CRSI-1 / TVFS-1 / PVFS-1 / AVFS-1 forward-sync family but on the
     discovery-gate axis).
     """
-    register_path = REPO_ROOT / "architecture" / "risk-register.md"
+    register_path = REPO_ROOT / VAULT_ROOT / "risk-register.md"
     result = audit_register(register_path)
     by_id = {r.risk_id: r for r in result.risks}
     assert "R-18" in by_id, "R-18 missing from risk-register parse"

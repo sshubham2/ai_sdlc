@@ -12,6 +12,7 @@ import re
 from pathlib import Path
 
 from tools import _stdout
+from tools._vault_paths import VAULT_ROOT  # vault-location-aware live-vault reads (post-flip [[ADR-107]])
 
 _stdout.reconfigure_stdout_utf8()
 
@@ -77,8 +78,8 @@ def test_no_new_tool_migration_and_classification_map_documented() -> None:
     # resolves its design.md in slices/ OR slices/archive/. Exposed at slice-095
     # when the importer-count fix let this assertion run past the count gate.)
     design = next(
-        REPO_ROOT.glob(
-            "architecture/slices/**/slice-093-add-external-vault-support/design.md"
+        (REPO_ROOT / VAULT_ROOT).glob(
+            "slices/**/slice-093-add-external-vault-support/design.md"
         )
     ).read_text(encoding="utf-8")
     assert "Tool-migration classification map" in design
@@ -92,12 +93,13 @@ def test_no_new_tool_migration_and_classification_map_documented() -> None:
 
 def test_r32_registered_and_adr_extends_065() -> None:
     """R-32 is in the risk register and ADR-085 extends (not supersedes) ADR-065."""
-    register = (REPO_ROOT / "architecture/risk-register.md").read_text(encoding="utf-8")
+    register = (REPO_ROOT / VAULT_ROOT / "risk-register.md").read_text(encoding="utf-8")
     assert re.search(r"\bR-32\b", register), "R-32 must be registered in risk-register.md"
 
     adr_path = (
         REPO_ROOT
-        / "architecture/decisions/ADR-085-external-shared-vault-resolution-and-write-safety.md"
+        / VAULT_ROOT
+        / "decisions/ADR-085-external-shared-vault-resolution-and-write-safety.md"
     )
     assert adr_path.exists(), "ADR-085 must exist"
     adr = adr_path.read_text(encoding="utf-8")

@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pytest
 
+from tools._vault_paths import VAULT_ROOT  # vault-location-aware live-vault reads (post-flip [[ADR-107]])
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -84,7 +86,7 @@ def _resolve_slice_dir(slice_number: int) -> Path:
     # archive path so an in-flight slice resolves correctly during its own
     # /build-slice + /validate-slice phases).
     active_matches = [
-        p for p in REPO_ROOT.joinpath("architecture", "slices").glob(
+        p for p in (REPO_ROOT / VAULT_ROOT / "slices").glob(
             f"slice-{n_padded}-*"
         )
         if p.is_dir()
@@ -94,7 +96,7 @@ def _resolve_slice_dir(slice_number: int) -> Path:
 
     # Archive glob fallback (for any slice that has shipped through /reflect).
     archive_matches = [
-        p for p in REPO_ROOT.joinpath("architecture", "slices", "archive").glob(
+        p for p in (REPO_ROOT / VAULT_ROOT / "slices" / "archive").glob(
             f"slice-{n_padded}-*"
         )
         if p.is_dir()

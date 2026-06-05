@@ -26,11 +26,12 @@ from tools.vault_flip_prose_inventory import (
     REWRITE_AT_FLIP,
     _CONVERTED_FILES,
 )
+from tools._vault_paths import VAULT_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CLAUDE_MD = REPO_ROOT / "CLAUDE.md"
 AGENT_MD = REPO_ROOT / "agents" / "critique.md"
-ADR_105 = REPO_ROOT / "architecture" / "decisions" / "ADR-105-prose-vault-seam-placeholder.md"
+ADR_105 = REPO_ROOT / VAULT_ROOT / "decisions" / "ADR-105-prose-vault-seam-placeholder.md"
 
 # The distinctive resolution-rule sentinel authored into CLAUDE.md + the agent note.
 _RULE_SENTINEL = "denotes the vault root"

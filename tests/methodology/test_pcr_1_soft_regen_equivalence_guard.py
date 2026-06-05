@@ -34,7 +34,7 @@ _AUDIT_LOG = "architecture/parallel-conflict-resolution-log.md"
 
 
 @pytest.fixture(autouse=True)
-def _pin_vault_location_agnostic():
+def _pin_vault_location_agnostic(request):
     """slice-110 / [[ADR-101]]: pin VAULT_ROOT to the in-tree relative default so
     the resolver reads/writes its own ``<repo_root>/architecture/...`` fixtures
     (slice-queue, shippability, the frozen ``_AUDIT_LOG_PATH``) AND so
@@ -43,7 +43,14 @@ def _pin_vault_location_agnostic():
     default suite AND under an external ``AI_SDLC_VAULT_ROOT`` override (the flip
     simulation). ``_vault_git`` is in the pin set because the resolver's
     ``vault_is_external`` gate reads its frozen ``VAULT_ROOT``; the frozen
-    ``_AUDIT_LOG_PATH`` is re-derived via ``derived``."""
+    ``_AUDIT_LOG_PATH`` is re-derived via ``derived``.
+
+    Post-flip ([[ADR-107]]) ``test_shippability_pins_equivalence_guard`` reads the
+    LIVE shippability catalog (genuine external VAULT_ROOT), so it is excluded from
+    the in-tree "architecture" pin."""
+    if request.node.name == "test_shippability_pins_equivalence_guard":
+        yield
+        return
     with vi.pin_vault_root(
         pathlib.Path("architecture"), _vgit, _pcr,
         derived=[(_pcr, "_AUDIT_LOG_PATH",
@@ -317,8 +324,9 @@ def test_cross_stage_claim_drop_warns_not_stops(tmp_path, capfd) -> None:
 def test_shippability_pins_equivalence_guard() -> None:
     """AC-5: `architecture/shippability.md` carries a row whose Command targets this
     guard's test module, so R-21's corner-class can never silently regress."""
+    from tools._vault_paths import VAULT_ROOT  # vault-location-aware (post-flip [[ADR-107]])
     repo_root = pathlib.Path(__file__).resolve().parents[2]
-    catalog = (repo_root / "architecture" / "shippability.md").read_text(encoding="utf-8")
+    catalog = (repo_root / VAULT_ROOT / "shippability.md").read_text(encoding="utf-8")
     rows = [ln for ln in catalog.splitlines()
             if ln.startswith("|") and "slice-082-harden-pcr-1-soft-regen-corner-case" in ln]
     assert rows, "shippability.md has no row for slice-082"

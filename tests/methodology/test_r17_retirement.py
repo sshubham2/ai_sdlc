@@ -14,9 +14,10 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from tools._vault_paths import VAULT_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-RISK_REGISTER_PATH = REPO_ROOT / "architecture" / "risk-register.md"
+RISK_REGISTER_PATH = REPO_ROOT / VAULT_ROOT / "risk-register.md"
 
 
 def test_r17_status_is_retired_post_slice_066() -> None:

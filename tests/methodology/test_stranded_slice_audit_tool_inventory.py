@@ -15,12 +15,13 @@ from __future__ import annotations
 import re
 
 from tests.methodology.conftest import REPO_ROOT
+from tools._vault_paths import VAULT_ROOT
 
 _TOOL_PATH = REPO_ROOT / "tools" / "stranded_slice_audit.py"
 _PLUGIN_YAML = REPO_ROOT / "plugin.yaml"
 _INSTALL_AUDIT = REPO_ROOT / "tools" / "install_audit.py"
 _INSTALL_MD = REPO_ROOT / "INSTALL.md"
-_SHIPPABILITY = REPO_ROOT / "architecture" / "shippability.md"
+_SHIPPABILITY = REPO_ROOT / VAULT_ROOT / "shippability.md"
 _UTF8_TEST = REPO_ROOT / "tests" / "methodology" / "test_utf8_stdout_regression.py"
 
 

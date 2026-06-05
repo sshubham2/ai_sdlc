@@ -29,6 +29,7 @@ from pathlib import Path
 
 from tests.methodology.conftest import REPO_ROOT
 from tools import ai_sdlc_tools_version_forward_sync as tvfs
+from tools._vault_paths import VAULT_ROOT
 
 
 # --------------------------------------------------------------------------- #
@@ -186,7 +187,7 @@ def test_tvfs1_module_is_non_catalog():
     metadata; a shippability `Machine-cmd` must not depend on such state
     (slice-029/030A). The module must NOT be cited in any `Machine-cmd` cell
     — only the two in-repo-only entry-pins carry row #59."""
-    catalog = (REPO_ROOT / "architecture" / "shippability.md").read_text(
+    catalog = (REPO_ROOT / VAULT_ROOT / "shippability.md").read_text(
         encoding="utf-8"
     )
     for line in catalog.splitlines():
