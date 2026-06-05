@@ -87,6 +87,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from tools import _stdout
+from tools._forward_sync_base import installed_is_sibling_ahead
 
 _VERSION_REL = "VERSION"
 _INSTALLED = Path.home() / ".claude" / "ai-sdlc-VERSION"
@@ -163,11 +164,30 @@ def check(root: Path, installed: Path | None = None) -> CheckResult:
     # EOL. empty ≠ absent — an empty or whitespace-only present installed
     # file is divergent ⇒ HALT (R-4-class not silently reopened).
     if _normalized_bytes(in_repo) != _normalized_bytes(installed_path):
-        result.status = "drift"
-        result.exit_code = 1
-        result.divergences.append(
-            _ATTRIB.format(in_repo=in_repo, installed=installed_path)
-        )
+        # slice-117 / ADR-108 (version gate → version-ordering, NOT merge-base):
+        # installed strictly-newer semver than in-repo ⟹ a sibling forward-synced
+        # ~/.claude/ai-sdlc-VERSION ahead (external-drift WARN, exit 0). Installed
+        # older/equal-but-divergent, OR either side unparseable/odd-arity (None) ⟹
+        # self bumped-but-unsynced (HALT). Decode bytes leniently — a non-semver
+        # installed value yields None → strict HALT (never mask).
+        in_repo_v = in_repo.read_bytes().decode("utf-8", "replace")
+        installed_v = installed_path.read_bytes().decode("utf-8", "replace")
+        if installed_is_sibling_ahead(in_repo_v, installed_v) is True:
+            result.status = "external-drift"
+            result.exit_code = 0
+            result.warnings.append(
+                f"EXTERNAL-DRIFT (not a slice regression): installed "
+                f"{installed_path} ({installed_v.strip()}) is a strictly-newer "
+                f"version than in-repo {in_repo} ({in_repo_v.strip()}) — a sibling "
+                f"slice forward-synced ~/.claude/ ahead. Rebase onto the default "
+                f"branch to catch up."
+            )
+        else:
+            result.status = "drift"
+            result.exit_code = 1
+            result.divergences.append(
+                _ATTRIB.format(in_repo=in_repo, installed=installed_path)
+            )
         return result
 
     result.status = "synced"
@@ -182,6 +202,9 @@ def _format_human(result: CheckResult) -> str:
     if result.status == "drift":
         return "AVFS-1 ai-sdlc-VERSION forward-sync: DRIFT (HALT)\n\n" + \
             "".join(f"  {d}\n" for d in result.divergences)
+    if result.status == "external-drift":
+        return "AVFS-1 ai-sdlc-VERSION forward-sync: PASS (external-drift WARN — not a slice regression)\n\n" + \
+            "".join(f"  {w}\n" for w in result.warnings)
     if result.status == "warn":
         return "AVFS-1 ai-sdlc-VERSION forward-sync: PASS (with WARN)\n\n" + \
             "".join(f"  WARN: {w}\n" for w in result.warnings)
@@ -227,6 +250,21 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     result = check(root)
+
+    if result.status == "external-drift":
+        # ADR-108 round-2 M1: persist a recoverable breadcrumb (advisory — never
+        # changes the gate verdict/exit code).
+        try:
+            from tools._forward_sync_breadcrumb import emit_external_drift
+            emit_external_drift(
+                "AVFS-1", _VERSION_REL,
+                "; ".join(result.warnings) or "installed strictly-newer (sibling-ahead)",
+            )
+        except (OSError, TimeoutError, ImportError) as exc:
+            sys.stderr.write(
+                f"AVFS-1: external-drift breadcrumb write failed (advisory, "
+                f"gate verdict unchanged): {exc}\n"
+            )
 
     if args.json:
         sys.stdout.write(json.dumps(result.to_dict(), indent=2) + "\n")

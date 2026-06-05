@@ -2301,3 +2301,52 @@ def test_format_human_default_path_has_no_strict_diagnostic(tmp_path: Path):
     )
     out = _format_human(result)
     assert "BCSG-1" not in out and "acknowledgment gate" not in out
+
+
+def test_bc_proj_19_has_expected_structural_identity():
+    """BC-PROJ-19 (slice-117 /reflect Step-5b promotion) MUST parse to its
+    expected full structural identity (a slice migrating a SHARED resolver/
+    helper/idiom must convert the WHOLE helper family, not only the members it
+    exercises). Canonical fixture = subject; these literal constants = git-
+    tracked oracle (ADR-028). BCI-1 separately asserts the gitignored live
+    build-checks.md matches the fixture.
+
+    Defect class: a silent truncation / mis-author of BC-PROJ-19 would lose the
+    "migrate the whole helper family, not just the exercised members" evergreen
+    check with no loud signal (R-4 class). N=2: slice-115's external-vault flip
+    converted 3 repo-root resolvers (BRANCH-1/CRP-1/DCE-1) but left TF-1's
+    `_find_repo_root` straggler; slice-117 (first post-flip test-first slice)
+    surfaced + fixed it. Complements BC-PROJ-18 (prove-green-with-moved-from-hidden).
+
+    Rule reference: BC-1 (slice-117 /reflect Step 5b; user-approved project
+    promotion of the migrate-the-whole-helper-family discipline).
+    """
+    from tools.build_checks_audit import _parse_rules
+
+    project_text = _CANONICAL_PROJECT_FIXTURE.read_text(encoding="utf-8")
+    p_rules, _ = _parse_rules(
+        project_text, source="project", path=str(_CANONICAL_PROJECT_FIXTURE)
+    )
+    p_by_id = {r.rule_id: r for r in p_rules}
+    assert "BC-PROJ-19" in p_by_id, "BC-PROJ-19 not parsed from project fixture"
+    p19 = p_by_id["BC-PROJ-19"]
+    assert p19.severity == "Important", f"BC-PROJ-19 severity: {p19.severity!r}"
+    assert p19.applies_to == ("tools/*.py",), (
+        f"BC-PROJ-19 applies_to mismatch: got {p19.applies_to!r}"
+    )
+    assert p19.trigger_keywords == (
+        "resolver", "parity", "straggler", "forward-sync", "migrate",
+        "migration",
+    ), f"BC-PROJ-19 trigger_keywords mismatch: got {p19.trigger_keywords!r}"
+    assert p19.trigger_anchors == (), (
+        f"BC-PROJ-19 trigger_anchors mismatch (expected none): "
+        f"got {p19.trigger_anchors!r}"
+    )
+    assert p19.negative_anchors == (), (
+        f"BC-PROJ-19 negative_anchors mismatch (expected none): "
+        f"got {p19.negative_anchors!r}"
+    )
+    assert p19.check and p19.check.strip(), "BC-PROJ-19 check must be non-empty"
+    assert "straggler" in p19.check and "helper family" in p19.check, (
+        "BC-PROJ-19 check body MUST cite the whole-helper-family straggler discipline"
+    )

@@ -48,15 +48,22 @@ def test_synced_when_installed_equals_version(tmp_path: Path):
 # seam-injected: drift HALTs (must-not-mask) — genuine non-tautological case   #
 # --------------------------------------------------------------------------- #
 def test_drift_halts_exit1_with_attribution(tmp_path: Path):
-    """The installed-version side is injected (`9.9.9`) independently of the
-    in-repo `VERSION` — so this drift case genuinely exercises the mismatch
-    branch (B2: editing `VERSION` alone cannot, since the real resolver and
-    the in-repo egg-info both derive from `VERSION`)."""
+    """The installed-version side is injected independently of the in-repo
+    `VERSION` (B2: editing `VERSION` alone cannot exercise the mismatch branch,
+    since the real resolver and the in-repo egg-info both derive from it).
+
+    slice-117 / ADR-108: under version-ordering the drift-HALT branch is the
+    installed-side being a STRICTLY-OLDER version than in-repo — the genuine
+    stale-venv case (a `pip install --upgrade` that never ran; M-add-2
+    must-not-mask). An installed value NEWER than in-repo is now external-drift
+    (a sibling re-installed the shared venv ahead) — see
+    test_forward_sync_parallel_safety.py::test_tvfs1_installed_newer_is_external."""
     root = tmp_path / "repo"
     root.mkdir()
     (root / "VERSION").write_text("0.63.0\n", encoding="utf-8")
 
-    r = tvfs.check(root, installed_version_resolver=lambda: "9.9.9")
+    # 0.20.0 < 0.63.0 → stale venv → genuine self-caused drift → HALT.
+    r = tvfs.check(root, installed_version_resolver=lambda: "0.20.0")
     assert r.status == "drift" and r.exit_code == 1, r.to_dict()
     assert "NOT a slice regression" in r.divergences[0], r.divergences
     assert "INSTALL.md Step 3g" in r.divergences[0], r.divergences

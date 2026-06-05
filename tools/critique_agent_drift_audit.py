@@ -45,6 +45,13 @@ import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from tools import _stdout
+from tools._forward_sync_base import slice_modified_source
+
+# Single source for the gated source path (slice-117 / ADR-108 / round-2 m1):
+# feeds BOTH the `repo_root / _CRITIQUE_REL` filesystem path AND the
+# `git show <base>:<_CRITIQUE_REL>` pathspec inside slice_modified_source, so the
+# forward-slash literal cannot drift across the two spellings.
+_CRITIQUE_REL = "agents/critique.md"
 
 
 @dataclass(frozen=True)
@@ -68,6 +75,11 @@ class AuditResult:
     in_repo_sha256: str = ""
     installed_sha256: str = ""
     violations: list[CritiqueDriftViolation] = field(default_factory=list)
+    # slice-117 / ADR-108: a sha-mismatch whose in-repo source this slice did
+    # NOT modify (a sibling forward-synced ~/.claude/) is external-drift — a
+    # WARN at exit 0, NOT a blocking content-drift violation.
+    external_drift: bool = False
+    external_drift_note: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -79,9 +91,12 @@ class AuditResult:
             "in_repo_sha256": self.in_repo_sha256,
             "installed_sha256": self.installed_sha256,
             "violations": [v.to_dict() for v in self.violations],
+            "external_drift": self.external_drift,
+            "external_drift_note": self.external_drift_note,
             "summary": {
                 "violation_count": len(self.violations),
                 "clean": len(self.violations) == 0,
+                "external_drift": self.external_drift,
             },
         }
 
@@ -154,8 +169,8 @@ def run_audit(repo_root: Path, claude_dir: Path) -> AuditResult:
         result.violations.append(sanity)
         return result
 
-    in_repo = repo_root / "agents" / "critique.md"
-    installed = claude_dir / "agents" / "critique.md"
+    in_repo = repo_root / _CRITIQUE_REL
+    installed = claude_dir / _CRITIQUE_REL
     result.in_repo_path = str(in_repo)
     result.installed_path = str(installed)
 
@@ -189,26 +204,49 @@ def run_audit(repo_root: Path, claude_dir: Path) -> AuditResult:
     result.installed_sha256 = _sha256_of(installed)
 
     if result.in_repo_sha256 != result.installed_sha256:
-        result.violations.append(CritiqueDriftViolation(
-            kind="content-drift",
-            severity="Important",
-            paths=[str(in_repo), str(installed)],
-            hashes=[result.in_repo_sha256, result.installed_sha256],
-            message=(
-                f"content-drift between in-repo and installed agents/critique.md.\n"
-                f"  in-repo:   {in_repo} (sha256: {result.in_repo_sha256})\n"
-                f"  installed: {installed} (sha256: {result.installed_sha256})\n"
-                f"Per /critic-calibrate skill prose, the in-repo copy is "
-                f"canonical; forward-sync the in-repo content to ~/.claude/, "
-                f"OR (if installed has content in-repo doesn't) back-sync "
-                f"first per slice-005+006 bidirectional discipline."
-            ),
-        ))
+        # slice-117 / ADR-108 (content gate → merge-base discriminator): a
+        # sha-mismatch is only a BLOCKING content-drift if THIS slice modified
+        # agents/critique.md. If the in-repo source is unchanged vs the slice's
+        # merge-base, the installed copy diverged because a sibling slice
+        # forward-synced the shared ~/.claude/ — external-drift (WARN, exit 0),
+        # NOT this slice's regression (R-28). Fail-closed: slice_modified_source
+        # returns True on any git failure / detached HEAD / default branch.
+        if slice_modified_source(repo_root, _CRITIQUE_REL):
+            result.violations.append(CritiqueDriftViolation(
+                kind="content-drift",
+                severity="Important",
+                paths=[str(in_repo), str(installed)],
+                hashes=[result.in_repo_sha256, result.installed_sha256],
+                message=(
+                    f"content-drift between in-repo and installed agents/critique.md.\n"
+                    f"  in-repo:   {in_repo} (sha256: {result.in_repo_sha256})\n"
+                    f"  installed: {installed} (sha256: {result.installed_sha256})\n"
+                    f"Per /critic-calibrate skill prose, the in-repo copy is "
+                    f"canonical; forward-sync the in-repo content to ~/.claude/, "
+                    f"OR (if installed has content in-repo doesn't) back-sync "
+                    f"first per slice-005+006 bidirectional discipline."
+                ),
+            ))
+        else:
+            result.external_drift = True
+            result.external_drift_note = (
+                f"EXTERNAL-DRIFT (not a slice regression): installed "
+                f"agents/critique.md differs but this slice did not modify it "
+                f"(unchanged vs merge-base) — a sibling slice forward-synced "
+                f"~/.claude/. Rebase onto the default branch to catch up. "
+                f"in-repo sha256={result.in_repo_sha256[:16]}…, "
+                f"installed sha256={result.installed_sha256[:16]}…"
+            )
 
     return result
 
 
 def _format_human(result: AuditResult) -> str:
+    if result.external_drift and not result.violations:
+        return (
+            "CAD-1: PASS (external-drift WARN — not a slice regression)\n\n"
+            f"  {result.external_drift_note}\n"
+        )
     if not result.violations:
         return (
             f"CAD-1: clean - agents/critique.md content-equal (EOL-agnostic) across in-repo "
@@ -248,6 +286,20 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     result = run_audit(repo_root=args.repo_root, claude_dir=args.claude_dir)
+
+    if result.external_drift:
+        # ADR-108 round-2 M1: persist a recoverable breadcrumb to the external
+        # store so an external-drift WARN (exit 0, a PASS by contract) is not a
+        # silent pass. Advisory — a breadcrumb-write failure is surfaced to
+        # stderr but NEVER changes the gate verdict/exit code.
+        try:
+            from tools._forward_sync_breadcrumb import emit_external_drift
+            emit_external_drift("CAD-1", _CRITIQUE_REL, result.external_drift_note)
+        except (OSError, TimeoutError, ImportError) as exc:
+            sys.stderr.write(
+                f"CAD-1: external-drift breadcrumb write failed (advisory, "
+                f"gate verdict unchanged): {exc}\n"
+            )
 
     if args.json:
         sys.stdout.write(json.dumps(result.to_dict(), indent=2) + "\n")

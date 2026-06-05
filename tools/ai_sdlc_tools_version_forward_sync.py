@@ -98,6 +98,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from tools import _stdout
+from tools._forward_sync_base import installed_is_sibling_ahead
 
 _VERSION_REL = "VERSION"
 _DIST_NAME = "ai-sdlc-tools"
@@ -267,13 +268,29 @@ def check(
         return result
 
     if installed_version.strip() != in_repo_version:
-        result.status = "drift"
-        result.exit_code = 1
-        result.divergences.append(
-            _ATTRIB_DRIFT.format(
-                installed=installed_version.strip(), in_repo=in_repo_version
+        # slice-117 / ADR-108 (version gate → version-ordering): installed
+        # strictly-newer than in-repo ⟹ a sibling re-installed the shared venv
+        # ahead (external-drift WARN). Installed OLDER ⟹ a genuinely stale venv
+        # never `pip install --upgrade`d (M-add-2 must-not-mask) → HALT.
+        # Unparseable (None) ⟹ strict HALT (never mask).
+        if installed_is_sibling_ahead(in_repo_version, installed_version.strip()) is True:
+            result.status = "external-drift"
+            result.exit_code = 0
+            result.warnings.append(
+                f"EXTERNAL-DRIFT (not a slice regression): the installed "
+                f"ai-sdlc-tools venv package (v{installed_version.strip()}) is a "
+                f"strictly-newer version than in-repo VERSION (v{in_repo_version}) "
+                f"— a sibling slice re-installed the shared venv ahead. Rebase onto "
+                f"the default branch to catch up."
             )
-        )
+        else:
+            result.status = "drift"
+            result.exit_code = 1
+            result.divergences.append(
+                _ATTRIB_DRIFT.format(
+                    installed=installed_version.strip(), in_repo=in_repo_version
+                )
+            )
         return result
 
     result.status = "synced"
@@ -291,6 +308,11 @@ def _format_human(result: CheckResult) -> str:
         return (
             "TVFS-1 ai-sdlc-tools version forward-sync: DRIFT (HALT)\n\n"
             + "".join(f"  {d}\n" for d in result.divergences)
+        )
+    if result.status == "external-drift":
+        return (
+            "TVFS-1 ai-sdlc-tools version forward-sync: PASS (external-drift WARN — not a slice regression)\n\n"
+            + "".join(f"  {w}\n" for w in result.warnings)
         )
     if result.status == "warn":
         return (
@@ -339,6 +361,21 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     result = check(root)
+
+    if result.status == "external-drift":
+        # ADR-108 round-2 M1: persist a recoverable breadcrumb (advisory — never
+        # changes the gate verdict/exit code).
+        try:
+            from tools._forward_sync_breadcrumb import emit_external_drift
+            emit_external_drift(
+                "TVFS-1", _VERSION_REL,
+                "; ".join(result.warnings) or "installed venv strictly-newer (sibling-ahead)",
+            )
+        except (OSError, TimeoutError, ImportError) as exc:
+            sys.stderr.write(
+                f"TVFS-1: external-drift breadcrumb write failed (advisory, "
+                f"gate verdict unchanged): {exc}\n"
+            )
 
     if args.json:
         sys.stdout.write(json.dumps(result.to_dict(), indent=2) + "\n")

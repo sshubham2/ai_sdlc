@@ -46,6 +46,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from tools import _pyfn, _stdout
+from tools._vault_git import resolve_repo_root_for_slice
 
 # Date this rule shipped. NFR-1 carry-over.
 _TF_1_RELEASE_DATE: date = date(2026, 5, 6)
@@ -270,9 +271,17 @@ def _find_repo_root(start: Path) -> Path:
     """Walk up from `start` for a `.git` dir or `VERSION` file sentinel.
 
     PTFCD-1: the existence check resolves a row's Test path repo-root-relative.
-    Falls back to the brief's grandparent..parent chain root if no sentinel is
-    found (never raises — a wrong root just yields a not-exists violation the
-    user can read and correct, which is the intended PTFCD-1 signal).
+
+    Post-flip ([[ADR-107]]) the slice folder lives in the EXTERNAL vault store,
+    which has no `.git`/`VERSION` ancestor — so the walk-up cannot reach the
+    worktree repo where the cited test files live. When the walk-up finds no
+    sentinel, fall back to `resolve_repo_root_for_slice` (the slice-115 parity
+    helper already used by BRANCH-1/CRP-1/DCE-1): it maps an external-vault slice
+    folder to the invocation cwd's worktree repo. slice-117 / ADR-108 closes
+    this TF-1 flip-straggler (the 4th audit migrated to the shared resolver).
+    Final fallback to the brief's parent (unchanged — a wrong root just yields a
+    not-exists violation the user can read and correct, the intended PTFCD-1
+    signal).
     """
     cur = start.resolve()
     if cur.is_file():
@@ -280,6 +289,9 @@ def _find_repo_root(start: Path) -> Path:
     for cand in [cur, *cur.parents]:
         if (cand / ".git").exists() or (cand / "VERSION").exists():
             return cand
+    external = resolve_repo_root_for_slice(cur)
+    if external is not None:
+        return external
     return start.resolve().parent
 
 
