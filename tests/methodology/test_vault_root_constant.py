@@ -114,11 +114,20 @@ def test_vault_root_module_exports_constant() -> None:
 def test_vault_root_default_equals_path_architecture(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """AC1: when AI_SDLC_VAULT_ROOT is unset, VAULT_ROOT == Path("architecture")."""
+    """AC1: when AI_SDLC_VAULT_ROOT is unset AND no git-common-dir config is present, the
+    default resolution is Path("architecture").
+
+    slice-115 (ADR-107 — THE flip): this repo NOW carries a live `aisdlc/vault-root` config
+    (it is flipped — the dog-fooding the slice exists for), so a module *reload* would read
+    the live config and resolve EXTERNAL. The default-resolution MECHANISM is therefore
+    verified in ISOLATION: env unset AND `_read_common_dir_config` stubbed to None, calling
+    `_resolve_vault_root()` directly (no reload — so the stub stays in effect). This still
+    catches a genuine default-resolution regression, it just no longer asserts the live
+    repo is unflipped (it isn't)."""
     monkeypatch.delenv("AI_SDLC_VAULT_ROOT", raising=False)
-    import tools._vault_paths
-    importlib.reload(tools._vault_paths)
-    assert tools._vault_paths.VAULT_ROOT == Path("architecture")
+    import tools._vault_paths as vp
+    monkeypatch.setattr(vp, "_read_common_dir_config", lambda: None)
+    assert vp._resolve_vault_root() == Path("architecture")
 
 
 # ─── AC2: migration sites + two-marker convention ───────────────────────

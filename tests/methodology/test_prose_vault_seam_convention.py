@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import _vault_isolation as vi  # tests/ on sys.path via tests/conftest.py
+
 from tools import _vault_paths
 from tools.vault_flip_prose_inventory import (
     audit_root,
@@ -107,12 +109,16 @@ def test_agent_critique_embeds_self_sufficient_vault_note():
 # ── AC4 ──────────────────────────────────────────────────────────────────────
 def test_seam_token_resolves_to_architecture_default():
     """The convention's documented default (`architecture/`) matches what the code
-    seam resolves to in this repo (no env / no git-common-dir config) — the
-    no-pre-flip-behaviour-change contract: prose and code resolve identically."""
-    assert _vault_paths.VAULT_ROOT == Path("architecture"), (
-        "the code seam must resolve to architecture/ in-repo (no flip) — the "
-        "convention's stated default must mirror it"
-    )
+    seam resolves to with no env / no git-common-dir config — prose and code resolve
+    identically. slice-115 ([[ADR-107]] — THE flip): this repo is now genuinely flipped
+    (a live config makes the ambient VAULT_ROOT external), so the default-resolution
+    MECHANISM is verified via the isolation helper (env + config stubbed), not the live
+    VAULT_ROOT."""
+    with vi.default_vault_root() as vr:
+        assert vr == Path("architecture"), (
+            "the code seam's default must resolve to architecture/ — the convention's "
+            "stated default must mirror it"
+        )
     # the CLAUDE.md rule states architecture/ as the plain-prose default
     assert "architecture/" in CLAUDE_MD.read_text(encoding="utf-8")
 

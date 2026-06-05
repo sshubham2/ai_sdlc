@@ -35,19 +35,25 @@ FIXTURE_DIR = REPO_ROOT / "tests" / "methodology" / "fixtures" / "utf8_stdout" /
 PY = sys.executable
 
 
-def _run_under_cp1252(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
+def _run_under_cp1252(
+    args: list[str], cwd: Path | None = None, vault_dir: Path | str | None = None
+) -> subprocess.CompletedProcess:
     """Run a subprocess simulating Windows cp1252 parent shell.
 
     Parent-side: text=True + encoding="utf-8" + errors="replace" so the
     parent's own decode doesn't crash on child's UTF-8 output.
     Child-side env: PYTHONIOENCODING=cp1252 + PYTHONUTF8=0 — simulates
     Windows default console encoding that the slice's helper fixes.
+
+    ``vault_dir``: slice-115 ([[ADR-107]] — THE flip). For a child that READS the
+    vault (e.g. project_frame_synth), pass the test's own fixture vault so the child
+    resolves IT via ``AI_SDLC_VAULT_ROOT`` (env precedence). Default ``None`` STRIPS
+    the var (slice-110 behaviour) — but post-real-flip that is NOT isolation: the
+    child still reads the live ``$GIT_COMMON_DIR/aisdlc/vault-root`` config and
+    resolves the EXTERNAL store. So a vault-reading child MUST pass ``vault_dir``.
     """
     env = {**os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
-    # slice-110 / [[ADR-101]]: strip AI_SDLC_VAULT_ROOT (via the shared helper) so
-    # each child tool resolves its own default vault, not a flip-sim external root
-    # inherited from the parent.
-    env = vi.subprocess_env(base=env)
+    env = vi.subprocess_env(vault_dir=vault_dir, base=env)
     return subprocess.run(
         args,
         capture_output=True,
@@ -189,6 +195,7 @@ def test_project_frame_synth_survives_cp1252_with_u2192(tmp_path):
     proc = _run_under_cp1252(
         [PY, "-m", "tools.project_frame_synth",
          "--repo-root", str(tmp_path), "--slice-dir", str(slice_dir)],
+        vault_dir=arch,  # slice-115/ADR-107: resolve the FIXTURE vault, not the live (flipped) config
     )
     _assert_no_encoding_error(proc, "tools.project_frame_synth")
     # /code-review m1: positively assert the U+2192 survived to stdout — proves
