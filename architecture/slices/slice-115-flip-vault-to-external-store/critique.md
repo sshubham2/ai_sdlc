@@ -84,3 +84,28 @@ The readiness arc (093→114) is genuinely complete and the high-level approach 
 - [x] Drift from vault — M2 (ADR-085 "+`diagnose-out/`" scope silently narrowed), B1 (ADR-107 itself would be lost — self-defeating drift); partial-supersede of ADR-090 correctly declared.
 - [x] Web-known issues — confirmed `git rm --cached architecture/` on a branch + no-ff merge leaves master's working tree with untracked `architecture/` (design step-7 orphan cleanup is correct git semantics; gitignore-immediately at step 5 is correct). Sources: git-scm.com/docs/git-rm.
 - [x] Cross-cutting conformance — B2 = APED-1 (executed `_classify_op`); B1/M5 = FBCD-1 cross-file fan-out; M3 = strategic-direction/architectural-concurrency (slice-087 lineage); the `_OP_CLASS_FLOOR=11` re-pin is the AP-10 count-literal fan-out the design omitted.
+
+## Triage
+
+**Triaged by**: user
+**Date**: 2026-06-05
+**Final verdict**: NEEDS-FIXES
+
+Reconciled across both passes (first Critic + meta-Critic `critique-review.md`, dual-review verdict EXTEND). The meta-Critic confirmed every first-Critic finding (zero suspicious/over-reach) and added M-add-1 / M-add-2 / m-add-3 + the M3 severity adjustment; all carry user-ratified dispositions below. ACCEPTED-FIXED edits already applied to design.md / ADR-107 / mission-brief.md; ACCEPTED-PENDING items implemented during `/build-slice`.
+
+| ID | Severity | Disposition | Rationale |
+|----|----------|-------------|-----------|
+| B1 | Blocker | ACCEPTED-PENDING | design step-3 redesigned (rebase-then-migrate full branch tree); migration impl in `_vault_flip` at build |
+| B2 | Blocker | ACCEPTED-PENDING | drain via op-gate reclassify + floor re-pin + wire gate; classifier code + non-vacuity proof at build (AP-3) |
+| B3 | Blocker | ACCEPTED-PENDING | full-manifest LF-normalized hash verify; impl in `_vault_flip` at build |
+| M1 | Major | ACCEPTED-FIXED | error-model contradiction resolved: absent base ⇒ default `~/.aisdlc` (design.md §Error model) |
+| M2 | Major | ACCEPTED-FIXED | ADR-107 §Consequences reconciles the diagnose-out narrowing vs ADR-085 |
+| M3 | Major | ACCEPTED-PENDING | quiesce precondition (design step 0); pre-flip guard impl at build — strengthened per M3-adj |
+| M4 | Major | ACCEPTED-FIXED | ADR-107 §Reversibility bounds `cheap` to the same-build window |
+| M5 | Major | ACCEPTED-PENDING | design enumerates the 5 slice/SKILL.md sites; lockstep edit + `git add` removal at build |
+| m1 | Minor | ACCEPTED-PENDING | render slice:264 ellipsis cleanly when rewriting class-5 at build |
+| m2 | Minor | ACCEPTED-FIXED | WIRE-1 test description seeds a `decisions/ADR` + non-slice file + asserts count equality |
+| M-add-1 | Major | ACCEPTED-PENDING | re-pin BOTH op-gate floors (DEFERRED 11→0, OUT_OF_SCOPE 23→~34) sink-keyed; impl + non-vacuity at build |
+| M-add-2 | Major | ACCEPTED-PENDING | option (a): LF-normalize text on migrate + re-home ADR-098 byte-identity (design.md §The flip sequence + ADR-107); impl at build |
+| m-add-3 | Minor | ACCEPTED-FIXED | AC1 reworded — suite-green = location-agnostic; live-external verified at process level + charters |
+| M3-adj | (sev) | ACCEPTED-FIXED | M3 guard strengthened to `stranded_slice_audit` (catches `BRANCHLESS_IN_FLIGHT` data-loss path); folded into M3 |
