@@ -845,3 +845,18 @@ ADR-054 `status: accepted` and its code claim holds — `build_backlog.py` expos
 - None required — vault and code aligned for slice-113. design.md / ADR-106 / mission-brief match the converted code: the seam-aware op-gate (`_OP_SINK_RE` matcher + `_OP_SINK_TOKEN_RE` value-extractor in lockstep, B2), the bulk skill-prose `<vault>` conversion (174 convertible refs → `<vault>/`; 113 carve-outs), the re-pin (`EXPECTED_TOTAL`=129 / `_CLASS_COUNT_FLOOR[rewrite-at-flip]`=127 / `_BASELINE_SHA256` / the module docstring narrative), `_CONVERTED_FILES`=24 (`code-review` un-ratcheted — M3 same-value pathspec collisions), `_CONVERTED_CARVEOUTS`=43, and the 13-skill OSDG-1 forward-sync are all reflected in shippability rows 113/117/118/119 + design AS-BUILT.
 - BC-PROJ-3 / BC-GLOBAL-2: the one `git checkout -- skills/` was the DELIBERATE AP-3 re-convert reset — it discarded the first (over-converted + CRLF) conversion attempt to re-apply the corrected discriminator; the conversion is script-regenerated, so no valuable uncommitted work was lost. NO destructive revert of irreproducible slice work; no slice-A-WIP contamination (filesystem-isolated worktree).
 - All 5 version surfaces unchanged at 0.83.0 (MEPD-1 EXCLUDE; PMI-1/MCFS-1/AVFS-1/TVFS-1 exit 0); no risk-status change (STP-1 green); CAD-1 green (agents/critique.md EOL-normalized to LF, content-equal modulo EOL).
+
+## Audit 2026-06-05 00:25
+
+**Trigger**: slice-114 pre-finish gate
+**Scope**: full
+**Findings**: 0 blockers, 0 majors
+
+### Blockers
+- (none)
+
+### Majors
+- (none)
+
+### Resolutions
+- Clean. slice-114 is a methodology prose-conversion + inventory re-pin slice (ADR-105 agent-prose `<vault>` seam). Every vault claim was re-pinned in lockstep with the tool: slice-114 design.md counts (131 / 127) ≡ `tools/vault_flip_prose_inventory.py` `EXPECTED_TOTAL`=131 / `_CLASS_COUNT_FLOOR[rewrite-at-flip]`=127 / re-pinned `_BASELINE_SHA256`; shippability rows 120/122/126/127/128 ≡ the live distribution 127/0/4/0; risk-register R-32 ("physical move = sole residual") ≡ the drained agent-prose surface. Verified by `--strict` exit 0 + the 1482-test methodology+agents suite green. Converted agents (`code-review.md`, `critic-calibrate.md`) carry the ADR-105 resolver note and are forward-synced (both drift tests green; CAD-1 critique.md untouched). No DRIFT / UNSPECIFIED CODE / STALE CLAIM.

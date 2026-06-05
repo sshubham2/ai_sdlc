@@ -18,7 +18,7 @@ invisible to it, yet they break at the M4 flip. ``re.finditer`` (not one ``re.se
 per line) is load-bearing: 24 lines carry >1 match (32 extra occurrences;
 ``code-review.md:103`` carries 5), so a per-line single match would undercount
 (318→286 on slice-107's corpus). (These sub-counts are slice-107's measurement; the
-LIVE total is the pinned ``EXPECTED_TOTAL`` — 132 after slice-113 / [[ADR-106]].)
+LIVE total is the pinned ``EXPECTED_TOTAL`` — 131 after slice-114 / [[ADR-105]], was 132 after slice-113 / [[ADR-106]].)
 
 CLASSIFICATION — context-aware ordered ruleset. The in-code state is column-anchored
 PER MATCH (`_in_inline_code(line, col)`); the marker detectors (pathspec / anchor /
@@ -44,15 +44,19 @@ Order (first applicable wins):
   4. in-code (inline backticks OR fenced) OR an operational verb on the line → rewrite-at-flip
   5. plain prose mention (not in code, no signal)                          → doc-example
 
-On the current corpus the ruleset yields **130 rewrite-at-flip / 0 historical-anchor /
-2 doc-example / 0 needs-human** (132 total; was 318 at slice-107; slice-111 / [[ADR-103]] → 313;
+On the current corpus the ruleset yields **127 rewrite-at-flip / 0 historical-anchor /
+4 doc-example / 0 needs-human** (131 total; was 318 at slice-107; slice-111 / [[ADR-103]] → 313;
 slice-112 / [[ADR-105]] converted 12 operational refs to the ``<vault>/`` placeholder + added 2
 plain-prose definitionals → 303; slice-113 / [[ADR-106]] converted 171 convertible skill-prose
 ``architecture/`` refs across the 25 skill SKILL.md to ``<vault>/`` → 132, leaving 116 carve-outs
-[classes 1-pathspec / 4-worktree-composed / 5-active-folder / 6-slice-queue / 7-diagnose-out] +
-the 2 doc-example) — most operational prose references to the vault location go stale at the M4
-flip (rewrite-at-flip); the 2 doc-example are the CLAUDE.md + agent-note resolution-rule defaults
-(the ``<vault>`` convention's plain-prose ``architecture/`` default — slice-112); historical-anchor
+[classes 1-pathspec / 4-worktree-composed / 5-active-folder / 6-slice-queue / 7-diagnose-out];
+slice-114 / [[ADR-105]] converted 3 agent-prose refs (code-review :44/:119 + critic-calibrate :22)
+to ``<vault>/`` + added 2 plain-prose definitional notes → 131, leaving 4 agent carve-outs
+[code-review :29 pathspec-mirror + :237 active-folder, critique-review :78, diagnose-narrator :19] +
+the 4 doc-example) — most operational prose references to the vault location go stale at the M4
+flip (rewrite-at-flip); the 4 doc-example are the CLAUDE.md + 3 agent-note (critique / code-review /
+critic-calibrate) resolution-rule defaults (the ``<vault>`` convention's plain-prose ``architecture/``
+default — slice-112/114); historical-anchor
 and needs-human remain empty on this corpus (the classes exist for future drift / other surfaces).
 The ``_DISPOSITION`` table + needs-human bucket remain the fail-closed mechanism for future drift.
 ``--strict`` pins the ``rewrite-at-flip`` + ``needs-human`` multiset baseline + a per-class
@@ -292,7 +296,7 @@ _DISPOSITION_MAP: dict[tuple, str] = {(p, n, f, o, c): k for (p, n, f, o, c, k) 
 # baseline (AC5 / M1 disjointness — discovered at build, build-log 2026-06-03). The
 # full enumerated inventory is the --json output; this hash is the drift identity
 # (exit 2 on ANY multiset change — same gate behavior as an enumerated multiset).
-_BASELINE_SHA256 = "99480a6ad319b9e0d303d2f1592ecc94b91fe0490172b67ed8983439a005172e"
+_BASELINE_SHA256 = "44b2287682bae389779623c59beae1dcdb4e9b0abe19c472075b29b26d701966"
 
 # per-class total-count floor (m2 — a silent shrink trips --strict).
 # slice-111 (ADR-103): routing the archive `mv` (/reflect, /archive) + drift-log
@@ -304,8 +308,14 @@ _BASELINE_SHA256 = "99480a6ad319b9e0d303d2f1592ecc94b91fe0490172b67ed8983439a005
 # `architecture/` literals across the 25 skill SKILL.md converted to `<vault>/` (carve-out
 # classes 1-pathspec/4/5/6/7 stay concrete: 116 carve-outs remain — incl. the 3 code-review
 # git-pathspec PROSE mirrors kept concrete per the /code-review B1 fix) → 301→130 rewrite-at-flip.
+# slice-114 (ADR-105): the AGENT-prose surface — converted agents/code-review.md (:44 calibration-log,
+# :119 .secrets-allowlist) + agents/critic-calibrate.md (:22 calibration-log) = 3 refs to `<vault>/`;
+# the 2 new self-sufficient resolver notes add 2 plain-prose definitionals → 130→127 rewrite-at-flip
+# (DOC_EXAMPLE 2→4). code-review :29 (architecture/**, operational-reference) + :237 (active-folder)
+# stay concrete (hash-keyed in _CONVERTED_CARVEOUTS); critique-review :78 + diagnose-narrator :19 are
+# note-less carve-outs (classes 5/7 — left untouched per ADR-105, the flip slice drains them).
 _CLASS_COUNT_FLOOR: dict[str, int] = {
-    REWRITE_AT_FLIP: 130,
+    REWRITE_AT_FLIP: 127,
     HISTORICAL_ANCHOR: 0,
     DOC_EXAMPLE: 0,
     NEEDS_HUMAN: 0,
@@ -331,7 +341,10 @@ _RESIDUAL: tuple[dict, ...] = (
 # 2 new plain-prose definitionals added (CLAUDE.md + agents/critique.md self-sufficient note).
 # slice-113 (ADR-106): 303 → 132 — 171 convertible skill-prose `architecture/` refs converted to
 # `<vault>/` (no longer match); 116 carve-outs (classes 1-pathspec/4/5/6/7) + the 2 doc-example stay.
-EXPECTED_TOTAL = 132
+# slice-114 (ADR-105): 132 → 131 — 3 agent-prose `architecture/` refs converted to `<vault>/` (no
+# longer match), +2 plain-prose definitional notes (doc-example 2→4); 4 agent carve-outs stay
+# (code-review :29 pathspec-mirror + :237 active-folder, critique-review :78, diagnose-narrator :19).
+EXPECTED_TOTAL = 131
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -356,6 +369,8 @@ EXPECTED_TOTAL = 132
 _CONVERTED_FILES: frozenset[str] = frozenset({
     "CLAUDE.md",
     "agents/critique.md",
+    "agents/code-review.md",        # slice-114 (ADR-105 agent-prose surface)
+    "agents/critic-calibrate.md",   # slice-114 (ADR-105 agent-prose surface)
     "skills/adopt/SKILL.md",
     "skills/archive/SKILL.md",
     "skills/build-slice/SKILL.md",
@@ -450,6 +465,10 @@ _CONVERTED_CARVEOUTS: frozenset[tuple[str, str]] = frozenset({
     ("skills/validate-slice/SKILL.md", "cbd281686d3dae6380ffbb8d130c82a378f55cddb840bebce10787f4b0b34150"),  # [active-folder] architecture/slices/slice-NNN-<name>
     ("skills/validate-slice/SKILL.md", "aa23f93ad8223e154a3d7e485a630eff0e8391b85438795787f80b5521d79be8"),  # [active-folder] architecture/slices/slice-NNN-<name>/milestone.md
     ("skills/validate-slice/SKILL.md", "61952ccd32863abd4b70deca452e237709b3844c60426cf99466e833a188ed30"),  # [active-folder] architecture/slices/slice-NNN-<name>/validation.md
+    # agents/code-review.md (slice-114) — the 2 operational carve-outs surviving conversion:
+    ("agents/code-review.md", "0a69ee77c51793aecd3e6f0e233f885844ad89cd877dd8c3c758fe42c6ac1666"),  # [pathspec-mirror] architecture/** (diff-scope prose mirror of skills/code-review/SKILL.md :(exclude) pathspecs; operational-reference class, M2)
+    ("agents/code-review.md", "46e2f7eb6b4042736d63d4169f5df52746eb31f59f9f1c4fc336938c87c6892f"),  # [active-folder] architecture/slices/slice-NNN-<name>/code-review.md
+    # (agents/critic-calibrate.md needs NO carve-out — its sole ref :22 was converted.)
 })
 
 
