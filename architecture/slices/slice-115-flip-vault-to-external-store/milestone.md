@@ -1,16 +1,16 @@
 ---
 slice: slice-115-flip-vault-to-external-store
-stage: critique
+stage: build
 updated: 2026-06-05
-next-action: run /build-slice
+next-action: Phase A1 — tools/_vault_flip.py + test
 risk-tier: high
 critic-required: true
 ---
 
 # Milestone: slice-115 flip-vault-to-external-store
 
-**Stage**: critique
-**Next action**: run `/build-slice`
+**Stage**: build
+**Next action**: Phase A1 — `tools/_vault_flip.py` + test (plan approved; VERSION bump in scope)
 **Updated**: 2026-06-05
 **Risk tier**: high — Critic required: yes (capstone flip; full 3-Critic stack ran)
 
@@ -20,7 +20,7 @@ critic-required: true
 - [x] /design-slice — 2026-06-05
 - [x] /critique — 2026-06-05 — NEEDS-FIXES (first Critic BLOCKED; 3B/5M/2m)
 - [x] /critique-review — 2026-06-05 — EXTEND (meta-Critic: 3 missed + 1 severity-adj; 0 suspicious)
-- [ ] /build-slice
+- [ ] /build-slice — in progress: 0/~6 tasks (A1 _vault_flip → A2 op-gate → A3 wire → A4 prose → A5 commit-slice → smoke → B flip → C finalize+VERSION)
 - [ ] /validate-slice
 - [ ] /reflect
 
@@ -35,9 +35,10 @@ Dual-Critic complete; TRI-1 ratified → **NEEDS-FIXES**. Design.md / ADR-107 / 
 
 ## On resume
 
-- **Last completed action**: /critique + /critique-review (both committed; TRI-1 ratified NEEDS-FIXES)
-- **Current work**: awaiting explicit go-ahead to launch /build-slice (LARGE capstone — plan-mode + the self-referential flip)
-- **Next immediate step**: run `/build-slice` (enters plan mode; presents a build plan for approval)
+- **Last completed action**: /build-slice plan approved (Phase A→B→C; VERSION bump in scope); milestone→build
+- **Current work**: Phase A1 — writing `tools/_vault_flip.py` (flip+rollback engine) + `tests/methodology/test_vault_flip.py`. Files in the worktree.
+- **Next immediate step**: run `test_vault_flip.py` (cd worktree); then A2 op-gate reclassify. The flip itself (Phase B) is the LAST build step — vault stays in-tree through Phase A so the suite stays location-agnostic-green.
+- **Resume note**: the physical flip has NOT happened yet (vault still in-tree; `vault_is_external` = False). Phase B = quiesce → migrate → verify → config → git-untrack.
 
 ## Phase artifacts
 
