@@ -19,6 +19,12 @@ ai_sdlc_tools.egg-info/
 graphify-out/
 diagnose-out/
 
+# slice-115 / ADR-107 — THE flip: the vault relocated to the external shared store
+# (~/.aisdlc/<project-hash>/, resolved via $GIT_COMMON_DIR/aisdlc/vault-root). The
+# in-repo `architecture/` is no longer tracked; any leftover in-tree copy is a
+# gitignored orphan (the canonical vault lives external). git-untracked at slice-115.
+architecture/
+
 # _vault_write sidecar locks (SVW-1 / slice-093 `safe_append_text`) — transient
 # advisory-lock sidecars written next to a vault file during a safe append;
 # never the replace target, never committed. (Surfaced at slice-095 /reflect when
