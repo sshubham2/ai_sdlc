@@ -192,6 +192,7 @@ Before declaring slice done, ALL of these must be true:
 - [ ] **New-agent session-restart warning (NAW-1)** — see "New-agent warning audit" below
 - [ ] **Drift-check enforcement audit passes (DCE-1)** — see "Drift-check enforcement audit" below
 - [ ] **Skill-vault-write-safety audit passes (SVW-1)** — see "Skill-vault-write-safety audit" below
+- [ ] **Vault op-gate passes ([[ADR-104]], promoted to a Step-6 gate by [[ADR-107]])** — see "Vault op-gate" below
 
 If any gate fails: don't declare done. Fix or escalate.
 
@@ -206,6 +207,18 @@ $PY -m tools.skill_vault_write_safety_audit
 Refusal semantics: exit **1** (≥1 unrouted-and-unexempted mutation site, OR an unknown exemption reason — names `skills/<x>/SKILL.md:line`) / **2** (usage — `skills/` missing/unreadable). **Honest scope (B1 / [[ADR-029]])**: SVW-1 guarantees the PROSE prescribes the safe channel — it is NOT a completeness guarantee over runtime writes (no content-oracle exists for LLM-authored appends, so a BCI-1-style downstream gate is unconstructible; the R-2 runtime-obedience axis is structurally unreachable by a static audit). The exempt-site allowlist `_REGISTERED_SKILL_EXEMPTIONS` is pinned by `tests/methodology/test_skill_vault_write_safety_audit.py::test_exemption_allowlist_pinned` (a NEW off-allowlist exemption trips a regression — closes the per-line `# noqa` silent-bypass class M3). SVW-1 is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]; naming-class peers BRANCH-1 / BC-1 / PMI-1 / UTF8-STDOUT-1 / CRP-1 / PCA-1 / BCI-1 / MCFS-1 / STP-1 / AVFS-1 / TVFS-1 / NAW-1 / DCE-1) — its programmatic gate is `tools/skill_vault_write_safety_audit.py`.
 
 Bootstrap (slice-095 only): slice-095 authors SVW-1; at slice-095's own Step 6 the audit runs against the routed worktree and MUST exit 0 (self-application discharge — the 10 append sites routed through `vault_edit append` + 12 RMW/project-open sites exempt-marked). Every slice after 095 inherits a self-gating SVW-1.
+
+#### Vault op-gate ([[ADR-104]]; promoted to a Step-6 gate at slice-115 / [[ADR-107]])
+
+The in-loop-scoped op-gate (the `--op-gate` mode of `tools/vault_flip_prose_inventory.py`, minted at slice-111 / [[ADR-104]]) fails closed (exit 2) on any un-routed in-loop-skill vault WRITE-op (`OP_UNROUTED`) or a per-op-class count-floor shrink. slice-111 enforced it via the suite test only; **slice-115 promotes it to a first-class `/build-slice` Step-6 gate** now that the flip has drained the `OP_DEFERRED_TO_FLIP` bucket (the R-32.a reclassify — active-folder writes are post-flip per-slice non-contended direct external writes), leaving the gate's sole job the forward `OP_UNROUTED` write-safety protection. Run:
+
+```bash
+$PY -m tools.vault_flip_prose_inventory --op-gate --strict
+```
+
+Refusal semantics: exit **2** — `OP_UNROUTED` (an un-routed in-loop shared-aggregate vault write; route it via `vault_edit`/`VAULT_ROOT` or carry a hand-verified `_OP_ALLOWLIST` entry) OR a `_OP_CLASS_FLOOR` shrink (a gate-visible bucket silently emptied — re-pin deliberately if the shrink is legitimate). Floors after the slice-115 R-32.a reclassify (independent of the physical flip — the op-gate scans skill prose): **6 routed / 0 deferred / 34 out-of-scope / 0 un-routed**. `/validate-slice` ALSO runs `--op-gate --strict` via its Step 5.5 shippability catalog (the slice-111 enforcement path, preserved — so both pre-finish phases gate it). This is an **audit-enforced gate** (NON-`-D` per [[ADR-019]]) — its programmatic gate is `tools/vault_flip_prose_inventory.py --op-gate --strict`; no new RULE-ID (a promotion of the existing ADR-104 op-gate, not a new rule).
+
+Bootstrap (slice-115 only): slice-115 authors the promotion + the R-32.a reclassify; at slice-115's own Step 6 the gate MUST exit 0 (self-application discharge — the reclassify drained DEFERRED→0, OP_UNROUTED stays 0). Every slice after 115 inherits a self-gating op-gate.
 
 #### Drift-check enforcement audit (DCE-1)
 
