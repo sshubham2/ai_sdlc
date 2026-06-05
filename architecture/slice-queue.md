@@ -1,48 +1,48 @@
 # Slice queue
 
-_Generated: 2026-06-04T18:19:34+00:00 by /slice during slice-114 definition_
+_Generated: 2026-06-05T05:55:44+00:00 by /slice during slice-115 definition_
 
 ## Candidates
 
-### convert-agent-prose-to-vault-seam
-
-- **Source:** reflection slice-113 Deferred (M1/TRI-1-ratified) + risk-register R-32
-- **Blast-radius:** `agents/code-review.md`, `agents/critic-calibrate.md`, `agents/critique-review.md`, `agents/diagnose-narrator.md`, `architecture/risk-register.md`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
-- **Risk-retired:** R-32 (agent-prose residual)
-
 ### flip-vault-to-external-store
 
-- **Source:** risk-register R-32 (physical move â€” sole remaining pre-move residual after slice-114)
-- **Blast-radius:** `CLAUDE.md`, `architecture/risk-register.md`, `tools/project_frame_synth.py`, `tools/vault_flip_prose_inventory.py`
+- **Source:** risk-register R-32 (capstone; picked as slice-115)
+- **Blast-radius:** `skills/commit-slice/SKILL.md`, `tools/_vault_git.py`, `tools/_vault_paths.py`, `tools/vault_edit.py`, `tools/vault_flip_prose_inventory.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** LARGE
-- **Risk-retired:** R-32 (retires at the move)
+- **Risk-retired:** MEDIUM
 
-### apply-critic-calibrate-proposals
+### harden-forward-sync-under-parallel-version-bumps
 
-- **Source:** action-points AP-21 (critic-calibrate overdue, N>=3 calibration signals)
-- **Blast-radius:** `agents/critique-review.md`, `agents/critique.md`
-- **Parallel-safety:** NON-OVERLAPPING
-- **Effort:** SMALL
-- **Risk-retired:** none (Critic blind-spot reduction)
-
-### harden-parallel-version-bump-audit-fragility
-
-- **Source:** risk-register R-28 (open, low-band)
-- **Blast-radius:** `tools/critique_agent_drift_audit.py`, `tools/install_audit.py`
+- **Source:** risk-register R-28
+- **Blast-radius:** `tools/critique_agent_drift_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
-- **Risk-retired:** R-28 (low)
+- **Risk-retired:** LOW
 
-### close-version-keyed-install-completeness-gap
+### make-install-completeness-version-independent
 
-- **Source:** risk-register R-29 (open, low-band)
+- **Source:** risk-register R-29
 - **Blast-radius:** `tools/install_audit.py`, `tools/plugin_manifest_audit.py`
 - **Parallel-safety:** NON-OVERLAPPING
 - **Effort:** MEDIUM
-- **Risk-retired:** R-29 (low)
+- **Risk-retired:** LOW
+
+### add-diagnose-cwd-warning-runtime-test
+
+- **Source:** risk-register R-2
+- **Blast-radius:** `tools/diagnose_orchestrator.py`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** LOW
+
+### run-critic-calibrate-meta-pass
+
+- **Source:** action-points AP-21 (critic-calibrate overdue)
+- **Blast-radius:** `agents/critique.md`
+- **Parallel-safety:** NON-OVERLAPPING
+- **Effort:** SMALL
+- **Risk-retired:** NONE
 
 ## Pick log
 
@@ -61,3 +61,4 @@ _Generated: 2026-06-04T18:19:34+00:00 by /slice during slice-114 definition_
 - slice-112-make-prose-vault-location-agnostic — picked 2026-06-04T12:16:09+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-113-bulk-convert-remaining-skills-to-vault-seam — picked 2026-06-04T15:36:06+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
 - slice-114-convert-agent-prose-to-vault-seam — picked 2026-06-04T18:19:45+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
+- slice-115-flip-vault-to-external-store — picked 2026-06-05T05:55:55+00:00 by Shubhendu Shubham s2.shubh2@gmail.com
