@@ -45,6 +45,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -112,17 +114,41 @@ def _common_dir(repo_root: Path) -> str:
     return os.path.normcase(str(Path(raw).resolve()))
 
 
-def external_store_path(repo_root: Path, base: Path | None = None) -> Path:
-    """``<base>/<bounded-hash>`` — the per-project external vault dir (ADR-085).
+_MAX_SLUG_LEN = 48
 
-    ``<bounded-hash>`` = first 16 hex of ``sha256(canonical common-dir)`` — a
-    MAX_PATH-safe, collision-resistant, per-repo-stable folder name (the direnv
-    pattern; shared across all worktrees of a repo because the common-dir is
-    shared).
+
+def _project_slug(canonical_common_dir: str) -> str:
+    """Human-readable, filesystem-safe slug = the repo-root dir basename (the
+    parent of the git-common-dir), sanitized. Derived from the SAME canonical
+    (resolved + ``normcase``-d) common-dir string the shorthash uses, so it is
+    deterministic + identical across every worktree of a repo ([[ADR-109]]).
+
+    On case-insensitive filesystems the input is already ``normcase``-lowered
+    (by ``_common_dir``), so the slug folds to lowercase there — by design, so a
+    case-variant path spelling maps to ONE store (worktree/idempotency
+    stability). Non-``[A-Za-z0-9._-]`` runs fold to ``-``; bounded to
+    ``_MAX_SLUG_LEN``; an empty result falls back to ``"vault"``.
+    """
+    raw = Path(canonical_common_dir).parent.name
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", raw).strip("-.")[:_MAX_SLUG_LEN].strip("-.")
+    return slug or "vault"
+
+
+def external_store_path(repo_root: Path, base: Path | None = None) -> Path:
+    """``<base>/<project-slug>-<shorthash>`` — the per-project external vault dir
+    (ADR-085 §C1 keying, naming amended by [[ADR-109]]).
+
+    ``<project-slug>`` = sanitized repo-root basename (`_project_slug`);
+    ``<shorthash>`` = first 8 hex of ``sha256(canonical common-dir)``. Human-
+    identifiable AND collision-resistant + per-repo-stable + shared across all
+    worktrees of a repo (the common-dir seed is shared) + MAX_PATH-safe
+    (≤``_MAX_SLUG_LEN``-char slug + 9). Both segments derive from the ONE
+    canonical common-dir string, so the whole name is deterministic.
     """
     base = base or resolve_base()
-    digest = hashlib.sha256(_common_dir(repo_root).encode("utf-8")).hexdigest()[:16]
-    return base / digest
+    cc = _common_dir(repo_root)
+    short = hashlib.sha256(cc.encode("utf-8")).hexdigest()[:8]
+    return base / f"{_project_slug(cc)}-{short}"
 
 
 # ── migration ─────────────────────────────────────────────────────────────────
@@ -165,6 +191,19 @@ def migrate(src: Path, dest: Path) -> dict[str, str]:
         target.write_bytes(content)
         manifest[rel] = hashlib.sha256(content).hexdigest()
     return manifest
+
+
+def _manifest_of(src: Path) -> dict[str, str]:
+    """The manifest ``migrate`` WOULD produce for ``src`` — ``{posix-relpath:
+    sha256(written-bytes)}`` — computed WITHOUT writing (text LF-normalized,
+    ``.lock`` skipped, exactly as ``migrate``). Lets ``rename_store`` re-``verify``
+    a pre-existing destination against the source to classify it
+    (resume / our-partial / foreign)."""
+    src = Path(src)
+    return {
+        f.relative_to(src).as_posix(): hashlib.sha256(_content_for(f)).hexdigest()
+        for f in _iter_files(src)
+    }
 
 
 def verify(dest: Path, manifest: dict[str, str]) -> list[str]:
@@ -253,6 +292,99 @@ def flip(repo_root: Path, *, base: Path | None = None) -> dict:
     return {"dest": str(dest), "files": len(manifest), "manifest": manifest}
 
 
+def rename_store(repo_root: Path, *, base: Path | None = None) -> dict:
+    """Migrate an already-flipped store to the [[ADR-109]] human-identifiable name
+    ``<project-slug>-<shorthash>`` + repoint the flip config. Composes the existing
+    ``migrate`` / ``verify`` / ``write_config`` primitives; preserves the
+    copy → verify → rewrite-config → delete-old ordering so the vault is NEVER
+    unresolvable mid-migration (on any pre-config-rewrite failure the config still
+    resolves to the intact source).
+
+    - No flip config → raise (vault not external; nothing to rename).
+    - **Missing ``current``** (config → non-existent dir) → raise — NEVER a silent
+      empty-store repoint (mirrors ``rollback``'s ``is_dir`` guard; meta-Critic M-add-1:
+      ``migrate`` of a missing dir yields an empty manifest that ``verify`` passes
+      vacuously).
+    - **Idempotent**: ``current`` already resolves to ``new`` → no-op.
+    - **Pre-existing non-empty ``new``** (3-way, never destroys non-our data, M2):
+      a COMPLETE verified copy → **RESUME** (skip migrate — an interrupted prior
+      rename); an OUR-partial = **whole files missing, every present file's hash
+      correct** (only ``MISSING`` problems — the migrate was interrupted at a
+      file boundary) → delete + redo; ANYTHING else (``UNEXPECTED`` OR
+      ``HASH MISMATCH`` — foreign content, OR a truncated final file from an
+      interrupt mid-``write_bytes``) → **refuse** (conservative by design — never
+      delete a dir we can't positively identify as our clean partial; the
+      operator removes it + retries). I.e. auto-redo covers the whole-file-missing
+      interrupt subset; a truncated-final-file interrupt is safely refused, not
+      redone (code-review M2).
+    """
+    repo_root = Path(repo_root)
+    cfg_val = read_config_value(repo_root)
+    if not cfg_val:
+        raise VaultFlipError(
+            "no flip config found — nothing to rename (vault is not external)"
+        )
+    current = Path(cfg_val)
+    if not current.is_dir():
+        raise VaultFlipError(
+            f"configured external store missing: {current} — config points at a "
+            "non-existent dir; resolve manually before renaming"
+        )
+    new = external_store_path(repo_root, base)
+    if current.resolve() == new.resolve():
+        return {"renamed": False, "resumed": False, "dest": str(new)}
+
+    resumed = False
+    manifest: dict[str, str]
+    if new.exists() and any(new.iterdir()):
+        expected = _manifest_of(current)
+        problems = verify(new, expected)
+        if not problems:
+            resumed, manifest = True, expected          # complete verified copy → resume
+        elif all(p.startswith("MISSING at dest:") for p in problems):
+            try:
+                shutil.rmtree(new)                      # our interrupted partial → redo
+            except OSError as exc:                      # Windows lock / read-only (code-review M1)
+                raise VaultFlipError(
+                    f"could not clear the partial copy at {new} ({exc}) — config "
+                    f"UNCHANGED (still resolves to the intact source {current}); "
+                    "remove it manually and retry"
+                ) from exc
+        else:
+            raise VaultFlipError(
+                f"refusing to rename into {new}: it contains unrecognized content "
+                "(not a leftover from this rename) — remove it manually if intended, "
+                "then retry"
+            )
+
+    if not resumed:
+        manifest = migrate(current, new)
+        problems = verify(new, manifest)
+        if problems:
+            try:
+                shutil.rmtree(new)
+            except OSError:
+                pass
+            raise VaultFlipError(
+                "RENAME VERIFY FAILED — config UNCHANGED (still resolves to the intact "
+                f"source {current}). Problems:\n  " + "\n  ".join(problems)
+            )
+
+    write_config(repo_root, new)                        # config now → verified new
+    try:
+        shutil.rmtree(current)
+    except OSError as exc:
+        print(
+            f"WARN: rename succeeded (config → {new}) but old store not removed "
+            f"({current}): {exc}",
+            file=sys.stderr,
+        )
+    return {
+        "renamed": True, "resumed": resumed,
+        "from": str(current), "dest": str(new), "files": len(manifest),
+    }
+
+
 def rollback(repo_root: Path) -> dict:
     """Scripted inverse: copy the external store back to in-tree ``architecture/``
     + unset the config. (The caller re-tracks via ``git add`` + removes the
@@ -293,6 +425,8 @@ def _build_parser() -> argparse.ArgumentParser:
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--flip", action="store_true", help="Migrate in-tree → external + write config.")
     g.add_argument("--rollback", action="store_true", help="Restore external → in-tree + unset config.")
+    g.add_argument("--rename-store", action="store_true",
+                   help="Rename an already-flipped store to <project-slug>-<shorthash> + repoint config (ADR-109).")
     g.add_argument("--print-path", action="store_true", help="Print the resolved external store path and exit.")
     return p
 
@@ -316,6 +450,14 @@ def main(argv: list[str] | None = None) -> int:
         if args.rollback:
             res = rollback(repo_root)
             print(f"ROLLED BACK: {res['files']} files → {res['restored_to']}")
+            return 0
+        if args.rename_store:
+            res = rename_store(repo_root)
+            if res["renamed"]:
+                verb = "RESUMED" if res.get("resumed") else "RENAMED"
+                print(f"{verb}: {res['files']} files {res['from']} → {res['dest']}")
+            else:
+                print(f"ALREADY NAMED: {res['dest']}")
             return 0
     except VaultFlipError as exc:
         print(f"vault-flip error: {exc}", file=sys.stderr)
