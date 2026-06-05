@@ -80,6 +80,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from tools import _stdout
+from tools._forward_sync_base import slice_modified_source
 
 _CHANGELOG_REL = "methodology-changelog.md"
 _INSTALLED = Path.home() / ".claude" / "methodology-changelog.md"
@@ -153,11 +154,30 @@ def check(root: Path, installed: Path | None = None) -> CheckResult:
     # an empty present installed file is divergent ⇒ HALT (R-4-class not
     # silently reopened).
     if _normalized_bytes(in_repo) != _normalized_bytes(installed_path):
-        result.status = "drift"
-        result.exit_code = 1
-        result.divergences.append(
-            _ATTRIB.format(in_repo=in_repo, installed=installed_path)
-        )
+        # slice-117 / ADR-108 (content gate → merge-base discriminator): a
+        # divergence is a BLOCKING drift only if THIS slice edited the
+        # changelog. If in-repo is unchanged vs the slice merge-base, a sibling
+        # forward-synced ~/.claude/ — external-drift (WARN, exit 0), not a
+        # regression (R-28). Fail-closed True on any git failure. NOTE: for
+        # MCFS-1 the residual "both slices appended a changelog entry" case is
+        # NOT rare (every rule-minting slice edits this file) → both HALT,
+        # operator rebases (ADR-108 round-2 m1).
+        if slice_modified_source(root, _CHANGELOG_REL):
+            result.status = "drift"
+            result.exit_code = 1
+            result.divergences.append(
+                _ATTRIB.format(in_repo=in_repo, installed=installed_path)
+            )
+        else:
+            result.status = "external-drift"
+            result.exit_code = 0
+            result.warnings.append(
+                f"EXTERNAL-DRIFT (not a slice regression): installed "
+                f"{installed_path} differs but this slice did not modify "
+                f"{_CHANGELOG_REL} (unchanged vs merge-base) — a sibling slice "
+                f"forward-synced ~/.claude/. Rebase onto the default branch to "
+                f"catch up."
+            )
         return result
 
     result.status = "synced"
@@ -172,6 +192,9 @@ def _format_human(result: CheckResult) -> str:
     if result.status == "drift":
         return "MCFS-1 methodology-changelog forward-sync: DRIFT (HALT)\n\n" + \
             "".join(f"  {d}\n" for d in result.divergences)
+    if result.status == "external-drift":
+        return "MCFS-1 methodology-changelog forward-sync: PASS (external-drift WARN — not a slice regression)\n\n" + \
+            "".join(f"  {w}\n" for w in result.warnings)
     if result.status == "warn":
         return "MCFS-1 methodology-changelog forward-sync: PASS (with WARN)\n\n" + \
             "".join(f"  WARN: {w}\n" for w in result.warnings)
@@ -218,6 +241,21 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     result = check(root)
+
+    if result.status == "external-drift":
+        # ADR-108 round-2 M1: persist a recoverable breadcrumb to the external
+        # store (advisory — never changes the gate verdict/exit code).
+        try:
+            from tools._forward_sync_breadcrumb import emit_external_drift
+            emit_external_drift(
+                "MCFS-1", _CHANGELOG_REL,
+                "; ".join(result.warnings) or "installed differs; in-repo unchanged vs base",
+            )
+        except (OSError, TimeoutError, ImportError) as exc:
+            sys.stderr.write(
+                f"MCFS-1: external-drift breadcrumb write failed (advisory, "
+                f"gate verdict unchanged): {exc}\n"
+            )
 
     if args.json:
         sys.stdout.write(json.dumps(result.to_dict(), indent=2) + "\n")
