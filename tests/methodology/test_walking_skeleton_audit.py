@@ -21,6 +21,8 @@ from pathlib import Path
 from tests.methodology.conftest import REPO_ROOT
 from tools.walking_skeleton_audit import (
     _WS_1_RELEASE_DATE,
+    _WS_FIELD_RE,
+    _detect_ws_flag,
     audit_brief_file,
 )
 
@@ -242,3 +244,70 @@ def test_mission_brief_template_documents_walking_skeleton():
     text = (REPO_ROOT / "templates" / "mission-brief.md").read_text(encoding="utf-8")
     assert "Walking-skeleton" in text
     assert "WS-1" in text
+
+
+# --- Annotated-flag detection (slice-116 / R-36 fix-the-class; WS-1 sibling of
+#     the ETC-1 vacuous-pass) ---
+#
+# The mission-brief template writes the opt-in flag with a trailing inline
+# annotation: `**Walking-skeleton**: true  (optional; per WS-1 — …)`. The
+# pre-fix `_WS_FIELD_RE` anchored the value with `(true|false)\s*$`, so the
+# annotation made `.match` fail and `_detect_ws_flag` returned False — a vacuous
+# pass identical to ETC-1's R-36. The fix mirrors TF-1's lookahead
+# `(true|false)(?=[\s(]|$)`. These FAIL pre-fix on the annotated-true cases.
+
+_WS_ANNOTATED_TRUE = (
+    "**Walking-skeleton**: true  "
+    "(optional; per WS-1 — opt-in walking-skeleton variant)"
+)
+_WS_ANNOTATED_FALSE = (
+    "**Walking-skeleton**: false  "
+    "(optional; per WS-1 — opt-in walking-skeleton variant)"
+)
+
+
+def test_annotated_walking_skeleton_true_is_detected_enabled():
+    """An annotated `**Walking-skeleton**: true  (…)` line must read as enabled.
+
+    Fails pre-fix — `(true|false)\\s*$` rejects the trailing annotation (R-36
+    sibling defect). Rule reference: WS-1.
+    """
+    assert _detect_ws_flag(_WS_ANNOTATED_TRUE) is True
+
+
+def test_audit_brief_with_annotated_walking_skeleton_true_reports_enabled(tmp_path):
+    """End-to-end: a brief carrying the annotated `true` flag surfaces enabled.
+
+    Fails pre-fix (reports False → the WS-1 gate silently enforces nothing
+    despite authored layers). Rule reference: WS-1.
+    """
+    brief = tmp_path / "mission-brief.md"
+    brief.write_text(
+        "# Slice 999: demo-walking-skeleton-slice\n\n"
+        f"{_WS_ANNOTATED_TRUE}\n\n"
+        "## Architectural layers exercised\n\n"
+        "| # | Layer | Component | Verification | Status |\n"
+        "|---|-------|-----------|--------------|--------|\n"
+        "| 1 | API | src/api/server.py | curl /healthz 200 | EXERCISED |\n",
+        encoding="utf-8",
+    )
+    result = audit_brief_file(brief)
+    assert result.walking_skeleton_enabled is True
+
+
+def test_annotated_walking_skeleton_false_is_disabled():
+    """Control: an annotated `false` must resolve to disabled (no over-correction)."""
+    assert _detect_ws_flag(_WS_ANNOTATED_FALSE) is False
+
+
+def test_walking_skeleton_malformed_suffix_is_not_a_valid_boolean():
+    """Guard: a malformed-suffix value must NOT be accepted as a boolean.
+
+    Pins the fix toward TF-1's lookahead `(true|false)(?=[\\s(]|$)` rather than a
+    loose `(true|false).*$` (R-7 / TFFL-1 silent-bypass). Passes pre- and
+    post-fix; must keep passing. Rule reference: WS-1.
+    """
+    assert _detect_ws_flag("**Walking-skeleton**: trueish") is False
+    assert _detect_ws_flag("**Walking-skeleton**: false-positive") is False
+    # _WS_FIELD_RE is the same predicate _detect_ws_flag consults; pin it directly.
+    assert _WS_FIELD_RE.match("**Walking-skeleton**: trueish") is None
