@@ -296,7 +296,7 @@ _DISPOSITION_MAP: dict[tuple, str] = {(p, n, f, o, c): k for (p, n, f, o, c, k) 
 # baseline (AC5 / M1 disjointness — discovered at build, build-log 2026-06-03). The
 # full enumerated inventory is the --json output; this hash is the drift identity
 # (exit 2 on ANY multiset change — same gate behavior as an enumerated multiset).
-_BASELINE_SHA256 = "b02f45078c1c7ef8aa1794165b5fc7aaf2f2df77fd3519d75de1743c23a77589"
+_BASELINE_SHA256 = "bee3d9ed3ab6ae6090f74ea6fd30a4f47dde4dbe752f39365e8c557804380906"
 
 # per-class total-count floor (m2 — a silent shrink trips --strict).
 # slice-111 (ADR-103): routing the archive `mv` (/reflect, /archive) + drift-log
@@ -318,8 +318,9 @@ _CLASS_COUNT_FLOOR: dict[str, int] = {
     # slice-115 (ADR-107 — THE flip): 127→65. The flip drains the class-4/5/6 carve-outs (62 convertible
     # operational architecture/ refs across loop skills + agents → <vault>/; scaffold+queue resolve to the
     # EXTERNAL store; slice/SKILL.md M5 removes commit-on-master). The 65 residual = code-review git-pathspec
-    # (37) + diagnose-out (25, class-7) + INSTALL/README (3, out of ADR-105 <vault>/ scope).
-    REWRITE_AT_FLIP: 65,
+    # (37) + diagnose-out (25, class-7) + INSTALL/README (3, out of ADR-105 <vault>/ scope) + the
+    # build-slice:88 legacy dirty-tree-dance git-pathspec (2 — git runs it verbatim, kept concrete).
+    REWRITE_AT_FLIP: 67,
     HISTORICAL_ANCHOR: 0,
     DOC_EXAMPLE: 0,
     NEEDS_HUMAN: 0,
@@ -350,8 +351,9 @@ _RESIDUAL: tuple[dict, ...] = (
 # (code-review :29 pathspec-mirror + :237 active-folder, critique-review :78, diagnose-narrator :19).
 # slice-115 (ADR-107): 131 → 69 — 62 convertible operational architecture/ refs converted to `<vault>/`
 # (loop skills + agents; scaffold+queue → external store) + slice/SKILL.md M5 removed the commit-on-master
-# `git add architecture/slice-queue.md`. Residual 69 = 65 rewrite-at-flip + 4 doc-example.
-EXPECTED_TOTAL = 69
+# `git add architecture/slice-queue.md`. Residual 71 = 67 rewrite-at-flip + 4 doc-example (the 2
+# build-slice:88 git-pathspec literals stay concrete — git runs them verbatim, not <vault>/-resolved).
+EXPECTED_TOTAL = 71
 
 
 # ══════════════════════════════════════════════════════════════════════════════

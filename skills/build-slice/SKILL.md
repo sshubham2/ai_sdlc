@@ -85,7 +85,7 @@ wt_base="$(dirname "$repo_root")/$(basename "$repo_root")-wt"
    # (N=5 cumulative slice-070/071/072/073/074; canonical origin: slice-070 reflection L127;
    # legacy post-vault-in-git scaffolding-by-design class — superseded by BRANCH-3 pick-time create)
    git switch -c slice/NNN-<slice-name>          # carry dirty state to slice branch
-   git add <vault>/slices/slice-NNN-<slice-name>/ <vault>/slice-queue.md   # explicit staging — no auto-stash (concrete scaffolding pathspec, slice-074 m1)
+   git add architecture/slices/slice-NNN-<slice-name>/ architecture/slice-queue.md   # explicit staging — no auto-stash (concrete scaffolding pathspec, slice-074 m1; CONCRETE git-pathspec — git runs this verbatim, NOT vault-placeholder-resolved; the LEGACY pre-flip in-tree-vault dirty-default path, moot once the vault is external per [[decisions/ADR-107]])
    git commit -m "scaffold(slice-NNN): mission-brief + design + critique + ..."  # scaffolding commit on slice branch
    git switch "$default"                           # back to clean default
    git worktree add "$wt_base/slice-NNN-<slice-name>" slice/NNN-<slice-name>   # no -b; branch exists
