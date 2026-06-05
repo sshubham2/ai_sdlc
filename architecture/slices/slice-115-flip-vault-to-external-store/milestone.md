@@ -1,23 +1,23 @@
 ---
 slice: slice-115-flip-vault-to-external-store
-stage: slice
+stage: design
 updated: 2026-06-05
-next-action: run /design-slice
+next-action: run /critique
 risk-tier: high
 critic-required: true
 ---
 
 # Milestone: slice-115 flip-vault-to-external-store
 
-**Stage**: slice
-**Next action**: run `/design-slice`
+**Stage**: design
+**Next action**: run `/critique`
 **Updated**: 2026-06-05
 **Risk tier**: high — Critic required: yes (capstone flip; touches skills/tools/agents methodology surfaces → mandatory regardless of tier; full 3-Critic stack)
 
 ## Progress
 
 - [x] /slice — 2026-06-05
-- [ ] /design-slice
+- [x] /design-slice — 2026-06-05
 - [ ] /critique
 - [ ] /build-slice
 - [ ] /validate-slice
@@ -25,26 +25,24 @@ critic-required: true
 
 ## Current focus
 
-Slice defined — the capstone physical move that retires R-32. Mission brief written with 5 ACs (config flip, move+untrack, R-32.a drain, R-32.b drain, prose+commit-slice+retire) and 3 exploratory charters. The two crux design questions (R-32.a active-folder location, R-32.b archive-`mv` source routing) are deliberately left for `/design-slice`. Ready for design.
-
-## Current focus — design questions to resolve in /design-slice
-
-- **R-32.a**: active-slice folders worktree-local vs in the external store (settles `OP_DEFERRED_TO_FLIP` → ∅).
-- **R-32.b**: route archive-`mv` source coherently across stores vs keep active folders external (coupled to R-32.a).
-- **git-untrack**: `git rm -r --cached architecture/` + gitignore; confirm history retention vs clean-cut.
-- **Store path**: base `~/.aisdlc` (user-confirmed at /slice); per-project subdir = bounded hash of canonicalized common-dir (ADR-085).
-- New ADR (ADR-107+) records all of the above.
+Design complete. **Option A (whole vault external) + plain directory** locked with the user (ADR-107).
+- R-32.a/.b dissolved by Option A (single resolution domain; archival is an in-store move).
+- New helper `tools/_vault_flip.py` (flip + scripted rollback — tested-reversibility).
+- `/commit-slice` PCR vault-conflict RETIRE = `vault_is_external` guard (no-op); PSQ-3 rebase + HARD code-file resolution stay.
+- Carve-out prose classes 4–6 → `<vault>/`; class 7 (diagnose-out) stays concrete.
+- Self-referential bootstrap (slice-115 lives through its own flip) is the highest-risk part — design.md §The flip sequence.
 
 ## On resume
 
-- **Last completed action**: /slice (mission brief and milestone created in the slice-115 worktree)
+- **Last completed action**: /design-slice (design.md + ADR-107 written in the worktree)
 - **Current work**: none
-- **Next immediate step**: run `/design-slice`
+- **Next immediate step**: run `/critique` (mandatory — high tier + methodology surfaces; full 3-Critic stack)
 
 ## Phase artifacts
 
 - [mission-brief.md](mission-brief.md)
-- [design.md](design.md) — pending
+- [design.md](design.md)
+- [ADR-107](../../decisions/ADR-107-flip-vault-to-external-store.md)
 - [critique.md](critique.md) — pending
 - [build-log.md](build-log.md) — pending
 - [validation.md](validation.md) — pending
