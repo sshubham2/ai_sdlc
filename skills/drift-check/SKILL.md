@@ -41,8 +41,8 @@ The thin vault has a small drift surface. Read only:
 
 - `<vault>/decisions/*.md` — chosen tech, libraries, approaches (status: accepted)
 - `<vault>/risk-register.md` — risks claimed retired
-- `architecture/slices/*/design.md` — these are ACTIVE slices only (convention: completed slices move to `slices/archive/` via `/reflect`)
-- `architecture/slices/*/mission-brief.md` — active slice must-not-defer items
+- `<vault>/slices/*/design.md` — these are ACTIVE slices only (convention: completed slices move to `slices/archive/` via `/reflect`)
+- `<vault>/slices/*/mission-brief.md` — active slice must-not-defer items
 
 Skip files that don't exist in thin vault: `components/`, `contracts/`, `schemas/`, `actors/`, `test-plan/`, `frontend/` (these are derived from code, can't drift).
 

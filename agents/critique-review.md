@@ -75,7 +75,7 @@ ADJUST and EXTEND can co-occur; in that case, use EXTEND as the verdict (the mor
 
 ## Output format
 
-Produce a complete `critique-review.md` ready to drop into `architecture/slices/slice-NNN-<name>/critique-review.md`. Use this exact shape:
+Produce a complete `critique-review.md` ready to drop into `<vault>/slices/slice-NNN-<name>/critique-review.md`. Use this exact shape:
 
 ```markdown
 # Critique Review: Slice NNN <name>

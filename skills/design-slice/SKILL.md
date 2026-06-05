@@ -1,6 +1,6 @@
 ---
 name: design-slice
-description: "AI SDLC pipeline. Just-enough spec for the current slice — not full architecture. Defines components touched, contracts added, decisions made, dependencies. Lock expensive decisions only when this slice needs them. Use after /slice, before /critique. Trigger phrases: '/design-slice', 'design this slice', 'spec the current slice', 'design the slice'. Reads architecture/slices/slice-NNN/mission-brief.md. Per-slice design, not whole-system; for Heavy-mode upfront vault, use /heavy-architect."
+description: "AI SDLC pipeline. Just-enough spec for the current slice — not full architecture. Defines components touched, contracts added, decisions made, dependencies. Lock expensive decisions only when this slice needs them. Use after /slice, before /critique. Trigger phrases: '/design-slice', 'design this slice', 'spec the current slice', 'design the slice'. Reads <vault>/slices/slice-NNN/mission-brief.md. Per-slice design, not whole-system; for Heavy-mode upfront vault, use /heavy-architect."
 user_invokable: true
 ---
 
@@ -14,7 +14,7 @@ Runs after `/slice` (mission brief exists). Output feeds `/critique` (separate C
 
 ## Prerequisite check
 
-- Find the active slice (latest `architecture/slices/slice-NNN-*/` folder)
+- Find the active slice (latest `<vault>/slices/slice-NNN-*/` folder)
 - Read `mission-brief.md` — if missing, run `/slice` first
 - Read existing vault context (components, decisions, prior slices)
 
@@ -80,7 +80,7 @@ If the graph is missing or stale: `$PY -m graphify code .` (rebuild is fast).
 Per **PFS-1** (`methodology-changelog.md` v0.78.0; slice-088; [[ADR-080]]): before writing any design, consult the **ephemeral project-frame** so the design is direction-aware from the start (shift-left — *prevent* a strategically-misfit design, don't just catch it at `/critique`). Run the synthesizer and read its stdout:
 
 ```bash
-$PY -m tools.project_frame_synth --repo-root . --slice-dir architecture/slices/slice-NNN-<name>
+$PY -m tools.project_frame_synth --repo-root . --slice-dir <vault>/slices/slice-NNN-<name>
 ```
 
 It emits a tight (≤40-line) frame with three sections — **Identity** (what this project is), **Trajectory** (where it is deliberately heading: deduped active rule families, pending `slice-queue.md` candidates, open risks by score), and **Impact** (this slice's effect). The frame's first line is an adversarial **ATTACK-LENS** preamble: read the frame as a lens to find where THIS slice fights the project's direction — NOT a narrative to nod along to.
@@ -137,7 +137,7 @@ supersedes: null | ADR-NNN
 
 If a decision could wait: defer it. Don't lock it preemptively.
 
-### Step 4: Write `architecture/slices/slice-NNN-<name>/design.md`
+### Step 4: Write `<vault>/slices/slice-NNN-<name>/design.md`
 
 The thin vault philosophy applies: **reference code locations, don't duplicate them**. Don't write out full request/response JSON schemas if they live in `models.py`; reference the file. Don't enumerate every method on a class if the interface is in code; reference the file + class.
 
@@ -243,7 +243,7 @@ In Standard / Minimal mode: SKIP this step. Code is the source of truth; no sepa
 
 ### Step 6b: Update milestone.md
 
-Update `architecture/slices/slice-NNN-<name>/milestone.md`:
+Update `<vault>/slices/slice-NNN-<name>/milestone.md`:
 
 - Frontmatter: `stage: design`, `updated: <today>`, `next-action: run /critique` (or `run /build-slice` if `critic-required: false`)
 - Check progress box: `- [x] /design-slice — <date>`

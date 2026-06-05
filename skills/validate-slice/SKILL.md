@@ -80,7 +80,7 @@ For features involving:
 
 Validation REQUIRES testing on multiple instances simultaneously. Single-instance passing is NOT proof. The Google Drive `drive.file` incident is the canonical example of why.
 
-### Step 5: Write `architecture/slices/slice-NNN-<name>/validation.md`
+### Step 5: Write `<vault>/slices/slice-NNN-<name>/validation.md`
 
 ```markdown
 # Validation: Slice NNN <name>
@@ -119,7 +119,7 @@ Per **VAL-1** (`methodology-changelog.md` v0.14.0), `/validate-slice` runs two d
 
 ```bash
 $PY -m tools.validate_slice_layers \
-  --slice architecture/slices/slice-NNN-<name> \
+  --slice <vault>/slices/slice-NNN-<name> \
   --changed-files <list of files this slice changed>
 ```
 
@@ -133,7 +133,7 @@ Python `ast`-parses every changed `.py` file and resolves each top-level import 
 
 ```bash
 $PY -m tools.validate_slice_layers \
-  --slice architecture/slices/slice-NNN-<name> \
+  --slice <vault>/slices/slice-NNN-<name> \
   --changed-files <list of files this slice changed> \
   --imports-allowlist tests
 ```
@@ -155,7 +155,7 @@ v1 limitations: Layer B is Python-only; TS/JS dep hallucination is deferred to v
 Per **WS-1** (`methodology-changelog.md` v0.15.0), when this slice's `mission-brief.md` declares `**Walking-skeleton**: true`, every architectural layer in the `## Architectural layers exercised` table must be EXERCISED at runtime by validation. Run:
 
 ```bash
-$PY -m tools.walking_skeleton_audit architecture/slices/slice-NNN-<name> --strict-pre-finish
+$PY -m tools.walking_skeleton_audit <vault>/slices/slice-NNN-<name> --strict-pre-finish
 ```
 
 The walking-skeleton discipline (Cockburn): the smallest possible end-to-end implementation that exercises every architectural layer. Real features layer onto the proven foundation. The audit forces explicit enumeration of the layers and confirms each was actually reached during validation — not just unit-tested in isolation.
@@ -176,7 +176,7 @@ NFR-1 carry-over: slices whose `mission-brief.md` mtime predates 2026-05-06 are 
 Per **ETC-1** (`methodology-changelog.md` v0.16.0), when this slice's `mission-brief.md` declares `**Exploratory-charter**: true`, every charter in the `## Exploratory test charter` table must be COMPLETED (with findings recorded) or DEFERRED (with rationale). Run:
 
 ```bash
-$PY -m tools.exploratory_charter_audit architecture/slices/slice-NNN-<name> --strict-pre-finish
+$PY -m tools.exploratory_charter_audit <vault>/slices/slice-NNN-<name> --strict-pre-finish
 ```
 
 Charter-based exploratory testing (Bach / Kaner / Hendrickson): each charter is a timeboxed mission ("Explore X using Y to find Z"); the tester runs the session freely and captures what surfaces. Distinct from scripted testing — surfaces what's NOT in the AC, unstated assumptions, edge cases the design didn't predict.
@@ -254,7 +254,7 @@ Target runtime: full catalog < 2 min. If it bloats past that, `/reduce` can prop
 
 ### Step 7: Update milestone.md
 
-Update `architecture/slices/slice-NNN-<name>/milestone.md`:
+Update `<vault>/slices/slice-NNN-<name>/milestone.md`:
 
 - Frontmatter: `stage: validate`, `updated: <today>`, `next-action: run /reflect` (or `fix regression then re-run /validate-slice` if shippability caught one)
 - Check progress box: `- [x] /validate-slice — <date> — <PASS | PARTIAL | FAIL>`

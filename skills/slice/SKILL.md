@@ -1,6 +1,6 @@
 ---
 name: slice
-description: "AI SDLC pipeline. Define the next thinnest valuable cut to build. Each slice = one vertical end-to-end cut delivered with verification. Selected by risk-first ordering. Use after /reflect (or after /discover for slice 1). Trigger phrases: '/slice', 'define next slice', 'plan next cut', 'what should we build next', 'next slice'. Produces a 1-page mission brief at architecture/slices/slice-NNN-<name>/mission-brief.md. Different from generic 'sprint planning' — slice is one cut, not a sprint."
+description: "AI SDLC pipeline. Define the next thinnest valuable cut to build. Each slice = one vertical end-to-end cut delivered with verification. Selected by risk-first ordering. Use after /reflect (or after /discover for slice 1). Trigger phrases: '/slice', 'define next slice', 'plan next cut', 'what should we build next', 'next slice'. Produces a 1-page mission brief at <vault>/slices/slice-NNN-<name>/mission-brief.md. Different from generic 'sprint planning' — slice is one cut, not a sprint."
 user_invokable: true
 argument-hint: [optional slice description or hint]
 ---
@@ -246,10 +246,10 @@ Per **BRANCH-3** (`methodology-changelog.md` v0.81.0; [[ADR-090]]; partial-super
    git -C <main> worktree add <wt_path> -b slice/NNN-<name> <default>
    ```
    `<default>` resolves per the `### Branch state` logic in `skills/build-slice/SKILL.md` (`git symbolic-ref refs/remotes/origin/HEAD` → `git config init.defaultBranch` fallback). **Failure** (path exists / branch collision) → STOP, surface; nothing else has run, no cleanup needed.
-3. **Write** `mission-brief.md` + `milestone.md` into `<wt_path>/architecture/slices/slice-NNN-<name>/` (Step 6 below), and ALL downstream `/design-slice` + `/critique` + `/critique-review` artifacts into the same worktree. **Failure** → STOP, surface; roll back the worktree (`git -C <main> worktree remove <wt_path>`).
-4. **Pick provenance + queue** — Step 6.5 below, still in the **main tree** on the default branch: regenerate `architecture/slice-queue.md` + `record_pick` append the pick-log line, then commit **only** the queue file on the default branch.
+3. **Write** `mission-brief.md` + `milestone.md` into `<vault>/slices/slice-NNN-<name>/` (Step 6 below; post-flip the vault root resolves to the **EXTERNAL store** per [[decisions/ADR-107]] — the scaffold + ALL downstream `/design-slice` + `/critique` + `/critique-review` artifacts land in the shared external vault, NOT the worktree, which post-flip holds only the slice's CODE changes). **Failure** → STOP, surface; roll back the worktree (`git -C <main> worktree remove <wt_path>`).
+4. **Pick provenance + queue** — Step 6.5 below: regenerate `<vault>/slice-queue.md` (post-flip the **EXTERNAL store**, CAS-mediated per slice-109) + `record_pick` append the pick-log line. Post-flip there is **no default-branch commit** — the shared external store IS the cross-session visibility ([[decisions/ADR-107]]).
 
-After Steps 5.5 + 6 + 6.5, the default branch's working tree is clean of slice work — the scaffold lives only in the worktree; only `slice-queue.md` is committed on the default branch. The two trees never both hold the default branch (the main tree holds it; the worktree holds `slice/NNN`). **Step-4 (queue-commit) failure AFTER a successful worktree-add** leaves an *orphan worktree* with scaffold but no committed pick-log line — surface it explicitly with recovery instructions (`git -C <main> worktree remove <wt_path>` to abandon, OR retry the queue commit). This orphan is the M1 abandoned-pick class: it shows as `IN_PROGRESS:slice` **informational** (`halt: false`) in `stranded_slice_audit` — listed, never silently lost.
+After Steps 5.5 + 6 + 6.5, the default branch's working tree is clean of slice work — the scaffold + queue live in the **external vault store** (post-flip), the worktree holds the slice's code. **Step-4 (queue-write) failure AFTER a successful worktree-add** leaves an *orphan worktree* with code but no queue pick-log line — surface it explicitly with recovery instructions (`git -C <main> worktree remove <wt_path>` to abandon, OR retry the queue write). This orphan is the M1 abandoned-pick class: it shows as `IN_PROGRESS:slice` **informational** (`halt: false`) in `stranded_slice_audit` — listed, never silently lost.
 
 **Pick-time `WORKTREE=skip` fallback** (bootstrap slices that cannot use their own deliverable — e.g. slice-099 itself; legacy edge cases): when a worktree cannot or should not be created at pick, `/slice` does NOT create a worktree, writes the scaffold to the **main tree** as pre-BRANCH-3, **AND pre-creates `build-log.md` with an `## Events` section carrying the canonical skip bullet** so the build-time `branch_workflow_audit` reads it unchanged. The leading `- ` is load-bearing — `_WORKTREE_SKIP_LINE_RE` is anchored `^- \d{4}-…` (`branch_workflow_audit.py`):
 ```markdown
@@ -261,11 +261,11 @@ After Steps 5.5 + 6 + 6.5, the default branch's working tree is clean of slice w
 
 ### Step 6: Write the mission brief + create milestone.md
 
-The next slice number + name were settled at Step 5.5 (folder `slice-NNN-<name>`; `max(existing)+1`). Write the artifacts **into the worktree created at Step 5.5** — under `<wt_path>/architecture/slices/…`, NOT the default tree (under a pick-time `WORKTREE=skip` they live in the main tree's `architecture/slices/…` as pre-BRANCH-3):
+The next slice number + name were settled at Step 5.5 (folder `slice-NNN-<name>`; `max(existing)+1`). Write the artifacts to the **external vault store** — under `<vault>/slices/slice-NNN-<name>/` (post-flip the vault root resolves external per [[decisions/ADR-107]]; the worktree created at Step 5.5 holds the slice's code, the vault artifacts are external + shared across worktrees):
 
 Create:
-- `<wt_path>/architecture/slices/slice-NNN-<name>/mission-brief.md` using the template below
-- `<wt_path>/architecture/slices/slice-NNN-<name>/milestone.md` — initial rolling state file (see `~/.claude/templates/milestone.md` for the canonical shape)
+- `<vault>/slices/slice-NNN-<name>/mission-brief.md` using the template below
+- `<vault>/slices/slice-NNN-<name>/milestone.md` — initial rolling state file (see `~/.claude/templates/milestone.md` for the canonical shape)
 
 ### Initial milestone.md
 
@@ -427,9 +427,9 @@ Expected: <outcome>. If fails: STOP, diagnose, don't continue.
 
 ### Step 6.5: Write the parallel-slice queue (PSQ-1)
 
-Per **PSQ-1** (`methodology-changelog.md` v0.69.0; [[ADR-064]]; slice-067 mints a new rule; supersedes nothing): immediately after writing `mission-brief.md` + `milestone.md` (current Step 6), invoke the helper to write `architecture/slice-queue.md` containing the top-10 parallel-safe candidates from Step 1's source-fan-out (sources #1-8). Each entry tags the candidate's blast-radius file set (from graphify) and a 4-value `Parallel-safety` enum computed against the union of expected blast-radius file sets for currently-active slices. The queue is a multi-session-visible artifact future Claude sessions (and slice-068's PSQ-2 claim machinery, when shipped) can read to pick a parallel-safe next-slice.
+Per **PSQ-1** (`methodology-changelog.md` v0.69.0; [[ADR-064]]; slice-067 mints a new rule; supersedes nothing): immediately after writing `mission-brief.md` + `milestone.md` (current Step 6), invoke the helper to write `<vault>/slice-queue.md` containing the top-10 parallel-safe candidates from Step 1's source-fan-out (sources #1-8). Each entry tags the candidate's blast-radius file set (from graphify) and a 4-value `Parallel-safety` enum computed against the union of expected blast-radius file sets for currently-active slices. The queue is a multi-session-visible artifact future Claude sessions (and slice-068's PSQ-2 claim machinery, when shipped) can read to pick a parallel-safe next-slice.
 
-Invocation shape (BRANCH-3 two-tree sequence — `/slice` runs in the main tree; the queue write + pick-log + commit all target the **main tree**, NOT the worktree, so cross-session coordination stays visible on the default branch per [[ADR-090]]). Wrapped in `try/except ImportError` so a `/slice` run before the helper is installed silently no-ops (bootstrap defense per ADR-064 + slice-066 idempotent-guard precedent; the PSQ-1 queue regen NEVER blocks `/slice`'s primary deliverable). The **pick-provenance** write (AC2) is the one part that is **fail-visible**, never silent — git identity unset surfaces `read_git_config_user`'s `ClaimUsageError` (R-7 silent-disable class):
+Invocation shape (post-flip — `/slice` runs in the main tree; the queue write + pick-log target the **external vault store** [resolved via VAULT_ROOT], so cross-session coordination is visible via the shared store per [[decisions/ADR-107]]; the pre-flip commit-on-master per [[ADR-090]] is retired). Wrapped in `try/except ImportError` so a `/slice` run before the helper is installed silently no-ops (bootstrap defense per ADR-064 + slice-066 idempotent-guard precedent; the PSQ-1 queue regen NEVER blocks `/slice`'s primary deliverable). The **pick-provenance** write (AC2) is the one part that is **fail-visible**, never silent — git identity unset surfaces `read_git_config_user`'s `ClaimUsageError` (R-7 silent-disable class):
 
 ```bash
 # Serialise your Step 3 ranked candidate list (top-10) to a temp JSON file:
@@ -471,12 +471,13 @@ if record_pick is not None:
     record_pick(repo_root=main, slice_name='slice-NNN-<name>',
                 picker_identity=' '.join(read_git_config_user()))
 "
-# Commit ONLY the queue file on the default branch, in the main tree:
-git -C <main> add architecture/slice-queue.md
-git -C <main> commit -m "chore(queue): pick slice-NNN-<name>"
+# slice-115 / [[ADR-107]]: NO default-branch commit. write_slice_queue/record_pick resolve
+# `<vault>/slice-queue.md` via VAULT_ROOT (the EXTERNAL store post-flip); the shared external
+# store IS the cross-session visibility the pre-flip commit-on-master provided. Concurrent
+# writes serialize on the slice-109 CAS channel (safe_rewrite_text), not git's index lock.
 ```
 
-`write_slice_queue` preserves the append-only `## Pick log` section verbatim across each `## Candidates` regeneration (it reads the literal pick-log tail and re-appends it — a path distinct from PSQ-2 claim-preservation, which keys on `### entry` headers a top-level section lacks). `record_pick` is idempotent by `- slice-NNN-<name> —` prefix-scan (a re-run is a no-op, not a duplicate) and **creates** the `## Pick log` section after `## Candidates` on the first pick (fresh / pre-BRANCH-3 queue). Concurrent same-machine picks serialize on `_vault_write`'s sidecar lock (queue write) + git's index lock (commit); a contending commit fails visibly and is retried — **not** PCR (which resolves rebase-stage conflicts at `/commit-slice`). Pick-log line shape: `- slice-NNN-<name> — picked <ISO-8601 UTC> by <git user.name> <user.email>`.
+`write_slice_queue` preserves the append-only `## Pick log` section verbatim across each `## Candidates` regeneration (it reads the literal pick-log tail and re-appends it — a path distinct from PSQ-2 claim-preservation, which keys on `### entry` headers a top-level section lacks). `record_pick` is idempotent by `- slice-NNN-<name> —` prefix-scan (a re-run is a no-op, not a duplicate) and **creates** the `## Pick log` section after `## Candidates` on the first pick (fresh / pre-BRANCH-3 queue). Concurrent same-machine picks serialize on the slice-109 CAS channel (`safe_rewrite_text` — compare-and-swap on the external queue); a contending write fails visibly (exit 3) and re-reads + retries — **not** git's index lock (no commit post-flip) and **not** PCR (the vault is untracked post-flip). Pick-log line shape: `- slice-NNN-<name> — picked <ISO-8601 UTC> by <git user.name> <user.email>`.
 
 The 4-value `Parallel-safety` enum + precedence (highest first): `UNKNOWN-NO-GRAPH` (graphify graph missing) > `UNKNOWN-NO-HINT-FILES` (candidate has no source-cited files) > `OVERLAPS-WITH-slice-NNN[, slice-MMM]` (non-empty intersection with active slice blast-radius) > `NON-OVERLAPPING`. The queue file format (5 required field lines per entry: `Source`, `Blast-radius`, `Parallel-safety`, `Effort`, `Risk-retired`) is a stable on-disk contract that slice-068 (PSQ-2 claim machinery) will extend additively.
 
@@ -512,7 +513,7 @@ Per **PSQ-2** (`methodology-changelog.md` v0.71.0; slice-072; [[ADR-067]]; mints
 - **predecessor**: `/reflect` (or `/discover` for slice 1 — loop entry)
 - **successor**: `/design-slice`
 - **auto-advance**: true
-- **on-clean-completion**: once the mission brief + milestone.md are written AND a candidate is settled (user supplied explicit `/slice "<intent>"`, picked from the ranked list, or said "you pick"/autonomous), invoke `/design-slice` via the Skill tool without waiting for the user. **BRANCH-3 side-effect (per [[ADR-090]])**: Step 5.5 fires FIRST — the worktree + `slice/NNN-<name>` branch are created at pick, so this skill's artifacts (and every downstream `/design-slice`/`/critique` artifact) land in the worktree, never the default branch. **PSQ-1 side-effect**: Step 6.5 then regenerates `architecture/slice-queue.md` + appends the `## Pick log` line + commits **only** the queue file on the default branch (the sole default-branch write at pick); PSQ-1 queue-regen failure is non-fatal (wrapped in try/except per ADR-064 Consequences §) while pick-provenance is fail-visible (AC2); neither blocks auto-advance to `/design-slice`.
+- **on-clean-completion**: once the mission brief + milestone.md are written AND a candidate is settled (user supplied explicit `/slice "<intent>"`, picked from the ranked list, or said "you pick"/autonomous), invoke `/design-slice` via the Skill tool without waiting for the user. **BRANCH-3 side-effect (per [[ADR-090]], partial-superseded by [[decisions/ADR-107]])**: Step 5.5 fires FIRST — the worktree + `slice/NNN-<name>` branch are created at pick for the slice's CODE; post-flip this skill's vault artifacts (and every downstream `/design-slice`/`/critique` artifact) land in the **external vault store**, never the worktree or the default branch. **PSQ-1 side-effect**: Step 6.5 then regenerates `<vault>/slice-queue.md` + appends the `## Pick log` line to the external store (no default-branch commit post-flip per [[decisions/ADR-107]]); PSQ-1 queue-regen failure is non-fatal (wrapped in try/except per ADR-064 Consequences §) while pick-provenance is fail-visible (AC2); neither blocks auto-advance to `/design-slice`.
 - **user-input gates** (halt auto-advance — surface to user, resume only on explicit user action):
   - Candidate selection — HALT unless the user supplied explicit intent OR said "you pick"/autonomous (Step 3 / Step 3b).
   - BFRD-1 bug-fix confirm gate (Step 3c, per ADR-048) — HALT **only** at the structured confirm/modify-the-distilled-`/repro`-description prompt. On **Confirm/Modify**, `/slice` auto-invokes `/repro` itself (bounded to one attempt) and continues — NOT a hand-off back to the user. On **"Not a bug — cancel"**, fail-closed (no auto-`/repro`, no silent proceed; user re-scopes).
